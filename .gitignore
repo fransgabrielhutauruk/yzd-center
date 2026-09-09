@@ -1,0 +1,50 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE & Editor files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment & local secrets
+.env
+.env.*
+!.env.example
+src/.env
+src/.env.*
+!src/.env.example
+
+# Dependencies
+node_modules/
+src/node_modules/
+vendor/
+src/vendor/
+
+# Laravel Storage & Cache
+src/storage/*.key
+src/storage/pail
+src/storage/logs/*.log
+src/storage/framework/cache/data/*
+src/storage/framework/sessions/*
+src/storage/framework/testing/*
+src/storage/framework/views/*
+!src/storage/framework/cache/.gitignore
+!src/storage/framework/sessions/.gitignore
+!src/storage/framework/testing/.gitignore
+!src/storage/framework/views/.gitignore
+!src/storage/logs/.gitignore
+
+# Build assets
+src/public/build
+src/public/hot
+src/public/storage
+
+# Caches & temporary files
+src/.phpunit.result.cache
+src/.phpunit.cache
+src/create_db.php
