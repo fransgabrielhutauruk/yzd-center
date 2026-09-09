@@ -279,7 +279,52 @@ class AuthTest extends TestCase
         $response = $this->actingAs($admin)->get('/admin/invitations');
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page->component('Admin/Invitations/Index'));
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Invitations/Index')
+            ->has('invitations.data')
+            ->has('filters')
+        );
+    }
+
+    public function test_admin_can_filter_invitations_with_search_and_pagination(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        Invitation::create([
+            'token'          => 'tokenbatchalpha123456789012345',
+            'label'          => 'Batch Alpha Khusus',
+            'target_role'    => 'investor',
+            'kuota_maksimal' => 5,
+            'total_terpakai' => 0,
+            'is_active'      => true,
+        ]);
+
+        Invitation::create([
+            'token'          => 'tokenbatchbeta1234567890123456',
+            'label'          => 'Batch Beta Umum',
+            'target_role'    => 'affiliator',
+            'kuota_maksimal' => 10,
+            'total_terpakai' => 0,
+            'is_active'      => true,
+        ]);
+
+        $response = $this->actingAs($admin)->get('/admin/invitations?search=Alpha');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Invitations/Index')
+            ->has('invitations.data', 1)
+            ->where('invitations.data.0.label', 'Batch Alpha Khusus')
+        );
+
+        $roleResponse = $this->actingAs($admin)->get('/admin/invitations?role=affiliator');
+
+        $roleResponse->assertStatus(200);
+        $roleResponse->assertInertia(fn ($page) => $page
+            ->component('Admin/Invitations/Index')
+            ->has('invitations.data', 1)
+            ->where('invitations.data.0.target_role', 'affiliator')
+        );
     }
 
     public function test_non_admin_cannot_access_invitations_list(): void

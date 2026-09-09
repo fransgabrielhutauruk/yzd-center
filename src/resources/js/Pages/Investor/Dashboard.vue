@@ -17,6 +17,8 @@ import {
     Clock
 } from 'lucide-vue-next';
 
+import { toast } from 'vue-sonner';
+
 const props = defineProps({
     user: {
         type: Object,
@@ -31,11 +33,15 @@ const copyReferralCode = async () => {
     try {
         await navigator.clipboard.writeText(props.user.referral_code);
         copied.value = true;
+        toast.success('Kode referral resmi berhasil disalin ke clipboard!', {
+            description: props.user.referral_code,
+        });
         setTimeout(() => {
             copied.value = false;
         }, 2000);
     } catch (err) {
         console.error('Gagal menyalin kode referral:', err);
+        toast.error('Gagal menyalin kode referral.');
     }
 };
 </script>

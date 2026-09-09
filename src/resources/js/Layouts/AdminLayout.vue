@@ -26,6 +26,7 @@ import {
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppAlert from '@/Components/Common/AppAlert.vue';
+import AppToaster from '@/Components/Common/AppToaster.vue';
 
 defineProps({
     title: {
@@ -96,6 +97,7 @@ const logout = () => {
 
 <template>
     <Head :title="title" />
+    <AppToaster />
 
     <div class="min-h-screen bg-slate-50 dark:bg-slate-950 text-foreground flex transition-colors duration-200">
         <!-- Backdrop Mobile Sidebar -->

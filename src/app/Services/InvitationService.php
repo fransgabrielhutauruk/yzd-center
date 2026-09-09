@@ -10,6 +10,91 @@ use Illuminate\Support\Str;
 class InvitationService
 {
     /**
+     * Ambil daftar tautan undangan terpaginasi dengan pencarian dan filter server-side.
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function getPaginatedInvitations(array $filters): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        $query = Invitation::query();
+
+        // Filter pencarian keyword
+        if (!empty($filters['search'])) {
+            $search = trim((string) $filters['search']);
+            $query->where(function ($q) use ($search) {
+                $q->where('label', 'like', "%{$search}%")
+                    ->orWhere('token', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter status
+        if (!empty($filters['status'])) {
+            match ($filters['status']) {
+                'active' => $query->where('is_active', true)
+                    ->where(fn ($q) => $q->whereNull('expired_at')->orWhere('expired_at', '>', now()))
+                    ->whereColumn('total_terpakai', '<', 'kuota_maksimal'),
+                'expired'    => $query->whereNotNull('expired_at')->where('expired_at', '<=', now()),
+                'quota_full' => $query->whereColumn('total_terpakai', '>=', 'kuota_maksimal'),
+                'inactive'   => $query->where('is_active', false),
+                default      => null,
+            };
+        }
+
+        // Filter peran target
+        if (!empty($filters['role'])) {
+            $query->where('target_role', $filters['role']);
+        }
+
+        // Pengurutan (Sorting)
+        $allowedSorts = ['invitation_id', 'label', 'target_role', 'total_terpakai', 'created_at', 'expired_at'];
+        $sortBy = in_array($filters['sort_by'] ?? '', $allowedSorts, true) ? $filters['sort_by'] : 'invitation_id';
+        $sortDirection = strtolower($filters['sort_direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        $query->orderBy($sortBy, $sortDirection);
+
+        $perPage = min(100, max(5, (int) ($filters['per_page'] ?? 10)));
+
+        return $query->paginate($perPage)
+            ->withQueryString()
+            ->through(function (Invitation $inv): array {
+                $isExpired = $inv->isExpired();
+                $isQuotaFull = $inv->isQuotaFull();
+
+                $statusKey = 'active';
+                $statusLabel = 'Aktif';
+
+                if (!$inv->is_active) {
+                    $statusKey = 'inactive';
+                    $statusLabel = 'Nonaktif';
+                } elseif ($isQuotaFull) {
+                    $statusKey = 'quota_full';
+                    $statusLabel = 'Kuota Habis';
+                } elseif ($isExpired) {
+                    $statusKey = 'expired';
+                    $statusLabel = 'Kedaluwarsa';
+                }
+
+                return [
+                    'invitation_id'     => $inv->invitation_id,
+                    'token'             => $inv->token,
+                    'masked_token'      => substr($inv->token, 0, 8) . '...',
+                    'full_url'          => url('/register?invite=' . $inv->token),
+                    'label'             => $inv->label,
+                    'target_role'       => $inv->target_role,
+                    'target_role_label' => ucfirst($inv->target_role),
+                    'kuota_maksimal'    => $inv->kuota_maksimal,
+                    'total_terpakai'    => $inv->total_terpakai,
+                    'usage_label'       => "{$inv->total_terpakai} / {$inv->kuota_maksimal}",
+                    'is_active'         => $inv->is_active,
+                    'status_key'        => $statusKey,
+                    'status_label'      => $statusLabel,
+                    'created_at_label'  => tanggal_singkat($inv->created_at),
+                    'expired_at_label'  => $inv->expired_at ? tanggal_singkat($inv->expired_at) : 'Tanpa Batas',
+                ];
+            });
+    }
+
+    /**
      * Ambil seluruh daftar tautan undangan untuk tampilan admin.
      *
      * @return array<int, array<string, mixed>>
@@ -26,7 +111,6 @@ class InvitationService
 
             $statusKey = 'active';
             $statusLabel = 'Aktif';
-
             if (!$inv->is_active) {
                 $statusKey = 'inactive';
                 $statusLabel = 'Nonaktif';

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreInvitationRequest;
 use App\Services\InvitationService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -18,10 +19,13 @@ class InvitationController extends Controller
     /**
      * Tampilkan daftar manajemen tautan undangan.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $filters = $request->only(['search', 'status', 'role', 'sort_by', 'sort_direction', 'per_page']);
+
         return Inertia::render('Admin/Invitations/Index', [
-            'invitations' => $this->invitationService->getInvitationsList(),
+            'invitations' => $this->invitationService->getPaginatedInvitations($filters),
+            'filters'     => $filters,
         ]);
     }
 
