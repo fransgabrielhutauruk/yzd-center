@@ -20,6 +20,14 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    showHeader: {
+        type: Boolean,
+        default: true,
+    },
+    showClose: {
+        type: Boolean,
+        default: true,
+    },
 });
 
 const emit = defineEmits(['close']);
@@ -114,15 +122,16 @@ const maxWidthClass = computed(() => {
                     >
                         <!-- Header -->
                         <slot name="header">
-                            <div v-if="title || closeable" class="px-6 py-4 border-b border-border flex items-center justify-between">
-                                <h3 class="font-bold text-base text-foreground truncate">
+                            <div v-if="showHeader && (title || (closeable && showClose))" class="px-6 py-4 border-b border-border flex items-center justify-between">
+                                <h3 v-if="title" class="font-bold text-base text-foreground truncate">
                                     {{ title }}
                                 </h3>
+                                <div v-else></div>
                                 <button
-                                    v-if="closeable"
+                                    v-if="closeable && showClose"
                                     type="button"
                                     @click="close"
-                                    class="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                    class="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors ml-auto"
                                     aria-label="Tutup"
                                 >
                                     <X class="w-5 h-5" />

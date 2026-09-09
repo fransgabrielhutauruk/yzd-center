@@ -79,9 +79,12 @@ const confirmButtonClass = computed(() => {
     <AppModal
         :show="show"
         max-width="md"
+        :show-header="false"
+        :show-close="false"
         :closeable="!loading"
         @close="emit('cancel')"
     >
+        <template #header></template>
         <div class="flex items-start gap-4">
             <!-- Alert Icon Badge -->
             <div
