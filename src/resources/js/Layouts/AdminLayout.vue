@@ -25,7 +25,6 @@ import {
     User as UserIcon,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
-import AppAlert from '@/Components/Common/AppAlert.vue';
 import AppToaster from '@/Components/Common/AppToaster.vue';
 
 defineProps({
@@ -309,7 +308,6 @@ const logout = () => {
 
             <!-- Main Content Area -->
             <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-                <AppAlert />
                 <slot />
             </main>
         </div>
