@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Invitation;
+use App\Models\KontenLegal;
 use App\Models\User;
+use App\Models\UserAhliWaris;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -11,6 +13,10 @@ use Illuminate\Validation\ValidationException;
 
 class AuthService
 {
+    public function __construct(
+        private readonly KycService $kycService,
+    ) {}
+
     /**
      * Autentikasi pengguna menggunakan email atau username.
      */
@@ -66,6 +72,9 @@ class AuthService
                 }
             }
 
+            $terms = KontenLegal::getTerms();
+            $termsVersion = $terms?->versi ?? 'v1.0';
+
             $user = User::create([
                 'name'            => $data['name'],
                 'username'        => strtolower($data['username']),
@@ -75,13 +84,31 @@ class AuthService
                 'nik'             => $data['nik'],
                 'alamat'          => $data['alamat'],
                 'role'            => $invitation->target_role,
+                'status'          => 'pending',
                 'referral_code'   => $referralCode,
                 'is_active'       => true,
                 'terms_agreed_at' => now(),
-                'terms_version'   => 'v1.0',
+                'terms_version'   => $termsVersion,
                 'ip_address'      => $ip,
                 'created_by'      => 'invite:' . substr($invitation->token, 0, 8),
             ]);
+
+            // Simpan data ahli waris wajib
+            UserAhliWaris::create([
+                'user_id'           => $user->id,
+                'nama'              => $data['ahli_waris_nama'],
+                'hubungan_keluarga' => $data['ahli_waris_hubungan'],
+                'no_hp'             => $data['ahli_waris_phone'],
+                'alamat'            => $data['ahli_waris_alamat'],
+            ]);
+
+            // Unggah berkas dokumen KTP dan Surat Perjanjian
+            if (isset($data['dokumen_ktp'])) {
+                $this->kycService->uploadDocument($user, $data['dokumen_ktp'], 'ktp');
+            }
+            if (isset($data['dokumen_perjanjian'])) {
+                $this->kycService->uploadDocument($user, $data['dokumen_perjanjian'], 'perjanjian');
+            }
 
             $invitation->increment('total_terpakai');
 

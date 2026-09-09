@@ -27,6 +27,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'status',
         'nik',
         'phone',
         'alamat',
@@ -61,5 +62,38 @@ class User extends Authenticatable
             'password'          => 'hashed',
             'is_active'         => 'boolean',
         ];
+    }
+
+    public function ahliWaris(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(UserAhliWaris::class);
+    }
+
+    public function dokumen(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(UserDokumen::class);
+    }
+
+    public function isPendingKyc(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'active';
+    }
+
+    public function isKycApproved(): bool
+    {
+        $ktp = $this->dokumen()->where('tipe_dokumen', 'ktp')->first();
+        $perjanjian = $this->dokumen()->where('tipe_dokumen', 'perjanjian')->first();
+
+        return $ktp?->isApproved() && $perjanjian?->isApproved();
+    }
+
+    public function hasKycRevisionNeeded(): bool
+    {
+        return $this->dokumen()->where('status', 'revision_needed')->exists();
     }
 }

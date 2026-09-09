@@ -43,44 +43,104 @@ const navSections = [
     {
         title: 'Menu Utama',
         items: [
-            { label: 'Dasbor Admin', href: '/admin/dashboard', icon: LayoutDashboard, routeName: 'admin.dashboard' },
+            {
+                label: 'Dasbor Admin',
+                href: '/admin/dashboard',
+                icon: LayoutDashboard,
+                routeName: 'admin.dashboard',
+            },
         ],
     },
     {
         title: 'Operasional & Validasi',
         items: [
-            { label: 'Verifikasi Legalitas', href: '/admin/verifikasi-legalitas', icon: FileCheck, routeName: 'admin.verifikasi-legalitas' },
-            { label: 'Antrean Validasi', href: '/admin/antrean-validasi', icon: Inbox, badge: '3', routeName: 'admin.antrean-validasi' },
+            {
+                label: 'Verifikasi Legalitas',
+                href: '/admin/kyc',
+                icon: FileCheck,
+                routeName: 'admin.kyc.index',
+            },
+            {
+                label: 'Antrean Validasi',
+                href: '/admin/antrean-validasi',
+                icon: Inbox,
+                badge: '3',
+                routeName: 'admin.antrean-validasi',
+            },
         ],
     },
     {
         title: 'Manajemen Afiliasi',
         items: [
-            { label: 'Klaim Referral Susulan', href: '/admin/klaim-susulan', icon: UserPlus, routeName: 'admin.klaim-susulan' },
-            { label: 'Pencairan Komisi', href: '/admin/pencairan-komisi', icon: Wallet, routeName: 'admin.pencairan-komisi' },
+            {
+                label: 'Klaim Referral Susulan',
+                href: '/admin/klaim-susulan',
+                icon: UserPlus,
+                routeName: 'admin.klaim-susulan',
+            },
+            {
+                label: 'Pencairan Komisi',
+                href: '/admin/pencairan-komisi',
+                icon: Wallet,
+                routeName: 'admin.pencairan-komisi',
+            },
         ],
     },
     {
         title: 'Manajemen Data',
         items: [
-            { label: 'Tautan Undangan', href: '/admin/invitations', icon: Link2, routeName: 'admin.invitations.index' },
-            { label: 'Data Investor', href: '/admin/investors', icon: Users, routeName: 'admin.investors.index' },
-            { label: 'Data Afiliator', href: '/admin/affiliators', icon: UserCheck, routeName: 'admin.affiliators.index' },
+            {
+                label: 'Tautan Undangan',
+                href: '/admin/invitations',
+                icon: Link2,
+                routeName: 'admin.invitations.index',
+            },
+            {
+                label: 'Data Investor',
+                href: '/admin/investors',
+                icon: Users,
+                routeName: 'admin.investors.index',
+            },
+            {
+                label: 'Data Afiliator',
+                href: '/admin/affiliators',
+                icon: UserCheck,
+                routeName: 'admin.affiliators.index',
+            },
         ],
     },
     {
         title: 'Kelola Konten (CMS)',
         items: [
-            { label: 'Kamus Forex', href: '/admin/kamus-forex', icon: BookOpen, routeName: 'admin.kamus-forex' },
-            { label: 'Pusat Bantuan (FAQ)', href: '/admin/faq', icon: HelpCircle, routeName: 'admin.faq' },
-            { label: 'Syarat & Ketentuan', href: '/admin/syarat-ketentuan', icon: FileText, routeName: 'admin.syarat-ketentuan' },
-            { label: 'Kebijakan Privasi', href: '/admin/kebijakan-privasi', icon: Shield, routeName: 'admin.kebijakan-privasi' },
+            {
+                label: 'Kamus Forex',
+                href: '/admin/kamus-forex',
+                icon: BookOpen,
+                routeName: 'admin.kamus-forex',
+            },
+            {
+                label: 'Pusat Bantuan (FAQ)',
+                href: '/admin/faq',
+                icon: HelpCircle,
+                routeName: 'admin.faq',
+            },
+            {
+                label: 'Konten Legalitas',
+                href: '/admin/settings/legal',
+                icon: FileText,
+                routeName: 'admin.settings.legal',
+            },
         ],
     },
     {
         title: 'Pengaturan',
         items: [
-            { label: 'Pengaturan Master', href: '/admin/settings', icon: Settings, routeName: 'admin.settings' },
+            {
+                label: 'Pengaturan Master',
+                href: '/admin/settings',
+                icon: Settings,
+                routeName: 'admin.settings',
+            },
         ],
     },
 ];
@@ -98,7 +158,9 @@ const logout = () => {
     <Head :title="title" />
     <AppToaster />
 
-    <div class="min-h-screen bg-slate-50 dark:bg-slate-950 text-foreground flex transition-colors duration-200">
+    <div
+        class="text-foreground flex min-h-screen bg-slate-50 transition-colors duration-200 dark:bg-slate-950"
+    >
         <!-- Backdrop Mobile Sidebar -->
         <transition
             enter-active-class="transition-opacity ease-linear duration-200"
@@ -111,38 +173,45 @@ const logout = () => {
             <div
                 v-if="isMobileSidebarOpen"
                 @click="isMobileSidebarOpen = false"
-                class="fixed inset-0 z-40 bg-black/60 md:hidden backdrop-blur-xs"
+                class="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs md:hidden"
             ></div>
         </transition>
 
         <!-- Sidebar Component -->
         <aside
             :class="[
-                'fixed md:static inset-y-0 left-0 z-50 w-64 bg-primary-600 dark:bg-slate-900 text-white flex flex-col transition-transform duration-300 ease-in-out border-r border-primary-700/50 dark:border-slate-800 shadow-xl md:shadow-none md:translate-x-0',
-                isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                'bg-primary-600 border-primary-700/50 fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r text-white shadow-xl transition-transform duration-300 ease-in-out md:static md:translate-x-0 md:shadow-none dark:border-slate-800 dark:bg-slate-900',
+                isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full',
             ]"
         >
             <!-- Logo Brand -->
-            <div class="h-16 px-6 flex items-center justify-between border-b border-white/15 dark:border-slate-800">
+            <div
+                class="flex h-16 items-center justify-between border-b border-white/15 px-6 dark:border-slate-800"
+            >
                 <Link href="/admin/dashboard" class="flex items-center gap-1">
-                    <span class="text-accent-500 font-extrabold text-2xl tracking-tight">YZD</span>
-                    <span class="text-white font-bold text-xl tracking-tight">Trading</span>
-                    <span class="ml-2 text-[10px] font-semibold bg-accent-500/20 text-accent-300 border border-accent-500/40 px-1.5 py-0.5 rounded">ADMIN</span>
+                    <span class="text-accent-500 text-2xl font-extrabold tracking-tight">YZD</span>
+                    <span class="text-xl font-bold tracking-tight text-white">Trading</span>
+                    <span
+                        class="bg-accent-500/20 text-accent-300 border-accent-500/40 ml-2 rounded border px-1.5 py-0.5 text-[10px] font-semibold"
+                        >ADMIN</span
+                    >
                 </Link>
 
                 <button
                     type="button"
                     @click="isMobileSidebarOpen = false"
-                    class="md:hidden p-1.5 text-white/70 hover:text-white rounded-lg hover:bg-white/10"
+                    class="rounded-lg p-1.5 text-white/70 hover:bg-white/10 hover:text-white md:hidden"
                 >
-                    <X class="w-5 h-5" />
+                    <X class="h-5 w-5" />
                 </button>
             </div>
 
             <!-- Sidebar Navigation Links -->
-            <nav class="flex-1 overflow-y-auto px-4 py-5 space-y-6 text-sm font-medium">
+            <nav class="flex-1 space-y-6 overflow-y-auto px-4 py-5 text-sm font-medium">
                 <div v-for="(section, idx) in navSections" :key="idx" class="space-y-1.5">
-                    <p class="px-3 text-[11px] font-semibold uppercase tracking-wider text-white/50">
+                    <p
+                        class="px-3 text-[11px] font-semibold tracking-wider text-white/50 uppercase"
+                    >
                         {{ section.title }}
                     </p>
 
@@ -153,20 +222,23 @@ const logout = () => {
                             :href="item.href"
                             @click="isMobileSidebarOpen = false"
                             :class="[
-                                'flex items-center justify-between px-3 py-2 rounded-lg transition-colors group',
+                                'group flex items-center justify-between rounded-lg px-3 py-2 transition-colors',
                                 isActive(item)
-                                    ? 'bg-primary-700 dark:bg-primary-900/60 text-white font-semibold shadow-inner'
-                                    : 'text-white/80 hover:text-white hover:bg-white/10 dark:hover:bg-slate-800/80'
+                                    ? 'bg-primary-700 dark:bg-primary-900/60 font-semibold text-white shadow-inner'
+                                    : 'text-white/80 hover:bg-white/10 hover:text-white dark:hover:bg-slate-800/80',
                             ]"
                         >
                             <div class="flex items-center gap-3">
-                                <component :is="item.icon" class="w-4 h-4 text-white/75 group-hover:text-white transition-colors" />
+                                <component
+                                    :is="item.icon"
+                                    class="h-4 w-4 text-white/75 transition-colors group-hover:text-white"
+                                />
                                 <span>{{ item.label }}</span>
                             </div>
 
                             <span
                                 v-if="item.badge"
-                                class="text-xs font-bold px-2 py-0.5 rounded-full bg-accent-500 text-white shadow-xs"
+                                class="bg-accent-500 rounded-full px-2 py-0.5 text-xs font-bold text-white shadow-xs"
                             >
                                 {{ item.badge }}
                             </span>
@@ -176,43 +248,51 @@ const logout = () => {
             </nav>
 
             <!-- Bottom User Profile Area -->
-            <div class="p-4 border-t border-white/15 dark:border-slate-800 bg-primary-700/50 dark:bg-slate-900/80 flex items-center justify-between">
+            <div
+                class="bg-primary-700/50 flex items-center justify-between border-t border-white/15 p-4 dark:border-slate-800 dark:bg-slate-900/80"
+            >
                 <div class="flex items-center gap-3 truncate">
-                    <div class="w-9 h-9 rounded-full bg-accent-500 text-white font-bold flex items-center justify-center text-sm shadow-sm flex-shrink-0">
+                    <div
+                        class="bg-accent-500 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-sm"
+                    >
                         AD
                     </div>
                     <div class="truncate text-xs">
-                        <p class="font-semibold text-white truncate">{{ page.props.auth?.user?.name || 'Administrator' }}</p>
-                        <p class="text-white/60 truncate">Admin Portal</p>
+                        <p class="truncate font-semibold text-white">
+                            {{ page.props.auth?.user?.name || 'Administrator' }}
+                        </p>
+                        <p class="truncate text-white/60">Admin Portal</p>
                     </div>
                 </div>
 
                 <button
                     type="button"
                     @click="logout"
-                    class="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                    class="rounded-lg p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
                     title="Keluar"
                 >
-                    <LogOut class="w-4 h-4" />
+                    <LogOut class="h-4 w-4" />
                 </button>
             </div>
         </aside>
 
         <!-- Main Wrapper -->
-        <div class="flex-1 flex flex-col min-w-0">
+        <div class="flex min-w-0 flex-1 flex-col">
             <!-- Top Navbar -->
-            <header class="h-16 px-4 sm:px-6 bg-white dark:bg-slate-900 border-b-2 border-accent-500 flex items-center justify-between shadow-xs sticky top-0 z-30 transition-colors">
+            <header
+                class="border-accent-500 sticky top-0 z-30 flex h-16 items-center justify-between border-b-2 bg-white px-4 shadow-xs transition-colors sm:px-6 dark:bg-slate-900"
+            >
                 <div class="flex items-center gap-3">
                     <button
                         type="button"
                         @click="isMobileSidebarOpen = true"
-                        class="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800"
+                        class="text-muted-foreground hover:text-foreground rounded-lg p-2 hover:bg-slate-100 md:hidden dark:hover:bg-slate-800"
                         aria-label="Buka Menu"
                     >
-                        <Menu class="w-5 h-5" />
+                        <Menu class="h-5 w-5" />
                     </button>
 
-                    <h1 class="text-base sm:text-lg font-semibold text-foreground truncate">
+                    <h1 class="text-foreground truncate text-base font-semibold sm:text-lg">
                         {{ title }}
                     </h1>
                 </div>
@@ -223,23 +303,25 @@ const logout = () => {
                     <button
                         type="button"
                         @click="toggleDarkMode"
-                        class="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        class="text-muted-foreground hover:text-foreground rounded-lg p-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
                         :title="isDark ? 'Mode Terang' : 'Mode Gelap'"
                         aria-label="Toggle Tema"
                     >
-                        <Sun v-if="isDark" class="w-5 h-5 text-amber-400" />
-                        <Moon v-else class="w-5 h-5 text-slate-600" />
+                        <Sun v-if="isDark" class="h-5 w-5 text-amber-400" />
+                        <Moon v-else class="h-5 w-5 text-slate-600" />
                     </button>
 
                     <!-- Notifications Bell (stub) -->
                     <div class="relative">
                         <button
                             type="button"
-                            class="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            class="text-muted-foreground hover:text-foreground rounded-lg p-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
                             aria-label="Notifikasi"
                         >
-                            <Bell class="w-5 h-5" />
-                            <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent-500 ring-2 ring-white dark:ring-slate-900"></span>
+                            <Bell class="h-5 w-5" />
+                            <span
+                                class="bg-accent-500 absolute top-1.5 right-1.5 h-2 w-2 rounded-full ring-2 ring-white dark:ring-slate-900"
+                            ></span>
                         </button>
                     </div>
 
@@ -248,15 +330,17 @@ const logout = () => {
                         <button
                             type="button"
                             @click="isUserDropdownOpen = !isUserDropdownOpen"
-                            class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm"
+                            class="flex items-center gap-2 rounded-lg p-1.5 text-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
                         >
-                            <div class="w-8 h-8 rounded-full bg-accent-500 text-white font-bold flex items-center justify-center text-xs shadow-xs">
+                            <div
+                                class="bg-accent-500 flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs"
+                            >
                                 AD
                             </div>
-                            <span class="hidden lg:inline-block font-medium text-foreground">
+                            <span class="text-foreground hidden font-medium lg:inline-block">
                                 {{ page.props.auth?.user?.name || 'Admin' }}
                             </span>
-                            <ChevronDown class="w-4 h-4 text-muted-foreground" />
+                            <ChevronDown class="text-muted-foreground h-4 w-4" />
                         </button>
 
                         <div
@@ -275,29 +359,33 @@ const logout = () => {
                         >
                             <div
                                 v-if="isUserDropdownOpen"
-                                class="absolute right-0 mt-2 w-48 bg-card rounded-xl border border-border shadow-lg py-1 z-50 text-sm font-medium"
+                                class="bg-card border-border absolute right-0 z-50 mt-2 w-48 rounded-xl border py-1 text-sm font-medium shadow-lg"
                             >
-                                <div class="px-4 py-2 border-b border-border/60">
-                                    <p class="font-semibold text-foreground truncate">{{ page.props.auth?.user?.name || 'Administrator' }}</p>
-                                    <p class="text-xs text-muted-foreground truncate">{{ page.props.auth?.user?.email }}</p>
+                                <div class="border-border/60 border-b px-4 py-2">
+                                    <p class="text-foreground truncate font-semibold">
+                                        {{ page.props.auth?.user?.name || 'Administrator' }}
+                                    </p>
+                                    <p class="text-muted-foreground truncate text-xs">
+                                        {{ page.props.auth?.user?.email }}
+                                    </p>
                                 </div>
 
                                 <Link
                                     href="/admin/settings"
-                                    class="flex items-center gap-2 px-4 py-2 text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                    class="text-foreground flex items-center gap-2 px-4 py-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
                                 >
-                                    <UserIcon class="w-4 h-4 text-muted-foreground" />
+                                    <UserIcon class="text-muted-foreground h-4 w-4" />
                                     <span>Profil Saya</span>
                                 </Link>
 
-                                <div class="my-1 border-t border-border/60"></div>
+                                <div class="border-border/60 my-1 border-t"></div>
 
                                 <button
                                     type="button"
                                     @click="logout"
-                                    class="w-full text-left flex items-center gap-2 px-4 py-2 text-destructive hover:bg-destructive/10 transition-colors"
+                                    class="text-destructive hover:bg-destructive/10 flex w-full items-center gap-2 px-4 py-2 text-left transition-colors"
                                 >
-                                    <LogOut class="w-4 h-4" />
+                                    <LogOut class="h-4 w-4" />
                                     <span>Keluar</span>
                                 </button>
                             </div>
@@ -307,7 +395,7 @@ const logout = () => {
             </header>
 
             <!-- Main Content Area -->
-            <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
                 <slot />
             </main>
         </div>

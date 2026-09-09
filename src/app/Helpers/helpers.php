@@ -52,3 +52,16 @@ if (!function_exists('tanggal_singkat')) {
         return Carbon::parse($date)->locale('id')->translatedFormat('d M Y');
     }
 }
+
+if (!function_exists('tanggal_waktu_indo')) {
+    function tanggal_waktu_indo(string|DateTimeInterface|null $date, bool $withWib = false): string
+    {
+        if (!$date) {
+            return '-';
+        }
+
+        $format = $withWib ? 'd M Y H:i \W\I\B' : 'd M Y H:i';
+
+        return Carbon::parse($date)->locale('id')->translatedFormat($format);
+    }
+}

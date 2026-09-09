@@ -8,6 +8,8 @@
   Untuk setiap perubahan kode atau fitur yang selesai dikerjakan, perubahan boleh di-commit secara lokal, tetapi **TIDAK BOLEH** langsung menjalankan `git push origin main`.
 - **Wajib Menunggu Approval:**
   Selalu tunggu persetujuan eksplisit (*approval*) dari USER sebelum melakukan `git push`, karena mungkin ada revisi atau penyesuaian tambahan dari user terlebih dahulu.
+- **Pengecekan Kode/Baris Duplikat Sebelum Commit (Zero Duplicate Policy):**
+  Sebelum membuat commit lokal maupun push, WAJIB memeriksa seluruh `git diff` secara teliti untuk mendeteksi dan membersihkan kode atau baris duplikat (seperti pesan validasi berulang, deklarasi array key ganda, re-assignment variabel yang tidak perlu, tag template/SFC ganda, atau tumpang-tindih teks akibat proses pengeditan). Pastikan setiap file benar-benar bersih dari redundansi kode.
 - **Model Branch:**
   Trunk-based development langsung pada branch `main` (commit format: *Conventional Commits* seperti `feat(...)`, `fix(...)`, `refactor(...)`).
 
@@ -39,6 +41,8 @@
 - **Format Kode:**
   Wajib lolos Laravel Pint sesuai aturan `src/pint.json`:
   `vendor/bin/pint --test app database routes tests`
+- **Pengecekan Integritas Kode & Anti-Duplikasi:**
+  Lakukan audit `git diff` untuk memastikan tidak ada artefak atau potongan kode duplikat yang tertinggal sebelum menjalankan pengujian dan build final.
 - **Pengujian:**
   Pastikan seluruh Feature Tests lulus sebelum melaporkan ke user:
   `artisan test --compact`

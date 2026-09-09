@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\Invitation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
@@ -170,6 +172,8 @@ class AuthTest extends TestCase
 
     public function test_new_user_can_register_with_valid_investor_invitation(): void
     {
+        Storage::fake('local');
+
         $invitation = Invitation::create([
             'token'          => 'tokenreginvestor123456789012345',
             'label'          => 'Investor Batch A',
@@ -191,6 +195,12 @@ class AuthTest extends TestCase
             'password'              => 'password123',
             'password_confirmation' => 'password123',
             'terms'                 => true,
+            'ahli_waris_nama'       => 'Siti Rahma',
+            'ahli_waris_hubungan'   => 'Istri',
+            'ahli_waris_phone'      => '081299998888',
+            'ahli_waris_alamat'     => 'Jl. Pahlawan No. 10, Surabaya',
+            'dokumen_ktp'           => UploadedFile::fake()->image('ktp.jpg', 800, 600),
+            'dokumen_perjanjian'    => UploadedFile::fake()->create('perjanjian.pdf', 300, 'application/pdf'),
         ];
 
         $response = $this->post('/register', $payload);
@@ -199,15 +209,22 @@ class AuthTest extends TestCase
         $user = auth()->user();
         $this->assertEquals('budisantoso99', $user->username);
         $this->assertEquals('investor', $user->role);
+        $this->assertEquals('pending', $user->status);
         $this->assertNotNull($user->terms_agreed_at);
         $this->assertEquals('v1.0', $user->terms_version);
 
+        $this->assertNotNull($user->ahliWaris);
+        $this->assertEquals('Siti Rahma', $user->ahliWaris->nama);
+        $this->assertCount(2, $user->dokumen);
+
         $this->assertEquals(1, $invitation->fresh()->total_terpakai);
-        $response->assertRedirect(route('investor.dashboard'));
+        $response->assertRedirect(route('investor.kyc.index'));
     }
 
     public function test_new_affiliator_registration_auto_generates_referral_code(): void
     {
+        Storage::fake('local');
+
         $invitation = Invitation::create([
             'token'          => 'tokenregaffiliator1234567890123',
             'label'          => 'Affiliator Batch A',
@@ -229,6 +246,12 @@ class AuthTest extends TestCase
             'password'              => 'password123',
             'password_confirmation' => 'password123',
             'terms'                 => true,
+            'ahli_waris_nama'       => 'Dewi Lestari',
+            'ahli_waris_hubungan'   => 'Istri',
+            'ahli_waris_phone'      => '081299997777',
+            'ahli_waris_alamat'     => 'Jl. Sudirman No. 5, Jakarta',
+            'dokumen_ktp'           => UploadedFile::fake()->image('ktp.jpg', 800, 600),
+            'dokumen_perjanjian'    => UploadedFile::fake()->create('perjanjian.pdf', 300, 'application/pdf'),
         ];
 
         $response = $this->post('/register', $payload);
@@ -236,13 +259,16 @@ class AuthTest extends TestCase
         $this->assertAuthenticated();
         $user = auth()->user();
         $this->assertEquals('affiliator', $user->role);
+        $this->assertEquals('pending', $user->status);
         $this->assertNotNull($user->referral_code);
         $this->assertStringStartsWith('RUDIMITRA', $user->referral_code);
-        $response->assertRedirect(route('investor.dashboard'));
+        $response->assertRedirect(route('investor.kyc.index'));
     }
 
     public function test_user_cannot_register_with_expired_token(): void
     {
+        Storage::fake('local');
+
         $invitation = Invitation::create([
             'token'          => 'expiredforreg123456789012345678',
             'label'          => 'Expired Batch',
@@ -264,6 +290,12 @@ class AuthTest extends TestCase
             'password'              => 'password123',
             'password_confirmation' => 'password123',
             'terms'                 => true,
+            'ahli_waris_nama'       => 'Ani Subroto',
+            'ahli_waris_hubungan'   => 'Anak',
+            'ahli_waris_phone'      => '081299996666',
+            'ahli_waris_alamat'     => 'Jl. Gatot Subroto No. 1',
+            'dokumen_ktp'           => UploadedFile::fake()->image('ktp.jpg', 800, 600),
+            'dokumen_perjanjian'    => UploadedFile::fake()->create('perjanjian.pdf', 300, 'application/pdf'),
         ];
 
         $response = $this->post('/register', $payload);

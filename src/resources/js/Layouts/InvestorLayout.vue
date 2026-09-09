@@ -20,6 +20,7 @@ import {
     ChevronDown,
     User as UserIcon,
     Globe,
+    FileCheck,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
@@ -163,6 +164,20 @@ const switchLocale = (lang) => {
                         >
                             <BarChart2 class="w-4 h-4 text-white/75 group-hover:text-white" />
                             <span>Statistik Portofolio</span>
+                        </Link>
+
+                        <Link
+                            href="/investor/kyc"
+                            @click="isMobileSidebarOpen = false"
+                            :class="[
+                                'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group',
+                                isActive('/investor/kyc')
+                                    ? 'bg-primary-700 dark:bg-primary-900/60 text-white font-semibold shadow-inner'
+                                    : 'text-white/80 hover:text-white hover:bg-white/10 dark:hover:bg-slate-800/80'
+                            ]"
+                        >
+                            <FileCheck class="w-4 h-4 text-white/75 group-hover:text-white" />
+                            <span>Status KYC & Legalitas</span>
                         </Link>
                     </div>
                 </div>

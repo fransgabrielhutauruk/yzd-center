@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Models\KontenLegal;
 use App\Services\AuthService;
 use App\Services\InvitationService;
 use Illuminate\Http\RedirectResponse;
@@ -25,10 +26,16 @@ class RegisteredUserController extends Controller
     {
         $token = $request->query('invite');
         $invitationStatus = $this->invitationService->validateToken($token);
+        $terms = KontenLegal::getTerms();
 
         return Inertia::render('Auth/Register', [
             'invitation' => $invitationStatus,
             'token'      => $token,
+            'terms'      => $terms ? [
+                'judul'  => $terms->judul,
+                'konten' => $terms->konten,
+                'versi'  => $terms->versi,
+            ] : null,
         ]);
     }
 
@@ -43,7 +50,7 @@ class RegisteredUserController extends Controller
 
         $this->authService->registerWithInvitation($validated, $token, $ip);
 
-        return redirect()->route('investor.dashboard')
-            ->with('success', 'Pendaftaran akun berhasil! Selamat datang di YZD Trading.');
+        return redirect()->route('investor.kyc.index')
+            ->with('success', 'Pendaftaran akun dan unggah berkas legalitas berhasil dikirim! Akun Anda sedang dalam proses peninjauan.');
     }
 }
