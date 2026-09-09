@@ -26,11 +26,38 @@ class UserFactory extends Factory
     {
         return [
             'name'              => fake()->name(),
+            'username'          => fake()->unique()->regexify('[a-z0-9_]{8,15}'),
             'email'             => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password'          => static::$password ??= Hash::make('password'),
+            'role'              => 'investor',
+            'phone'             => '0812' . fake()->numerify('########'),
+            'nik'               => fake()->numerify('3201############'),
+            'alamat'            => fake()->address(),
+            'is_active'         => true,
             'remember_token'    => Str::random(10),
         ];
+    }
+
+    /**
+     * Indicate that the user is an administrator.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'administrator',
+        ]);
+    }
+
+    /**
+     * Indicate that the user is an affiliator.
+     */
+    public function affiliator(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role'          => 'affiliator',
+            'referral_code' => 'AFF' . fake()->numerify('####'),
+        ]);
     }
 
     /**

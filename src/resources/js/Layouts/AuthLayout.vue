@@ -9,6 +9,10 @@ defineProps({
         type: String,
         default: 'Autentikasi',
     },
+    maxWidth: {
+        type: String,
+        default: 'max-w-md',
+    },
 });
 
 const { isDark, toggleDarkMode } = useDarkMode();
@@ -41,7 +45,7 @@ const { isDark, toggleDarkMode } = useDarkMode();
 
         <!-- Main Content Area -->
         <main class="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
-            <div class="w-full max-w-md">
+            <div :class="['w-full', maxWidth]">
                 <AppAlert />
 
                 <div class="bg-card text-card-foreground rounded-2xl border border-border/80 shadow-xl p-6 sm:p-8 backdrop-blur-sm">
