@@ -417,4 +417,47 @@ class AuthTest extends TestCase
 
         $response->assertRedirect('/login');
     }
+
+    public function test_guest_accessing_root_is_redirected_to_login(): void
+    {
+        $response = $this->get('/');
+
+        $response->assertRedirect(route('login'));
+    }
+
+    public function test_authenticated_admin_accessing_root_is_redirected_to_admin_dashboard(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $response = $this->actingAs($admin)->get('/');
+
+        $response->assertRedirect(route('admin.dashboard'));
+    }
+
+    public function test_authenticated_investor_accessing_root_is_redirected_to_investor_dashboard(): void
+    {
+        $investor = User::factory()->create(['role' => 'investor']);
+
+        $response = $this->actingAs($investor)->get('/');
+
+        $response->assertRedirect(route('investor.dashboard'));
+    }
+
+    public function test_authenticated_admin_accessing_login_is_redirected_to_admin_dashboard(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $response = $this->actingAs($admin)->get('/login');
+
+        $response->assertRedirect(route('admin.dashboard'));
+    }
+
+    public function test_authenticated_investor_accessing_login_is_redirected_to_investor_dashboard(): void
+    {
+        $investor = User::factory()->create(['role' => 'investor']);
+
+        $response = $this->actingAs($investor)->get('/login');
+
+        $response->assertRedirect(route('investor.dashboard'));
+    }
 }

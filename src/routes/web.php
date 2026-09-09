@@ -6,7 +6,6 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Investor\InvestorDashboardController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,9 +13,17 @@ use Inertia\Inertia;
 |--------------------------------------------------------------------------
 */
 
-// Halaman Utama / Sambutan
+// Halaman Utama: Redirect dinamis berdasarkan status autentikasi dan peran pengguna
 Route::get('/', function () {
-    return Inertia::render('Welcome');
+    if (auth()->check()) {
+        $user = auth()->user();
+
+        return ($user && $user->isAdmin())
+            ? redirect()->route('admin.dashboard')
+            : redirect()->route('investor.dashboard');
+    }
+
+    return redirect()->route('login');
 })->name('home');
 
 // Autentikasi Tamu (Guest Routes)
