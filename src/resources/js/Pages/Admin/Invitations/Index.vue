@@ -15,7 +15,8 @@ import {
     Clock,
     Users,
     UserCheck,
-    Check
+    Check,
+    Loader2,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -141,22 +142,23 @@ const getStatusBadgeClass = (statusKey) => {
     <AdminLayout title="Manajemen Tautan Undangan">
         <div class="space-y-6">
             <!-- Header Section -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div>
-                    <h2 class="text-xl font-bold tracking-tight text-foreground">
+                    <h2 class="text-foreground text-xl font-bold tracking-tight">
                         Tautan Undangan Pendaftaran
                     </h2>
-                    <p class="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                        Kelola token pendaftaran tertutup (*Closed Registration*) untuk Calon Investor dan Affiliator.
+                    <p class="text-muted-foreground mt-0.5 text-xs sm:text-sm">
+                        Kelola token pendaftaran tertutup (*Closed Registration*) untuk Calon
+                        Investor dan Affiliator.
                     </p>
                 </div>
 
                 <Button
                     type="button"
                     @click="openCreateModal"
-                    class="bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 self-start sm:self-auto transition-colors"
+                    class="bg-primary-600 hover:bg-primary-700 flex items-center gap-2 self-start rounded-lg px-4 py-2 font-medium text-white shadow-sm transition-colors sm:self-auto"
                 >
-                    <Plus class="w-4 h-4" />
+                    <Plus class="h-4 w-4" />
                     <span>Buat Undangan Baru</span>
                 </Button>
             </div>
@@ -173,12 +175,14 @@ const getStatusBadgeClass = (statusKey) => {
             >
                 <!-- Custom Filter Slot: Role & Status Filter Dropdowns -->
                 <template #filters="{ applyFilters }">
-                    <div class="hidden md:flex items-center gap-2">
+                    <div class="hidden items-center gap-2 md:flex">
                         <!-- Filter Role -->
                         <select
                             :value="filters.role || ''"
-                            @change="applyFilters({ role: $event.target.value || undefined, page: 1 })"
-                            class="px-2.5 py-1.5 bg-background border border-input rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            @change="
+                                applyFilters({ role: $event.target.value || undefined, page: 1 })
+                            "
+                            class="bg-background border-input focus:ring-primary-500 rounded-lg border px-2.5 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none"
                         >
                             <option value="">Semua Peran</option>
                             <option value="investor">Investor</option>
@@ -188,8 +192,10 @@ const getStatusBadgeClass = (statusKey) => {
                         <!-- Filter Status -->
                         <select
                             :value="filters.status || ''"
-                            @change="applyFilters({ status: $event.target.value || undefined, page: 1 })"
-                            class="px-2.5 py-1.5 bg-background border border-input rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            @change="
+                                applyFilters({ status: $event.target.value || undefined, page: 1 })
+                            "
+                            class="bg-background border-input focus:ring-primary-500 rounded-lg border px-2.5 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none"
                         >
                             <option value="">Semua Status</option>
                             <option value="active">Aktif</option>
@@ -203,12 +209,15 @@ const getStatusBadgeClass = (statusKey) => {
                 <!-- Custom Column: Label Kegiatan -->
                 <template #column-label="{ item }">
                     <div class="flex items-center gap-2">
-                        <Link2 class="w-4 h-4 text-primary-500 flex-shrink-0" />
-                        <span class="truncate max-w-[220px] font-semibold text-foreground" :title="item.label">
+                        <Link2 class="text-primary-500 h-4 w-4 flex-shrink-0" />
+                        <span
+                            class="text-foreground max-w-[220px] truncate font-semibold"
+                            :title="item.label"
+                        >
                             {{ item.label }}
                         </span>
                     </div>
-                    <span class="text-[10px] text-muted-foreground font-mono pl-6 block mt-0.5">
+                    <span class="text-muted-foreground mt-0.5 block pl-6 font-mono text-[10px]">
                         Dibuat: {{ item.created_at_label }}
                     </span>
                 </template>
@@ -217,15 +226,15 @@ const getStatusBadgeClass = (statusKey) => {
                 <template #column-target_role="{ item }">
                     <span
                         :class="[
-                            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold text-[11px] border shadow-2xs',
+                            'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold shadow-2xs',
                             item.target_role === 'affiliator'
-                                ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
-                                : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+                                ? 'border-purple-500/20 bg-purple-500/10 text-purple-600 dark:text-purple-400'
+                                : 'border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400',
                         ]"
                     >
                         <component
                             :is="item.target_role === 'affiliator' ? UserCheck : Users"
-                            class="w-3 h-3"
+                            class="h-3 w-3"
                         />
                         {{ item.target_role_label }}
                     </span>
@@ -234,16 +243,20 @@ const getStatusBadgeClass = (statusKey) => {
                 <!-- Custom Column: Penggunaan Kuota -->
                 <template #column-total_terpakai="{ item }">
                     <div class="space-y-1">
-                        <div class="flex items-center justify-between font-mono font-medium text-foreground">
+                        <div
+                            class="text-foreground flex items-center justify-between font-mono font-medium"
+                        >
                             <span>{{ item.usage_label }}</span>
-                            <span class="text-[10px] text-muted-foreground">
+                            <span class="text-muted-foreground text-[10px]">
                                 {{ Math.round((item.total_terpakai / item.kuota_maksimal) * 100) }}%
                             </span>
                         </div>
-                        <div class="w-24 bg-muted rounded-full h-1.5 overflow-hidden">
+                        <div class="bg-muted h-1.5 w-24 overflow-hidden rounded-full">
                             <div
                                 class="bg-primary-600 h-1.5 rounded-full transition-all"
-                                :style="{ width: `${Math.min(100, (item.total_terpakai / item.kuota_maksimal) * 100)}%` }"
+                                :style="{
+                                    width: `${Math.min(100, (item.total_terpakai / item.kuota_maksimal) * 100)}%`,
+                                }"
                             ></div>
                         </div>
                     </div>
@@ -251,8 +264,8 @@ const getStatusBadgeClass = (statusKey) => {
 
                 <!-- Custom Column: Masa Berlaku -->
                 <template #column-expired_at="{ item }">
-                    <div class="flex items-center gap-1.5 text-muted-foreground">
-                        <Clock class="w-3.5 h-3.5 flex-shrink-0" />
+                    <div class="text-muted-foreground flex items-center gap-1.5">
+                        <Clock class="h-3.5 w-3.5 flex-shrink-0" />
                         <span>{{ item.expired_at_label }}</span>
                     </div>
                 </template>
@@ -261,11 +274,11 @@ const getStatusBadgeClass = (statusKey) => {
                 <template #column-status_key="{ item }">
                     <span
                         :class="[
-                            'inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-semibold text-[11px] border',
-                            getStatusBadgeClass(item.status_key)
+                            'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold',
+                            getStatusBadgeClass(item.status_key),
                         ]"
                     >
-                        <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+                        <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
                         {{ item.status_label }}
                     </span>
                 </template>
@@ -273,22 +286,24 @@ const getStatusBadgeClass = (statusKey) => {
                 <!-- Custom Column: Tautan Registrasi & Salin -->
                 <template #column-token="{ item }">
                     <div class="flex items-center gap-2">
-                        <code class="font-mono text-[11px] bg-muted px-2 py-1 rounded text-muted-foreground">
+                        <code
+                            class="bg-muted text-muted-foreground rounded px-2 py-1 font-mono text-[11px]"
+                        >
                             {{ item.masked_token }}
                         </code>
                         <button
                             type="button"
                             @click="copyLink(item)"
-                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors"
+                            class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors"
                             :class="[
                                 copiedToken === item.token
                                     ? 'bg-emerald-600 text-white shadow-xs'
-                                    : 'bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900 border border-primary-500/20'
+                                    : 'bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900 border-primary-500/20 border',
                             ]"
                             :title="item.full_url"
                         >
-                            <Check v-if="copiedToken === item.token" class="w-3 h-3" />
-                            <Copy v-else class="w-3 h-3" />
+                            <Check v-if="copiedToken === item.token" class="h-3 w-3" />
+                            <Copy v-else class="h-3 w-3" />
                             <span>{{ copiedToken === item.token ? 'Tersalin!' : 'Salin' }}</span>
                         </button>
                     </div>
@@ -299,10 +314,10 @@ const getStatusBadgeClass = (statusKey) => {
                     <button
                         type="button"
                         @click="openDeleteConfirm(item)"
-                        class="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                        class="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md p-1.5 transition-colors"
                         title="Hapus Tautan"
                     >
-                        <Trash2 class="w-4 h-4" />
+                        <Trash2 class="h-4 w-4" />
                     </button>
                 </template>
 
@@ -313,7 +328,7 @@ const getStatusBadgeClass = (statusKey) => {
                             type="button"
                             @click="openCreateModal"
                             size="sm"
-                            class="bg-primary-600 hover:bg-primary-700 text-white font-medium py-1.5 px-3 rounded-lg text-xs"
+                            class="bg-primary-600 hover:bg-primary-700 rounded-lg px-3 py-1.5 text-xs font-medium text-white"
                         >
                             + Buat Undangan Sekarang
                         </Button>
@@ -332,7 +347,7 @@ const getStatusBadgeClass = (statusKey) => {
             <form @submit.prevent="submitCreate" class="space-y-4">
                 <!-- Label / Nama Kegiatan -->
                 <div class="space-y-1.5">
-                    <label for="label" class="block text-xs font-semibold text-foreground">
+                    <label for="label" class="text-foreground block text-xs font-semibold">
                         Label / Nama Kegiatan <span class="text-destructive">*</span>
                     </label>
                     <input
@@ -341,26 +356,26 @@ const getStatusBadgeClass = (statusKey) => {
                         type="text"
                         required
                         placeholder="Contoh: Batch 1 Calon Investor Surabaya"
-                        class="w-full px-3 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                        class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
                         :class="{ 'border-destructive focus:ring-destructive': form.errors.label }"
                     />
-                    <p v-if="form.errors.label" class="text-xs text-destructive font-medium">
+                    <p v-if="form.errors.label" class="text-destructive text-xs font-medium">
                         {{ form.errors.label }}
                     </p>
                 </div>
 
                 <!-- Target Peran (Role) -->
                 <div class="space-y-1.5">
-                    <label class="block text-xs font-semibold text-foreground">
+                    <label class="text-foreground block text-xs font-semibold">
                         Hak Akses / Peran Target <span class="text-destructive">*</span>
                     </label>
                     <div class="grid grid-cols-2 gap-3">
                         <label
                             :class="[
-                                'flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-all',
+                                'flex cursor-pointer items-center gap-2.5 rounded-xl border p-3 transition-all',
                                 form.target_role === 'investor'
-                                    ? 'border-primary-600 bg-primary-500/10 text-foreground font-semibold ring-1 ring-primary-600'
-                                    : 'border-input hover:bg-muted/50 text-muted-foreground'
+                                    ? 'border-primary-600 bg-primary-500/10 text-foreground ring-primary-600 font-semibold ring-1'
+                                    : 'border-input hover:bg-muted/50 text-muted-foreground',
                             ]"
                         >
                             <input
@@ -369,19 +384,21 @@ const getStatusBadgeClass = (statusKey) => {
                                 value="investor"
                                 class="sr-only"
                             />
-                            <Users class="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                            <Users class="h-4 w-4 flex-shrink-0 text-blue-600 dark:text-blue-400" />
                             <div class="text-xs">
                                 <p class="text-foreground">Investor</p>
-                                <p class="text-[10px] text-muted-foreground font-normal">Anggota pemodal</p>
+                                <p class="text-muted-foreground text-[10px] font-normal">
+                                    Anggota pemodal
+                                </p>
                             </div>
                         </label>
 
                         <label
                             :class="[
-                                'flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-all',
+                                'flex cursor-pointer items-center gap-2.5 rounded-xl border p-3 transition-all',
                                 form.target_role === 'affiliator'
-                                    ? 'border-primary-600 bg-primary-500/10 text-foreground font-semibold ring-1 ring-primary-600'
-                                    : 'border-input hover:bg-muted/50 text-muted-foreground'
+                                    ? 'border-primary-600 bg-primary-500/10 text-foreground ring-primary-600 font-semibold ring-1'
+                                    : 'border-input hover:bg-muted/50 text-muted-foreground',
                             ]"
                         >
                             <input
@@ -390,20 +407,27 @@ const getStatusBadgeClass = (statusKey) => {
                                 value="affiliator"
                                 class="sr-only"
                             />
-                            <UserCheck class="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                            <UserCheck
+                                class="h-4 w-4 flex-shrink-0 text-purple-600 dark:text-purple-400"
+                            />
                             <div class="text-xs">
                                 <p class="text-foreground">Affiliator</p>
-                                <p class="text-[10px] text-muted-foreground font-normal">Mitra referral</p>
+                                <p class="text-muted-foreground text-[10px] font-normal">
+                                    Mitra referral
+                                </p>
                             </div>
                         </label>
                     </div>
                 </div>
 
                 <!-- Grid: Kuota & Masa Berlaku -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <!-- Kuota Maksimal -->
                     <div class="space-y-1.5">
-                        <label for="kuota_maksimal" class="block text-xs font-semibold text-foreground">
+                        <label
+                            for="kuota_maksimal"
+                            class="text-foreground block text-xs font-semibold"
+                        >
                             Kuota Pendaftaran <span class="text-destructive">*</span>
                         </label>
                         <input
@@ -413,21 +437,27 @@ const getStatusBadgeClass = (statusKey) => {
                             min="1"
                             max="10000"
                             required
-                            class="w-full px-3 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
-                            :class="{ 'border-destructive focus:ring-destructive': form.errors.kuota_maksimal }"
+                            class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
+                            :class="{
+                                'border-destructive focus:ring-destructive':
+                                    form.errors.kuota_maksimal,
+                            }"
                         />
-                        <p class="text-[10px] text-muted-foreground">Jumlah maksimal pendaftar.</p>
+                        <p class="text-muted-foreground text-[10px]">Jumlah maksimal pendaftar.</p>
                     </div>
 
                     <!-- Durasi Masa Berlaku -->
                     <div class="space-y-1.5">
-                        <label for="expired_hours" class="block text-xs font-semibold text-foreground">
+                        <label
+                            for="expired_hours"
+                            class="text-foreground block text-xs font-semibold"
+                        >
                             Masa Berlaku
                         </label>
                         <select
                             id="expired_hours"
                             v-model.number="form.expired_hours"
-                            class="w-full px-3 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                            class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
                         >
                             <option :value="24">24 Jam (1 Hari)</option>
                             <option :value="72">72 Jam (3 Hari)</option>
@@ -435,12 +465,14 @@ const getStatusBadgeClass = (statusKey) => {
                             <option :value="720">30 Hari (1 Bulan)</option>
                             <option :value="0">Tanpa Batas Waktu</option>
                         </select>
-                        <p class="text-[10px] text-muted-foreground">Otomatis kedaluwarsa setelah durasi.</p>
+                        <p class="text-muted-foreground text-[10px]">
+                            Otomatis kedaluwarsa setelah durasi.
+                        </p>
                     </div>
                 </div>
 
                 <!-- Modal Actions -->
-                <div class="pt-4 border-t border-border flex items-center justify-end gap-3">
+                <div class="border-border flex items-center justify-end gap-3 border-t pt-4">
                     <Button
                         type="button"
                         variant="outline"
@@ -453,8 +485,9 @@ const getStatusBadgeClass = (statusKey) => {
                     <Button
                         type="submit"
                         :disabled="form.processing"
-                        class="bg-primary-600 hover:bg-primary-700 text-white px-5 py-2 text-xs font-semibold rounded-lg shadow-sm disabled:opacity-50"
+                        class="bg-primary-600 hover:bg-primary-700 rounded-lg px-5 py-2 text-xs font-semibold text-white shadow-sm disabled:opacity-50"
                     >
+                        <Loader2 v-if="form.processing" class="h-3.5 w-3.5 animate-spin" />
                         {{ form.processing ? 'Menyimpan...' : 'Simpan & Buat Tautan' }}
                     </Button>
                 </div>

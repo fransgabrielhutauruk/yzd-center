@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import AppModal from './AppModal.vue';
 import { Button } from '@/Components/ui/button';
-import { AlertTriangle, AlertCircle, Info, Trash2 } from 'lucide-vue-next';
+import { AlertTriangle, AlertCircle, Info, Trash2, Loader2 } from 'lucide-vue-next';
 
 const props = defineProps({
     show: {
@@ -131,7 +131,8 @@ const confirmButtonClass = computed(() => {
                     confirmButtonClass,
                 ]"
             >
-                {{ loading ? 'Memproses...' : confirmText }}
+                <Loader2 v-if="loading" class="h-3.5 w-3.5 animate-spin" />
+                <span>{{ loading ? 'Memproses...' : confirmText }}</span>
             </Button>
         </div>
     </AppModal>
