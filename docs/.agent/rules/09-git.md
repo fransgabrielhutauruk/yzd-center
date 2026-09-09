@@ -1,64 +1,69 @@
-﻿# Rules 09 - Git Workflow
+# Rules 09 — Git Workflow
 
-## Branch Naming Convention
+## Alur Kerja Git (Solo Developer)
 
-Format: {type}/{deskripsi-singkat-kebab-case}
+Karena proyek dikembangkan oleh **solo developer (Frans)**, alur Git disederhanakan menggunakan pendekatan **Trunk-Based Development**:
+
+- **Default:** Commit dan push langsung ke branch `main`.
+- **Branching bersifat OPSIONAL:** Hanya dibuat saat mengerjakan eksperimen besar, riset, atau fitur berisiko tinggi yang belum tentu digabungkan ke `main`.
+
+---
+
+## Branch Naming Convention (Jika Membuat Branch Eksperimen)
+
+Format: `{type}/{deskripsi-singkat-kebab-case}`
 
 | Type | Kapan Dipakai | Contoh |
 |------|---------------|--------|
-| feature | Fitur baru | feature/invitation-system |
-| fix | Bug fix | fix/commission-tiering |
-| chore | Konfigurasi, dependency | chore/setup-inertia |
-| docs | Dokumentasi | docs/srs-update-v1-3 |
-| refactor | Refactor tanpa fitur baru | refactor/profit-service |
-| test | Menambah test | test/commission-calc |
-
-DILARANG: my-changes, fix-bug, new-feature, update
+| `feature` | Fitur baru / eksperimen | `feature/invitation-system` |
+| `fix` | Perbaikan bug kompleks | `fix/commission-tiering` |
+| `chore` | Konfigurasi, dependency | `chore/setup-inertia` |
+| `docs` | Dokumentasi besar | `docs/srs-update-v1-3` |
+| `refactor` | Refaktor arsitektur | `refactor/profit-service` |
+| `test` | Penambahan test suite | `test/commission-calc` |
 
 ---
 
-## Conventional Commits
+## Conventional Commits (Wajib)
 
-Format: {type}({scope}): {deskripsi singkat}
+Setiap commit ke `main` **wajib** menggunakan format Conventional Commits:
 
-Scope: investor, admin, affiliator, auth, commission, profit, invitation, copytrade
+Format: `{type}({scope}): {deskripsi singkat}` atau `{type}: {deskripsi singkat}`
 
-Contoh:
-- feat(invitation): tambah generate invitation link
-- feat(copytrade): implementasi stepper 3 langkah
-- fix(commission): perbaiki kalkulasi tiering modal
-- chore(deps): install inertia-laravel dan ziggy
-- docs(srs): tambah modul kalkulator proyeksi
-- refactor(profit): extract ProfitService dari controller
-- test(commission): tambah test tiering premium
+**Scope yang umum:** `auth`, `admin`, `investor`, `affiliator`, `commission`, `profit`, `invitation`, `copytrade`, `deps`
 
-DILARANG: fix bug, update, changes, wip
+**Contoh:**
+- `feat(invitation): tambah generate invitation link`
+- `feat(copytrade): implementasi stepper 3 langkah`
+- `fix(commission): perbaiki kalkulasi tiering modal`
+- `chore(deps): install inertia-laravel dan ziggy`
+- `docs(srs): tambah modul kalkulator proyeksi`
+- `refactor(profit): extract ProfitService dari controller`
+- `test(commission): tambah test tiering premium`
 
----
-
-## Sebelum Commit - Checklist Wajib
-
-1. Format PHP: vendor/bin/pint --dirty
-2. Cek debug statement: grep -rn "dd(" app/
-3. Jalankan test relevan: php artisan test --compact --filter=NamaTest
-4. Update status: git fetch origin && git status
+**DILARANG:** `fix bug`, `update`, `changes`, `wip`, `asdf`
 
 ---
 
-## Aturan Branch dan Merge
+## Sebelum Commit & Push ke `main` — Checklist Wajib
 
-- Jangan push langsung ke main
-- Satu branch = satu fitur atau satu bug fix
-- Hapus branch setelah di-merge
+Sebelum melakukan `git commit` dan `git push origin main`:
+
+1. **Format PHP:** `vendor/bin/pint --dirty` (atau `vendor/bin/pint app database`)
+2. **Cek debug statement:** Pastikan tidak ada `dd(`, `dump(`, atau `console.log(` tersisa
+3. **Jalankan test:** `php artisan test --compact`
+4. **Verifikasi build frontend:** `npm run build`
+5. **Cek status:** `git status` (pastikan tidak ada file rahasia/untracked yang bocor)
 
 ---
 
-## .gitignore - File yang Dilarang Commit
+## .gitignore — File yang Dilarang Commit
 
-- .env dan .env.*
-- storage/logs/
-- vendor/
-- node_modules/
-- public/hot
-- file *.log
+- `.env` dan `.env.*`
+- `storage/logs/`
+- `vendor/`
+- `node_modules/`
+- `public/build/`
+- `public/hot`
+- file `*.log`
 
