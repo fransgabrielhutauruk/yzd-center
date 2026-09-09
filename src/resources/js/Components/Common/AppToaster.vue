@@ -2,6 +2,7 @@
 import { watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import { Toaster, toast } from 'vue-sonner';
+import 'vue-sonner/style.css';
 import { useDarkMode } from '@/composables/useDarkMode';
 
 const { isDark } = useDarkMode();
