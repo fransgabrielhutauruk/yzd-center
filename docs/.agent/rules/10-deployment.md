@@ -1,4 +1,4 @@
-﻿# Rules 10 - Deployment and Environment
+# Rules 10 - Deployment and Environment
 
 ## Environment Files
 
@@ -11,7 +11,7 @@
 
 ## Environment Variables Penting
 
-APP_NAME=YZD Trading Management
+APP_NAME=YZD Center
 APP_ENV=production (production/staging/local)
 APP_KEY= (generate: php artisan key:generate)
 APP_URL=https://domain.com

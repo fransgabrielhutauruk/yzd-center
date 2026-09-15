@@ -143,4 +143,70 @@ class KycRegistrationTest extends TestCase
         $response->assertSessionHasErrors(['dokumen_ktp']);
         $this->assertGuest();
     }
+
+    public function test_registration_accepts_lainnya_as_ahli_waris_relationship(): void
+    {
+        Storage::fake('local');
+        $invitation = $this->createValidInvitation();
+
+        $payload = [
+            'invite_token'          => $invitation->token,
+            'name'                  => 'Investor Lainnya',
+            'username'              => 'investorlainnya',
+            'email'                 => 'investorlainnya@example.com',
+            'phone'                 => '081234567890',
+            'nik'                   => '3201123456789012',
+            'alamat'                => 'Jl. Thamrin No. 10',
+            'password'              => 'password123',
+            'password_confirmation' => 'password123',
+            'terms'                 => true,
+            'ahli_waris_nama'       => 'Wali Investor',
+            'ahli_waris_hubungan'   => 'Lainnya',
+            'ahli_waris_phone'      => '081299998888',
+            'ahli_waris_alamat'     => 'Jl. Thamrin No. 10',
+            'dokumen_ktp'           => UploadedFile::fake()->image('ktp.jpg', 800, 600),
+            'dokumen_perjanjian'    => UploadedFile::fake()->create('perjanjian.pdf', 300, 'application/pdf'),
+        ];
+
+        $response = $this->post('/register', $payload);
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('registration_success');
+        $this->assertGuest();
+
+        $this->assertDatabaseHas('user_ahli_waris', [
+            'nama'              => 'Wali Investor',
+            'hubungan_keluarga' => 'Lainnya',
+        ]);
+    }
+
+    public function test_registration_fails_if_ahli_waris_relationship_is_invalid(): void
+    {
+        Storage::fake('local');
+        $invitation = $this->createValidInvitation();
+
+        $payload = [
+            'invite_token'          => $invitation->token,
+            'name'                  => 'Investor Cek',
+            'username'              => 'investorcek',
+            'email'                 => 'investorcek@example.com',
+            'phone'                 => '081234567890',
+            'nik'                   => '3201123456789012',
+            'alamat'                => 'Jl. Thamrin No. 10',
+            'password'              => 'password123',
+            'password_confirmation' => 'password123',
+            'terms'                 => true,
+            'ahli_waris_nama'       => 'Pihak Acak',
+            'ahli_waris_hubungan'   => 'Tetangga', // Tidak ada di enum/in rule
+            'ahli_waris_phone'      => '081299998888',
+            'ahli_waris_alamat'     => 'Jl. Thamrin No. 10',
+            'dokumen_ktp'           => UploadedFile::fake()->image('ktp.jpg', 800, 600),
+            'dokumen_perjanjian'    => UploadedFile::fake()->create('perjanjian.pdf', 300, 'application/pdf'),
+        ];
+
+        $response = $this->post('/register', $payload);
+
+        $response->assertSessionHasErrors(['ahli_waris_hubungan']);
+        $this->assertGuest();
+    }
 }

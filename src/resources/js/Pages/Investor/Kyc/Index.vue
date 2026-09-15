@@ -276,7 +276,7 @@ const getStatusBadge = (status) => {
                     <p class="font-bold">Verifikasi Legalitas Selesai</p>
                     <p class="leading-relaxed">
                         Akun Anda telah berstatus aktif. Dokumen KTP dan Surat Perjanjian Kerjasama
-                        Bermaterai Anda telah sah terverifikasi oleh tim manajemen YZD Trading.
+                        Bermaterai Anda telah sah terverifikasi oleh tim manajemen YZD Center.
                     </p>
                 </div>
             </div>

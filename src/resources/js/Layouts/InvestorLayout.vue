@@ -98,7 +98,7 @@ const switchLocale = (lang) => {
             <div class="h-16 px-6 flex items-center justify-between border-b border-white/15 dark:border-slate-800">
                 <Link href="/investor/dashboard" class="flex items-center gap-1">
                     <span class="text-accent-500 font-extrabold text-2xl tracking-tight">YZD</span>
-                    <span class="text-white font-bold text-xl tracking-tight">Trading</span>
+                    <span class="text-white font-bold text-xl tracking-tight">Center</span>
                     <span
                         v-if="isAffiliator"
                         class="ml-2 text-[10px] font-semibold bg-accent-500/20 text-accent-300 border border-accent-500/40 px-1.5 py-0.5 rounded"

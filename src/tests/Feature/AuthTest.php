@@ -205,8 +205,8 @@ class AuthTest extends TestCase
 
         $response = $this->post('/register', $payload);
 
-        $this->assertAuthenticated();
-        $user = auth()->user();
+        $this->assertGuest();
+        $user = User::where('username', 'budisantoso99')->firstOrFail();
         $this->assertEquals('budisantoso99', $user->username);
         $this->assertEquals('investor', $user->role);
         $this->assertEquals('pending', $user->status);
@@ -218,7 +218,8 @@ class AuthTest extends TestCase
         $this->assertCount(2, $user->dokumen);
 
         $this->assertEquals(1, $invitation->fresh()->total_terpakai);
-        $response->assertRedirect(route('investor.kyc.index'));
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('registration_success');
     }
 
     public function test_new_affiliator_registration_auto_generates_referral_code(): void
@@ -256,13 +257,14 @@ class AuthTest extends TestCase
 
         $response = $this->post('/register', $payload);
 
-        $this->assertAuthenticated();
-        $user = auth()->user();
+        $this->assertGuest();
+        $user = User::where('username', 'rudimitra')->firstOrFail();
         $this->assertEquals('affiliator', $user->role);
         $this->assertEquals('pending', $user->status);
         $this->assertNotNull($user->referral_code);
         $this->assertStringStartsWith('RUDIMITRA', $user->referral_code);
-        $response->assertRedirect(route('investor.kyc.index'));
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('registration_success');
     }
 
     public function test_user_cannot_register_with_expired_token(): void

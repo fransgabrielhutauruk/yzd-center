@@ -27,7 +27,7 @@ const { isDark, toggleDarkMode } = useDarkMode();
         <header class="w-full px-6 py-4 flex items-center justify-between border-b border-border/50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm sticky top-0 z-10">
             <Link href="/" class="flex items-center gap-1 text-xl font-bold tracking-tight">
                 <span class="text-accent-500 font-extrabold text-2xl">YZD</span>
-                <span class="text-primary-600 dark:text-primary-400">Trading</span>
+                <span class="text-primary-600 dark:text-primary-400">Center</span>
             </Link>
 
             <div class="flex items-center gap-3">
@@ -52,7 +52,7 @@ const { isDark, toggleDarkMode } = useDarkMode();
                 </div>
 
                 <footer class="mt-8 text-center text-xs text-muted-foreground">
-                    &copy; 2026 <span class="font-semibold text-foreground">YZD Trading Management</span>. Hak cipta dilindungi.
+                    &copy; 2026 <span class="font-semibold text-foreground">YZD Center</span>. Hak cipta dilindungi.
                 </footer>
             </div>
         </main>

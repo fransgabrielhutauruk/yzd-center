@@ -1,4 +1,4 @@
-# Information Design System — YZD Trading Management
+# Information Design System — YZD Center
 
 Folder `/information-design` ini berfungsi sebagai **pusat referensi detail kebutuhan teknis dan logika bisnis per modul** yang digunakan selama fase perancangan (*design*) dan implementasi (*coding*). 
 

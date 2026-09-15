@@ -1,4 +1,4 @@
-﻿# GEMINI.md — Master Rules: YZD Trading Management
+# GEMINI.md — Master Rules: YZD Center
 
 > **Untuk agent:** Baca file ini dulu di setiap sesi. Lalu baca rules spesifik di `.agent/rules/` sesuai konteks permintaan. Jangan mulai eksekusi sebelum memahami rules yang relevan.
 
@@ -131,7 +131,7 @@ Format isi catatan:
 
 ## 6. Konteks Proyek
 
-- **Nama Proyek:** YZD Trading Management
+- **Nama Proyek:** YZD Center
 - **Klien:** Pak Rizki Abiyasid (alias: Pak Abi)
 - **SRS:** `SRS.md` (v1.2.0 — baca sebelum mulai implementasi fitur baru)
 - **Stack:** Laravel 12 + Inertia.js v2 + Vue 3 + Tailwind CSS v3 + PHP 8.4

@@ -42,7 +42,7 @@ class AuthenticatedSessionController extends Controller
             $request->hitRateLimit();
 
             throw ValidationException::withMessages([
-                'login' => 'Kombinasi kredensial login atau kata sandi tidak cocok, atau akun Anda sedang dinonaktifkan.',
+                'login' => 'Username/email atau kata sandi tidak cocok.',
             ]);
         }
 

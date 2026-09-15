@@ -34,7 +34,7 @@ class LegalContentTest extends TestCase
             'key_name' => 'terms_conditions',
             'judul'    => 'Syarat & Ketentuan Layanan Revisi 2026',
             'versi'    => '2.0',
-            'konten'   => 'Pasal 1: Ketentuan Baru Platform YZD Trading.',
+            'konten'   => 'Pasal 1: Ketentuan Baru Platform YZD Center.',
         ]);
 
         $response->assertSessionHasNoErrors();
@@ -44,7 +44,7 @@ class LegalContentTest extends TestCase
         $this->assertNotNull($terms);
         $this->assertEquals('Syarat & Ketentuan Layanan Revisi 2026', $terms->judul);
         $this->assertEquals('2.0', $terms->versi);
-        $this->assertEquals('Pasal 1: Ketentuan Baru Platform YZD Trading.', $terms->konten);
+        $this->assertEquals('Pasal 1: Ketentuan Baru Platform YZD Center.', $terms->konten);
         $this->assertEquals($admin->id, $terms->updated_by);
     }
 

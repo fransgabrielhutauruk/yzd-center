@@ -34,14 +34,14 @@ const isPreviewMode = ref(false);
 
 const termsForm = useForm({
     key_name: 'terms_conditions',
-    judul: props.terms?.judul || 'Syarat & Ketentuan Layanan YZD Trading',
+    judul: props.terms?.judul || 'Syarat & Ketentuan Layanan YZD Center',
     versi: props.terms?.versi || '1.0',
     konten: props.terms?.konten || '',
 });
 
 const privacyForm = useForm({
     key_name: 'privacy_policy',
-    judul: props.privacy?.judul || 'Kebijakan Privasi YZD Trading',
+    judul: props.privacy?.judul || 'Kebijakan Privasi YZD Center',
     versi: props.privacy?.versi || '1.0',
     konten: props.privacy?.konten || '',
 });
@@ -309,7 +309,7 @@ const submitUpdate = () => {
                                     ></span
                                 >
                                 <span>&bull;</span>
-                                <span>Platform: YZD Trading Management</span>
+                                <span>Platform: YZD Center</span>
                             </div>
                         </div>
 

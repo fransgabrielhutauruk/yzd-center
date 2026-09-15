@@ -190,7 +190,7 @@ const logout = () => {
             >
                 <Link href="/admin/dashboard" class="flex items-center gap-1">
                     <span class="text-accent-500 text-2xl font-extrabold tracking-tight">YZD</span>
-                    <span class="text-xl font-bold tracking-tight text-white">Trading</span>
+                    <span class="text-xl font-bold tracking-tight text-white">Center</span>
                     <span
                         class="bg-accent-500/20 text-accent-300 border-accent-500/40 ml-2 rounded border px-1.5 py-0.5 text-[10px] font-semibold"
                         >ADMIN</span

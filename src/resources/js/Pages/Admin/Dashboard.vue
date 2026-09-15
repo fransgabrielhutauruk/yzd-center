@@ -38,7 +38,7 @@ defineProps({
                         Selamat Datang di Dasbor Administrator
                     </h2>
                     <p class="text-xs sm:text-sm text-white/80 leading-relaxed">
-                        Sistem manajemen trading terintegrasi YZD Trading. Pantau keanggotaan investor, mitra affiliator, dan kelola tautan pendaftaran eksklusif.
+                        Sistem manajemen trading terintegrasi YZD Center. Pantau keanggotaan investor, mitra affiliator, dan kelola tautan pendaftaran eksklusif.
                     </p>
                 </div>
             </div>

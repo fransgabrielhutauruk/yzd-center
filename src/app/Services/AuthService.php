@@ -112,8 +112,6 @@ class AuthService
 
             $invitation->increment('total_terpakai');
 
-            Auth::login($user);
-
             return $user;
         });
     }

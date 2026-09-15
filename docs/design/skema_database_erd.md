@@ -1,5 +1,5 @@
 # Perancangan Skema Database & Kamus Data (ERD)
-**Sistem:** YZD Trading Management  
+**Sistem:** YZD Center
 **Versi:** 1.1.0 (Semi-Bilingual Technical-Domain Convention)  
 **Target RDBMS:** MySQL 8.0+ / MariaDB 10.5+  
 **ORM:** Laravel Eloquent  

@@ -1,6 +1,6 @@
 # Software Requirements Specification (SRS)
 
-**Nama Proyek:** YZD Trading Management   
+**Nama Proyek:** YZD Center
 **Klien:** Pak Rizki Abiyasid  
 **Versi Dokumen:** 1.2.0  
 **Tanggal Update Terakhir:** 08 September 2026

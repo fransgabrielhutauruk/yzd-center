@@ -190,7 +190,7 @@ dd($user);
 dump($commission);
 
 // DILARANG: hardcode URL
-$url = 'https://yzd-trading.com/investor/dashboard'; // SALAH
+$url = 'https://yzd-center.com/investor/dashboard'; // SALAH
 $url = route('investor.dashboard'); // BENAR
 
 // DILARANG: hardcode nilai bisnis di kode

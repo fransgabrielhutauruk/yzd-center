@@ -1,4 +1,4 @@
-﻿# Workflow: Debug Session
+# Workflow: Debug Session
 
 Alur sistematis saat menghadapi error atau bug.
 
@@ -64,7 +64,7 @@ Cek permission cache (jika ada issue role):
 
 ---
 
-## Tips Spesifik Proyek YZD Trading
+## Tips Spesifik Proyek YZD Center
 
 Jika error di kalkulasi komisi:
 - Verifikasi nilai modal disimpan sebagai integer (bukan float)

@@ -1,5 +1,5 @@
 # ATURAN PENGEMBANGAN (RULES & GUIDELINES)
-**YZD Trading Management**
+**YZD Center**
 
 ---
 

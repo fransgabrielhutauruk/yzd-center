@@ -48,9 +48,13 @@ class RegisteredUserController extends Controller
         $token = $request->string('invite_token')->value();
         $ip = $request->ip() ?? '127.0.0.1';
 
-        $this->authService->registerWithInvitation($validated, $token, $ip);
+        $user = $this->authService->registerWithInvitation($validated, $token, $ip);
 
-        return redirect()->route('investor.kyc.index')
-            ->with('success', 'Pendaftaran akun dan unggah berkas legalitas berhasil dikirim! Akun Anda sedang dalam proses peninjauan.');
+        return redirect()->route('login')
+            ->with('registration_success', [
+                'name'     => $user->name,
+                'username' => $user->username,
+                'email'    => $user->email,
+            ]);
     }
 }

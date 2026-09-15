@@ -34,7 +34,7 @@ class RegisterRequest extends FormRequest
 
             // Data Ahli Waris
             'ahli_waris_nama'     => ['required', 'string', 'max:100'],
-            'ahli_waris_hubungan' => ['required', 'string', 'in:Anak,Istri,Suami,Orang Tua,Saudara Kandung'],
+            'ahli_waris_hubungan' => ['required', 'string', 'in:Anak,Istri,Suami,Orang Tua,Saudara Kandung,Lainnya'],
             'ahli_waris_phone'    => ['required', 'string', 'min:9', 'max:25', 'different:phone'],
             'ahli_waris_alamat'   => ['required', 'string', 'min:5', 'max:500'],
 
@@ -73,8 +73,8 @@ class RegisterRequest extends FormRequest
             'password.confirmed'           => 'Konfirmasi kata sandi tidak cocok.',
             'terms.accepted'               => 'Anda wajib menyetujui Syarat & Ketentuan dan Kebijakan Privasi.',
             'ahli_waris_nama.required'     => 'Nama ahli waris wajib diisi.',
-            'ahli_waris_hubungan.required' => 'Pilih hubungan keluarga ahli waris.',
-            'ahli_waris_hubungan.in'       => 'Pilihan hubungan keluarga tidak valid.',
+            'ahli_waris_hubungan.required' => 'Pilih hubungan ahli waris.',
+            'ahli_waris_hubungan.in'       => 'Pilihan hubungan ahli waris tidak valid.',
             'ahli_waris_phone.required'    => 'Nomor kontak ahli waris wajib diisi.',
             'ahli_waris_phone.different'   => 'Nomor kontak ahli waris tidak boleh sama dengan nomor kontak Anda.',
             'ahli_waris_alamat.required'   => 'Alamat domisili ahli waris wajib diisi.',

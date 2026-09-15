@@ -70,7 +70,7 @@ const copyReferralCode = async () => {
                         Selamat Datang, {{ user.name }}!
                     </h2>
                     <p class="text-xs sm:text-sm text-white/80 leading-relaxed">
-                        Akun Anda aktif dalam sistem YZD Trading Management. Pantau performa portofolio dan kelola strategi copytrade Anda secara transparan.
+                        Akun Anda aktif dalam sistem YZD Center. Pantau performa portofolio dan kelola strategi copytrade Anda secara transparan.
                     </p>
                 </div>
             </div>

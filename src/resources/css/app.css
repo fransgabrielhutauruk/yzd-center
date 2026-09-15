@@ -6,7 +6,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ================================================
-   YZD Trading — Fonts (via Bunny / laravel-vite-plugin)
+   YZD Center — Fonts (via Bunny / laravel-vite-plugin)
    ================================================ */
 @font-face {
   font-family: 'Instrument Sans';
@@ -14,7 +14,7 @@
 }
 
 /* ================================================
-   YZD Trading — Design Tokens (Tailwind v4 @theme)
+   YZD Center — Design Tokens (Tailwind v4 @theme)
    Primary : Violet  — #7c3aed (violet-600)
    Accent  : Orange  — #fd7e14 (orange-500)
    ================================================ */
@@ -87,7 +87,7 @@
   --radius: 0.5rem;
 
   /* =====================================
-     YZD Trading — Brand Colors
+     YZD Center — Brand Colors
      Primary : Violet-600  #7c3aed
      Accent  : Orange-500  #fd7e14
      ===================================== */
