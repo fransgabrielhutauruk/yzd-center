@@ -24,12 +24,9 @@ class KycRegistrationTest extends TestCase
         ]);
     }
 
-    public function test_registration_fails_if_ahli_waris_phone_is_same_as_investor_phone(): void
+    private function defaultPayload(Invitation $invitation, array $overrides = []): array
     {
-        Storage::fake('local');
-        $invitation = $this->createValidInvitation();
-
-        $payload = [
+        return array_merge([
             'invite_token'          => $invitation->token,
             'name'                  => 'Investor Baru',
             'username'              => 'investorbaru',
@@ -37,16 +34,36 @@ class KycRegistrationTest extends TestCase
             'phone'                 => '081234567890',
             'nik'                   => '3201123456789012',
             'alamat'                => 'Jl. Thamrin No. 10',
+            'tempat_lahir'          => 'Jakarta',
+            'tanggal_lahir'         => '1990-05-15',
+            'pekerjaan'             => 'Karyawan Swasta',
             'password'              => 'password123',
             'password_confirmation' => 'password123',
             'terms'                 => true,
             'ahli_waris_nama'       => 'Istri Investor',
             'ahli_waris_hubungan'   => 'Istri',
-            'ahli_waris_phone'      => '081234567890', // SAMA DENGAN INVESTOR!
+            'ahli_waris_phone'      => '081299998888',
             'ahli_waris_alamat'     => 'Jl. Thamrin No. 10',
+            'tier_investasi'        => 'tier_1',
+            'nomor_akun_trading'    => '66252077',
+            'estimasi_modal'        => 1000,
+            'tanggal_mulai_trading' => '2026-01-01',
+            'nama_bank'             => 'BCA',
+            'nomor_rekening'        => '1234567890',
+            'atas_nama_rekening'    => 'Investor Baru',
             'dokumen_ktp'           => UploadedFile::fake()->image('ktp.jpg', 800, 600),
             'dokumen_perjanjian'    => UploadedFile::fake()->create('perjanjian.pdf', 300, 'application/pdf'),
-        ];
+        ], $overrides);
+    }
+
+    public function test_registration_fails_if_ahli_waris_phone_is_same_as_investor_phone(): void
+    {
+        Storage::fake('local');
+        $invitation = $this->createValidInvitation();
+
+        $payload = $this->defaultPayload($invitation, [
+            'ahli_waris_phone' => '081234567890', // SAMA DENGAN INVESTOR!
+        ]);
 
         $response = $this->post('/register', $payload);
 
@@ -59,24 +76,9 @@ class KycRegistrationTest extends TestCase
         Storage::fake('local');
         $invitation = $this->createValidInvitation();
 
-        $payload = [
-            'invite_token'          => $invitation->token,
-            'name'                  => 'Investor Baru',
-            'username'              => 'investorbaru',
-            'email'                 => 'investorbaru@example.com',
-            'phone'                 => '081234567890',
-            'nik'                   => '3201123456789012',
-            'alamat'                => 'Jl. Thamrin No. 10',
-            'password'              => 'password123',
-            'password_confirmation' => 'password123',
-            'terms'                 => true,
-            'ahli_waris_nama'       => 'Istri Investor',
-            'ahli_waris_hubungan'   => 'Istri',
-            'ahli_waris_phone'      => '081299998888',
-            'ahli_waris_alamat'     => 'Jl. Thamrin No. 10',
-            'dokumen_ktp'           => UploadedFile::fake()->create('dokumen.pdf', 300, 'application/pdf'), // PDF TIDAK BOLEH UNTUK KTP
-            'dokumen_perjanjian'    => UploadedFile::fake()->create('perjanjian.pdf', 300, 'application/pdf'),
-        ];
+        $payload = $this->defaultPayload($invitation, [
+            'dokumen_ktp' => UploadedFile::fake()->create('dokumen.pdf', 300, 'application/pdf'), // PDF TIDAK BOLEH UNTUK KTP
+        ]);
 
         $response = $this->post('/register', $payload);
 
@@ -89,24 +91,9 @@ class KycRegistrationTest extends TestCase
         Storage::fake('local');
         $invitation = $this->createValidInvitation();
 
-        $payload = [
-            'invite_token'          => $invitation->token,
-            'name'                  => 'Investor Baru',
-            'username'              => 'investorbaru',
-            'email'                 => 'investorbaru@example.com',
-            'phone'                 => '081234567890',
-            'nik'                   => '3201123456789012',
-            'alamat'                => 'Jl. Thamrin No. 10',
-            'password'              => 'password123',
-            'password_confirmation' => 'password123',
-            'terms'                 => false, // TIDAK CENTANG TERMS
-            'ahli_waris_nama'       => 'Istri Investor',
-            'ahli_waris_hubungan'   => 'Istri',
-            'ahli_waris_phone'      => '081299998888',
-            'ahli_waris_alamat'     => 'Jl. Thamrin No. 10',
-            'dokumen_ktp'           => UploadedFile::fake()->image('ktp.jpg', 800, 600),
-            'dokumen_perjanjian'    => UploadedFile::fake()->create('perjanjian.pdf', 300, 'application/pdf'),
-        ];
+        $payload = $this->defaultPayload($invitation, [
+            'terms' => false,
+        ]);
 
         $response = $this->post('/register', $payload);
 
@@ -119,24 +106,9 @@ class KycRegistrationTest extends TestCase
         Storage::fake('local');
         $invitation = $this->createValidInvitation();
 
-        $payload = [
-            'invite_token'          => $invitation->token,
-            'name'                  => 'Investor Baru',
-            'username'              => 'investorbaru',
-            'email'                 => 'investorbaru@example.com',
-            'phone'                 => '081234567890',
-            'nik'                   => '3201123456789012',
-            'alamat'                => 'Jl. Thamrin No. 10',
-            'password'              => 'password123',
-            'password_confirmation' => 'password123',
-            'terms'                 => true,
-            'ahli_waris_nama'       => 'Istri Investor',
-            'ahli_waris_hubungan'   => 'Istri',
-            'ahli_waris_phone'      => '081299998888',
-            'ahli_waris_alamat'     => 'Jl. Thamrin No. 10',
-            'dokumen_ktp'           => UploadedFile::fake()->create('ktp.jpg', 12000, 'image/jpeg'), // > 10 MB
-            'dokumen_perjanjian'    => UploadedFile::fake()->create('perjanjian.pdf', 300, 'application/pdf'),
-        ];
+        $payload = $this->defaultPayload($invitation, [
+            'dokumen_ktp' => UploadedFile::fake()->create('ktp.jpg', 12000, 'image/jpeg'), // > 10 MB
+        ]);
 
         $response = $this->post('/register', $payload);
 
@@ -149,24 +121,10 @@ class KycRegistrationTest extends TestCase
         Storage::fake('local');
         $invitation = $this->createValidInvitation();
 
-        $payload = [
-            'invite_token'          => $invitation->token,
-            'name'                  => 'Investor Lainnya',
-            'username'              => 'investorlainnya',
-            'email'                 => 'investorlainnya@example.com',
-            'phone'                 => '081234567890',
-            'nik'                   => '3201123456789012',
-            'alamat'                => 'Jl. Thamrin No. 10',
-            'password'              => 'password123',
-            'password_confirmation' => 'password123',
-            'terms'                 => true,
-            'ahli_waris_nama'       => 'Wali Investor',
-            'ahli_waris_hubungan'   => 'Lainnya',
-            'ahli_waris_phone'      => '081299998888',
-            'ahli_waris_alamat'     => 'Jl. Thamrin No. 10',
-            'dokumen_ktp'           => UploadedFile::fake()->image('ktp.jpg', 800, 600),
-            'dokumen_perjanjian'    => UploadedFile::fake()->create('perjanjian.pdf', 300, 'application/pdf'),
-        ];
+        $payload = $this->defaultPayload($invitation, [
+            'ahli_waris_nama'     => 'Wali Investor',
+            'ahli_waris_hubungan' => 'Lainnya',
+        ]);
 
         $response = $this->post('/register', $payload);
 
@@ -177,6 +135,7 @@ class KycRegistrationTest extends TestCase
         $this->assertDatabaseHas('user_ahli_waris', [
             'nama'              => 'Wali Investor',
             'hubungan_keluarga' => 'Lainnya',
+            'alamat'            => 'Jl. Thamrin No. 10',
         ]);
     }
 
@@ -185,28 +144,28 @@ class KycRegistrationTest extends TestCase
         Storage::fake('local');
         $invitation = $this->createValidInvitation();
 
-        $payload = [
-            'invite_token'          => $invitation->token,
-            'name'                  => 'Investor Cek',
-            'username'              => 'investorcek',
-            'email'                 => 'investorcek@example.com',
-            'phone'                 => '081234567890',
-            'nik'                   => '3201123456789012',
-            'alamat'                => 'Jl. Thamrin No. 10',
-            'password'              => 'password123',
-            'password_confirmation' => 'password123',
-            'terms'                 => true,
-            'ahli_waris_nama'       => 'Pihak Acak',
-            'ahli_waris_hubungan'   => 'Tetangga', // Tidak ada di enum/in rule
-            'ahli_waris_phone'      => '081299998888',
-            'ahli_waris_alamat'     => 'Jl. Thamrin No. 10',
-            'dokumen_ktp'           => UploadedFile::fake()->image('ktp.jpg', 800, 600),
-            'dokumen_perjanjian'    => UploadedFile::fake()->create('perjanjian.pdf', 300, 'application/pdf'),
-        ];
+        $payload = $this->defaultPayload($invitation, [
+            'ahli_waris_hubungan' => 'Tetangga', // Tidak ada di enum/in rule
+        ]);
 
         $response = $this->post('/register', $payload);
 
         $response->assertSessionHasErrors(['ahli_waris_hubungan']);
+        $this->assertGuest();
+    }
+
+    public function test_registration_fails_if_ahli_waris_alamat_is_missing(): void
+    {
+        Storage::fake('local');
+        $invitation = $this->createValidInvitation();
+
+        $payload = $this->defaultPayload($invitation, [
+            'ahli_waris_alamat' => '',
+        ]);
+
+        $response = $this->post('/register', $payload);
+
+        $response->assertSessionHasErrors(['ahli_waris_alamat']);
         $this->assertGuest();
     }
 }

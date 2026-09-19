@@ -1,50 +1,60 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Head, Link, usePage, router } from '@inertiajs/vue3';
 import {
     LayoutDashboard,
-    Link2,
-    BarChart2,
-    QrCode,
-    UserPlus,
-    Users,
-    Send,
-    BookOpen,
-    HelpCircle,
-    Bell,
+    FileCheck,
     Sun,
     Moon,
     LogOut,
     Menu,
     X,
     ChevronDown,
-    User as UserIcon,
-    Globe,
-    FileCheck,
+    PanelLeftClose,
+    PanelLeft,
+    Lock,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
+import AppNotificationBell from '@/Components/Common/AppNotificationBell.vue';
+import { toast } from 'vue-sonner';
 
 defineProps({
     title: {
         type: String,
-        default: 'Dasbor Investor',
+        default: 'Dasbor Portofolio',
     },
 });
 
 const page = usePage();
 const { isDark, toggleDarkMode } = useDarkMode();
+
 const isMobileSidebarOpen = ref(false);
 const isUserDropdownOpen = ref(false);
-const isLangDropdownOpen = ref(false);
+const isCollapsed = ref(false);
+
+onMounted(() => {
+    try {
+        isCollapsed.value = localStorage.getItem('yzd_investor_sidebar_collapsed') === 'true';
+    } catch {
+        isCollapsed.value = false;
+    }
+});
+
+const toggleCollapse = () => {
+    isCollapsed.value = !isCollapsed.value;
+    try {
+        localStorage.setItem('yzd_investor_sidebar_collapsed', String(isCollapsed.value));
+    } catch {
+        // Ignore storage error
+    }
+};
 
 const user = computed(() => page.props.auth?.user || {});
 const isAffiliator = computed(() => user.value?.role === 'affiliator');
 
-const currentLocale = computed(() => page.props.locale?.current || 'id');
-
 const userInitials = computed(() => {
-    const name = user.value?.name || 'User';
+    const name = user.value?.name || 'Investor';
     const parts = name.trim().split(' ');
     if (parts.length >= 2) {
         return (parts[0][0] + parts[1][0]).toUpperCase();
@@ -52,17 +62,42 @@ const userInitials = computed(() => {
     return name.slice(0, 2).toUpperCase();
 });
 
+const isUserActive = computed(() => {
+    return user.value?.status === 'active' || Boolean(user.value?.is_active);
+});
+
+// Menu aktif hanya untuk modul yang berjalan di Fase 1 & 2
+const navItems = [
+    {
+        label: 'Dasbor Portofolio',
+        href: '/investor/dashboard',
+        icon: LayoutDashboard,
+        requiresActive: true,
+    },
+    {
+        label: 'Status KYC & Legalitas',
+        href: '/investor/kyc',
+        icon: FileCheck,
+        requiresActive: false,
+    },
+];
+
 const isActive = (href) => {
     return page.url.startsWith(href);
 };
 
-const logout = () => {
-    router.post('/logout');
+const isLocked = (item) => {
+    return Boolean(item.requiresActive && !isUserActive.value);
 };
 
-const switchLocale = (lang) => {
-    isLangDropdownOpen.value = false;
-    router.post('/locale', { locale: lang }, { preserveState: true });
+const handleLockedClick = (item) => {
+    toast.info('Fitur Terkunci', {
+        description: `Menu "${item.label}" belum dapat diakses karena akun Anda masih dalam proses verifikasi oleh Administrator.`,
+    });
+};
+
+const logout = () => {
+    router.post('/logout');
 };
 </script>
 
@@ -70,7 +105,9 @@ const switchLocale = (lang) => {
     <Head :title="title" />
     <AppToaster />
 
-    <div class="min-h-screen bg-slate-50 dark:bg-slate-950 text-foreground flex transition-colors duration-200">
+    <div
+        class="min-h-screen min-h-dvh flex-1 bg-slate-50 dark:bg-slate-950 text-foreground flex transition-colors duration-200"
+    >
         <!-- Backdrop Mobile Sidebar -->
         <transition
             enter-active-class="transition-opacity ease-linear duration-200"
@@ -90,337 +127,175 @@ const switchLocale = (lang) => {
         <!-- Sidebar Component -->
         <aside
             :class="[
-                'fixed md:static inset-y-0 left-0 z-50 w-64 bg-primary-600 dark:bg-slate-900 text-white flex flex-col transition-transform duration-300 ease-in-out border-r border-primary-700/50 dark:border-slate-800 shadow-xl md:shadow-none md:translate-x-0',
-                isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                'bg-primary-700 dark:bg-slate-900 text-white border-r border-primary-800/80 dark:border-slate-800 fixed inset-y-0 left-0 z-50 flex flex-col shadow-xl transition-all duration-300 ease-in-out md:static md:translate-x-0 md:shadow-none',
+                isCollapsed ? 'md:w-20' : 'md:w-64',
+                'w-64',
+                isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
             ]"
         >
-            <!-- Logo Brand -->
-            <div class="h-16 px-6 flex items-center justify-between border-b border-white/15 dark:border-slate-800">
-                <Link href="/investor/dashboard" class="flex items-center gap-1">
-                    <span class="text-accent-500 font-extrabold text-2xl tracking-tight">YZD</span>
-                    <span class="text-white font-bold text-xl tracking-tight">Center</span>
+            <!-- Logo Brand & Mobile Close Button -->
+            <div
+                class="h-16 px-4 flex items-center justify-center border-b border-white/15 dark:border-slate-800"
+            >
+                <Link :href="isUserActive ? '/investor/dashboard' : '/investor/kyc'" class="flex items-center gap-1.5 overflow-hidden">
+                    <span class="text-accent-400 font-black text-2xl tracking-tight shrink-0">YZD</span>
+                    <span v-if="!isCollapsed" class="text-white font-bold text-xl tracking-tight shrink-0">Center</span>
                     <span
-                        v-if="isAffiliator"
-                        class="ml-2 text-[10px] font-semibold bg-accent-500/20 text-accent-300 border border-accent-500/40 px-1.5 py-0.5 rounded"
+                        v-if="!isCollapsed && isAffiliator"
+                        class="ml-1 text-[10px] font-bold bg-accent-500/25 text-accent-300 border border-accent-500/50 px-1.5 py-0.5 rounded shrink-0 tracking-wide"
                     >
                         AFFILIATOR
                     </span>
                 </Link>
 
+                <!-- Close Button (Mobile only) -->
                 <button
                     type="button"
                     @click="isMobileSidebarOpen = false"
-                    class="md:hidden p-1.5 text-white/70 hover:text-white rounded-lg hover:bg-white/10"
+                    class="md:hidden p-1.5 text-white/80 hover:text-white rounded-lg hover:bg-white/10 cursor-pointer"
+                    aria-label="Tutup Menu"
                 >
                     <X class="w-5 h-5" />
                 </button>
             </div>
 
             <!-- Sidebar Navigation Links -->
-            <nav class="flex-1 overflow-y-auto px-4 py-5 space-y-6 text-sm font-medium">
-                <!-- Menu Utama -->
-                <div class="space-y-1.5">
-                    <p class="px-3 text-[11px] font-semibold uppercase tracking-wider text-white/50">
+            <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-5 text-sm font-medium">
+                <div class="space-y-1">
+                    <!-- Section Title (Hidden when collapsed) -->
+                    <p
+                        v-if="!isCollapsed"
+                        class="px-3 text-[11px] font-bold uppercase tracking-wider text-white/60"
+                    >
                         Menu Utama
                     </p>
+                    <div v-else class="h-px bg-white/10 mx-2 my-2"></div>
+
                     <div class="space-y-1">
-                        <Link
-                            href="/investor/dashboard"
-                            @click="isMobileSidebarOpen = false"
-                            :class="[
-                                'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group',
-                                isActive('/investor/dashboard')
-                                    ? 'bg-primary-700 dark:bg-primary-900/60 text-white font-semibold shadow-inner'
-                                    : 'text-white/80 hover:text-white hover:bg-white/10 dark:hover:bg-slate-800/80'
-                            ]"
-                        >
-                            <LayoutDashboard class="w-4 h-4 text-white/75 group-hover:text-white" />
-                            <span>Dasbor Portofolio</span>
-                        </Link>
-
-                        <Link
-                            href="/investor/copytrade"
-                            @click="isMobileSidebarOpen = false"
-                            :class="[
-                                'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group',
-                                isActive('/investor/copytrade')
-                                    ? 'bg-primary-700 dark:bg-primary-900/60 text-white font-semibold shadow-inner'
-                                    : 'text-white/80 hover:text-white hover:bg-white/10 dark:hover:bg-slate-800/80'
-                            ]"
-                        >
-                            <Link2 class="w-4 h-4 text-white/75 group-hover:text-white" />
-                            <span>Mulai Copytrade</span>
-                        </Link>
-
-                        <Link
-                            href="/investor/statistik"
-                            @click="isMobileSidebarOpen = false"
-                            :class="[
-                                'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group',
-                                isActive('/investor/statistik')
-                                    ? 'bg-primary-700 dark:bg-primary-900/60 text-white font-semibold shadow-inner'
-                                    : 'text-white/80 hover:text-white hover:bg-white/10 dark:hover:bg-slate-800/80'
-                            ]"
-                        >
-                            <BarChart2 class="w-4 h-4 text-white/75 group-hover:text-white" />
-                            <span>Statistik Portofolio</span>
-                        </Link>
-
-                        <Link
-                            href="/investor/kyc"
-                            @click="isMobileSidebarOpen = false"
-                            :class="[
-                                'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group',
-                                isActive('/investor/kyc')
-                                    ? 'bg-primary-700 dark:bg-primary-900/60 text-white font-semibold shadow-inner'
-                                    : 'text-white/80 hover:text-white hover:bg-white/10 dark:hover:bg-slate-800/80'
-                            ]"
-                        >
-                            <FileCheck class="w-4 h-4 text-white/75 group-hover:text-white" />
-                            <span>Status KYC & Legalitas</span>
-                        </Link>
-                    </div>
-                </div>
-
-                <!-- Bagian Khusus Afiliator -->
-                <template v-if="isAffiliator">
-                    <div class="space-y-1.5">
-                        <p class="px-3 text-[11px] font-semibold uppercase tracking-wider text-white/50">
-                            Promosi & Referral
-                        </p>
-                        <div class="space-y-1">
-                            <Link
-                                href="/affiliator/referral-code"
-                                @click="isMobileSidebarOpen = false"
+                        <template v-for="item in navItems" :key="item.href">
+                            <!-- Menu Terkunci (Klik memicu Toast) -->
+                            <button
+                                v-if="isLocked(item)"
+                                type="button"
+                                @click="handleLockedClick(item)"
+                                :title="isCollapsed ? `${item.label} (Terkunci)` : `${item.label} (Terkunci - Menunggu verifikasi)`"
                                 :class="[
-                                    'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group',
-                                    isActive('/affiliator/referral-code')
-                                        ? 'bg-primary-700 dark:bg-primary-900/60 text-white font-semibold shadow-inner'
-                                        : 'text-white/80 hover:text-white hover:bg-white/10 dark:hover:bg-slate-800/80'
+                                    'w-full group flex items-center rounded-lg py-2.5 transition-all duration-150 cursor-pointer text-white/70 hover:bg-white/10 hover:text-white dark:hover:bg-slate-800/80',
+                                    isCollapsed ? 'justify-center px-2' : 'justify-between px-3',
                                 ]"
                             >
-                                <QrCode class="w-4 h-4 text-white/75 group-hover:text-white" />
-                                <span>Kode Referral</span>
-                            </Link>
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <component
+                                        :is="item.icon"
+                                        class="w-4 h-4 shrink-0 text-white/70 group-hover:text-white transition-colors"
+                                    />
+                                    <span v-if="!isCollapsed" class="truncate font-semibold text-[13px]">
+                                        {{ item.label }}
+                                    </span>
+                                </div>
 
+                                <!-- Gembok Indikator jika menu terkunci -->
+                                <div
+                                    v-if="!isCollapsed"
+                                    class="flex items-center gap-1 text-[11px] text-amber-300 dark:text-amber-400 font-medium shrink-0 ml-2"
+                                >
+                                    <Lock class="w-3.5 h-3.5" />
+                                </div>
+                            </button>
+
+                            <!-- Menu Aktif Normal -->
                             <Link
-                                href="/affiliator/klaim-susulan"
+                                v-else
+                                :href="item.href"
                                 @click="isMobileSidebarOpen = false"
+                                :title="isCollapsed ? item.label : undefined"
                                 :class="[
-                                    'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group',
-                                    isActive('/affiliator/klaim-susulan')
-                                        ? 'bg-primary-700 dark:bg-primary-900/60 text-white font-semibold shadow-inner'
-                                        : 'text-white/80 hover:text-white hover:bg-white/10 dark:hover:bg-slate-800/80'
+                                    'group flex items-center rounded-lg py-2.5 transition-all duration-150',
+                                    isCollapsed ? 'justify-center px-2' : 'justify-between px-3',
+                                    isActive(item.href)
+                                        ? 'bg-white/20 text-white font-bold shadow-xs dark:bg-slate-800'
+                                        : 'text-white/85 hover:bg-white/10 hover:text-white dark:hover:bg-slate-800/80',
                                 ]"
                             >
-                                <UserPlus class="w-4 h-4 text-white/75 group-hover:text-white" />
-                                <span>Klaim Referral Susulan</span>
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <component
+                                        :is="item.icon"
+                                        class="w-4 h-4 shrink-0 text-white transition-colors"
+                                    />
+                                    <span v-if="!isCollapsed" class="truncate font-semibold text-[13px]">
+                                        {{ item.label }}
+                                    </span>
+                                </div>
                             </Link>
-                        </div>
-                    </div>
-
-                    <div class="space-y-1.5">
-                        <p class="px-3 text-[11px] font-semibold uppercase tracking-wider text-white/50">
-                            Jaringan & Komisi
-                        </p>
-                        <div class="space-y-1">
-                            <Link
-                                href="/affiliator/downline"
-                                @click="isMobileSidebarOpen = false"
-                                :class="[
-                                    'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group',
-                                    isActive('/affiliator/downline')
-                                        ? 'bg-primary-700 dark:bg-primary-900/60 text-white font-semibold shadow-inner'
-                                        : 'text-white/80 hover:text-white hover:bg-white/10 dark:hover:bg-slate-800/80'
-                                ]"
-                            >
-                                <Users class="w-4 h-4 text-white/75 group-hover:text-white" />
-                                <span>Daftar Downline</span>
-                            </Link>
-
-                            <Link
-                                href="/affiliator/klaim-komisi"
-                                @click="isMobileSidebarOpen = false"
-                                :class="[
-                                    'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group',
-                                    isActive('/affiliator/klaim-komisi')
-                                        ? 'bg-primary-700 dark:bg-primary-900/60 text-white font-semibold shadow-inner'
-                                        : 'text-white/80 hover:text-white hover:bg-white/10 dark:hover:bg-slate-800/80'
-                                ]"
-                            >
-                                <Send class="w-4 h-4 text-white/75 group-hover:text-white" />
-                                <span>Ajukan Klaim Komisi</span>
-                            </Link>
-                        </div>
-                    </div>
-                </template>
-
-                <!-- Edukasi & Bantuan -->
-                <div class="space-y-1.5">
-                    <p class="px-3 text-[11px] font-semibold uppercase tracking-wider text-white/50">
-                        Edukasi & Bantuan
-                    </p>
-                    <div class="space-y-1">
-                        <Link
-                            href="/edukasi/kamus"
-                            @click="isMobileSidebarOpen = false"
-                            :class="[
-                                'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group',
-                                isActive('/edukasi/kamus')
-                                    ? 'bg-primary-700 dark:bg-primary-900/60 text-white font-semibold shadow-inner'
-                                    : 'text-white/80 hover:text-white hover:bg-white/10 dark:hover:bg-slate-800/80'
-                            ]"
-                        >
-                            <BookOpen class="w-4 h-4 text-white/75 group-hover:text-white" />
-                            <span>Kamus Forex</span>
-                        </Link>
-
-                        <Link
-                            href="/edukasi/faq"
-                            @click="isMobileSidebarOpen = false"
-                            :class="[
-                                'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group',
-                                isActive('/edukasi/faq')
-                                    ? 'bg-primary-700 dark:bg-primary-900/60 text-white font-semibold shadow-inner'
-                                    : 'text-white/80 hover:text-white hover:bg-white/10 dark:hover:bg-slate-800/80'
-                            ]"
-                        >
-                            <HelpCircle class="w-4 h-4 text-white/75 group-hover:text-white" />
-                            <span>Pusat Bantuan (FAQ)</span>
-                        </Link>
+                        </template>
                     </div>
                 </div>
             </nav>
-
-            <!-- Bottom User Profile Area -->
-            <div class="p-4 border-t border-white/15 dark:border-slate-800 bg-primary-700/50 dark:bg-slate-900/80 flex items-center justify-between">
-                <div class="flex items-center gap-3 truncate">
-                    <div class="w-9 h-9 rounded-full bg-accent-500 text-white font-bold flex items-center justify-center text-sm shadow-sm flex-shrink-0">
-                        {{ userInitials }}
-                    </div>
-                    <div class="truncate text-xs">
-                        <p class="font-semibold text-white truncate">{{ user?.name || 'Investor' }}</p>
-                        <p class="text-white/60 truncate capitalize">{{ user?.role || 'Investor' }}</p>
-                    </div>
-                </div>
-
-                <button
-                    type="button"
-                    @click="logout"
-                    class="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                    title="Keluar"
-                >
-                    <LogOut class="w-4 h-4" />
-                </button>
-            </div>
         </aside>
 
         <!-- Main Wrapper -->
         <div class="flex-1 flex flex-col min-w-0">
             <!-- Top Navbar -->
-            <header class="h-16 px-4 sm:px-6 bg-white dark:bg-slate-900 border-b-2 border-accent-500 flex items-center justify-between shadow-xs sticky top-0 z-30 transition-colors">
-                <div class="flex items-center gap-3">
+            <header
+                class="h-16 bg-white dark:bg-slate-900 border-b-2 border-accent-500 shadow-xs sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 transition-colors"
+            >
+                <div class="flex items-center gap-2.5 sm:gap-3">
+                    <!-- Mobile Menu Button -->
                     <button
                         type="button"
                         @click="isMobileSidebarOpen = true"
-                        class="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800"
+                        class="md:hidden p-2 rounded-lg text-slate-700 dark:text-slate-200 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
                         aria-label="Buka Menu"
                     >
                         <Menu class="w-5 h-5" />
                     </button>
 
-                    <h1 class="text-base sm:text-lg font-semibold text-foreground truncate">
-                        {{ title }}
-                    </h1>
+                    <!-- Desktop Sidebar Minimize/Maximize Button -->
+                    <button
+                        type="button"
+                        @click="toggleCollapse"
+                        class="hidden md:flex rounded-lg p-2 text-slate-700 dark:text-slate-200 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer min-h-[38px] min-w-[38px] items-center justify-center"
+                        :title="isCollapsed ? 'Tampilkan Sidebar' : 'Sembunyikan Sidebar'"
+                        :aria-label="isCollapsed ? 'Perluas Sidebar' : 'Kecilkan Sidebar'"
+                    >
+                        <PanelLeftClose v-if="!isCollapsed" class="w-5 h-5" />
+                        <PanelLeft v-else class="w-5 h-5" />
+                    </button>
                 </div>
 
                 <!-- Right Header Actions -->
-                <div class="flex items-center gap-2 sm:gap-4">
-                    <!-- Language Selector Dropdown -->
-                    <div class="relative">
-                        <button
-                            type="button"
-                            @click="isLangDropdownOpen = !isLangDropdownOpen"
-                            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors uppercase"
-                            aria-label="Pilih Bahasa"
-                        >
-                            <Globe class="w-4 h-4" />
-                            <span>{{ currentLocale }}</span>
-                            <ChevronDown class="w-3.5 h-3.5" />
-                        </button>
-
-                        <div
-                            v-if="isLangDropdownOpen"
-                            @click="isLangDropdownOpen = false"
-                            class="fixed inset-0 z-40"
-                        ></div>
-
-                        <div
-                            v-if="isLangDropdownOpen"
-                            class="absolute right-0 mt-2 w-32 bg-card rounded-xl border border-border shadow-lg py-1 z-50 text-xs font-medium"
-                        >
-                            <button
-                                type="button"
-                                @click="switchLocale('id')"
-                                :class="[
-                                    'w-full text-left px-3 py-1.5 flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-800',
-                                    currentLocale === 'id' ? 'font-bold text-primary-600 dark:text-primary-400' : 'text-foreground'
-                                ]"
-                            >
-                                <span>Indonesia</span>
-                                <span v-if="currentLocale === 'id'">✓</span>
-                            </button>
-                            <button
-                                type="button"
-                                @click="switchLocale('en')"
-                                :class="[
-                                    'w-full text-left px-3 py-1.5 flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-800',
-                                    currentLocale === 'en' ? 'font-bold text-primary-600 dark:text-primary-400' : 'text-foreground'
-                                ]"
-                            >
-                                <span>English</span>
-                                <span v-if="currentLocale === 'en'">✓</span>
-                            </button>
-                        </div>
-                    </div>
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <!-- In-App Notification Bell Component -->
+                    <AppNotificationBell />
 
                     <!-- Dark Mode Toggle -->
                     <button
                         type="button"
                         @click="toggleDarkMode"
-                        class="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        class="p-2 rounded-lg text-slate-700 dark:text-slate-200 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
                         :title="isDark ? 'Mode Terang' : 'Mode Gelap'"
                         aria-label="Toggle Tema"
                     >
-                        <Sun v-if="isDark" class="w-5 h-5 text-amber-400" />
-                        <Moon v-else class="w-5 h-5 text-slate-600" />
+                        <Sun v-if="isDark" class="w-5 h-5 text-amber-500" />
+                        <Moon v-else class="w-5 h-5 text-slate-700" />
                     </button>
-
-                    <!-- Notifications Bell -->
-                    <div class="relative">
-                        <button
-                            type="button"
-                            class="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                            aria-label="Notifikasi"
-                        >
-                            <Bell class="w-5 h-5" />
-                        </button>
-                    </div>
 
                     <!-- User Dropdown Menu -->
                     <div class="relative">
                         <button
                             type="button"
                             @click="isUserDropdownOpen = !isUserDropdownOpen"
-                            class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm"
+                            class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-sm transition-colors cursor-pointer min-h-[38px]"
                         >
-                            <div class="w-8 h-8 rounded-full bg-accent-500 text-white font-bold flex items-center justify-center text-xs shadow-xs">
+                            <div
+                                class="w-8 h-8 rounded-full bg-accent-500 text-white font-bold text-xs flex items-center justify-center shadow-xs"
+                            >
                                 {{ userInitials }}
                             </div>
-                            <span class="hidden lg:inline-block font-medium text-foreground">
-                                {{ user?.name || 'Investor' }}
+                            <span class="hidden lg:inline-block font-bold text-foreground">
+                                {{ user.name || 'Investor' }}
                             </span>
-                            <ChevronDown class="w-4 h-4 text-muted-foreground" />
+                            <ChevronDown class="w-4 h-4 text-slate-600 dark:text-slate-300" />
                         </button>
 
                         <div
@@ -439,19 +314,19 @@ const switchLocale = (lang) => {
                         >
                             <div
                                 v-if="isUserDropdownOpen"
-                                class="absolute right-0 mt-2 w-48 bg-card rounded-xl border border-border shadow-lg py-1 z-50 text-sm font-medium"
+                                class="absolute right-0 mt-2 w-48 rounded-xl bg-card text-card-foreground border border-border shadow-lg py-1 z-50 text-sm font-medium"
                             >
                                 <div class="px-4 py-2 border-b border-border/60">
-                                    <p class="font-semibold text-foreground truncate">{{ user?.name || 'Investor' }}</p>
-                                    <p class="text-xs text-muted-foreground truncate">{{ user?.email }}</p>
+                                    <p class="font-bold text-foreground truncate">{{ user.name }}</p>
+                                    <p class="text-xs text-muted-foreground truncate">{{ user.email }}</p>
                                 </div>
 
                                 <Link
-                                    href="/investor/profil"
-                                    class="flex items-center gap-2 px-4 py-2 text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                    href="/investor/kyc"
+                                    class="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-foreground transition-colors font-medium"
                                 >
-                                    <UserIcon class="w-4 h-4 text-muted-foreground" />
-                                    <span>Profil Saya</span>
+                                    <FileCheck class="w-4 h-4 text-muted-foreground" />
+                                    <span>Status KYC & Legalitas</span>
                                 </Link>
 
                                 <div class="my-1 border-t border-border/60"></div>
@@ -459,7 +334,7 @@ const switchLocale = (lang) => {
                                 <button
                                     type="button"
                                     @click="logout"
-                                    class="w-full text-left flex items-center gap-2 px-4 py-2 text-destructive hover:bg-destructive/10 transition-colors"
+                                    class="w-full flex items-center gap-2 px-4 py-2 text-left text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors font-bold cursor-pointer"
                                 >
                                     <LogOut class="w-4 h-4" />
                                     <span>Keluar</span>
@@ -471,7 +346,7 @@ const switchLocale = (lang) => {
             </header>
 
             <!-- Main Content Area -->
-            <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
                 <slot />
             </main>
         </div>

@@ -14,11 +14,36 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('username')->unique()->nullable();
             $table->string('email')->unique();
+            $table->string('role')->default('investor');
+            $table->string('status', 30)->default('pending');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('nik', 16)->nullable();
+            $table->string('phone', 20)->nullable();
+            $table->text('alamat')->nullable();
+            $table->string('referral_code', 32)->unique()->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->string('avatar')->nullable();
+            $table->string('tempat_lahir', 100)->nullable();
+            $table->date('tanggal_lahir')->nullable();
+            $table->string('pekerjaan', 100)->nullable();
+            $table->timestamp('terms_agreed_at')->nullable();
+            $table->string('ip_address', 45)->nullable();
+
+            // Audit columns
+            $table->string('created_by')->nullable();
+            $table->string('updated_by')->nullable();
+            $table->string('deleted_by')->nullable();
             $table->rememberToken();
+            $table->softDeletes();
             $table->timestamps();
+
+            // Indexes for frequent queries
+            $table->index('role');
+            $table->index('status');
+            $table->index('is_active');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

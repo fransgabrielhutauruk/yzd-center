@@ -17,7 +17,6 @@ class KontenLegal extends Model
         'key_name',
         'judul',
         'konten',
-        'versi',
         'updated_by',
     ];
 

@@ -154,10 +154,10 @@ const getAlignmentClass = (align) => {
 <template>
     <div class="space-y-4">
         <!-- Toolbar: Search Bar, Per-Page Selector, Custom Filters & Action Slot -->
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card p-3 sm:p-4 rounded-xl border border-border shadow-xs">
-            <div class="flex items-center gap-3 flex-1">
+        <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-card p-3 sm:p-4 rounded-xl border border-border shadow-xs">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 flex-1">
                 <!-- Search Input -->
-                <div v-if="showSearch" class="relative flex-1 max-w-sm">
+                <div v-if="showSearch" class="relative w-full sm:max-w-xs md:max-w-sm">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
                         <Loader2 v-if="isLoading" class="w-4 h-4 animate-spin text-primary-600" />
                         <Search v-else class="w-4 h-4" />
@@ -175,11 +175,11 @@ const getAlignmentClass = (align) => {
             </div>
 
             <!-- Right Toolbar: Custom Actions & Per-Page Selector -->
-            <div class="flex items-center gap-3 justify-end">
+            <div class="flex items-center gap-3 justify-between sm:justify-end">
                 <slot name="actions" />
 
                 <!-- Per-Page Selector -->
-                <div v-if="showPerPage" class="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
+                <div v-if="showPerPage" class="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap ml-auto sm:ml-0">
                     <span>Baris:</span>
                     <select
                         :value="perPage"

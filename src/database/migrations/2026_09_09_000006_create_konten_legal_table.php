@@ -16,7 +16,6 @@ return new class extends Migration
             $table->string('key_name', 50)->unique(); // terms_conditions, privacy_policy
             $table->string('judul');
             $table->longText('konten');
-            $table->string('versi', 20)->default('v1.0');
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });

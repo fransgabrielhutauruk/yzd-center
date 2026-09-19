@@ -9,6 +9,8 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DocumentStreamController;
 use App\Http\Controllers\Investor\InvestorDashboardController;
 use App\Http\Controllers\Investor\KycController;
+use App\Http\Controllers\NotificationController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -19,12 +21,18 @@ use Illuminate\Support\Facades\Route;
 
 // Halaman Utama: Redirect dinamis berdasarkan status autentikasi dan peran pengguna
 Route::get('/', function () {
-    if (auth()->check()) {
-        $user = auth()->user();
+    if (Auth::check()) {
+        $user = Auth::user();
 
-        return ($user && $user->isAdmin())
-            ? redirect()->route('admin.dashboard')
-            : redirect()->route('investor.dashboard');
+        if ($user && $user->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        if ($user && $user->status !== 'active') {
+            return redirect()->route('investor.kyc');
+        }
+
+        return redirect()->route('investor.dashboard');
     }
 
     return redirect()->route('login');
@@ -37,6 +45,8 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
     Route::post('/register', [RegisteredUserController::class, 'store']);
+    Route::match(['get', 'post'], '/register/template-perjanjian/{tier}', [RegisteredUserController::class, 'downloadTemplate'])
+        ->name('register.template');
 });
 
 // Logout (Authenticated)
@@ -48,6 +58,13 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 Route::get('/documents/{id}', [DocumentStreamController::class, 'show'])
     ->middleware('auth')
     ->name('documents.show');
+
+// Notifikasi In-App (Terotentikasi)
+Route::middleware('auth')->prefix('notifications')->name('notifications.')->group(function () {
+    Route::get('/', [NotificationController::class, 'index'])->name('index');
+    Route::post('/{id}/read', [NotificationController::class, 'markAsRead'])->name('read');
+    Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('mark_all_read');
+});
 
 // Portal Administrator
 Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.')->group(function () {
@@ -61,6 +78,7 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     // Verifikasi Dokumen KYC & Legalitas
     Route::get('/kyc', [AdminKycController::class, 'index'])->name('kyc.index');
     Route::post('/kyc/documents/{id}/verify', [AdminKycController::class, 'verify'])->name('kyc.verify');
+    Route::post('/kyc/accounts/{id}/verify', [AdminKycController::class, 'verifyAccount'])->name('kyc.accounts.verify');
 
     // Pengaturan Dokumen Legalitas (Terms & Privacy)
     Route::get('/settings/legal', [LegalContentController::class, 'index'])->name('settings.legal');
@@ -69,9 +87,14 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
 
 // Portal Investor & Afiliator
 Route::middleware(['auth', 'role:investor,affiliator'])->prefix('investor')->name('investor.')->group(function () {
-    Route::get('/dashboard', [InvestorDashboardController::class, 'index'])->name('dashboard');
+    // Fitur yang mewajibkan akun sudah berstatus active
+    Route::middleware('ensure.active')->group(function () {
+        Route::get('/dashboard', [InvestorDashboardController::class, 'index'])->name('dashboard');
+    });
 
-    // Status KYC & Unggah Ulang Berkas
-    Route::get('/kyc', [KycController::class, 'index'])->name('kyc.index');
+    // Status KYC & Unggah Ulang Berkas (Selalu dapat diakses oleh investor/afiliator)
+    Route::get('/kyc', [KycController::class, 'index'])->name('kyc');
     Route::post('/kyc/reupload/{type}', [KycController::class, 'reupload'])->name('kyc.reupload');
+    Route::post('/kyc/account/update', [KycController::class, 'updateAccount'])->name('kyc.account.update');
+    Route::post('/kyc/account/confirm-follow', [KycController::class, 'confirmFollow'])->name('kyc.account.confirm_follow');
 });

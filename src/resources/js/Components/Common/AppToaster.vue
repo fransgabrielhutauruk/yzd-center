@@ -27,7 +27,7 @@ watch(
             toast.info(flash.info);
         }
     },
-    { deep: true }
+    { deep: true, immediate: true }
 );
 </script>
 

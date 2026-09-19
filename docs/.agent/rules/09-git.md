@@ -4,7 +4,7 @@
 
 Karena proyek dikembangkan oleh **solo developer (Frans)**, alur Git disederhanakan menggunakan pendekatan **Trunk-Based Development**:
 
-- **Default:** Commit dan push langsung ke branch `main`.
+- **Default:** JANGAN commit maupun push otomatis ke branch `main`. Selalu tunggu persetujuan eksplisit (*approval*) dari USER sebelum menjalankan `git commit` maupun `git push origin main`.
 - **Branching bersifat OPSIONAL:** Hanya dibuat saat mengerjakan eksperimen besar, riset, atau fitur berisiko tinggi yang belum tentu digabungkan ke `main`.
 
 ---
@@ -47,7 +47,7 @@ Format: `{type}({scope}): {deskripsi singkat}` atau `{type}: {deskripsi singkat}
 
 ## Sebelum Commit & Push ke `main` — Checklist Wajib
 
-Sebelum melakukan `git commit` dan `git push origin main`:
+Hanya jalankan setelah ada approval eksplisit dari USER. Sebelum melakukan `git commit` dan `git push origin main`:
 
 1. **Format PHP:** `vendor/bin/pint --dirty` (atau `vendor/bin/pint app database`)
 2. **Cek debug statement:** Pastikan tidak ada `dd(`, `dump(`, atau `console.log(` tersisa

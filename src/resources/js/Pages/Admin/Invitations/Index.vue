@@ -148,7 +148,7 @@ const getStatusBadgeClass = (statusKey) => {
                         Tautan Undangan Pendaftaran
                     </h2>
                     <p class="text-muted-foreground mt-0.5 text-xs sm:text-sm">
-                        Kelola token pendaftaran tertutup (*Closed Registration*) untuk Calon
+                        Kelola token pendaftaran tertutup untuk Calon
                         Investor dan Affiliator.
                     </p>
                 </div>
@@ -175,14 +175,14 @@ const getStatusBadgeClass = (statusKey) => {
             >
                 <!-- Custom Filter Slot: Role & Status Filter Dropdowns -->
                 <template #filters="{ applyFilters }">
-                    <div class="hidden items-center gap-2 md:flex">
+                    <div class="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center">
                         <!-- Filter Role -->
                         <select
                             :value="filters.role || ''"
                             @change="
                                 applyFilters({ role: $event.target.value || undefined, page: 1 })
                             "
-                            class="bg-background border-input focus:ring-primary-500 rounded-lg border px-2.5 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none"
+                            class="bg-background border-input focus:ring-primary-500 rounded-lg border px-2.5 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none w-full sm:w-auto"
                         >
                             <option value="">Semua Peran</option>
                             <option value="investor">Investor</option>
@@ -195,7 +195,7 @@ const getStatusBadgeClass = (statusKey) => {
                             @change="
                                 applyFilters({ status: $event.target.value || undefined, page: 1 })
                             "
-                            class="bg-background border-input focus:ring-primary-500 rounded-lg border px-2.5 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none"
+                            class="bg-background border-input focus:ring-primary-500 rounded-lg border px-2.5 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none w-full sm:w-auto"
                         >
                             <option value="">Semua Status</option>
                             <option value="active">Aktif</option>
@@ -341,10 +341,10 @@ const getStatusBadgeClass = (statusKey) => {
         <AppModal
             :show="isCreateModalOpen"
             title="Buat Tautan Undangan Baru"
-            max-width="lg"
+            max-width="xl"
             @close="closeCreateModal"
         >
-            <form @submit.prevent="submitCreate" class="space-y-4">
+            <form @submit.prevent="submitCreate" class="space-y-4 px-2">
                 <!-- Label / Nama Kegiatan -->
                 <div class="space-y-1.5">
                     <label for="label" class="text-foreground block text-xs font-semibold">
@@ -375,7 +375,7 @@ const getStatusBadgeClass = (statusKey) => {
                                 'flex cursor-pointer items-center gap-2.5 rounded-xl border p-3 transition-all',
                                 form.target_role === 'investor'
                                     ? 'border-primary-600 bg-primary-500/10 text-foreground ring-primary-600 font-semibold ring-1'
-                                    : 'border-input hover:bg-muted/50 text-muted-foreground',
+                                    : 'border-input hover:bg-muted/50 hover:text-foreground text-muted-foreground',
                             ]"
                         >
                             <input
@@ -398,7 +398,7 @@ const getStatusBadgeClass = (statusKey) => {
                                 'flex cursor-pointer items-center gap-2.5 rounded-xl border p-3 transition-all',
                                 form.target_role === 'affiliator'
                                     ? 'border-primary-600 bg-primary-500/10 text-foreground ring-primary-600 font-semibold ring-1'
-                                    : 'border-input hover:bg-muted/50 text-muted-foreground',
+                                    : 'border-input hover:bg-muted/50 hover:text-foreground text-muted-foreground',
                             ]"
                         >
                             <input

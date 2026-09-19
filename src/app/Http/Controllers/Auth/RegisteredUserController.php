@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\KontenLegal;
+use App\Services\AgreementTemplateService;
 use App\Services\AuthService;
 use App\Services\InvitationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class RegisteredUserController extends Controller
 {
@@ -27,6 +29,7 @@ class RegisteredUserController extends Controller
         $token = $request->query('invite');
         $invitationStatus = $this->invitationService->validateToken($token);
         $terms = KontenLegal::getTerms();
+        $privacy = KontenLegal::getPrivacyPolicy();
 
         return Inertia::render('Auth/Register', [
             'invitation' => $invitationStatus,
@@ -34,7 +37,10 @@ class RegisteredUserController extends Controller
             'terms'      => $terms ? [
                 'judul'  => $terms->judul,
                 'konten' => $terms->konten,
-                'versi'  => $terms->versi,
+            ] : null,
+            'privacy' => $privacy ? [
+                'judul'  => $privacy->judul,
+                'konten' => $privacy->konten,
             ] : null,
         ]);
     }
@@ -56,5 +62,23 @@ class RegisteredUserController extends Controller
                 'username' => $user->username,
                 'email'    => $user->email,
             ]);
+    }
+
+    /**
+     * Unduh atau hasilkan template surat perjanjian resmi sesuai tier investasi
+     * dan data formulir pendaftaran.
+     */
+    public function downloadTemplate(Request $request, string $tier, AgreementTemplateService $templateService): BinaryFileResponse
+    {
+        $validTiers = ['tier_1', 'tier_2', 'tier_3'];
+
+        abort_unless(in_array($tier, $validTiers, true), 404);
+
+        $data = $request->all();
+        $result = $templateService->generate($tier, $data);
+
+        return response()->download($result['path'], $result['filename'], [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ])->deleteFileAfterSend(true);
     }
 }

@@ -48,3 +48,6 @@ src/public/storage
 src/.phpunit.result.cache
 src/.phpunit.cache
 src/create_db.php
+
+# personal
+cloudflared.exe

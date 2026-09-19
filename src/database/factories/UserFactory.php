@@ -34,6 +34,7 @@ class UserFactory extends Factory
             'phone'             => '0812' . fake()->numerify('########'),
             'nik'               => fake()->numerify('3201############'),
             'alamat'            => fake()->address(),
+            'status'            => 'active',
             'is_active'         => true,
             'remember_token'    => Str::random(10),
         ];
@@ -45,7 +46,30 @@ class UserFactory extends Factory
     public function admin(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role' => 'administrator',
+            'role'   => 'administrator',
+            'status' => 'active',
+        ]);
+    }
+
+    /**
+     * Indicate that the user is active / verified.
+     */
+    public function active(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status'    => 'active',
+            'is_active' => true,
+        ]);
+    }
+
+    /**
+     * Indicate that the user is pending verification.
+     */
+    public function pending(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status'    => 'pending',
+            'is_active' => true,
         ]);
     }
 

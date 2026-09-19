@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useForm, Link, router } from '@inertiajs/vue3';
 import AuthLayout from '@/Layouts/AuthLayout.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
@@ -26,12 +26,24 @@ import {
     FileText,
     UploadCloud,
     CheckCircle,
-    ExternalLink,
     File as FileIcon,
     Loader2,
     Info,
     Edit3,
+    AlertCircle,
+    Download,
+    Building2,
+    Banknote,
+    Calendar,
+    TrendingUp,
+    Server,
+    KeyRound,
+    Briefcase,
 } from 'lucide-vue-next';
+
+// === [DEV ONLY: AUTO-FILL] Hapus blok import di bawah ini kelak jika tidak diperlukan lagi ===
+import DevRegisterAutoFill from '@/Components/Dev/DevRegisterAutoFill.vue';
+// === [END DEV ONLY: AUTO-FILL] ===
 
 const props = defineProps({
     invitation: {
@@ -46,11 +58,16 @@ const props = defineProps({
         type: Object,
         default: null,
     },
+    privacy: {
+        type: Object,
+        default: null,
+    },
 });
 
 const currentStep = ref(1);
 const showPassword = ref(false);
 const isTermsModalOpen = ref(false);
+const isPrivacyModalOpen = ref(false);
 
 const ktpCompressing = ref(false);
 const ktpInfo = ref(null);
@@ -65,8 +82,8 @@ const pendingNavigation = ref(null);
 const steps = [
     { id: 1, title: 'Akun', icon: User, desc: 'Identitas Diri' },
     { id: 2, title: 'Ahli Waris', icon: Users, desc: 'Kontak Darurat' },
-    { id: 3, title: 'Berkas', icon: FileText, desc: 'KTP & Perjanjian' },
-    { id: 4, title: 'Persetujuan', icon: CheckCircle2, desc: 'T&C & Submit' },
+    { id: 3, title: 'Trading & Berkas', icon: FileText, desc: 'Akun & Legalitas' },
+    { id: 4, title: 'Persetujuan', icon: CheckCircle2, desc: 'Konfirmasi & Submit' },
 ];
 
 const form = useForm({
@@ -77,6 +94,9 @@ const form = useForm({
     phone: '',
     nik: '',
     alamat: '',
+    tempat_lahir: '',
+    tanggal_lahir: '',
+    pekerjaan: '',
     password: '',
     password_confirmation: '',
 
@@ -85,6 +105,19 @@ const form = useForm({
     ahli_waris_hubungan: '',
     ahli_waris_phone: '',
     ahli_waris_alamat: '',
+
+    // Data Akun Copy Trade
+    tier_investasi: 'tier_1',
+    nomor_akun_trading: '',
+    estimasi_modal: '',
+    tanggal_mulai_trading: new Date().toISOString().split('T')[0],
+    nama_bank: '',
+    nomor_rekening: '',
+    atas_nama_rekening: '',
+    // Khusus Tier 3
+    server_broker: '',
+    master_password: '',
+    investor_password: '',
 
     // Berkas Legalitas
     dokumen_ktp: null,
@@ -96,10 +129,148 @@ const form = useForm({
 
 const hubunganOptions = ['Anak', 'Istri', 'Suami', 'Orang Tua', 'Saudara Kandung', 'Lainnya'];
 
-const copyAlamatToAhliWaris = () => {
-    if (form.alamat) {
-        form.ahli_waris_alamat = form.alamat;
-        toast.info('Alamat domisili disalin ke alamat ahli waris.');
+const showMasterPassword = ref(false);
+const showInvestorPassword = ref(false);
+
+const bankOptions = [
+    'BCA', 'Mandiri', 'BRI', 'BNI', 'BSI', 'CIMB Niaga', 'Danamon', 'Permata',
+    'Panin', 'Mega', 'BTN', 'BPD', 'OCBC NISP', 'Maybank', 'Lainnya',
+];
+
+const selectedBankOption = ref('');
+const customBankName = ref('');
+
+// Sinkronisasi bank pilihan dengan form.nama_bank
+watch(selectedBankOption, (newVal) => {
+    if (newVal === 'Lainnya') {
+        form.nama_bank = customBankName.value;
+    } else {
+        form.nama_bank = newVal;
+        customBankName.value = '';
+    }
+});
+
+// Update form.nama_bank saat user mengetik di input manual "Lainnya"
+const handleCustomBankInput = (event) => {
+    const val = event.target.value;
+    customBankName.value = val;
+    if (selectedBankOption.value === 'Lainnya') {
+        form.nama_bank = val;
+    }
+};
+
+// Sinkronisasi dari form.nama_bank (misal saat autofill atau reset)
+watch(() => form.nama_bank, (newVal) => {
+    if (!newVal) {
+        selectedBankOption.value = '';
+        customBankName.value = '';
+    } else if (bankOptions.filter(b => b !== 'Lainnya').includes(newVal)) {
+        selectedBankOption.value = newVal;
+        customBankName.value = '';
+    } else {
+        selectedBankOption.value = 'Lainnya';
+        customBankName.value = newVal;
+    }
+}, { immediate: true });
+
+const tierConfig = {
+    tier_1: {
+        label: 'Tier 1 – Cent Account HFM',
+        broker: 'HFM',
+        desc: 'Copy trade otomatis. Modal < $5,000.',
+        color: 'blue',
+        modalInfo: 'Modal: $100 – $4,999',
+    },
+    tier_2: {
+        label: 'Tier 2 – Standard Account XM',
+        broker: 'XM',
+        desc: 'Copy trade otomatis. Modal $5,000 – $300,000.',
+        color: 'emerald',
+        modalInfo: 'Modal: $5,000 – $300,000',
+    },
+    tier_3: {
+        label: 'Tier 3 – Private VPS XM',
+        broker: 'XM',
+        desc: 'Dikelola langsung via Private VPS. Modal ≥ $300,000.',
+        color: 'violet',
+        modalInfo: 'Modal: ≥ $300,000',
+    },
+};
+
+const isDownloadingTemplate = ref(false);
+
+const downloadTemplate = async () => {
+    if (isDownloadingTemplate.value) return;
+
+    const tier = form.tier_investasi;
+    isDownloadingTemplate.value = true;
+    toast.info('Menyiapkan template surat perjanjian...');
+
+    try {
+        const payload = {
+            name: form.name,
+            nik: form.nik,
+            tempat_lahir: form.tempat_lahir,
+            tanggal_lahir: form.tanggal_lahir,
+            pekerjaan: form.pekerjaan,
+            alamat: form.alamat,
+            phone: form.phone,
+            email: form.email,
+            tier_investasi: form.tier_investasi,
+            nomor_akun_trading: form.nomor_akun_trading,
+            estimasi_modal: form.estimasi_modal,
+            tanggal_mulai_trading: form.tanggal_mulai_trading,
+            nama_bank: form.nama_bank,
+            nomor_rekening: form.nomor_rekening,
+            atas_nama_rekening: form.atas_nama_rekening,
+            ahli_waris_nama: form.ahli_waris_nama,
+            ahli_waris_hubungan: form.ahli_waris_hubungan,
+            ahli_waris_phone: form.ahli_waris_phone,
+            server_broker: form.server_broker,
+            master_password: form.master_password,
+            investor_password: form.investor_password,
+        };
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+        const response = await fetch(`/register/template-perjanjian/${tier}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken || '',
+                Accept: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            throw new Error('Gagal mengunduh template perjanjian.');
+        }
+
+        const blob = await response.blob();
+        let filename = `Surat_Perjanjian_${tier.toUpperCase()}.docx`;
+        const disposition = response.headers.get('content-disposition');
+        if (disposition && disposition.indexOf('filename=') !== -1) {
+            const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+            if (matches != null && matches[1]) {
+                filename = matches[1].replace(/['"]/g, '');
+            }
+        }
+
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+        toast.success(`Surat perjanjian ${form.name ? 'untuk ' + form.name : ''} berhasil diunduh!`);
+    } catch (e) {
+        toast.error('Gagal menyiapkan dokumen perjanjian. Silakan coba lagi.');
+    } finally {
+        isDownloadingTemplate.value = false;
     }
 };
 
@@ -113,12 +284,17 @@ const handleKtpChange = async (event) => {
         if (result) {
             form.dokumen_ktp = result.file;
             ktpInfo.value = {
-                originalSize: formatBytes(result.originalSize),
-                compressedSize: formatBytes(result.compressedSize),
-                isCompressed: result.isCompressed,
+                name: file.name,
                 previewUrl: result.previewUrl,
+                isQualityWarning: result.isQualityWarning || false,
+                warningMessage: result.warningMessage || null,
             };
             form.clearErrors('dokumen_ktp');
+            if (result.isQualityWarning) {
+                toast.warning(
+                    'Peringatan Kualitas: Foto KTP terindikasi resolusi rendah atau sedikit buram.'
+                );
+            }
         }
     } catch (e) {
         toast.error('Gagal memproses foto KTP.');
@@ -137,14 +313,18 @@ const handlePerjanjianChange = async (event) => {
         if (result) {
             form.dokumen_perjanjian = result.file;
             perjanjianInfo.value = {
-                originalSize: formatBytes(result.originalSize),
-                compressedSize: formatBytes(result.compressedSize),
-                isCompressed: result.isCompressed,
+                name: file.name,
                 previewUrl: result.previewUrl,
                 isPdf: file.type === 'application/pdf',
-                name: file.name,
+                isQualityWarning: result.isQualityWarning || false,
+                warningMessage: result.warningMessage || null,
             };
             form.clearErrors('dokumen_perjanjian');
+            if (result.isQualityWarning) {
+                toast.warning(
+                    'Peringatan Kualitas: Berkas perjanjian terindikasi resolusi rendah atau sedikit buram.'
+                );
+            }
         }
     } catch (e) {
         toast.error('Gagal memproses berkas perjanjian.');
@@ -161,6 +341,43 @@ const closeTermsModal = () => {
     isTermsModalOpen.value = false;
 };
 
+const openPrivacyModal = () => {
+    isPrivacyModalOpen.value = true;
+};
+
+const closePrivacyModal = () => {
+    isPrivacyModalOpen.value = false;
+};
+
+// Konten legal tersimpan sebagai HTML Tiptap; dukung fallback plain-text lama
+const escapeHtml = (text) =>
+    String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
+const toLegalHtml = (konten) => {
+    if (!konten) return '';
+    if (!/<\/?[a-z][\s\S]*>/i.test(konten)) {
+        return escapeHtml(konten).replace(/\n/g, '<br />');
+    }
+    return konten;
+};
+
+const termsHtml = computed(
+    () =>
+        toLegalHtml(props.terms?.konten) ||
+        'Tidak ada konten syarat & ketentuan yang tersedia saat ini.'
+);
+
+const privacyHtml = computed(
+    () =>
+        toLegalHtml(props.privacy?.konten) ||
+        'Tidak ada konten kebijakan privasi yang tersedia saat ini.'
+);
+
 // ==========================================
 // VALIDASI KLIEN PER LANGKAH (STEP-BY-STEP)
 // ==========================================
@@ -172,6 +389,9 @@ const validateStep1 = () => {
         'phone',
         'nik',
         'alamat',
+        'tempat_lahir',
+        'tanggal_lahir',
+        'pekerjaan',
         'password',
         'password_confirmation'
     );
@@ -214,6 +434,18 @@ const validateStep1 = () => {
     }
     if (!form.alamat || !form.alamat.trim()) {
         form.setError('alamat', 'Alamat domisili lengkap wajib diisi.');
+        valid = false;
+    }
+    if (!form.tempat_lahir || !form.tempat_lahir.trim()) {
+        form.setError('tempat_lahir', 'Tempat lahir wajib diisi.');
+        valid = false;
+    }
+    if (!form.tanggal_lahir) {
+        form.setError('tanggal_lahir', 'Tanggal lahir wajib diisi.');
+        valid = false;
+    }
+    if (!form.pekerjaan || !form.pekerjaan.trim()) {
+        form.setError('pekerjaan', 'Pekerjaan / sumber dana wajib diisi.');
         valid = false;
     }
     if (!form.password) {
@@ -270,9 +502,76 @@ const validateStep2 = () => {
 };
 
 const validateStep3 = () => {
-    form.clearErrors('dokumen_ktp', 'dokumen_perjanjian');
+    form.clearErrors(
+        'tier_investasi',
+        'nomor_akun_trading',
+        'estimasi_modal',
+        'tanggal_mulai_trading',
+        'nama_bank',
+        'nomor_rekening',
+        'atas_nama_rekening',
+        'server_broker',
+        'master_password',
+        'investor_password',
+        'dokumen_ktp',
+        'dokumen_perjanjian'
+    );
     let valid = true;
 
+    if (!form.tier_investasi) {
+        form.setError('tier_investasi', 'Pilih tier investasi.');
+        valid = false;
+    }
+    if (!form.nomor_akun_trading || !form.nomor_akun_trading.trim()) {
+        form.setError('nomor_akun_trading', 'Nomor akun trading wajib diisi.');
+        valid = false;
+    }
+    const modal = parseFloat(form.estimasi_modal);
+    if (!form.estimasi_modal || isNaN(modal) || modal < 100) {
+        form.setError('estimasi_modal', 'Estimasi modal wajib diisi (minimal $100).');
+        valid = false;
+    } else {
+        if (form.tier_investasi === 'tier_1' && modal >= 5000) {
+            form.setError('estimasi_modal', 'Tier 1 hanya untuk modal di bawah $5,000.');
+            valid = false;
+        } else if (form.tier_investasi === 'tier_2' && (modal < 5000 || modal > 300000)) {
+            form.setError('estimasi_modal', 'Tier 2 hanya untuk modal $5,000 – $300,000.');
+            valid = false;
+        } else if (form.tier_investasi === 'tier_3' && modal < 300000) {
+            form.setError('estimasi_modal', 'Tier 3 membutuhkan modal minimal $300,000.');
+            valid = false;
+        }
+    }
+    if (!form.tanggal_mulai_trading) {
+        form.setError('tanggal_mulai_trading', 'Tanggal mulai copy trade wajib diisi.');
+        valid = false;
+    }
+    if (!form.nama_bank || !form.nama_bank.trim()) {
+        form.setError('nama_bank', 'Nama bank pencairan wajib diisi.');
+        valid = false;
+    }
+    if (!form.nomor_rekening || !form.nomor_rekening.trim()) {
+        form.setError('nomor_rekening', 'Nomor rekening wajib diisi.');
+        valid = false;
+    }
+    if (!form.atas_nama_rekening || !form.atas_nama_rekening.trim()) {
+        form.setError('atas_nama_rekening', 'Nama pemilik rekening wajib diisi.');
+        valid = false;
+    }
+    if (form.tier_investasi === 'tier_3') {
+        if (!form.server_broker || !form.server_broker.trim()) {
+            form.setError('server_broker', 'Server broker XM wajib diisi untuk Tier 3.');
+            valid = false;
+        }
+        if (!form.master_password) {
+            form.setError('master_password', 'Master password MT4 wajib diisi untuk Tier 3.');
+            valid = false;
+        }
+        if (!form.investor_password) {
+            form.setError('investor_password', 'Investor password MT4 wajib diisi untuk Tier 3.');
+            valid = false;
+        }
+    }
     if (ktpCompressing.value || perjanjianCompressing.value) {
         toast.info('Mohon tunggu hingga proses kompresi berkas selesai.');
         return false;
@@ -282,12 +581,12 @@ const validateStep3 = () => {
         valid = false;
     }
     if (!form.dokumen_perjanjian) {
-        form.setError('dokumen_perjanjian', 'Surat Perjanjian Kerjasama wajib diunggah.');
+        form.setError('dokumen_perjanjian', 'Surat Perjanjian Bermaterai wajib diunggah.');
         valid = false;
     }
 
     if (!valid) {
-        toast.error('Mohon unggah kedua berkas legalitas yang diwajibkan.');
+        toast.error('Mohon lengkapi data akun trading dan berkas legalitas.');
     }
     return valid;
 };
@@ -350,7 +649,7 @@ const hasUnsavedChanges = computed(() => {
         (Boolean(form.ahli_waris_nama) && form.ahli_waris_nama.trim() !== '') ||
         (Boolean(form.ahli_waris_hubungan) && form.ahli_waris_hubungan !== '') ||
         (Boolean(form.ahli_waris_phone) && form.ahli_waris_phone.trim() !== '') ||
-        (Boolean(form.ahli_waris_alamat) && form.ahli_waris_alamat.trim() !== '') ||
+        (Boolean(form.nomor_akun_trading) && form.nomor_akun_trading.trim() !== '') ||
         form.dokumen_ktp !== null ||
         form.dokumen_perjanjian !== null
     );
@@ -438,6 +737,9 @@ const submit = () => {
                 'phone',
                 'nik',
                 'alamat',
+                'tempat_lahir',
+                'tanggal_lahir',
+                'pekerjaan',
                 'password',
                 'password_confirmation',
             ];
@@ -447,7 +749,20 @@ const submit = () => {
                 'ahli_waris_phone',
                 'ahli_waris_alamat',
             ];
-            const step3Fields = ['dokumen_ktp', 'dokumen_perjanjian'];
+            const step3Fields = [
+                'tier_investasi',
+                'nomor_akun_trading',
+                'estimasi_modal',
+                'tanggal_mulai_trading',
+                'nama_bank',
+                'nomor_rekening',
+                'atas_nama_rekening',
+                'server_broker',
+                'master_password',
+                'investor_password',
+                'dokumen_ktp',
+                'dokumen_perjanjian',
+            ];
 
             const errorKeys = Object.keys(errors);
             if (errorKeys.some((k) => step1Fields.includes(k))) {
@@ -502,8 +817,7 @@ const submit = () => {
                     Kebijakan Pendaftaran Tertutup:
                 </p>
                 <p class="leading-relaxed">
-                    YZD Center menerapkan sistem eksklusif berbasis undangan (*Closed
-                    Registration*). Setiap pendaftaran akun wajib menggunakan token tautan resmi
+                    YZD Center menerapkan sistem eksklusif berbasis undangan. Setiap pendaftaran akun wajib menggunakan  tautan resmi
                     yang masih aktif dari Administrator.
                 </p>
             </div>
@@ -555,6 +869,16 @@ const submit = () => {
                     <span>{{ invitation.invitation?.target_role_label }}</span>
                 </div>
             </div>
+
+            <!-- === [DEV ONLY: AUTO-FILL] Hapus blok komponen di bawah ini kelak jika tidak diperlukan lagi === -->
+            <DevRegisterAutoFill
+                :form="form"
+                :ktp-info="ktpInfo"
+                :perjanjian-info="perjanjianInfo"
+                @update:ktp-info="(val) => (ktpInfo = val)"
+                @update:perjanjian-info="(val) => (perjanjianInfo = val)"
+            />
+            <!-- === [END DEV ONLY: AUTO-FILL] === -->
 
             <!-- ========================================== -->
             <!-- STEPPER INDICATOR (DESKTOP)               -->
@@ -655,7 +979,7 @@ const submit = () => {
                         <!-- Nama Lengkap -->
                         <div class="space-y-1.5">
                             <label for="name" class="text-foreground block text-xs font-semibold">
-                                Nama Lengkap <span class="text-destructive">*</span>
+                                Nama Lengkap (Sesuai KTP) <span class="text-destructive">*</span>
                             </label>
                             <div class="relative">
                                 <div
@@ -817,7 +1141,7 @@ const submit = () => {
                     <!-- Alamat Domisili -->
                     <div class="space-y-1.5">
                         <label for="alamat" class="text-foreground block text-xs font-semibold">
-                            Alamat Domisili Lengkap <span class="text-destructive">*</span>
+                            Alamat Lengkap <span class="text-destructive">*</span>
                         </label>
                         <div class="relative">
                             <div
@@ -839,6 +1163,94 @@ const submit = () => {
                         </div>
                         <p v-if="form.errors.alamat" class="text-destructive text-xs font-medium">
                             {{ form.errors.alamat }}
+                        </p>
+                    </div>
+
+                    <!-- Grid: Tempat Lahir & Tanggal Lahir -->
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <!-- Tempat Lahir -->
+                        <div class="space-y-1.5">
+                            <label for="tempat_lahir" class="text-foreground block text-xs font-semibold">
+                                Tempat Lahir <span class="text-destructive">*</span>
+                            </label>
+                            <div class="relative">
+                                <div
+                                    class="text-muted-foreground pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"
+                                >
+                                    <MapPin class="h-4 w-4" />
+                                </div>
+                                <input
+                                    id="tempat_lahir"
+                                    v-model="form.tempat_lahir"
+                                    type="text"
+                                    required
+                                    placeholder="Contoh: Jakarta"
+                                    class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border py-2 pr-3 pl-9 text-sm transition-all focus:border-transparent focus:ring-2 focus:outline-none"
+                                    :class="{
+                                        'border-destructive focus:ring-destructive':
+                                            form.errors.tempat_lahir,
+                                    }"
+                                />
+                            </div>
+                            <p v-if="form.errors.tempat_lahir" class="text-destructive text-xs font-medium">
+                                {{ form.errors.tempat_lahir }}
+                            </p>
+                        </div>
+
+                        <!-- Tanggal Lahir -->
+                        <div class="space-y-1.5">
+                            <label for="tanggal_lahir" class="text-foreground block text-xs font-semibold">
+                                Tanggal Lahir <span class="text-destructive">*</span>
+                            </label>
+                            <div class="relative">
+                                <div
+                                    class="text-muted-foreground pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"
+                                >
+                                    <Calendar class="h-4 w-4" />
+                                </div>
+                                <input
+                                    id="tanggal_lahir"
+                                    v-model="form.tanggal_lahir"
+                                    type="date"
+                                    required
+                                    class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border py-2 pr-3 pl-9 text-sm transition-all focus:border-transparent focus:ring-2 focus:outline-none"
+                                    :class="{
+                                        'border-destructive focus:ring-destructive':
+                                            form.errors.tanggal_lahir,
+                                    }"
+                                />
+                            </div>
+                            <p v-if="form.errors.tanggal_lahir" class="text-destructive text-xs font-medium">
+                                {{ form.errors.tanggal_lahir }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Pekerjaan / Sumber Dana -->
+                    <div class="space-y-1.5">
+                        <label for="pekerjaan" class="text-foreground block text-xs font-semibold">
+                            Pekerjaan / Sumber Dana <span class="text-destructive">*</span>
+                        </label>
+                        <div class="relative">
+                            <div
+                                class="text-muted-foreground pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"
+                            >
+                                <Briefcase class="h-4 w-4" />
+                            </div>
+                            <input
+                                id="pekerjaan"
+                                v-model="form.pekerjaan"
+                                type="text"
+                                required
+                                placeholder="Contoh: Karyawan Swasta / Wiraswasta"
+                                class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border py-2 pr-3 pl-9 text-sm transition-all focus:border-transparent focus:ring-2 focus:outline-none"
+                                :class="{
+                                    'border-destructive focus:ring-destructive': form.errors.pekerjaan,
+                                }"
+                            />
+                        </div>
+                        <p v-if="form.errors.pekerjaan" class="text-destructive text-xs font-medium">
+                            {{ form.errors.pekerjaan }}
                         </p>
                     </div>
 
@@ -955,25 +1367,6 @@ const submit = () => {
                                 </p>
                             </div>
                         </div>
-                        <span
-                            class="text-accent-600 bg-accent-500/10 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                        >
-                            Kontak Darurat
-                        </span>
-                    </div>
-
-                    <div
-                        class="bg-muted/60 border-border text-muted-foreground space-y-1 rounded-xl border p-3 text-xs"
-                    >
-                        <p class="text-foreground flex items-center gap-1.5 font-semibold">
-                            <Info class="text-primary-500 h-3.5 w-3.5" />
-                            Mengapa Data Ahli Waris Wajib?
-                        </p>
-                        <p class="leading-relaxed">
-                            Data ahli waris diperlukan sebagai perlindungan kepemilikan aset modal
-                            dan hak bagi hasil jika terjadi musibah atau keadaan darurat di kemudian
-                            hari.
-                        </p>
                     </div>
 
                     <!-- Grid: Nama & Hubungan Ahli Waris -->
@@ -1080,26 +1473,17 @@ const submit = () => {
                         </p>
                     </div>
 
-                    <!-- Alamat Ahli Waris -->
+                    <!-- Alamat Domisili Ahli Waris -->
                     <div class="space-y-1.5">
-                        <div class="flex items-center justify-between">
-                            <label
-                                for="ahli_waris_alamat"
-                                class="text-foreground block text-xs font-semibold"
-                            >
-                                Alamat Domisili Ahli Waris <span class="text-destructive">*</span>
-                            </label>
-                            <button
-                                type="button"
-                                @click="copyAlamatToAhliWaris"
-                                class="text-primary-600 text-[11px] font-medium hover:underline"
-                            >
-                                Samakan dengan alamat saya
-                            </button>
-                        </div>
+                        <label
+                            for="ahli_waris_alamat"
+                            class="text-foreground block text-xs font-semibold"
+                        >
+                            Alamat Domisili Ahli Waris <span class="text-destructive">*</span>
+                        </label>
                         <div class="relative">
                             <div
-                                class="text-muted-foreground pointer-events-none absolute top-2.5 left-0 flex items-start pl-3"
+                                class="text-muted-foreground pointer-events-none absolute top-2.5 left-0 flex items-center pl-3"
                             >
                                 <MapPin class="h-4 w-4" />
                             </div>
@@ -1108,8 +1492,8 @@ const submit = () => {
                                 v-model="form.ahli_waris_alamat"
                                 rows="2"
                                 required
-                                placeholder="Alamat domisili lengkap ahli waris"
-                                class="bg-background border-input focus:ring-primary-500 w-full resize-none rounded-lg border py-2 pr-3 pl-9 text-sm transition-all focus:ring-2 focus:outline-none"
+                                placeholder="Jl. Mawar No. 12, Kelurahan, Kecamatan, Kota"
+                                class="bg-background border-input focus:ring-primary-500 w-full resize-none rounded-lg border py-2 pr-3 pl-9 text-sm transition-all focus:border-transparent focus:ring-2 focus:outline-none"
                                 :class="{
                                     'border-destructive focus:ring-destructive':
                                         form.errors.ahli_waris_alamat,
@@ -1141,251 +1525,525 @@ const submit = () => {
                             @click="nextStep"
                             class="bg-primary-600 hover:bg-primary-700 flex items-center gap-2 rounded-lg px-6 py-2 font-semibold text-white shadow-xs transition-colors"
                         >
-                            <span>Lanjutkan ke Unggah Berkas</span>
+                            <span>Selanjutnya</span>
                             <ArrowRight class="h-4 w-4" />
                         </Button>
                     </div>
                 </div>
 
                 <!-- ========================================== -->
-                <!-- LANGKAH 3: UNGGAH BERKAS               -->
+                <!-- LANGKAH 3: AKUN TRADING & BERKAS LEGALITAS -->
                 <!-- ========================================== -->
-                <div v-show="currentStep === 3" class="space-y-4">
+                <div v-show="currentStep === 3" class="space-y-5">
                     <div
                         class="border-border text-foreground flex items-center justify-between border-b pb-2"
                     >
                         <div class="flex items-center gap-2">
                             <div class="rounded-md bg-emerald-500/10 p-1 text-emerald-600">
-                                <FileText class="h-4 w-4" />
+                                <TrendingUp class="h-4 w-4" />
                             </div>
                             <div>
                                 <h2 class="text-sm font-bold tracking-wider uppercase">
-                                    3. Unggah Berkas
+                                    3. Akun Trading & Berkas Legalitas
                                 </h2>
                                 <p class="text-muted-foreground text-xs">
-                                    Unggah dokumen KTP dan Surat Perjanjian Kerjasama Bermaterai.
+                                    Data akun trading aktif, rekening pencairan, dan unggah berkas resmi.
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <div
-                        class="bg-muted/60 border-border text-muted-foreground space-y-1 rounded-xl border p-3 text-xs"
-                    >
-                        <p class="text-foreground flex items-center gap-1.5 font-semibold">
-                            <Info class="text-primary-500 h-3.5 w-3.5" />
-                            Petunjuk Berkas:
+                    <!-- === PEMILIHAN TIER INVESTASI === -->
+                    <div class="space-y-2">
+                        <p class="text-foreground text-xs font-bold">
+                            Pilih Tier Investasi <span class="text-destructive">*</span>
                         </p>
-                        <p class="leading-relaxed">
-                            Pastikan foto KTP dan surat perjanjian terlihat jelas, tidak buram, dan
-                            seluruh informasi identitas dapat terbaca dengan baik.
+                        <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                            <button
+                                v-for="(cfg, key) in tierConfig"
+                                :key="key"
+                                type="button"
+                                @click="form.tier_investasi = key"
+                                class="relative rounded-xl border-2 p-3 text-left transition-all"
+                                :class="
+                                    form.tier_investasi === key
+                                        ? 'border-primary-600 bg-primary-500/10'
+                                        : 'border-border bg-card/50 hover:border-primary-400'
+                                "
+                            >
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <p class="text-foreground text-[11px] font-bold leading-tight">
+                                            {{ cfg.label }}
+                                        </p>
+                                        <p class="text-muted-foreground mt-1 text-[10px] leading-snug">
+                                            {{ cfg.desc }}
+                                        </p>
+                                        <span class="text-primary-600 mt-1.5 block text-[10px] font-semibold">
+                                            {{ cfg.modalInfo }}
+                                        </span>
+                                    </div>
+                                    <div
+                                        class="mt-0.5 shrink-0 h-4 w-4 rounded-full border-2 flex items-center justify-center"
+                                        :class="
+                                            form.tier_investasi === key
+                                                ? 'border-primary-600 bg-primary-600'
+                                                : 'border-muted-foreground'
+                                        "
+                                    >
+                                        <CheckCircle2
+                                            v-if="form.tier_investasi === key"
+                                            class="h-3 w-3 text-white"
+                                        />
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                        <p v-if="form.errors.tier_investasi" class="text-destructive text-xs font-medium">
+                            {{ form.errors.tier_investasi }}
                         </p>
                     </div>
 
-                    <!-- Grid: 2 Kolom Unggah Berkas -->
-                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <!-- Upload KTP -->
-                        <div class="border-border bg-card/60 space-y-3 rounded-xl border p-4">
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <label class="text-foreground block text-xs font-bold">
-                                        Foto Kartu Tanda Penduduk (KTP)
-                                        <span class="text-destructive">*</span>
-                                    </label>
-                                    <p class="text-muted-foreground mt-0.5 text-[11px]">
-                                        Format JPG, JPEG, PNG (Maks 10 MB)
-                                    </p>
-                                </div>
-                                <span
-                                    class="bg-primary-500/10 text-primary-600 rounded px-2 py-0.5 text-[10px] font-bold"
-                                >
-                                    Wajib
-                                </span>
-                            </div>
+                    <!-- === DATA AKUN TRADING === -->
+                    <div class="space-y-3">
+                        <p class="text-foreground border-border border-b pb-1.5 text-xs font-bold">
+                            Data Akun Trading Aktif
+                        </p>
 
-                            <!-- Input Box -->
-                            <div
-                                class="border-input hover:border-primary-500 bg-background/50 group relative cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-all"
-                            >
+                        <!-- Nomor Akun Trading -->
+                        <div class="space-y-1.5">
+                            <label for="nomor_akun_trading" class="text-foreground block text-xs font-semibold">
+                                Nomor Akun Trading / Copier (MT4)
+                                <span class="text-destructive">*</span>
+                            </label>
+                            <div class="relative">
+                                <div class="text-muted-foreground pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <CreditCard class="h-4 w-4" />
+                                </div>
                                 <input
-                                    type="file"
-                                    accept="image/jpeg,image/png,image/jpg"
-                                    @change="handleKtpChange"
-                                    class="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                                    id="nomor_akun_trading"
+                                    v-model="form.nomor_akun_trading"
+                                    type="text"
+                                    placeholder="Contoh: 66252077"
+                                    class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border py-2 pr-3 pl-9 font-mono text-sm transition-all focus:border-transparent focus:ring-2 focus:outline-none"
+                                    :class="{ 'border-destructive focus:ring-destructive': form.errors.nomor_akun_trading }"
                                 />
-
-                                <div
-                                    v-if="ktpCompressing"
-                                    class="flex flex-col items-center justify-center space-y-2 py-4"
-                                >
-                                    <Loader2 class="text-primary-600 h-6 w-6 animate-spin" />
-                                    <p class="text-foreground text-xs font-semibold">
-                                        Memproses foto KTP...
-                                    </p>
-                                </div>
-
-                                <div v-else-if="ktpInfo" class="space-y-2">
-                                    <img
-                                        v-if="ktpInfo.previewUrl"
-                                        :src="ktpInfo.previewUrl"
-                                        alt="Preview KTP"
-                                        class="border-border mx-auto h-28 rounded-lg border object-contain shadow-xs"
-                                    />
-                                    <div class="space-y-0.5 text-xs">
-                                        <p
-                                            class="text-foreground flex items-center justify-center gap-1 font-semibold"
-                                        >
-                                            <CheckCircle class="h-3.5 w-3.5 text-emerald-600" />
-                                            Foto KTP Terpilih
-                                        </p>
-                                        <p class="text-muted-foreground text-[11px]">
-                                            Ukuran berkas: {{ ktpInfo.compressedSize }}
-                                        </p>
-                                    </div>
-                                    <p
-                                        class="text-primary-600 text-[10px] font-medium hover:underline"
-                                    >
-                                        Klik untuk mengganti foto
-                                    </p>
-                                </div>
-
-                                <div
-                                    v-else
-                                    class="flex flex-col items-center justify-center space-y-1.5 py-4"
-                                >
-                                    <div
-                                        class="bg-primary-500/10 text-primary-600 flex h-10 w-10 items-center justify-center rounded-full transition-transform group-hover:scale-110"
-                                    >
-                                        <UploadCloud class="h-5 w-5" />
-                                    </div>
-                                    <p class="text-foreground text-xs font-semibold">
-                                        Pilih atau seret foto KTP
-                                    </p>
-                                    <p class="text-muted-foreground text-[10px]">
-                                        Pastikan seluruh teks identitas terbaca jelas
-                                    </p>
-                                </div>
                             </div>
-
-                            <p
-                                v-if="form.errors.dokumen_ktp"
-                                class="text-destructive text-xs font-medium"
-                            >
-                                {{ form.errors.dokumen_ktp }}
+                            <p v-if="form.errors.nomor_akun_trading" class="text-destructive text-xs font-medium">
+                                {{ form.errors.nomor_akun_trading }}
                             </p>
                         </div>
 
-                        <!-- Upload Perjanjian Kerjasama Bermaterai -->
-                        <div class="border-border bg-card/60 space-y-3 rounded-xl border p-4">
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <label class="text-foreground block text-xs font-bold">
-                                        Surat Perjanjian Bermaterai
-                                        <span class="text-destructive">*</span>
-                                    </label>
-                                    <p class="text-muted-foreground mt-0.5 text-[11px]">
-                                        Format JPG, PNG, atau PDF (Maks 10 MB)
-                                    </p>
+                        <!-- Grid: Estimasi Modal & Tanggal Mulai -->
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <!-- Estimasi Modal -->
+                            <div class="space-y-1.5">
+                                <label for="estimasi_modal" class="text-foreground block text-xs font-semibold">
+                                    Estimasi Modal (USD) <span class="text-destructive">*</span>
+                                </label>
+                                <div class="relative">
+                                    <div class="text-muted-foreground pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                        <Banknote class="h-4 w-4" />
+                                    </div>
+                                    <input
+                                        id="estimasi_modal"
+                                        v-model="form.estimasi_modal"
+                                        type="number"
+                                        min="100"
+                                        step="0.01"
+                                        placeholder="Contoh: 1000"
+                                        class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border py-2 pr-3 pl-9 text-sm transition-all focus:border-transparent focus:ring-2 focus:outline-none"
+                                        :class="{ 'border-destructive focus:ring-destructive': form.errors.estimasi_modal }"
+                                    />
                                 </div>
-                                <span
-                                    class="bg-primary-500/10 text-primary-600 rounded px-2 py-0.5 text-[10px] font-bold"
-                                >
-                                    Wajib
-                                </span>
+                                <p v-if="form.errors.estimasi_modal" class="text-destructive text-xs font-medium">
+                                    {{ form.errors.estimasi_modal }}
+                                </p>
                             </div>
 
-                            <!-- Input Box -->
-                            <div
-                                class="border-input hover:border-primary-500 bg-background/50 group relative cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-all"
-                            >
-                                <input
-                                    type="file"
-                                    accept="image/jpeg,image/png,image/jpg,application/pdf"
-                                    @change="handlePerjanjianChange"
-                                    class="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
-                                />
+                            <!-- Tanggal Mulai Trading -->
+                            <div class="space-y-1.5">
+                                <label for="tanggal_mulai_trading" class="text-foreground block text-xs font-semibold">
+                                    Tanggal Mulai Copy Trade <span class="text-destructive">*</span>
+                                </label>
+                                <div class="relative">
+                                    <div class="text-muted-foreground pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                        <Calendar class="h-4 w-4" />
+                                    </div>
+                                    <input
+                                        id="tanggal_mulai_trading"
+                                        v-model="form.tanggal_mulai_trading"
+                                        type="date"
+                                        class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border py-2 pr-3 pl-9 text-sm transition-all focus:border-transparent focus:ring-2 focus:outline-none"
+                                        :class="{ 'border-destructive focus:ring-destructive': form.errors.tanggal_mulai_trading }"
+                                    />
+                                </div>
+                                <p v-if="form.errors.tanggal_mulai_trading" class="text-destructive text-xs font-medium">
+                                    {{ form.errors.tanggal_mulai_trading }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
 
-                                <div
-                                    v-if="perjanjianCompressing"
-                                    class="flex flex-col items-center justify-center space-y-2 py-4"
+                    <!-- === REKENING BANK PENCAIRAN === -->
+                    <div class="space-y-3">
+                        <p class="text-foreground border-border border-b pb-1.5 text-xs font-bold">
+                            Rekening Bank Pencairan (WD)
+                        </p>
+
+                        <!-- Nama Bank -->
+                        <div class="space-y-1.5">
+                            <label for="nama_bank" class="text-foreground block text-xs font-semibold">
+                                Bank <span class="text-destructive">*</span>
+                            </label>
+                            <div class="relative">
+                                <div class="text-muted-foreground pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <Building2 class="h-4 w-4" />
+                                </div>
+                                <select
+                                    id="nama_bank"
+                                    v-model="selectedBankOption"
+                                    class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border py-2 pr-3 pl-9 text-sm transition-all focus:ring-2 focus:outline-none"
+                                    :class="{ 'border-destructive focus:ring-destructive': form.errors.nama_bank }"
                                 >
-                                    <Loader2 class="text-primary-600 h-6 w-6 animate-spin" />
-                                    <p class="text-foreground text-xs font-semibold">
-                                        Memproses berkas perjanjian...
-                                    </p>
+                                    <option value="" disabled>-- Pilih Bank --</option>
+                                    <option v-for="bank in bankOptions" :key="bank" :value="bank">
+                                        {{ bank }}
+                                    </option>
+                                </select>
+                            </div>
+                            <!-- Input manual jika pilih "Lainnya" -->
+                            <div v-if="selectedBankOption === 'Lainnya'" class="mt-1.5">
+                                <input
+                                    :value="customBankName"
+                                    @input="handleCustomBankInput"
+                                    type="text"
+                                    placeholder="Ketik nama bank Anda (contoh: Bank Jago, SeaBank)..."
+                                    class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border py-2 px-3 text-sm transition-all focus:ring-2 focus:outline-none"
+                                    :class="{ 'border-destructive focus:ring-destructive': form.errors.nama_bank }"
+                                />
+                            </div>
+                            <p v-if="form.errors.nama_bank" class="text-destructive text-xs font-medium">
+                                {{ form.errors.nama_bank }}
+                            </p>
+                        </div>
+
+                        <!-- Grid: Nomor Rekening & Atas Nama -->
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div class="space-y-1.5">
+                                <label for="nomor_rekening" class="text-foreground block text-xs font-semibold">
+                                    Nomor Rekening <span class="text-destructive">*</span>
+                                </label>
+                                <input
+                                    id="nomor_rekening"
+                                    v-model="form.nomor_rekening"
+                                    type="text"
+                                    placeholder="Contoh: 1234567890"
+                                    class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border py-2 px-3 font-mono text-sm transition-all focus:ring-2 focus:outline-none"
+                                    :class="{ 'border-destructive focus:ring-destructive': form.errors.nomor_rekening }"
+                                />
+                                <p v-if="form.errors.nomor_rekening" class="text-destructive text-xs font-medium">
+                                    {{ form.errors.nomor_rekening }}
+                                </p>
+                            </div>
+                            <div class="space-y-1.5">
+                                <label for="atas_nama_rekening" class="text-foreground block text-xs font-semibold">
+                                    Atas Nama <span class="text-destructive">*</span>
+                                </label>
+                                <input
+                                    id="atas_nama_rekening"
+                                    v-model="form.atas_nama_rekening"
+                                    type="text"
+                                    :placeholder="form.name || 'Nama pemilik rekening'"
+                                    class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border py-2 px-3 text-sm transition-all focus:ring-2 focus:outline-none"
+                                    :class="{ 'border-destructive focus:ring-destructive': form.errors.atas_nama_rekening }"
+                                />
+                                <p v-if="form.errors.atas_nama_rekening" class="text-destructive text-xs font-medium">
+                                    {{ form.errors.atas_nama_rekening }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- === KHUSUS TIER 3: KREDENSIAL MT4 === -->
+                    <div v-if="form.tier_investasi === 'tier_3'" class="space-y-3">
+                        <p class="border-border text-foreground flex items-center gap-1.5 border-b pb-1.5 text-xs font-bold">
+                            <Server class="h-3.5 w-3.5 text-violet-600" />
+                            Kredensial MT4 Eksklusif (Tier 3)
+                        </p>
+                        <div
+                            class="border-border bg-violet-500/10 rounded-xl border border-dashed p-3 text-xs text-violet-800 dark:text-violet-200"
+                        >
+                            Data ini digunakan untuk mengelola akun Anda melalui Private VPS. Disimpan
+                            terenkripsi dan hanya dapat diakses oleh tim pengelola berwenang.
+                        </div>
+
+                        <!-- Server Broker -->
+                        <div class="space-y-1.5">
+                            <label for="server_broker" class="text-foreground block text-xs font-semibold">
+                                Server Broker XM <span class="text-destructive">*</span>
+                            </label>
+                            <div class="relative">
+                                <div class="text-muted-foreground pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <Server class="h-4 w-4" />
+                                </div>
+                                <input
+                                    id="server_broker"
+                                    v-model="form.server_broker"
+                                    type="text"
+                                    placeholder="Contoh: XMGlobal-Real 50"
+                                    class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border py-2 pr-3 pl-9 text-sm transition-all focus:ring-2 focus:outline-none"
+                                    :class="{ 'border-destructive focus:ring-destructive': form.errors.server_broker }"
+                                />
+                            </div>
+                            <p v-if="form.errors.server_broker" class="text-destructive text-xs font-medium">
+                                {{ form.errors.server_broker }}
+                            </p>
+                        </div>
+
+                        <!-- Grid: Master & Investor Password -->
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <!-- Master Password -->
+                            <div class="space-y-1.5">
+                                <label for="master_password" class="text-foreground block text-xs font-semibold">
+                                    Master Password MT4 <span class="text-destructive">*</span>
+                                </label>
+                                <div class="relative">
+                                    <div class="text-muted-foreground pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                        <KeyRound class="h-4 w-4" />
+                                    </div>
+                                    <input
+                                        id="master_password"
+                                        v-model="form.master_password"
+                                        :type="showMasterPassword ? 'text' : 'password'"
+                                        placeholder="Master password MT4"
+                                        class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border py-2 pr-9 pl-9 text-sm transition-all focus:ring-2 focus:outline-none"
+                                        :class="{ 'border-destructive focus:ring-destructive': form.errors.master_password }"
+                                    />
+                                    <button
+                                        type="button"
+                                        @click="showMasterPassword = !showMasterPassword"
+                                        class="text-muted-foreground hover:text-foreground absolute inset-y-0 right-0 flex items-center pr-3"
+                                        tabindex="-1"
+                                    >
+                                        <EyeOff v-if="showMasterPassword" class="h-4 w-4" />
+                                        <Eye v-else class="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <p v-if="form.errors.master_password" class="text-destructive text-xs font-medium">
+                                    {{ form.errors.master_password }}
+                                </p>
+                            </div>
+
+                            <!-- Investor Password -->
+                            <div class="space-y-1.5">
+                                <label for="investor_password" class="text-foreground block text-xs font-semibold">
+                                    Investor Password MT4 <span class="text-destructive">*</span>
+                                </label>
+                                <div class="relative">
+                                    <div class="text-muted-foreground pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                        <KeyRound class="h-4 w-4" />
+                                    </div>
+                                    <input
+                                        id="investor_password"
+                                        v-model="form.investor_password"
+                                        :type="showInvestorPassword ? 'text' : 'password'"
+                                        placeholder="Investor password MT4"
+                                        class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border py-2 pr-9 pl-9 text-sm transition-all focus:ring-2 focus:outline-none"
+                                        :class="{ 'border-destructive focus:ring-destructive': form.errors.investor_password }"
+                                    />
+                                    <button
+                                        type="button"
+                                        @click="showInvestorPassword = !showInvestorPassword"
+                                        class="text-muted-foreground hover:text-foreground absolute inset-y-0 right-0 flex items-center pr-3"
+                                        tabindex="-1"
+                                    >
+                                        <EyeOff v-if="showInvestorPassword" class="h-4 w-4" />
+                                        <Eye v-else class="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <p v-if="form.errors.investor_password" class="text-destructive text-xs font-medium">
+                                    {{ form.errors.investor_password }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- === UNDUH TEMPLATE SURAT PERJANJIAN === -->
+                    <div class="border-border rounded-xl border bg-amber-500/5 p-4 space-y-3">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <p class="text-foreground text-xs font-bold">
+                                    Template Surat Perjanjian Resmi
+                                </p>
+                                <p class="text-muted-foreground mt-0.5 text-[11px]">
+                                    {{ tierConfig[form.tier_investasi]?.label }}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                @click="downloadTemplate"
+                                :disabled="isDownloadingTemplate"
+                                class="flex shrink-0 items-center gap-1.5 rounded-lg bg-amber-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:bg-amber-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                <Loader2 v-if="isDownloadingTemplate" class="h-3.5 w-3.5 animate-spin" />
+                                <Download v-else class="h-3.5 w-3.5" />
+                                <span>{{ isDownloadingTemplate ? 'Menyiapkan .docx...' : 'Unduh .docx' }}</span>
+                            </button>
+                        </div>
+
+                        <!-- Notifikasi Pengisian Otomatis Sesuai Form -->
+                        <div class="flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200">
+                            <Info class="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                            <div class="space-y-0.5 text-[11px] leading-relaxed">
+                                <p class="font-bold text-amber-950 dark:text-amber-100">
+                                    Pengisian Otomatis Dokumen:
+                                </p>
+                                <p>
+                                    Harap isi dan lengkapi semua field inputan formulir sebelum mengunduh template agar berkas surat perjanjian terisi otomatis dengan data Anda.
+                                </p>
+                            </div>
+                        </div>
+
+                        <ol class="text-muted-foreground list-decimal space-y-1 pl-4 text-[11px]">
+                            <li>Unduh berkas template surat perjanjian resmi di atas.</li>
+                            <li>Cetak dokumen, tempel meterai Rp10.000, dan tanda tangani di atas meterai.</li>
+                            <li>Foto atau scan dokumen bermaterai tersebut, lalu unggah di bawah.</li>
+                        </ol>
+                    </div>
+
+                    <!-- === UNGGAH BERKAS LEGALITAS === -->
+                    <div class="space-y-3">
+                        <p class="text-foreground border-border border-b pb-1.5 text-xs font-bold">
+                            Unggah Berkas Legalitas
+                        </p>
+
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <!-- Upload KTP -->
+                            <div class="border-border bg-card/60 space-y-3 rounded-xl border p-4">
+                                <div class="flex items-start justify-between">
+                                    <div>
+                                        <label class="text-foreground block text-xs font-bold">
+                                            Foto KTP <span class="text-destructive">*</span>
+                                        </label>
+                                        <p class="text-muted-foreground mt-0.5 text-[11px]">
+                                            JPG, JPEG, PNG (Maks 10 MB)
+                                        </p>
+                                    </div>
+                                    <span class="bg-primary-500/10 text-primary-600 rounded px-2 py-0.5 text-[10px] font-bold">Wajib</span>
                                 </div>
 
-                                <div v-else-if="perjanjianInfo" class="space-y-2">
-                                    <template v-if="perjanjianInfo.isPdf">
-                                        <div
-                                            class="mx-auto flex h-28 flex-col items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 text-red-600"
-                                        >
-                                            <FileIcon class="mb-1 h-8 w-8" />
-                                            <span
-                                                class="max-w-[200px] truncate text-xs font-bold"
-                                                >{{ perjanjianInfo.name }}</span
-                                            >
-                                            <span class="text-muted-foreground text-[10px]"
-                                                >Dokumen PDF ({{
-                                                    perjanjianInfo.originalSize
-                                                }})</span
-                                            >
-                                        </div>
-                                    </template>
-                                    <template v-else>
+                                <div
+                                    class="border-input hover:border-primary-500 bg-background/50 group relative cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-all"
+                                >
+                                    <input
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/jpg"
+                                        @change="handleKtpChange"
+                                        class="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                                    />
+                                    <div v-if="ktpCompressing" class="flex flex-col items-center justify-center space-y-2 py-4">
+                                        <Loader2 class="text-primary-600 h-6 w-6 animate-spin" />
+                                        <p class="text-foreground text-xs font-semibold">Memproses foto KTP...</p>
+                                    </div>
+                                    <div v-else-if="ktpInfo" class="space-y-2">
                                         <img
-                                            v-if="perjanjianInfo.previewUrl"
-                                            :src="perjanjianInfo.previewUrl"
-                                            alt="Preview Perjanjian"
+                                            v-if="ktpInfo.previewUrl"
+                                            :src="ktpInfo.previewUrl"
+                                            alt="Preview KTP"
                                             class="border-border mx-auto h-28 rounded-lg border object-contain shadow-xs"
                                         />
-                                    </template>
-
-                                    <div class="space-y-0.5 text-xs">
-                                        <p
-                                            class="text-foreground flex items-center justify-center gap-1 font-semibold"
-                                        >
-                                            <CheckCircle class="h-3.5 w-3.5 text-emerald-600" />
-                                            Berkas Perjanjian Terpilih
+                                        <p class="text-foreground flex items-center justify-center gap-1.5 text-xs font-semibold break-all px-2">
+                                            <CheckCircle class="h-4 w-4 text-emerald-600 shrink-0" />
+                                            <span>{{ ktpInfo.name || 'Foto KTP Terpilih' }}</span>
                                         </p>
-                                        <p
-                                            v-if="!perjanjianInfo.isPdf"
-                                            class="text-muted-foreground text-[11px]"
-                                        >
-                                            Ukuran berkas: {{ perjanjianInfo.compressedSize }}
+                                        <div v-if="ktpInfo.isQualityWarning" class="mt-2 flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-left text-xs text-amber-800 dark:text-amber-200">
+                                            <AlertCircle class="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                                            <p class="text-[11px] leading-relaxed">{{ ktpInfo.warningMessage || 'Foto terindikasi buram. Pastikan teks NIK dan nama terbaca jelas.' }}</p>
+                                        </div>
+                                        <span class="border-input bg-background/80 text-primary-600 hover:bg-muted inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-semibold shadow-2xs">
+                                            <Edit3 class="h-3 w-3" /> Ganti Foto KTP
+                                        </span>
+                                    </div>
+                                    <div v-else class="flex flex-col items-center justify-center space-y-1.5 py-4">
+                                        <div class="bg-primary-500/10 text-primary-600 flex h-10 w-10 items-center justify-center rounded-full transition-transform group-hover:scale-110">
+                                            <UploadCloud class="h-5 w-5" />
+                                        </div>
+                                        <p class="text-foreground text-xs font-semibold">Pilih atau seret foto KTP</p>
+                                        <p class="text-muted-foreground text-[10px]">Pastikan seluruh teks identitas terbaca jelas</p>
+                                    </div>
+                                </div>
+                                <p v-if="form.errors.dokumen_ktp" class="text-destructive text-xs font-medium">
+                                    {{ form.errors.dokumen_ktp }}
+                                </p>
+                            </div>
+
+                            <!-- Upload Perjanjian -->
+                            <div class="border-border bg-card/60 space-y-3 rounded-xl border p-4">
+                                <div class="flex items-start justify-between">
+                                    <div>
+                                        <label class="text-foreground block text-xs font-bold">
+                                            Surat Perjanjian Bermaterai <span class="text-destructive">*</span>
+                                        </label>
+                                        <p class="text-muted-foreground mt-0.5 text-[11px]">
+                                            JPG, PNG, atau PDF (Maks 10 MB)
                                         </p>
                                     </div>
-                                    <p
-                                        class="text-primary-600 text-[10px] font-medium hover:underline"
-                                    >
-                                        Klik untuk mengganti berkas
-                                    </p>
+                                    <span class="bg-primary-500/10 text-primary-600 rounded px-2 py-0.5 text-[10px] font-bold">Wajib</span>
                                 </div>
 
                                 <div
-                                    v-else
-                                    class="flex flex-col items-center justify-center space-y-1.5 py-4"
+                                    class="border-input hover:border-primary-500 bg-background/50 group relative cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-all"
                                 >
-                                    <div
-                                        class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 transition-transform group-hover:scale-110"
-                                    >
-                                        <UploadCloud class="h-5 w-5" />
+                                    <input
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/jpg,application/pdf"
+                                        @change="handlePerjanjianChange"
+                                        class="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                                    />
+                                    <div v-if="perjanjianCompressing" class="flex flex-col items-center justify-center space-y-2 py-4">
+                                        <Loader2 class="text-primary-600 h-6 w-6 animate-spin" />
+                                        <p class="text-foreground text-xs font-semibold">Memproses berkas perjanjian...</p>
                                     </div>
-                                    <p class="text-foreground text-xs font-semibold">
-                                        Pilih berkas Surat Perjanjian
-                                    </p>
-                                    <p class="text-muted-foreground text-[10px]">
-                                        Hasil berkas atau Scan PDF
-                                    </p>
+                                    <div v-else-if="perjanjianInfo" class="space-y-2">
+                                        <template v-if="perjanjianInfo.isPdf">
+                                            <div class="mx-auto flex h-24 flex-col items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-emerald-600">
+                                                <FileIcon class="mb-1 h-7 w-7" />
+                                                <span class="text-[11px] font-semibold">Dokumen PDF</span>
+                                            </div>
+                                        </template>
+                                        <template v-else>
+                                            <img
+                                                v-if="perjanjianInfo.previewUrl"
+                                                :src="perjanjianInfo.previewUrl"
+                                                alt="Preview Perjanjian"
+                                                class="border-border mx-auto h-28 rounded-lg border object-contain shadow-xs"
+                                            />
+                                        </template>
+                                        <p class="text-foreground flex items-center justify-center gap-1.5 text-xs font-semibold break-all px-2">
+                                            <CheckCircle class="h-4 w-4 text-emerald-600 shrink-0" />
+                                            <span>{{ perjanjianInfo.name || 'Berkas Perjanjian Terpilih' }}</span>
+                                        </p>
+                                        <div v-if="perjanjianInfo.isQualityWarning" class="mt-2 flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-left text-xs text-amber-800 dark:text-amber-200">
+                                            <AlertCircle class="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                                            <p class="text-[11px] leading-relaxed">{{ perjanjianInfo.warningMessage || 'Berkas terindikasi buram. Pastikan materai dan tanda tangan terbaca.' }}</p>
+                                        </div>
+                                        <span class="border-input bg-background/80 text-primary-600 hover:bg-muted inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-semibold shadow-2xs">
+                                            <Edit3 class="h-3 w-3" /> Ganti Berkas Perjanjian
+                                        </span>
+                                    </div>
+                                    <div v-else class="flex flex-col items-center justify-center space-y-1.5 py-4">
+                                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 transition-transform group-hover:scale-110">
+                                            <UploadCloud class="h-5 w-5" />
+                                        </div>
+                                        <p class="text-foreground text-xs font-semibold">Pilih berkas Surat Perjanjian</p>
+                                        <p class="text-muted-foreground text-[10px]">Hasil foto atau scan PDF</p>
+                                    </div>
                                 </div>
+                                <p v-if="form.errors.dokumen_perjanjian" class="text-destructive text-xs font-medium">
+                                    {{ form.errors.dokumen_perjanjian }}
+                                </p>
                             </div>
-
-                            <p
-                                v-if="form.errors.dokumen_perjanjian"
-                                class="text-destructive text-xs font-medium"
-                            >
-                                {{ form.errors.dokumen_perjanjian }}
-                            </p>
                         </div>
                     </div>
 
@@ -1438,7 +2096,7 @@ const submit = () => {
                     >
                         <!-- Akun Ringkasan -->
                         <div class="flex items-start justify-between p-3.5">
-                            <div class="space-y-1">
+                            <div class="space-y-1 min-w-0 flex-1">
                                 <p class="text-foreground flex items-center gap-1.5 font-bold">
                                     <User class="text-primary-500 h-3.5 w-3.5" />
                                     <span>{{ form.name || '-' }}</span>
@@ -1461,6 +2119,10 @@ const submit = () => {
                                     <span class="text-foreground font-mono font-medium">{{
                                         form.nik
                                     }}</span>
+                                </p>
+                                <p class="text-muted-foreground">
+                                    TTL: <span class="text-foreground font-medium">{{ form.tempat_lahir }}, {{ form.tanggal_lahir }}</span>
+                                    &bull; Pekerjaan: <span class="text-foreground font-medium">{{ form.pekerjaan }}</span>
                                 </p>
                                 <p class="text-muted-foreground max-w-sm truncate sm:max-w-md">
                                     Domisili: {{ form.alamat }}
@@ -1492,12 +2154,41 @@ const submit = () => {
                                     }}</strong>
                                 </p>
                                 <p class="text-muted-foreground max-w-sm truncate sm:max-w-md">
-                                    Alamat: {{ form.ahli_waris_alamat }}
+                                    Alamat: {{ form.ahli_waris_alamat || '-' }}
                                 </p>
                             </div>
                             <button
                                 type="button"
                                 @click="jumpToStep(2)"
+                                class="text-primary-600 dark:text-primary-400 ml-2 flex shrink-0 items-center gap-1 text-[11px] font-semibold hover:underline"
+                            >
+                                <Edit3 class="h-3 w-3" /> Ubah
+                            </button>
+                        </div>
+
+                        <!-- Trading & Rekening Ringkasan -->
+                        <div class="flex items-start justify-between p-3.5">
+                            <div class="space-y-1 min-w-0 flex-1">
+                                <p class="text-foreground flex items-center gap-1.5 font-bold">
+                                    <TrendingUp class="h-3.5 w-3.5 text-emerald-500" />
+                                    <span>Akun Trading: {{ tierConfig[form.tier_investasi]?.label }}</span>
+                                </p>
+                                <p class="text-muted-foreground">
+                                    No. Akun: <span class="text-foreground font-mono font-medium">{{ form.nomor_akun_trading }}</span>
+                                    &bull; Modal: <span class="text-foreground font-medium">${{ form.estimasi_modal }}</span>
+                                </p>
+                                <p class="text-muted-foreground">
+                                    Mulai: <span class="text-foreground font-medium">{{ form.tanggal_mulai_trading }}</span>
+                                </p>
+                                <p class="text-muted-foreground">
+                                    Rekening:
+                                    <span class="text-foreground font-medium">{{ form.nama_bank }} – {{ form.nomor_rekening }}</span>
+                                    a.n. <span class="text-foreground font-medium">{{ form.atas_nama_rekening }}</span>
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                @click="jumpToStep(3)"
                                 class="text-primary-600 dark:text-primary-400 ml-2 flex shrink-0 items-center gap-1 text-[11px] font-semibold hover:underline"
                             >
                                 <Edit3 class="h-3 w-3" /> Ubah
@@ -1557,36 +2248,8 @@ const submit = () => {
                         </div>
                     </div>
 
-                    <!-- Syarat & Ketentuan Dinamis -->
-                    <div class="border-border bg-card/60 space-y-3 rounded-xl border p-4">
-                        <div class="flex items-center justify-between">
-                            <span
-                                class="text-foreground flex items-center gap-1.5 text-xs font-bold"
-                            >
-                                <FileText class="text-primary-500 h-3.5 w-3.5" />
-                                Syarat & Ketentuan Layanan
-                            </span>
-                            <button
-                                type="button"
-                                @click="openTermsModal"
-                                class="text-primary-600 dark:text-primary-400 flex items-center gap-1 text-xs font-semibold hover:underline"
-                            >
-                                <span>Baca Lengkap</span>
-                                <ExternalLink class="h-3 w-3" />
-                            </button>
-                        </div>
-
-                        <!-- Preview Snippet Box -->
-                        <div
-                            class="bg-muted/50 border-border text-muted-foreground max-h-24 overflow-y-auto rounded-lg border p-3 font-mono text-xs leading-relaxed whitespace-pre-line select-none"
-                        >
-                            {{
-                                terms?.konten
-                                    ? terms.konten.slice(0, 320) + '...'
-                                    : 'Memuat syarat & ketentuan platform...'
-                            }}
-                        </div>
-
+                    <!-- Persetujuan Syarat & Ketentuan -->
+                    <div class="space-y-1.5">
                         <!-- Checkbox Persetujuan -->
                         <label class="flex cursor-pointer items-start gap-2.5 pt-1">
                             <input
@@ -1605,7 +2268,15 @@ const submit = () => {
                                 >
                                     Syarat & Ketentuan Layanan
                                 </button>
-                                serta Kebijakan Privasi platform YZD Center.
+                                serta
+                                <button
+                                    type="button"
+                                    @click.prevent="openPrivacyModal"
+                                    class="text-primary-600 dark:text-primary-400 inline font-semibold hover:underline"
+                                >
+                                    Kebijakan Privasi
+                                </button>
+                                platform YZD Center.
                             </span>
                         </label>
 
@@ -1637,11 +2308,7 @@ const submit = () => {
                         >
                             <Loader2 v-if="form.processing" class="h-4 w-4 animate-spin" />
                             <UserCheck v-else class="h-4 w-4" />
-                            <span>{{
-                                form.processing
-                                    ? 'Mengirim Pendaftaran...'
-                                    : 'Kirim'
-                            }}</span>
+                            <span>{{ form.processing ? 'Mengirim Pendaftaran...' : 'Kirim' }}</span>
                         </Button>
                     </div>
                 </div>
@@ -1665,25 +2332,17 @@ const submit = () => {
         <!-- ========================================== -->
         <AppModal
             :show="isTermsModalOpen"
-            :title="terms?.judul || 'Syarat & Ketentuan Layanan YZD Center'"
+            :title="terms?.judul || 'Syarat & Ketentuan'"
             max-width="2xl"
             @close="closeTermsModal"
         >
             <div
-                class="text-foreground max-h-[60vh] space-y-4 overflow-y-auto pr-2 text-xs leading-relaxed sm:text-sm"
+                class="text-foreground max-h-[60vh] overflow-y-auto pr-2 text-xs leading-relaxed sm:text-sm"
             >
                 <div
-                    class="border-border text-muted-foreground flex items-center justify-between border-b pb-2 text-xs"
-                >
-                    <span class="text-foreground font-medium">Dokumen Resmi Layanan</span>
-                    <span>Platform: YZD Center</span>
-                </div>
-                <div class="text-muted-foreground leading-relaxed font-normal whitespace-pre-line">
-                    {{
-                        terms?.konten ||
-                        'Tidak ada konten syarat & ketentuan yang tersedia saat ini.'
-                    }}
-                </div>
+                    class="prose prose-sm max-w-none text-xs leading-relaxed [--tw-prose-body:var(--color-foreground)] [--tw-prose-bold:var(--color-foreground)] [--tw-prose-bullets:var(--color-muted-foreground)] [--tw-prose-counters:var(--color-muted-foreground)] [--tw-prose-headings:var(--color-foreground)] [--tw-prose-quote-borders:var(--color-primary-500)] [--tw-prose-quotes:var(--color-muted-foreground)] sm:text-sm [&_blockquote]:my-2 [&_h2]:mt-5 [&_h2]:mb-1.5 [&_h3]:mt-4 [&_h3]:mb-1 [&_li]:my-1 [&_ol]:my-1.5 [&_p]:my-1.5 [&_ul]:my-1.5 [&>*:first-child]:mt-0"
+                    v-html="termsHtml"
+                ></div>
             </div>
 
             <template #footer>
@@ -1691,6 +2350,35 @@ const submit = () => {
                     type="button"
                     class="bg-primary-600 hover:bg-primary-700 px-4 text-xs text-white"
                     @click="closeTermsModal"
+                >
+                    Saya Mengerti
+                </Button>
+            </template>
+        </AppModal>
+
+        <!-- ========================================== -->
+        <!-- MODAL PEMBACA KEBIJAKAN PRIVASI LENGKAP     -->
+        <!-- ========================================== -->
+        <AppModal
+            :show="isPrivacyModalOpen"
+            :title="privacy?.judul || 'Kebijakan Privasi YZD Center'"
+            max-width="2xl"
+            @close="closePrivacyModal"
+        >
+            <div
+                class="text-foreground max-h-[60vh] overflow-y-auto pr-2 text-xs leading-relaxed sm:text-sm"
+            >
+                <div
+                    class="prose prose-sm max-w-none text-xs leading-relaxed [--tw-prose-body:var(--color-foreground)] [--tw-prose-bold:var(--color-foreground)] [--tw-prose-bullets:var(--color-muted-foreground)] [--tw-prose-counters:var(--color-muted-foreground)] [--tw-prose-headings:var(--color-foreground)] [--tw-prose-quote-borders:var(--color-primary-500)] [--tw-prose-quotes:var(--color-muted-foreground)] sm:text-sm [&_blockquote]:my-2 [&_h2]:mt-5 [&_h2]:mb-1.5 [&_h3]:mt-4 [&_h3]:mb-1 [&_li]:my-1 [&_ol]:my-1.5 [&_p]:my-1.5 [&_ul]:my-1.5 [&>*:first-child]:mt-0"
+                    v-html="privacyHtml"
+                ></div>
+            </div>
+
+            <template #footer>
+                <Button
+                    type="button"
+                    class="bg-primary-600 hover:bg-primary-700 px-4 text-xs text-white"
+                    @click="closePrivacyModal"
                 >
                     Saya Mengerti
                 </Button>

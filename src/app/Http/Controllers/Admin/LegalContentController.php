@@ -34,11 +34,9 @@ class LegalContentController extends Controller
             'key_name' => ['required', 'string', 'in:terms_conditions,privacy_policy'],
             'judul'    => ['required', 'string', 'max:200'],
             'konten'   => ['required', 'string'],
-            'versi'    => ['required', 'string', 'max:20'],
         ], [
             'judul.required'  => 'Judul dokumen wajib diisi.',
             'konten.required' => 'Isi pasal dokumen wajib diisi.',
-            'versi.required'  => 'Nomor versi dokumen wajib diisi.',
         ]);
 
         KontenLegal::updateOrCreate(
@@ -46,7 +44,6 @@ class LegalContentController extends Controller
             [
                 'judul'      => $validated['judul'],
                 'konten'     => $validated['konten'],
-                'versi'      => $validated['versi'],
                 'updated_by' => $request->user()->id,
             ]
         );
@@ -56,6 +53,6 @@ class LegalContentController extends Controller
         $label = $validated['key_name'] === 'terms_conditions' ? 'Syarat & Ketentuan' : 'Kebijakan Privasi';
 
         return redirect()->back()
-            ->with('success', "Dokumen {$label} berhasil diperbarui ke versi {$validated['versi']}.");
+            ->with('success', "Dokumen {$label} berhasil diperbarui.");
     }
 }

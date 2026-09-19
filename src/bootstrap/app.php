@@ -18,7 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'role' => \App\Http\Middleware\EnsureUserRole::class,
+            'role'          => \App\Http\Middleware\EnsureUserRole::class,
+            'ensure.active' => \App\Http\Middleware\EnsureAccountIsActive::class,
         ]);
 
         $middleware->redirectGuestsTo('/login');
@@ -26,6 +27,10 @@ return Application::configure(basePath: dirname(__DIR__))
             $user = $request->user();
             if ($user && $user->isAdmin()) {
                 return route('admin.dashboard');
+            }
+
+            if ($user && $user->status !== 'active') {
+                return route('investor.kyc');
             }
 
             return route('investor.dashboard');

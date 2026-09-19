@@ -31,11 +31,13 @@ class User extends Authenticatable
         'nik',
         'phone',
         'alamat',
+        'tempat_lahir',
+        'tanggal_lahir',
+        'pekerjaan',
         'referral_code',
         'is_active',
         'avatar',
         'terms_agreed_at',
-        'terms_version',
         'ip_address',
     ];
 
@@ -59,9 +61,15 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'terms_agreed_at'   => 'datetime',
+            'tanggal_lahir'     => 'date',
             'password'          => 'hashed',
             'is_active'         => 'boolean',
         ];
+    }
+
+    public function akunCopytrade(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(AkunCopytrade::class);
     }
 
     public function ahliWaris(): \Illuminate\Database\Eloquent\Relations\HasOne

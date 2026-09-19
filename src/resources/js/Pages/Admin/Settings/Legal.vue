@@ -1,7 +1,8 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AppRichTextEditor from '@/Components/Common/AppRichTextEditor.vue';
 import { Button } from '@/Components/ui/button';
 import { toast } from 'vue-sonner';
 import {
@@ -9,13 +10,9 @@ import {
     Shield,
     Save,
     Clock,
-    Sparkles,
     Eye,
     Edit3,
-    History,
-    CheckCircle2,
     Loader2,
-    Info,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -35,14 +32,12 @@ const isPreviewMode = ref(false);
 const termsForm = useForm({
     key_name: 'terms_conditions',
     judul: props.terms?.judul || 'Syarat & Ketentuan Layanan YZD Center',
-    versi: props.terms?.versi || '1.0',
     konten: props.terms?.konten || '',
 });
 
 const privacyForm = useForm({
     key_name: 'privacy_policy',
     judul: props.privacy?.judul || 'Kebijakan Privasi YZD Center',
-    versi: props.privacy?.versi || '1.0',
     konten: props.privacy?.konten || '',
 });
 
@@ -57,20 +52,53 @@ watch(
 );
 
 const submitUpdate = () => {
+    const plainText = stripHtml(currentForm.value.konten).trim();
+    if (!plainText) {
+        toast.error('Isi pasal dokumen wajib diisi.');
+        return;
+    }
     currentForm.value.post('/admin/settings/legal', {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success(
-                `Dokumen ${activeDoc.value === 'terms_conditions' ? 'Syarat & Ketentuan' : 'Kebijakan Privasi'} berhasil diperbarui ke versi ${currentForm.value.versi}!`
-            );
-        },
     });
 };
+
+const stripHtml = (html) => {
+    if (!html) return '';
+    const withoutTags = String(html).replace(/<[^>]*>/g, ' ');
+    const textarea = typeof document !== 'undefined' ? document.createElement('textarea') : null;
+    const decoded = textarea
+        ? (() => {
+              textarea.innerHTML = withoutTags;
+              return textarea.value;
+          })()
+        : withoutTags;
+    return decoded.replace(/\s+/g, ' ');
+};
+
+const escapeHtml = (text) =>
+    String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
+const toPreviewHtml = (konten) => {
+    if (!konten) return '';
+    if (!/<\/?[a-z][\s\S]*>/i.test(konten)) {
+        return escapeHtml(konten).replace(/\n/g, '<br />');
+    }
+    return konten;
+};
+
+const previewHtml = computed(
+    () => toPreviewHtml(currentForm.value.konten) || 'Belum ada konten pasal yang dimasukkan.'
+);
 </script>
 
 <template>
     <AdminLayout title="Pengelolaan Dokumen Legalitas">
-        <div class="mx-auto max-w-5xl space-y-6">
+        <div class="space-y-6">
             <!-- Header -->
             <div
                 class="bg-card border-border flex flex-col justify-between gap-4 rounded-2xl border p-6 shadow-xs sm:flex-row sm:items-center"
@@ -85,8 +113,7 @@ const submitUpdate = () => {
                         </h1>
                     </div>
                     <p class="text-muted-foreground pl-11 text-xs">
-                        Sesuaikan pasal Syarat & Ketentuan serta Kebijakan Privasi yang berlaku
-                        untuk seluruh investor.
+                        Sesuaikan pasal Syarat & Ketentuan serta Kebijakan Privasi yang berlaku.
                     </p>
                 </div>
 
@@ -135,12 +162,7 @@ const submitUpdate = () => {
                     ]"
                 >
                     <FileText class="h-4 w-4" />
-                    <span>Syarat & Ketentuan (T&C)</span>
-                    <span
-                        class="bg-muted text-muted-foreground rounded px-1.5 py-0.5 font-mono text-[10px] font-normal"
-                    >
-                        v{{ terms?.versi || '1.0' }}
-                    </span>
+                    <span>Syarat & Ketentuan</span>
                 </button>
 
                 <button
@@ -155,27 +177,15 @@ const submitUpdate = () => {
                 >
                     <Shield class="h-4 w-4" />
                     <span>Kebijakan Privasi</span>
-                    <span
-                        class="bg-muted text-muted-foreground rounded px-1.5 py-0.5 font-mono text-[10px] font-normal"
-                    >
-                        v{{ privacy?.versi || '1.0' }}
-                    </span>
                 </button>
             </div>
 
             <!-- Card Utama -->
             <div class="bg-card border-border space-y-6 rounded-2xl border p-6 shadow-xs">
-                <!-- Info Versi & Riwayat -->
+                <!-- Info Riwayat Pembaruan -->
                 <div
                     class="bg-muted/40 border-border text-muted-foreground flex flex-col justify-between gap-3 rounded-xl border p-3.5 text-xs sm:flex-row sm:items-center"
                 >
-                    <div class="flex items-center gap-2">
-                        <Info class="text-primary-500 h-4 w-4 shrink-0" />
-                        <span>
-                            Setiap perubahan dokumen akan mengikat investor baru yang mendaftar
-                            menggunakan versi ini.
-                        </span>
-                    </div>
                     <div class="flex items-center gap-1 text-[11px] whitespace-nowrap">
                         <Clock class="h-3.5 w-3.5" />
                         <span
@@ -205,47 +215,24 @@ const submitUpdate = () => {
 
                 <!-- Mode 1: Editor Form -->
                 <form v-if="!isPreviewMode" @submit.prevent="submitUpdate" class="space-y-4">
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                        <!-- Judul Dokumen (2 Col) -->
-                        <div class="space-y-1.5 sm:col-span-2">
-                            <label for="judul" class="text-foreground block text-xs font-bold">
-                                Judul Dokumen Legalitas <span class="text-destructive">*</span>
-                            </label>
-                            <input
-                                id="judul"
-                                v-model="currentForm.judul"
-                                type="text"
-                                required
-                                class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border px-3 py-2 text-sm font-semibold transition-all focus:ring-2 focus:outline-none"
-                            />
-                            <p
-                                v-if="currentForm.errors.judul"
-                                class="text-destructive text-xs font-medium"
-                            >
-                                {{ currentForm.errors.judul }}
-                            </p>
-                        </div>
-
-                        <!-- Versi Dokumen (1 Col) -->
-                        <div class="space-y-1.5">
-                            <label for="versi" class="text-foreground block text-xs font-bold">
-                                Nomor Versi Dokumen <span class="text-destructive">*</span>
-                            </label>
-                            <input
-                                id="versi"
-                                v-model="currentForm.versi"
-                                type="text"
-                                required
-                                placeholder="Contoh: 1.1 atau 2.0"
-                                class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border px-3 py-2 font-mono text-sm transition-all focus:ring-2 focus:outline-none"
-                            />
-                            <p
-                                v-if="currentForm.errors.versi"
-                                class="text-destructive text-xs font-medium"
-                            >
-                                {{ currentForm.errors.versi }}
-                            </p>
-                        </div>
+                    <!-- Judul Dokumen -->
+                    <div class="space-y-1.5">
+                        <label for="judul" class="text-foreground block text-xs font-bold">
+                            Judul Dokumen Legalitas <span class="text-destructive">*</span>
+                        </label>
+                        <input
+                            id="judul"
+                            v-model="currentForm.judul"
+                            type="text"
+                            required
+                            class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border px-3 py-2 text-sm font-semibold transition-all focus:ring-2 focus:outline-none"
+                        />
+                        <p
+                            v-if="currentForm.errors.judul"
+                            class="text-destructive text-xs font-medium"
+                        >
+                            {{ currentForm.errors.judul }}
+                        </p>
                     </div>
 
                     <!-- Isi Pasal / Konten Dokumen -->
@@ -254,18 +241,11 @@ const submitUpdate = () => {
                             <label for="konten" class="text-foreground block text-xs font-bold">
                                 Isi Pasal & Klausul Hukum <span class="text-destructive">*</span>
                             </label>
-                            <span class="text-muted-foreground text-[11px]">
-                                Mendukung pemisahan baris dan format teks pasal bernomor
-                            </span>
                         </div>
-                        <textarea
-                            id="konten"
+                        <AppRichTextEditor
                             v-model="currentForm.konten"
-                            rows="16"
-                            required
                             placeholder="Tuliskan pasal-pasal perjanjian atau kebijakan privasi di sini..."
-                            class="bg-background border-input focus:ring-primary-500 w-full resize-y rounded-xl border p-4 font-mono text-xs leading-relaxed transition-all focus:ring-2 focus:outline-none"
-                        ></textarea>
+                        />
                         <p
                             v-if="currentForm.errors.konten"
                             class="text-destructive text-xs font-medium"
@@ -297,27 +277,15 @@ const submitUpdate = () => {
                     <div
                         class="bg-muted/20 border-border max-h-[600px] space-y-4 overflow-y-auto rounded-xl border p-6"
                     >
-                        <div class="border-border border-b pb-4">
+                        <div class="border-border border-b pb-3">
                             <h2 class="text-foreground text-base font-bold">
                                 {{ currentForm.judul }}
                             </h2>
-                            <div class="text-muted-foreground mt-1 flex items-center gap-3 text-xs">
-                                <span
-                                    >Versi:
-                                    <strong class="text-foreground"
-                                        >v{{ currentForm.versi }}</strong
-                                    ></span
-                                >
-                                <span>&bull;</span>
-                                <span>Platform: YZD Center</span>
-                            </div>
                         </div>
-
                         <div
-                            class="text-foreground text-xs leading-relaxed font-normal whitespace-pre-line"
-                        >
-                            {{ currentForm.konten || 'Belum ada konten pasal yang dimasukkan.' }}
-                        </div>
+                            class="prose prose-sm max-w-none text-xs leading-relaxed [--tw-prose-body:var(--color-foreground)] [--tw-prose-bold:var(--color-foreground)] [--tw-prose-bullets:var(--color-muted-foreground)] [--tw-prose-counters:var(--color-muted-foreground)] [--tw-prose-headings:var(--color-foreground)] [--tw-prose-quote-borders:var(--color-primary-500)] [--tw-prose-quotes:var(--color-muted-foreground)] [&_blockquote]:my-2 [&_h2]:mt-5 [&_h2]:mb-1.5 [&_h3]:mt-4 [&_h3]:mb-1 [&_li]:my-1 [&_ol]:my-1.5 [&_p]:my-1.5 [&_ul]:my-1.5"
+                            v-html="previewHtml"
+                        ></div>
                     </div>
 
                     <div class="flex justify-end">

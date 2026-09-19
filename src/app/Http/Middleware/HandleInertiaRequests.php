@@ -41,10 +41,12 @@ class HandleInertiaRequests extends Middleware
             //
             'auth' => [
                 'user' => $request->user() ? [
-                    'id'    => $request->user()->id,
-                    'name'  => $request->user()->name,
-                    'role'  => $request->user()->role ?? null,
-                    'email' => $request->user()->email,
+                    'id'        => $request->user()->id,
+                    'name'      => $request->user()->name,
+                    'role'      => $request->user()->role ?? null,
+                    'status'    => $request->user()->status ?? null,
+                    'is_active' => (bool) ($request->user()->status === 'active'),
+                    'email'     => $request->user()->email,
                 ] : null,
             ],
             'flash' => [
@@ -56,14 +58,29 @@ class HandleInertiaRequests extends Middleware
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),
             ],
-            'locale' => function () {
-                $locale = app()->getLocale();
-                // If translations exist in lang directory, load them. Fallback to basic if not.
-                $path = base_path("lang/{$locale}.json");
+            'notifications' => function () use ($request) {
+                if (!$request->user()) {
+                    return null;
+                }
+
+                $user = $request->user();
+                $unreadCount = $user->unreadNotifications()->count();
+                $recent = $user->notifications()->latest()->take(10)->get()->map(function ($notif) {
+                    return [
+                        'id'         => $notif->id,
+                        'type'       => $notif->data['type'] ?? 'general',
+                        'title'      => $notif->data['title'] ?? 'Notifikasi',
+                        'message'    => $notif->data['message'] ?? '',
+                        'icon'       => $notif->data['icon'] ?? 'bell',
+                        'url'        => $notif->data['url'] ?? null,
+                        'is_read'    => $notif->read_at !== null,
+                        'created_at' => $notif->created_at->diffForHumans(),
+                    ];
+                });
 
                 return [
-                    'current'      => $locale,
-                    'translations' => file_exists($path) ? json_decode(file_get_contents($path), true) : [],
+                    'unread_count' => $unreadCount,
+                    'items'        => $recent,
                 ];
             },
         ];

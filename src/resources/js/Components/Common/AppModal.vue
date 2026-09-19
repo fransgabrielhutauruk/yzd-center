@@ -20,6 +20,10 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    closeOnBackdrop: {
+        type: Boolean,
+        default: false,
+    },
     showHeader: {
         type: Boolean,
         default: true,
@@ -102,8 +106,8 @@ const maxWidthClass = computed(() => {
         >
             <div
                 v-if="show"
-                class="fixed inset-0 z-50 overflow-y-auto px-4 py-6 sm:px-0 flex items-center justify-center bg-black/60 backdrop-blur-xs"
-                @click.self="close"
+                class="fixed inset-0 z-50 overflow-y-auto px-4 py-4 sm:py-6 sm:px-0 flex items-center justify-center bg-black/60 backdrop-blur-xs"
+                @click.self="closeOnBackdrop && close()"
             >
                 <transition
                     enter-active-class="transition ease-out duration-200 transform"
@@ -116,13 +120,13 @@ const maxWidthClass = computed(() => {
                     <div
                         v-if="show"
                         :class="[
-                            'w-full bg-card text-card-foreground rounded-2xl border border-border shadow-2xl overflow-hidden transition-all my-8',
+                            'w-full bg-card text-card-foreground rounded-2xl border border-border shadow-2xl overflow-hidden my-auto',
                             maxWidthClass
                         ]"
                     >
                         <!-- Header -->
                         <slot name="header">
-                            <div v-if="showHeader && (title || (closeable && showClose))" class="px-6 py-4 border-b border-border flex items-center justify-between">
+                            <div v-if="showHeader && (title || (closeable && showClose))" class="shrink-0 px-4 py-3 sm:px-6 sm:py-4 border-b border-border flex items-center justify-between">
                                 <h3 v-if="title" class="font-bold text-base text-foreground truncate">
                                     {{ title }}
                                 </h3>
@@ -140,12 +144,12 @@ const maxWidthClass = computed(() => {
                         </slot>
 
                         <!-- Body -->
-                        <div class="p-6">
+                        <div class="p-4 sm:p-6">
                             <slot />
                         </div>
 
                         <!-- Footer -->
-                        <div v-if="$slots.footer" class="px-6 py-3.5 bg-muted/40 border-t border-border flex items-center justify-end gap-3">
+                        <div v-if="$slots.footer" class="shrink-0 px-4 py-3 sm:px-6 sm:py-3.5 bg-muted/40 border-t border-border flex items-center justify-end gap-3">
                             <slot name="footer" />
                         </div>
                     </div>

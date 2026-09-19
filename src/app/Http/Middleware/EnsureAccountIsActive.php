@@ -1,0 +1,30 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class EnsureAccountIsActive
+{
+    /**
+     * Pastikan akun pengguna sudah aktif sebelum mengakses fitur tertentu.
+     * Jika akun pendaftar belum diverifikasi (status != 'active'),
+     * pengguna hanya diizinkan mengakses halaman verifikasi KYC.
+     */
+    public function handle(Request $request, Closure $next): Response
+    {
+        $user = $request->user();
+
+        if ($user && !$user->isAdmin() && $user->status !== 'active') {
+            if ($request->routeIs('investor.kyc*')) {
+                return $next($request);
+            }
+
+            return redirect()->route('investor.kyc')->with('error', 'Akun Anda belum aktif. Harap tunggu atau lengkapi proses verifikasi KYC.');
+        }
+
+        return $next($request);
+    }
+}

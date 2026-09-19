@@ -1,31 +1,23 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { Head, Link, usePage, router } from '@inertiajs/vue3';
 import {
     LayoutDashboard,
     FileCheck,
-    Inbox,
-    UserPlus,
-    Wallet,
     Link2,
-    Users,
-    UserCheck,
-    BookOpen,
-    HelpCircle,
     FileText,
-    Shield,
-    Settings,
-    Bell,
     Sun,
     Moon,
     LogOut,
     Menu,
     X,
     ChevronDown,
-    User as UserIcon,
+    PanelLeftClose,
+    PanelLeft,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
+import AppNotificationBell from '@/Components/Common/AppNotificationBell.vue';
 
 defineProps({
     title: {
@@ -36,9 +28,29 @@ defineProps({
 
 const page = usePage();
 const { isDark, toggleDarkMode } = useDarkMode();
+
 const isMobileSidebarOpen = ref(false);
 const isUserDropdownOpen = ref(false);
+const isCollapsed = ref(false);
 
+onMounted(() => {
+    try {
+        isCollapsed.value = localStorage.getItem('yzd_admin_sidebar_collapsed') === 'true';
+    } catch {
+        isCollapsed.value = false;
+    }
+});
+
+const toggleCollapse = () => {
+    isCollapsed.value = !isCollapsed.value;
+    try {
+        localStorage.setItem('yzd_admin_sidebar_collapsed', String(isCollapsed.value));
+    } catch {
+        // Ignore storage error
+    }
+};
+
+// Navigasi aktif hanya untuk modul yang berjalan di Fase 1 & 2
 const navSections = [
     {
         title: 'Menu Utama',
@@ -60,30 +72,6 @@ const navSections = [
                 icon: FileCheck,
                 routeName: 'admin.kyc.index',
             },
-            {
-                label: 'Antrean Validasi',
-                href: '/admin/antrean-validasi',
-                icon: Inbox,
-                badge: '3',
-                routeName: 'admin.antrean-validasi',
-            },
-        ],
-    },
-    {
-        title: 'Manajemen Afiliasi',
-        items: [
-            {
-                label: 'Klaim Referral Susulan',
-                href: '/admin/klaim-susulan',
-                icon: UserPlus,
-                routeName: 'admin.klaim-susulan',
-            },
-            {
-                label: 'Pencairan Komisi',
-                href: '/admin/pencairan-komisi',
-                icon: Wallet,
-                routeName: 'admin.pencairan-komisi',
-            },
         ],
     },
     {
@@ -95,51 +83,16 @@ const navSections = [
                 icon: Link2,
                 routeName: 'admin.invitations.index',
             },
-            {
-                label: 'Data Investor',
-                href: '/admin/investors',
-                icon: Users,
-                routeName: 'admin.investors.index',
-            },
-            {
-                label: 'Data Afiliator',
-                href: '/admin/affiliators',
-                icon: UserCheck,
-                routeName: 'admin.affiliators.index',
-            },
         ],
     },
     {
         title: 'Kelola Konten (CMS)',
         items: [
             {
-                label: 'Kamus Forex',
-                href: '/admin/kamus-forex',
-                icon: BookOpen,
-                routeName: 'admin.kamus-forex',
-            },
-            {
-                label: 'Pusat Bantuan (FAQ)',
-                href: '/admin/faq',
-                icon: HelpCircle,
-                routeName: 'admin.faq',
-            },
-            {
                 label: 'Konten Legalitas',
                 href: '/admin/settings/legal',
                 icon: FileText,
                 routeName: 'admin.settings.legal',
-            },
-        ],
-    },
-    {
-        title: 'Pengaturan',
-        items: [
-            {
-                label: 'Pengaturan Master',
-                href: '/admin/settings',
-                icon: Settings,
-                routeName: 'admin.settings',
             },
         ],
     },
@@ -159,7 +112,7 @@ const logout = () => {
     <AppToaster />
 
     <div
-        class="text-foreground flex min-h-screen bg-slate-50 transition-colors duration-200 dark:bg-slate-950"
+        class="text-foreground flex min-h-screen min-h-dvh flex-1 bg-slate-50 transition-colors duration-200 dark:bg-slate-950"
     >
         <!-- Backdrop Mobile Sidebar -->
         <transition
@@ -180,40 +133,49 @@ const logout = () => {
         <!-- Sidebar Component -->
         <aside
             :class="[
-                'bg-primary-600 border-primary-700/50 fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r text-white shadow-xl transition-transform duration-300 ease-in-out md:static md:translate-x-0 md:shadow-none dark:border-slate-800 dark:bg-slate-900',
-                isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full',
+                'bg-primary-700 dark:bg-slate-900 text-white border-r border-primary-800/80 dark:border-slate-800 fixed inset-y-0 left-0 z-50 flex flex-col shadow-xl transition-all duration-300 ease-in-out md:static md:translate-x-0 md:shadow-none',
+                isCollapsed ? 'md:w-20' : 'md:w-64',
+                'w-64',
+                isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
             ]"
         >
-            <!-- Logo Brand -->
+            <!-- Logo Brand & Mobile Close Button -->
             <div
-                class="flex h-16 items-center justify-between border-b border-white/15 px-6 dark:border-slate-800"
+                class="flex h-16 items-center justify-between border-b border-white/15 px-4 dark:border-slate-800"
             >
-                <Link href="/admin/dashboard" class="flex items-center gap-1">
-                    <span class="text-accent-500 text-2xl font-extrabold tracking-tight">YZD</span>
-                    <span class="text-xl font-bold tracking-tight text-white">Center</span>
+                <Link href="/admin/dashboard" class="flex items-center gap-1.5 overflow-hidden">
+                    <span class="text-accent-400 text-2xl font-black tracking-tight shrink-0">YZD</span>
+                    <span v-if="!isCollapsed" class="text-xl font-bold tracking-tight text-white shrink-0">Center</span>
                     <span
-                        class="bg-accent-500/20 text-accent-300 border-accent-500/40 ml-2 rounded border px-1.5 py-0.5 text-[10px] font-semibold"
-                        >ADMIN</span
+                        v-if="!isCollapsed"
+                        class="bg-accent-500/20 text-accent-300 border-accent-500/40 ml-1 rounded border px-1.5 py-0.5 text-[10px] font-bold tracking-wide shrink-0"
                     >
+                        ADMIN
+                    </span>
                 </Link>
 
+                <!-- Close Button (Mobile only) -->
                 <button
                     type="button"
                     @click="isMobileSidebarOpen = false"
-                    class="rounded-lg p-1.5 text-white/70 hover:bg-white/10 hover:text-white md:hidden"
+                    class="rounded-lg p-1.5 text-white/80 hover:bg-white/10 hover:text-white md:hidden cursor-pointer"
+                    aria-label="Tutup Menu"
                 >
                     <X class="h-5 w-5" />
                 </button>
             </div>
 
             <!-- Sidebar Navigation Links -->
-            <nav class="flex-1 space-y-6 overflow-y-auto px-4 py-5 text-sm font-medium">
-                <div v-for="(section, idx) in navSections" :key="idx" class="space-y-1.5">
+            <nav class="flex-1 space-y-5 overflow-y-auto px-3 py-4 text-sm font-medium">
+                <div v-for="(section, idx) in navSections" :key="idx" class="space-y-1">
+                    <!-- Section Title (Hidden when collapsed) -->
                     <p
-                        class="px-3 text-[11px] font-semibold tracking-wider text-white/50 uppercase"
+                        v-if="!isCollapsed"
+                        class="px-3 text-[11px] font-bold tracking-wider text-white/60 uppercase"
                     >
                         {{ section.title }}
                     </p>
+                    <div v-else class="h-px bg-white/10 mx-2 my-2"></div>
 
                     <div class="space-y-1">
                         <Link
@@ -221,59 +183,28 @@ const logout = () => {
                             :key="item.href"
                             :href="item.href"
                             @click="isMobileSidebarOpen = false"
+                            :title="isCollapsed ? item.label : undefined"
                             :class="[
-                                'group flex items-center justify-between rounded-lg px-3 py-2 transition-colors',
+                                'group flex items-center rounded-lg py-2.5 transition-all duration-150',
+                                isCollapsed ? 'justify-center px-2' : 'justify-between px-3',
                                 isActive(item)
-                                    ? 'bg-primary-700 dark:bg-primary-900/60 font-semibold text-white shadow-inner'
-                                    : 'text-white/80 hover:bg-white/10 hover:text-white dark:hover:bg-slate-800/80',
+                                    ? 'bg-white/20 text-white font-bold shadow-xs dark:bg-slate-800'
+                                    : 'text-white/85 hover:bg-white/10 hover:text-white dark:hover:bg-slate-800/80',
                             ]"
                         >
-                            <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
                                 <component
                                     :is="item.icon"
-                                    class="h-4 w-4 text-white/75 transition-colors group-hover:text-white"
+                                    class="h-4 w-4 shrink-0 text-white transition-colors"
                                 />
-                                <span>{{ item.label }}</span>
+                                <span v-if="!isCollapsed" class="truncate font-semibold text-[13px]">
+                                    {{ item.label }}
+                                </span>
                             </div>
-
-                            <span
-                                v-if="item.badge"
-                                class="bg-accent-500 rounded-full px-2 py-0.5 text-xs font-bold text-white shadow-xs"
-                            >
-                                {{ item.badge }}
-                            </span>
                         </Link>
                     </div>
                 </div>
             </nav>
-
-            <!-- Bottom User Profile Area -->
-            <div
-                class="bg-primary-700/50 flex items-center justify-between border-t border-white/15 p-4 dark:border-slate-800 dark:bg-slate-900/80"
-            >
-                <div class="flex items-center gap-3 truncate">
-                    <div
-                        class="bg-accent-500 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-sm"
-                    >
-                        AD
-                    </div>
-                    <div class="truncate text-xs">
-                        <p class="truncate font-semibold text-white">
-                            {{ page.props.auth?.user?.name || 'Administrator' }}
-                        </p>
-                        <p class="truncate text-white/60">Admin Portal</p>
-                    </div>
-                </div>
-
-                <button
-                    type="button"
-                    @click="logout"
-                    class="rounded-lg p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-                    title="Keluar"
-                >
-                    <LogOut class="h-4 w-4" />
-                </button>
-            </div>
         </aside>
 
         <!-- Main Wrapper -->
@@ -282,65 +213,63 @@ const logout = () => {
             <header
                 class="border-accent-500 sticky top-0 z-30 flex h-16 items-center justify-between border-b-2 bg-white px-4 shadow-xs transition-colors sm:px-6 dark:bg-slate-900"
             >
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2.5 sm:gap-3">
+                    <!-- Mobile Menu Button -->
                     <button
                         type="button"
                         @click="isMobileSidebarOpen = true"
-                        class="text-muted-foreground hover:text-foreground rounded-lg p-2 hover:bg-slate-100 md:hidden dark:hover:bg-slate-800"
+                        class="text-slate-700 dark:text-slate-200 hover:text-foreground rounded-lg p-2 hover:bg-slate-100 md:hidden dark:hover:bg-slate-800 cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
                         aria-label="Buka Menu"
                     >
                         <Menu class="h-5 w-5" />
                     </button>
 
-                    <h1 class="text-foreground truncate text-base font-semibold sm:text-lg">
-                        {{ title }}
-                    </h1>
+                    <!-- Desktop Sidebar Minimize/Maximize Button -->
+                    <button
+                        type="button"
+                        @click="toggleCollapse"
+                        class="hidden md:flex rounded-lg p-2 text-slate-700 dark:text-slate-200 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer min-h-[38px] min-w-[38px] items-center justify-center"
+                        :title="isCollapsed ? 'Tampilkan Sidebar' : 'Sembunyikan Sidebar'"
+                        :aria-label="isCollapsed ? 'Perluas Sidebar' : 'Kecilkan Sidebar'"
+                    >
+                        <PanelLeftClose v-if="!isCollapsed" class="h-5 w-5" />
+                        <PanelLeft v-else class="h-5 w-5" />
+                    </button>
                 </div>
 
                 <!-- Right Header Actions -->
-                <div class="flex items-center gap-2 sm:gap-4">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <!-- Notifications Bell Component -->
+                    <AppNotificationBell />
+
                     <!-- Dark Mode Toggle -->
                     <button
                         type="button"
                         @click="toggleDarkMode"
-                        class="text-muted-foreground hover:text-foreground rounded-lg p-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+                        class="text-slate-700 dark:text-slate-200 hover:text-foreground rounded-lg p-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
                         :title="isDark ? 'Mode Terang' : 'Mode Gelap'"
                         aria-label="Toggle Tema"
                     >
-                        <Sun v-if="isDark" class="h-5 w-5 text-amber-400" />
-                        <Moon v-else class="h-5 w-5 text-slate-600" />
+                        <Sun v-if="isDark" class="h-5 w-5 text-amber-500" />
+                        <Moon v-else class="h-5 w-5 text-slate-700" />
                     </button>
-
-                    <!-- Notifications Bell (stub) -->
-                    <div class="relative">
-                        <button
-                            type="button"
-                            class="text-muted-foreground hover:text-foreground rounded-lg p-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
-                            aria-label="Notifikasi"
-                        >
-                            <Bell class="h-5 w-5" />
-                            <span
-                                class="bg-accent-500 absolute top-1.5 right-1.5 h-2 w-2 rounded-full ring-2 ring-white dark:ring-slate-900"
-                            ></span>
-                        </button>
-                    </div>
 
                     <!-- User Dropdown Menu -->
                     <div class="relative">
                         <button
                             type="button"
                             @click="isUserDropdownOpen = !isUserDropdownOpen"
-                            class="flex items-center gap-2 rounded-lg p-1.5 text-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+                            class="flex items-center gap-2 rounded-lg p-1.5 text-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer min-h-[38px]"
                         >
                             <div
                                 class="bg-accent-500 flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs"
                             >
                                 AD
                             </div>
-                            <span class="text-foreground hidden font-medium lg:inline-block">
+                            <span class="text-foreground hidden font-bold lg:inline-block">
                                 {{ page.props.auth?.user?.name || 'Admin' }}
                             </span>
-                            <ChevronDown class="text-muted-foreground h-4 w-4" />
+                            <ChevronDown class="text-slate-600 dark:text-slate-300 h-4 w-4" />
                         </button>
 
                         <div
@@ -362,7 +291,7 @@ const logout = () => {
                                 class="bg-card border-border absolute right-0 z-50 mt-2 w-48 rounded-xl border py-1 text-sm font-medium shadow-lg"
                             >
                                 <div class="border-border/60 border-b px-4 py-2">
-                                    <p class="text-foreground truncate font-semibold">
+                                    <p class="text-foreground truncate font-bold">
                                         {{ page.props.auth?.user?.name || 'Administrator' }}
                                     </p>
                                     <p class="text-muted-foreground truncate text-xs">
@@ -370,20 +299,10 @@ const logout = () => {
                                     </p>
                                 </div>
 
-                                <Link
-                                    href="/admin/settings"
-                                    class="text-foreground flex items-center gap-2 px-4 py-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
-                                >
-                                    <UserIcon class="text-muted-foreground h-4 w-4" />
-                                    <span>Profil Saya</span>
-                                </Link>
-
-                                <div class="border-border/60 my-1 border-t"></div>
-
                                 <button
                                     type="button"
                                     @click="logout"
-                                    class="text-destructive hover:bg-destructive/10 flex w-full items-center gap-2 px-4 py-2 text-left transition-colors"
+                                    class="text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex w-full items-center gap-2 px-4 py-2 text-left transition-colors font-bold cursor-pointer"
                                 >
                                     <LogOut class="h-4 w-4" />
                                     <span>Keluar</span>

@@ -96,17 +96,16 @@ class DocumentSecurityTest extends TestCase
         // Admin bisa mengakses
         $this->actingAs($admin)->get('/admin/settings/legal')->assertOk();
 
-        // Admin mengupdate Syarat & Ketentuan ke versi v1.1
+        // Admin mengupdate Syarat & Ketentuan
         $response = $this->actingAs($admin)->post('/admin/settings/legal', [
             'key_name' => 'terms_conditions',
             'judul'    => 'Syarat & Ketentuan Layanan Terkini',
             'konten'   => 'Pasal 1: Ketentuan umum kemitraan terbaru...',
-            'versi'    => 'v1.1',
         ]);
 
         $response->assertSessionHasNoErrors();
         $terms = KontenLegal::getTerms();
-        $this->assertEquals('v1.1', $terms->versi);
         $this->assertEquals('Syarat & Ketentuan Layanan Terkini', $terms->judul);
+        $this->assertEquals('Pasal 1: Ketentuan umum kemitraan terbaru...', $terms->konten);
     }
 }

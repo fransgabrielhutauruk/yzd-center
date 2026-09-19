@@ -2,13 +2,16 @@
 
 namespace App\Services;
 
+use App\Models\AkunCopytrade;
 use App\Models\Invitation;
 use App\Models\KontenLegal;
 use App\Models\User;
 use App\Models\UserAhliWaris;
+use App\Notifications\NewInvestorRegisteredNotification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 class AuthService
@@ -83,6 +86,9 @@ class AuthService
                 'phone'           => $data['phone'],
                 'nik'             => $data['nik'],
                 'alamat'          => $data['alamat'],
+                'tempat_lahir'    => $data['tempat_lahir'],
+                'tanggal_lahir'   => $data['tanggal_lahir'],
+                'pekerjaan'       => $data['pekerjaan'],
                 'role'            => $invitation->target_role,
                 'status'          => 'pending',
                 'referral_code'   => $referralCode,
@@ -102,6 +108,39 @@ class AuthService
                 'alamat'            => $data['ahli_waris_alamat'],
             ]);
 
+            // Tentukan detail akun berdasarkan tier
+            $tierConfig = match ($data['tier_investasi']) {
+                'tier_1' => ['broker' => 'HFM', 'tipe_akun' => 'cent', 'tanggal_selesai' => '2031-12-31'],
+                'tier_2' => ['broker' => 'XM',  'tipe_akun' => 'standard', 'tanggal_selesai' => '2031-12-31'],
+                'tier_3' => ['broker' => 'XM',  'tipe_akun' => 'private_vps', 'tanggal_selesai' => null],
+            };
+
+            $akunData = [
+                'user_id'            => $user->id,
+                'tier'               => $data['tier_investasi'],
+                'broker'             => $tierConfig['broker'],
+                'tipe_akun'          => $tierConfig['tipe_akun'],
+                'nomor_akun_trading' => $data['nomor_akun_trading'],
+                'estimasi_modal'     => $data['estimasi_modal'],
+                'tanggal_mulai'      => $data['tanggal_mulai_trading'],
+                'tanggal_selesai'    => $data['tier_investasi'] === 'tier_3'
+                    ? date('Y-m-d', strtotime($data['tanggal_mulai_trading'] . ' +5 years'))
+                    : $tierConfig['tanggal_selesai'],
+                'nama_bank'          => $data['nama_bank'],
+                'nomor_rekening'     => $data['nomor_rekening'],
+                'atas_nama_rekening' => $data['atas_nama_rekening'],
+                'status'             => 'pending',
+            ];
+
+            // Field khusus Tier 3
+            if ($data['tier_investasi'] === 'tier_3') {
+                $akunData['server_broker'] = $data['server_broker'] ?? null;
+                $akunData['master_password'] = $data['master_password'] ?? null;
+                $akunData['investor_password'] = $data['investor_password'] ?? null;
+            }
+
+            AkunCopytrade::create($akunData);
+
             // Unggah berkas dokumen KTP dan Surat Perjanjian
             if (isset($data['dokumen_ktp'])) {
                 $this->kycService->uploadDocument($user, $data['dokumen_ktp'], 'ktp');
@@ -111,6 +150,12 @@ class AuthService
             }
 
             $invitation->increment('total_terpakai');
+
+            // Kirim notifikasi in-app ke seluruh administrator
+            $admins = User::where('role', 'administrator')->get();
+            if ($admins->isNotEmpty()) {
+                Notification::send($admins, new NewInvestorRegisteredNotification($user));
+            }
 
             return $user;
         });

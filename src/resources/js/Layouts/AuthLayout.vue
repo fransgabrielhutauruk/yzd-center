@@ -22,24 +22,27 @@ const { isDark, toggleDarkMode } = useDarkMode();
     <Head :title="title" />
     <AppToaster />
 
-    <div class="min-h-screen bg-slate-50 dark:bg-slate-950 text-foreground flex flex-col transition-colors duration-200">
+    <div
+        class="min-h-screen min-h-dvh flex-1 bg-slate-50 dark:bg-slate-950 text-foreground flex flex-col transition-colors duration-200"
+    >
         <!-- Top Navigation -->
-        <header class="w-full px-6 py-4 flex items-center justify-between border-b border-border/50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm sticky top-0 z-10">
+        <header class="w-full px-4 sm:px-6 py-3.5 flex items-center justify-between border-b border-border/60 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
             <Link href="/" class="flex items-center gap-1 text-xl font-bold tracking-tight">
-                <span class="text-accent-500 font-extrabold text-2xl">YZD</span>
-                <span class="text-primary-600 dark:text-primary-400">Center</span>
+                <span class="text-accent-500 font-black text-2xl">YZD</span>
+                <span class="text-primary-600 dark:text-primary-400 font-extrabold">Center</span>
             </Link>
 
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Dark Mode Toggle -->
                 <button
                     type="button"
                     @click="toggleDarkMode"
-                    class="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    class="p-2 rounded-lg text-slate-700 dark:text-slate-200 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
                     :title="isDark ? 'Mode Terang' : 'Mode Gelap'"
                     aria-label="Toggle Tema"
                 >
-                    <Sun v-if="isDark" class="w-5 h-5 text-amber-400" />
-                    <Moon v-else class="w-5 h-5 text-slate-600" />
+                    <Sun v-if="isDark" class="w-5 h-5 text-amber-500" />
+                    <Moon v-else class="w-5 h-5 text-slate-700" />
                 </button>
             </div>
         </header>
@@ -51,8 +54,8 @@ const { isDark, toggleDarkMode } = useDarkMode();
                     <slot />
                 </div>
 
-                <footer class="mt-8 text-center text-xs text-muted-foreground">
-                    &copy; 2026 <span class="font-semibold text-foreground">YZD Center</span>. Hak cipta dilindungi.
+                <footer class="mt-8 text-center text-xs text-muted-foreground font-medium">
+                    &copy; 2026 <span class="font-bold text-foreground">YZD Center</span>. All rights reserved.
                 </footer>
             </div>
         </main>

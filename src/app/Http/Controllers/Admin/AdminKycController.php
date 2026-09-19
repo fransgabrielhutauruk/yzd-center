@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AkunCopytrade;
 use App\Models\User;
 use App\Models\UserDokumen;
 use App\Services\KycService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -36,7 +38,7 @@ class AdminKycController extends Controller
 
         $query = User::query()
             ->whereIn('role', ['investor', 'affiliator'])
-            ->with(['ahliWaris', 'dokumen']);
+            ->with(['ahliWaris', 'dokumen', 'akunCopytrade']);
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
@@ -47,8 +49,20 @@ class AdminKycController extends Controller
             });
         }
 
-        if ($statusFilter !== '' && in_array($statusFilter, ['pending', 'active', 'suspended', 'rejected'], true)) {
-            $query->where('status', $statusFilter);
+        if ($statusFilter !== '') {
+            if ($statusFilter === 'pending') {
+                $query->where('status', 'pending');
+            } elseif ($statusFilter === 'active') {
+                $query->where('status', 'active');
+            } elseif ($statusFilter === 'revision_needed') {
+                $query->whereHas('dokumen', function ($q) {
+                    $q->where('status', 'revision_needed');
+                });
+            } elseif ($statusFilter === 'rejected') {
+                $query->whereHas('akunCopytrade', function ($q) {
+                    $q->where('status', 'rejected');
+                });
+            }
         }
 
         $users = $query->orderBy($sortField, $sortDirection)
@@ -66,16 +80,38 @@ class AdminKycController extends Controller
                     'nik'             => $user->nik,
                     'phone'           => $user->phone,
                     'alamat'          => $user->alamat,
+                    'tempat_lahir'    => $user->tempat_lahir,
+                    'tanggal_lahir'   => $user->tanggal_lahir ? tanggal_indo($user->tanggal_lahir) : null,
+                    'pekerjaan'       => $user->pekerjaan,
                     'role'            => $user->role,
                     'status'          => $user->status,
                     'created_at'      => tanggal_waktu_indo($user->created_at),
-                    'terms_version'   => $user->terms_version,
+                    'created_at_date' => $user->created_at ? tanggal_indo($user->created_at) : '-',
+                    'created_at_time' => $user->created_at ? $user->created_at->format('H:i:s \W\I\B') : '',
                     'terms_agreed_at' => tanggal_waktu_indo($user->terms_agreed_at),
                     'ahli_waris'      => $user->ahliWaris ? [
                         'nama'              => $user->ahliWaris->nama,
                         'hubungan_keluarga' => $user->ahliWaris->hubungan_keluarga,
                         'no_hp'             => $user->ahliWaris->no_hp,
                         'alamat'            => $user->ahliWaris->alamat,
+                    ] : null,
+                    'akun_copytrade' => $user->akunCopytrade ? [
+                        'id'                 => $user->akunCopytrade->id,
+                        'tier'               => $user->akunCopytrade->tier,
+                        'broker'             => $user->akunCopytrade->broker,
+                        'tipe_akun'          => $user->akunCopytrade->tipe_akun,
+                        'nomor_akun_trading' => $user->akunCopytrade->nomor_akun_trading,
+                        'server_broker'      => $user->akunCopytrade->server_broker,
+                        'master_password'    => $user->akunCopytrade->master_password,
+                        'investor_password'  => $user->akunCopytrade->investor_password,
+                        'estimasi_modal'     => $user->akunCopytrade->estimasi_modal,
+                        'tanggal_mulai'      => tanggal_indo($user->akunCopytrade->tanggal_mulai),
+                        'tanggal_selesai'    => $user->akunCopytrade->tanggal_selesai ? tanggal_indo($user->akunCopytrade->tanggal_selesai) : null,
+                        'nama_bank'          => $user->akunCopytrade->nama_bank,
+                        'nomor_rekening'     => $user->akunCopytrade->nomor_rekening,
+                        'atas_nama_rekening' => $user->akunCopytrade->atas_nama_rekening,
+                        'status'             => $user->akunCopytrade->status,
+                        'catatan_admin'      => $user->akunCopytrade->catatan_admin,
                     ] : null,
                     'dokumen' => [
                         'ktp' => $ktp ? [
@@ -119,18 +155,18 @@ class AdminKycController extends Controller
     }
 
     /**
-     * Verifikasi status dokumen individual (approve, revision_needed, reject).
+     * Verifikasi status dokumen individual (approved, revision_needed).
      */
     public function verify(Request $request, int $id): RedirectResponse
     {
         $dokumen = UserDokumen::with('user')->findOrFail($id);
 
         $validated = $request->validate([
-            'status'        => ['required', 'string', 'in:approved,revision_needed,rejected'],
+            'status'        => ['required', 'string', 'in:approved,revision_needed'],
             'catatan_admin' => ['nullable', 'string', 'max:500'],
         ], [
             'status.required' => 'Pilih status verifikasi berkas.',
-            'status.in'       => 'Pilihan status verifikasi tidak valid.',
+            'status.in'       => 'Pilihan status verifikasi tidak valid. Hanya disetujui atau minta revisi yang diperbolehkan.',
         ]);
 
         $this->kycService->verifyDocument(
@@ -143,10 +179,46 @@ class AdminKycController extends Controller
         $label = match ($validated['status']) {
             'approved'        => 'disetujui',
             'revision_needed' => 'diminta revisi',
-            'rejected'        => 'ditolak',
         };
 
         return redirect()->back()
             ->with('success', "Berkas {$dokumen->tipe_dokumen} milik {$dokumen->user->name} berhasil {$label}.");
+    }
+
+    /**
+     * Verifikasi status akun copy trade investor (active, rejected).
+     */
+    public function verifyAccount(Request $request, int $id): RedirectResponse
+    {
+        $akun = AkunCopytrade::with('user')->findOrFail($id);
+
+        $validated = $request->validate([
+            'status'        => ['required', 'string', 'in:active,rejected'],
+            'catatan_admin' => ['nullable', 'string', 'max:500'],
+        ], [
+            'status.required' => 'Pilih status verifikasi akun trading.',
+            'status.in'       => 'Pilihan status verifikasi tidak valid. Hanya disetujui (aktif) atau ditolak/belum follow yang diperbolehkan.',
+        ]);
+
+        if ($validated['status'] === 'rejected' && empty(trim((string) ($validated['catatan_admin'] ?? '')))) {
+            throw ValidationException::withMessages([
+                'catatan_admin' => 'Harap isi catatan admin saat menolak akun copy trade.',
+            ]);
+        }
+
+        $this->kycService->verifyAccount(
+            $akun,
+            $validated['status'],
+            $validated['catatan_admin'] ?? null,
+            $request->user()
+        );
+
+        $label = match ($validated['status']) {
+            'active'   => 'disetujui & aktif',
+            'rejected' => 'ditolak / belum follow',
+        };
+
+        return redirect()->back()
+            ->with('success', "Akun Copy Trade milik {$akun->user->name} berhasil {$label}.");
     }
 }
