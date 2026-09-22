@@ -453,7 +453,7 @@ const globalStatus = computed(() => {
     if (isKycDocsApproved && isAccountActive) {
         return {
             type: 'approved',
-            label: 'Akun Terverifikasi Penuh',
+            label: 'Akun Terverifikasi',
             badge: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600',
             icon: CheckCircle2,
         };

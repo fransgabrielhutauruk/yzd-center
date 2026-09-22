@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import {
     Search,
@@ -32,6 +32,14 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    paramPrefix: {
+        type: String,
+        default: '',
+    },
+    extraParams: {
+        type: Object,
+        default: () => ({}),
+    },
     searchPlaceholder: {
         type: String,
         default: 'Cari data...',
@@ -58,10 +66,16 @@ const props = defineProps({
     },
 });
 
-const search = ref(props.filters.search || '');
-const sortBy = ref(props.filters.sort_by || '');
-const sortDirection = ref(props.filters.sort_direction || 'desc');
-const perPage = ref(props.filters.per_page || props.data.per_page || 10);
+const searchKey = computed(() => (props.paramPrefix ? `${props.paramPrefix}search` : 'search'));
+const sortByKey = computed(() => (props.paramPrefix ? `${props.paramPrefix}sort_by` : 'sort_by'));
+const sortDirectionKey = computed(() => (props.paramPrefix ? `${props.paramPrefix}sort_direction` : 'sort_direction'));
+const perPageKey = computed(() => (props.paramPrefix ? `${props.paramPrefix}per_page` : 'per_page'));
+const pageKey = computed(() => (props.paramPrefix ? `${props.paramPrefix}page` : 'page'));
+
+const search = ref(props.filters[searchKey.value] || props.filters.search || '');
+const sortBy = ref(props.filters[sortByKey.value] || props.filters.sort_by || '');
+const sortDirection = ref(props.filters[sortDirectionKey.value] || props.filters.sort_direction || 'desc');
+const perPage = ref(props.filters[perPageKey.value] || props.filters.per_page || props.data.per_page || 10);
 const isLoading = ref(false);
 
 let debounceTimeout = null;
@@ -69,18 +83,35 @@ let debounceTimeout = null;
 const applyFilters = (customParams = {}) => {
     isLoading.value = true;
 
+    // Normalisasi parameter jika customParams menyertakan 'page' generik saat paramPrefix aktif
+    const normalizedCustom = { ...customParams };
+    if (props.paramPrefix && normalizedCustom.page !== undefined && normalizedCustom[pageKey.value] === undefined) {
+        normalizedCustom[pageKey.value] = normalizedCustom.page;
+        delete normalizedCustom.page;
+    }
+
+    // Ambil semua query params saat ini dari URL agar tidak menghapus parameter tabel/tab lain
+    let currentParams = {};
+    try {
+        currentParams = Object.fromEntries(new URLSearchParams(window.location.search).entries());
+    } catch {
+        currentParams = {};
+    }
+
     const queryParams = {
+        ...currentParams,
+        ...props.extraParams,
         ...props.filters,
-        search: search.value || undefined,
-        sort_by: sortBy.value || undefined,
-        sort_direction: sortDirection.value || undefined,
-        per_page: perPage.value || undefined,
-        ...customParams,
+        [searchKey.value]: search.value || undefined,
+        [sortByKey.value]: sortBy.value || undefined,
+        [sortDirectionKey.value]: sortDirection.value || undefined,
+        [perPageKey.value]: perPage.value || undefined,
+        ...normalizedCustom,
     };
 
-    // Bersihkan parameter bernilai undefined atau kosong
+    // Bersihkan parameter bernilai undefined, null, atau kosong
     Object.keys(queryParams).forEach((key) => {
-        if (queryParams[key] === undefined || queryParams[key] === '') {
+        if (queryParams[key] === undefined || queryParams[key] === null || queryParams[key] === '') {
             delete queryParams[key];
         }
     });
@@ -98,14 +129,28 @@ const applyFilters = (customParams = {}) => {
 watch(search, () => {
     clearTimeout(debounceTimeout);
     debounceTimeout = setTimeout(() => {
-        applyFilters({ page: 1 });
+        applyFilters({ [pageKey.value]: 1 });
     }, 350);
 });
+
+// Watch props.filters untuk sinkronisasi jika filter berubah dari luar
+watch(
+    () => props.filters,
+    (newFilters) => {
+        if (newFilters) {
+            search.value = newFilters[searchKey.value] ?? newFilters.search ?? '';
+            sortBy.value = newFilters[sortByKey.value] ?? newFilters.sort_by ?? '';
+            sortDirection.value = newFilters[sortDirectionKey.value] ?? newFilters.sort_direction ?? 'desc';
+            perPage.value = newFilters[perPageKey.value] ?? newFilters.per_page ?? props.data.per_page ?? 10;
+        }
+    },
+    { deep: true }
+);
 
 // Per page change
 const onPerPageChange = (event) => {
     perPage.value = Number(event.target.value);
-    applyFilters({ page: 1, per_page: perPage.value });
+    applyFilters({ [pageKey.value]: 1, [perPageKey.value]: perPage.value });
 };
 
 // Sort column
@@ -120,8 +165,9 @@ const handleSort = (column) => {
     }
 
     applyFilters({
-        sort_by: sortBy.value,
-        sort_direction: sortDirection.value,
+        [sortByKey.value]: sortBy.value,
+        [sortDirectionKey.value]: sortDirection.value,
+        [pageKey.value]: 1,
     });
 };
 

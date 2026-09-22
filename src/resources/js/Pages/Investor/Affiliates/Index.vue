@@ -1,0 +1,1105 @@
+<script setup>
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { Head, useForm, router } from '@inertiajs/vue3';
+import InvestorLayout from '@/Layouts/InvestorLayout.vue';
+import AppDataTable from '@/Components/Common/AppDataTable.vue';
+import AppModal from '@/Components/Common/AppModal.vue';
+import { Button } from '@/Components/ui/button';
+import { toast } from 'vue-sonner';
+import { compressImageFile, formatBytes } from '@/lib/imageCompression';
+import {
+    Users,
+    UserCheck,
+    Clock,
+    Copy,
+    Check,
+    FileText,
+    PlusCircle,
+    CheckCircle2,
+    XCircle,
+    AlertCircle,
+    UploadCloud,
+    Loader2,
+    Eye,
+    Image as ImageIcon,
+    Info,
+    ExternalLink,
+    MessageSquare,
+} from 'lucide-vue-next';
+
+const props = defineProps({
+    stats: {
+        type: Object,
+        required: true,
+    },
+    downlines: {
+        type: Object,
+        required: true,
+    },
+    downlineFilters: {
+        type: Object,
+        default: () => ({}),
+    },
+    claims: {
+        type: Object,
+        required: true,
+    },
+    claimFilters: {
+        type: Object,
+        default: () => ({}),
+    },
+    eligibleDownlines: {
+        type: Array,
+        default: () => [],
+    },
+    activeTab: {
+        type: String,
+        default: 'downlines',
+    },
+});
+
+const activeTab = ref(props.activeTab || 'downlines'); // 'downlines' | 'claims'
+
+const switchTab = (tab) => {
+    activeTab.value = tab;
+    try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tab);
+        window.history.replaceState({}, '', url.toString());
+    } catch {
+        // Fallback jika window tidak tersedia
+    }
+};
+
+const handlePopState = () => {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get('tab');
+        if (tab === 'claims' || tab === 'downlines') {
+            activeTab.value = tab;
+        }
+    } catch {
+        // Fallback
+    }
+};
+
+onMounted(() => {
+    window.addEventListener('popstate', handlePopState);
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get('tab');
+        if (tab === 'claims' || tab === 'downlines') {
+            activeTab.value = tab;
+        }
+    } catch {
+        // Fallback
+    }
+});
+
+onUnmounted(() => {
+    window.removeEventListener('popstate', handlePopState);
+});
+
+const isCopied = ref(false);
+
+const copyReferralCode = async () => {
+    if (!props.stats.referral_code || props.stats.referral_code === '-') return;
+    try {
+        await navigator.clipboard.writeText(props.stats.referral_code);
+        isCopied.value = true;
+        toast.success(`Kode referral ${props.stats.referral_code} berhasil disalin!`);
+        setTimeout(() => {
+            isCopied.value = false;
+        }, 2000);
+    } catch (error) {
+        toast.error(`Gagal menyalin kode referral. ${error}`);
+    }
+};
+
+// Modal Ajukan Klaim Susulan
+const isClaimModalOpen = ref(false);
+const previewFile = ref(null);
+const isCheckingDownline = ref(false);
+const isCompressingProof = ref(false);
+const verifiedDownline = ref(null);
+const downlineCheckError = ref('');
+
+const claimForm = useForm({
+    downline_username: '',
+    downline_id: '',
+    bukti_chat: null,
+    alasan: '',
+});
+
+const openClaimModal = () => {
+    claimForm.reset();
+    claimForm.clearErrors();
+    previewFile.value = null;
+    verifiedDownline.value = null;
+    downlineCheckError.value = '';
+    isCompressingProof.value = false;
+    isClaimModalOpen.value = true;
+};
+
+const closeClaimModal = () => {
+    isClaimModalOpen.value = false;
+    claimForm.reset();
+    previewFile.value = null;
+    verifiedDownline.value = null;
+    downlineCheckError.value = '';
+    isCompressingProof.value = false;
+};
+
+const checkDownlineUsername = async () => {
+    const raw = claimForm.downline_username?.trim().replace(/^@/, '');
+    if (!raw) {
+        downlineCheckError.value = 'Silakan ketikkan username calon downline.';
+        verifiedDownline.value = null;
+        claimForm.downline_id = '';
+        return;
+    }
+
+    isCheckingDownline.value = true;
+    downlineCheckError.value = '';
+    verifiedDownline.value = null;
+    claimForm.downline_id = '';
+
+    try {
+        const response = await fetch(
+            route('investor.affiliates.check_downline', { username: raw }),
+            {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            }
+        );
+        const data = await response.json();
+
+        if (response.ok && data.valid) {
+            verifiedDownline.value = data.downline;
+            claimForm.downline_id = data.downline.id;
+            claimForm.downline_username = data.downline.username;
+            claimForm.clearErrors('downline_id');
+        } else {
+            downlineCheckError.value =
+                data.message ||
+                'Username investor tidak ditemukan atau tidak memenuhi syarat klaim.';
+        }
+    } catch {
+        downlineCheckError.value = 'Terjadi kesalahan saat memeriksa database. Silakan coba lagi.';
+    } finally {
+        isCheckingDownline.value = false;
+    }
+};
+
+const handleUsernameInput = () => {
+    if (verifiedDownline.value) {
+        verifiedDownline.value = null;
+        claimForm.downline_id = '';
+    }
+    downlineCheckError.value = '';
+};
+
+const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+        toast.error('Format berkas harus berupa gambar (JPG, PNG, WEBP) atau dokumen PDF.');
+        return;
+    }
+
+    const isPdf = file.type === 'application/pdf';
+
+    if (isPdf) {
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('Ukuran berkas PDF maksimal 5 MB.');
+            return;
+        }
+
+        claimForm.bukti_chat = file;
+        previewFile.value = {
+            type: 'pdf',
+            url: URL.createObjectURL(file),
+            name: file.name,
+            size: formatBytes(file.size),
+        };
+        claimForm.clearErrors('bukti_chat');
+        return;
+    }
+
+    // Untuk berkas gambar: kompresi di belakang layar tanpa mengurangi ketajaman teks/kualitas visual
+    isCompressingProof.value = true;
+    try {
+        const result = await compressImageFile(file);
+        const processedFile = result?.file || file;
+
+        if (processedFile.size > 5 * 1024 * 1024) {
+            toast.error('Ukuran berkas maksimal 5 MB.');
+            return;
+        }
+
+        claimForm.bukti_chat = processedFile;
+        previewFile.value = {
+            type: 'image',
+            url: result?.previewUrl || URL.createObjectURL(processedFile),
+            name: file.name,
+            size: formatBytes(processedFile.size),
+        };
+        claimForm.clearErrors('bukti_chat');
+    } catch {
+        // Fallback jika kompresi canvas gagal
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('Ukuran berkas maksimal 5 MB.');
+            return;
+        }
+
+        claimForm.bukti_chat = file;
+        previewFile.value = {
+            type: 'image',
+            url: URL.createObjectURL(file),
+            name: file.name,
+            size: formatBytes(file.size),
+        };
+        claimForm.clearErrors('bukti_chat');
+    } finally {
+        isCompressingProof.value = false;
+    }
+};
+
+const removeFile = () => {
+    claimForm.bukti_chat = null;
+    previewFile.value = null;
+    isCompressingProof.value = false;
+};
+
+const submitClaim = () => {
+    claimForm.post(route('investor.affiliates.claims.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            closeClaimModal();
+            switchTab('claims');
+        },
+    });
+};
+
+// Modal Pratinjau Bukti Pendukung
+const isProofModalOpen = ref(false);
+const currentProofUrl = ref('');
+const currentProofDownline = ref('');
+const currentProofIsPdf = ref(false);
+
+const openProofModal = (claim) => {
+    if (!claim.bukti_chat_url) return;
+    currentProofUrl.value = claim.bukti_chat_url;
+    currentProofDownline.value = claim.downline?.name || 'Investor';
+    currentProofIsPdf.value = !!claim.bukti_is_pdf;
+    isProofModalOpen.value = true;
+};
+
+// Modal Detail Alasan / Kronologi
+const isReasonModalOpen = ref(false);
+const selectedReasonText = ref('');
+
+const openReasonModal = (text) => {
+    selectedReasonText.value = text;
+    isReasonModalOpen.value = true;
+};
+
+// Modal Detail Catatan Admin
+const isAdminNoteModalOpen = ref(false);
+const selectedAdminNoteText = ref('');
+
+const openAdminNoteModal = (note) => {
+    selectedAdminNoteText.value = note;
+    isAdminNoteModalOpen.value = true;
+};
+
+// Kolom Tabel Downline
+const downlineColumns = [
+    { key: 'joined_at', label: 'Bergabung', sortable: true },
+    { key: 'name', label: 'Investor', sortable: false },
+    { key: 'phone', label: 'Nomor HP', sortable: false },
+    { key: 'tier', label: 'Tier Akun', sortable: false },
+    { key: 'copytrade_status', label: 'Status Akun Trading', sortable: false },
+    { key: 'user_status', label: 'Status KYC', sortable: false },
+    { key: 'sumber', label: 'Sumber Relasi', sortable: false },
+];
+
+// Kolom Tabel Klaim
+const claimColumns = [
+    { key: 'created_at', label: 'Diajukan', sortable: true },
+    { key: 'downline', label: 'Calon Downline', sortable: false },
+    { key: 'bukti_chat', label: 'Bukti Pendukung', sortable: false },
+    { key: 'alasan', label: 'Alasan / Kronologi', sortable: false },
+    { key: 'status', label: 'Status Klaim', sortable: true },
+    { key: 'catatan_admin', label: 'Catatan Admin', sortable: false },
+];
+</script>
+
+<template>
+    <InvestorLayout title="Jaringan Kemitraan">
+        <Head title="Jaringan Kemitraan" />
+
+        <div class="space-y-6">
+            <!-- Header Halaman -->
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 class="text-foreground text-xl font-bold tracking-tight sm:text-2xl">
+                        Jaringan Kemitraan
+                    </h1>
+                    <p class="text-muted-foreground text-xs sm:text-sm">
+                        Pantau investor binaan Anda, kelola kode referral, dan ajukan klaim referral
+                        susulan.
+                    </p>
+                </div>
+
+                <Button
+                    type="button"
+                    @click="openClaimModal"
+                    class="bg-primary-600 hover:bg-primary-700 flex items-center gap-1.5 self-start text-xs text-white shadow-xs sm:text-sm"
+                >
+                    <PlusCircle class="h-4 w-4" />
+                    <span>Ajukan Klaim Susulan</span>
+                </Button>
+            </div>
+
+            <!-- Banner Kode Referral -->
+            <div class="grid grid-cols-1 gap-4 lg:grid-cols-5">
+                <!-- Kartu Kode Referral -->
+                <div
+                    class="border-primary-500/30 from-primary-500/10 via-primary-500/5 rounded-xl border bg-gradient-to-br to-transparent p-5 shadow-xs lg:col-span-2"
+                >
+                    <div class="flex items-center justify-between">
+                        <span class="text-primary-700 dark:text-primary-300 text-xs font-semibold">
+                            Kode Referral Anda
+                        </span>
+                    </div>
+
+                    <div class="mt-3 flex items-center justify-between gap-3">
+                        <span
+                            class="text-foreground font-mono text-2xl font-black tracking-widest sm:text-3xl"
+                        >
+                            {{ stats.referral_code }}
+                        </span>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            @click="copyReferralCode"
+                            class="border-primary-500/40 hover:bg-primary-500/10 hover:text-foreground flex items-center gap-1.5 text-xs font-semibold"
+                        >
+                            <Check v-if="isCopied" class="h-3.5 w-3.5 text-emerald-600" />
+                            <Copy v-else class="h-3.5 w-3.5" />
+                            <span>{{ isCopied ? 'Tersalin' : 'Salin Kode' }}</span>
+                        </Button>
+                    </div>
+
+                    <p class="text-muted-foreground mt-3 text-[11px] leading-relaxed">
+                        Berikan kode ini kepada calon investor untuk diketikkan pada kolom
+                        <strong class="text-foreground">Kode Referral Affiliator</strong> di
+                        formulir pendaftaran.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Tab Navigasi -->
+            <div class="border-border border-b">
+                <nav class="-mb-px flex gap-6 text-sm font-medium">
+                    <button
+                        type="button"
+                        @click="switchTab('downlines')"
+                        class="flex cursor-pointer items-center gap-2 border-b-2 pb-3 text-xs transition-colors sm:text-sm"
+                        :class="[
+                            activeTab === 'downlines'
+                                ? 'border-primary-600 text-primary-600 dark:text-primary-400 font-bold'
+                                : 'text-muted-foreground hover:border-border hover:text-foreground border-transparent',
+                        ]"
+                    >
+                        <Users class="h-4 w-4" />
+                        <span>Daftar Downline</span>
+                        <span
+                            class="text-foreground rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold dark:bg-slate-800"
+                        >
+                            {{ stats.total_downlines }}
+                        </span>
+                    </button>
+
+                    <button
+                        type="button"
+                        @click="switchTab('claims')"
+                        class="flex cursor-pointer items-center gap-2 border-b-2 pb-3 text-xs transition-colors sm:text-sm"
+                        :class="[
+                            activeTab === 'claims'
+                                ? 'border-primary-600 text-primary-600 dark:text-primary-400 font-bold'
+                                : 'text-muted-foreground hover:border-border hover:text-foreground border-transparent',
+                        ]"
+                    >
+                        <FileText class="h-4 w-4" />
+                        <span>Riwayat Klaim Susulan</span>
+                        <span
+                            v-if="stats.pending_claims > 0"
+                            class="rounded-full bg-amber-500/20 px-2 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-300"
+                        >
+                            {{ stats.pending_claims }}
+                        </span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- TAB 1: DAFTAR DOWNLINE -->
+            <div v-show="activeTab === 'downlines'" class="space-y-4">
+                <AppDataTable
+                    :data="downlines"
+                    :columns="downlineColumns"
+                    :filters="downlineFilters"
+                    :extra-params="{ tab: 'downlines' }"
+                    :fetch-url="route('investor.affiliates.index')"
+                    search-placeholder="Cari nama, username, email, atau no. HP downline..."
+                    empty-title="Belum Ada Downline Terdaftar"
+                    empty-message="Belum ada investor yang terhubung dengan kode referral Anda. Bagikan kode referral resmi Anda untuk memulai."
+                >
+                    <!-- Filter Kustom: Sumber Relasi -->
+                    <template #filters="{ applyFilters }">
+                        <select
+                            :value="downlineFilters.sumber || ''"
+                            @change="
+                                (e) =>
+                                    applyFilters({ sumber: e.target.value || undefined, page: 1 })
+                            "
+                            class="border-input bg-background text-foreground focus:border-primary-500 focus:ring-primary-500/20 h-9 rounded-lg border px-3 text-xs transition-all focus:ring-2 focus:outline-none"
+                        >
+                            <option value="">Semua Sumber</option>
+                            <option value="link_otomatis">Kode Registrasi</option>
+                            <option value="klaim_manual">Klaim Susulan</option>
+                        </select>
+                    </template>
+
+                    <!-- Custom Slot: Joined At -->
+                    <template #column-joined_at="{ item }">
+                        <span class="text-muted-foreground text-xs whitespace-nowrap">
+                            {{ item.joined_at_label || item.joined_at }}
+                        </span>
+                    </template>
+
+                    <!-- Custom Slot: Investor Name -->
+                    <template #column-name="{ item }">
+                        <div class="min-w-0 space-y-0.5">
+                            <p class="text-foreground truncate text-sm font-bold">
+                                {{ item.name }}
+                            </p>
+                            <p class="text-muted-foreground font-mono text-xs">
+                                @{{ item.username }}
+                            </p>
+                        </div>
+                    </template>
+
+                    <!-- Custom Slot: Nomor HP -->
+                    <template #column-phone="{ item }">
+                        <span
+                            v-if="item.phone && item.phone !== '-'"
+                            class="text-foreground font-mono text-xs whitespace-nowrap"
+                        >
+                            {{ item.phone }}
+                        </span>
+                        <span v-else class="text-muted-foreground text-xs">-</span>
+                    </template>
+
+                    <!-- Custom Slot: Tier -->
+                    <template #column-tier="{ item }">
+                        <span
+                            v-if="item.tier"
+                            class="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wider whitespace-nowrap uppercase"
+                            :class="[
+                                item.tier === 'tier_3'
+                                    ? 'border border-violet-500/30 bg-violet-500/10 text-violet-800 dark:text-violet-300'
+                                    : item.tier === 'tier_2'
+                                      ? 'border border-blue-500/30 bg-blue-500/10 text-blue-800 dark:text-blue-300'
+                                      : 'border border-slate-500/30 bg-slate-500/10 text-slate-800 dark:text-slate-300',
+                            ]"
+                        >
+                            {{ String(item.tier).replace('_', ' ') }}
+                        </span>
+                        <span v-else class="text-muted-foreground text-xs">-</span>
+                    </template>
+
+                    <!-- Custom Slot: Copytrade Status -->
+                    <template #column-copytrade_status="{ item }">
+                        <span
+                            class="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap"
+                            :class="[
+                                item.copytrade_status === 'active'
+                                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
+                                    : item.copytrade_status === 'rejected'
+                                      ? 'border-rose-500/30 bg-rose-500/10 text-rose-800 dark:text-rose-300'
+                                      : 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300',
+                            ]"
+                        >
+                            <CheckCircle2
+                                v-if="item.copytrade_status === 'active'"
+                                class="h-3 w-3 text-emerald-600 dark:text-emerald-400"
+                            />
+                            <XCircle
+                                v-else-if="item.copytrade_status === 'rejected'"
+                                class="h-3 w-3 text-rose-600 dark:text-rose-400"
+                            />
+                            <Clock v-else class="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                            <span>{{
+                                item.copytrade_status === 'active'
+                                    ? 'Terverifikasi'
+                                    : item.copytrade_status === 'rejected'
+                                      ? 'Ditolak'
+                                      : 'Pending'
+                            }}</span>
+                        </span>
+                    </template>
+
+                    <!-- Custom Slot: User KYC Status -->
+                    <template #column-user_status="{ item }">
+                        <span
+                            class="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap"
+                            :class="[
+                                item.user_status === 'active'
+                                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
+                                    : 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300',
+                            ]"
+                        >
+                            <CheckCircle2
+                                v-if="item.user_status === 'active'"
+                                class="h-3 w-3 text-emerald-600 dark:text-emerald-400"
+                            />
+                            <Clock v-else class="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                            <span>{{
+                                item.user_status === 'active' ? 'Terverifikasi' : 'Pending'
+                            }}</span>
+                        </span>
+                    </template>
+
+                    <!-- Custom Slot: Sumber Relasi -->
+                    <template #column-sumber="{ item }">
+                        <span
+                            class="inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap"
+                            :class="[
+                                item.sumber === 'link_otomatis'
+                                    ? 'border-sky-500/30 bg-sky-500/10 text-sky-800 dark:text-sky-300'
+                                    : 'border-purple-500/30 bg-purple-500/10 text-purple-800 dark:text-purple-300',
+                            ]"
+                        >
+                            {{ item.sumber_label }}
+                        </span>
+                    </template>
+                </AppDataTable>
+            </div>
+
+            <!-- TAB 2: RIWAYAT KLAIM SUSULAN -->
+            <div v-show="activeTab === 'claims'" class="space-y-4">
+                <AppDataTable
+                    param-prefix="claim_"
+                    :data="claims"
+                    :columns="claimColumns"
+                    :filters="claimFilters"
+                    :extra-params="{ tab: 'claims' }"
+                    :fetch-url="route('investor.affiliates.index')"
+                    search-placeholder="Cari calon downline..."
+                    empty-title="Belum Ada Riwayat Klaim"
+                    empty-message="Anda belum pernah mengajukan klaim susulan downline."
+                >
+                    <!-- Filter Kustom: Status Klaim -->
+                    <template #filters="{ applyFilters }">
+                        <select
+                            :value="claimFilters.claim_status || claimFilters.status || ''"
+                            @change="
+                                (e) =>
+                                    applyFilters({
+                                        claim_status: e.target.value || undefined,
+                                        claim_page: 1,
+                                    })
+                            "
+                            class="border-input bg-background text-foreground focus:border-primary-500 focus:ring-primary-500/20 h-9 rounded-lg border px-3 text-xs transition-all focus:ring-2 focus:outline-none"
+                        >
+                            <option value="">Semua Status Klaim</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Disetujui</option>
+                            <option value="rejected">Ditolak</option>
+                        </select>
+                    </template>
+
+                    <!-- Custom Slot: Created At -->
+                    <template #column-created_at="{ item }">
+                        <span class="text-muted-foreground text-xs whitespace-nowrap">
+                            {{ item.created_at_label || item.created_at }}
+                        </span>
+                    </template>
+
+                    <!-- Custom Slot: Calon Downline -->
+                    <template #column-downline="{ item }">
+                        <div class="min-w-0 space-y-0.5">
+                            <p class="text-foreground truncate text-sm font-bold">
+                                {{ item.downline?.name }}
+                            </p>
+                            <p class="text-muted-foreground font-mono text-xs">
+                                @{{ item.downline?.username }}
+                            </p>
+                        </div>
+                    </template>
+
+                    <!-- Custom Slot: Bukti Pendukung -->
+                    <template #column-bukti_chat="{ item }">
+                        <button
+                            v-if="item.bukti_chat_url"
+                            type="button"
+                            @click="openProofModal(item)"
+                            class="border-border text-foreground hover:bg-muted inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors"
+                            title="Lihat berkas bukti"
+                        >
+                            <Eye class="text-primary-600 dark:text-primary-400 h-3.5 w-3.5" />
+                            <span>Lihat</span>
+                        </button>
+                        <span v-else class="text-muted-foreground text-xs italic">-</span>
+                    </template>
+
+                    <!-- Custom Slot: Alasan -->
+                    <template #column-alasan="{ item }">
+                        <div class="max-w-xs">
+                            <p
+                                class="text-muted-foreground text-xs leading-relaxed"
+                                :class="{
+                                    'line-clamp-2':
+                                        item.alasan &&
+                                        (item.alasan.length > 60 || item.alasan.includes('\n')),
+                                }"
+                                :title="item.alasan"
+                            >
+                                {{ item.alasan }}
+                            </p>
+                            <button
+                                v-if="
+                                    item.alasan &&
+                                    (item.alasan.length > 60 || item.alasan.includes('\n'))
+                                "
+                                type="button"
+                                @click="openReasonModal(item.alasan)"
+                                class="text-primary-600 dark:text-primary-400 mt-0.5 inline-flex cursor-pointer items-center gap-0.5 text-start text-[11px] font-semibold hover:underline"
+                            >
+                                <span>Baca Selengkapnya</span>
+                            </button>
+                        </div>
+                    </template>
+
+                    <!-- Custom Slot: Status -->
+                    <template #column-status="{ item }">
+                        <span
+                            class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold whitespace-nowrap"
+                            :class="[
+                                item.status === 'approved'
+                                    ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
+                                    : item.status === 'rejected'
+                                      ? 'border border-rose-500/30 bg-rose-500/10 text-rose-800 dark:text-rose-300'
+                                      : 'border border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300',
+                            ]"
+                        >
+                            <CheckCircle2
+                                v-if="item.status === 'approved'"
+                                class="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400"
+                            />
+                            <XCircle
+                                v-else-if="item.status === 'rejected'"
+                                class="h-3.5 w-3.5 text-rose-600 dark:text-rose-400"
+                            />
+                            <Clock v-else class="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                            <span>{{ item.status_label }}</span>
+                        </span>
+                    </template>
+
+                    <!-- Custom Slot: Catatan Admin -->
+                    <template #column-catatan_admin="{ item }">
+                        <div v-if="item.catatan_admin" class="max-w-xs">
+                            <p
+                                class="text-muted-foreground text-xs leading-relaxed font-medium"
+                                :class="{
+                                    'line-clamp-2':
+                                        item.catatan_admin.length > 60 ||
+                                        item.catatan_admin.includes('\n'),
+                                }"
+                                :title="item.catatan_admin"
+                            >
+                                {{ item.catatan_admin }}
+                            </p>
+                            <button
+                                v-if="
+                                    item.catatan_admin.length > 60 ||
+                                    item.catatan_admin.includes('\n')
+                                "
+                                type="button"
+                                @click="openAdminNoteModal(item.catatan_admin)"
+                                class="text-primary-600 dark:text-primary-400 mt-0.5 inline-flex cursor-pointer items-center gap-0.5 text-start text-[11px] font-semibold hover:underline"
+                            >
+                                <span>Baca Selengkapnya</span>
+                            </button>
+                        </div>
+                        <span v-else class="text-muted-foreground text-xs">-</span>
+                    </template>
+                </AppDataTable>
+            </div>
+        </div>
+
+        <!-- MODAL PENGAJUAN KLAIM SUSULAN -->
+        <AppModal
+            :show="isClaimModalOpen"
+            title="Ajukan Klaim Referral Susulan"
+            max-width="lg"
+            @close="closeClaimModal"
+        >
+            <form @submit.prevent="submitClaim" class="space-y-3">
+                <div
+                    class="border-primary-500/30 bg-primary-500/10 text-primary-800 dark:text-primary-300 rounded-lg border p-3 text-xs leading-relaxed"
+                >
+                    Fitur ini digunakan jika calon investor lupa memasukkan kode referral Anda saat
+                    pendaftaran.
+                </div>
+
+                <!-- Input Username Calon Downline & Pengecekan Database -->
+                <div class="space-y-1.5">
+                    <label
+                        for="claim_downline_username"
+                        class="text-foreground block text-xs font-semibold"
+                    >
+                        Username Calon Investor Downline <span class="text-destructive">*</span>
+                    </label>
+                    <div class="flex gap-2">
+                        <div class="relative flex-1">
+                            <span
+                                class="text-muted-foreground pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 font-mono text-xs"
+                            >
+                                @
+                            </span>
+                            <input
+                                id="claim_downline_username"
+                                v-model="claimForm.downline_username"
+                                type="text"
+                                placeholder="Ketik username investor..."
+                                @keydown.enter.prevent="checkDownlineUsername"
+                                @input="handleUsernameInput"
+                                class="bg-background border-input focus:ring-primary-500 placeholder:text-muted-foreground w-full rounded-lg border py-2 pr-3 pl-7 font-mono text-xs transition-all focus:ring-2 focus:outline-none sm:text-sm"
+                                :class="{
+                                    'border-destructive':
+                                        claimForm.errors.downline_id || downlineCheckError,
+                                }"
+                            />
+                        </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            @click="checkDownlineUsername"
+                            :disabled="isCheckingDownline || !claimForm.downline_username?.trim()"
+                            class="h-auto min-w-[80px] px-3 py-2 text-xs"
+                        >
+                            <Loader2 v-if="isCheckingDownline" class="h-3.5 w-3.5 animate-spin" />
+                            <span v-else>Periksa</span>
+                        </Button>
+                    </div>
+
+                    <!-- Pesan Error Pengecekan -->
+                    <p
+                        v-if="downlineCheckError"
+                        class="text-destructive mt-1 flex items-center gap-1 text-xs font-medium"
+                    >
+                        <XCircle class="h-3.5 w-3.5 shrink-0" />
+                        <span>{{ downlineCheckError }}</span>
+                    </p>
+                    <p
+                        v-else-if="claimForm.errors.downline_id"
+                        class="text-destructive text-xs font-medium"
+                    >
+                        {{ claimForm.errors.downline_id }}
+                    </p>
+
+                    <!-- Informasi Investor Ditemukan -->
+                    <div
+                        v-if="verifiedDownline"
+                        class="mt-1.5 space-y-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2.5 text-xs text-emerald-800 dark:text-emerald-300"
+                    >
+                        <div class="flex items-center gap-1.5 font-bold">
+                            <CheckCircle2
+                                class="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+                            />
+                            <span>Investor Ditemukan</span>
+                        </div>
+                        <p class="text-foreground pl-5.5 text-xs font-semibold">
+                            {{ verifiedDownline.name }} (@{{ verifiedDownline.username }})
+                        </p>
+                        <p class="text-muted-foreground pl-5.5 text-[11px]">
+                            Terdaftar: {{ verifiedDownline.created_at_label }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Alasan Kronologi -->
+                <div class="space-y-1.5">
+                    <label for="claim_alasan" class="text-foreground block text-xs font-semibold">
+                        Kronologi / Alasan Klaim <span class="text-destructive">*</span>
+                    </label>
+                    <textarea
+                        id="claim_alasan"
+                        v-model="claimForm.alasan"
+                        rows="3"
+                        placeholder="Jelaskan kronologi singkat (misal: Calon investor terburu-buru mendaftar dan lupa memasukkan kode referral saya)..."
+                        class="border-input bg-background focus:border-primary-500 focus:ring-primary-500/20 w-full rounded-lg border px-3 py-2 text-xs transition-all focus:ring-2 focus:outline-none sm:text-sm"
+                        :class="{ 'border-destructive': claimForm.errors.alasan }"
+                    ></textarea>
+                    <p v-if="claimForm.errors.alasan" class="text-destructive text-xs font-medium">
+                        {{ claimForm.errors.alasan }}
+                    </p>
+                </div>
+
+                <!-- Unggah Bukti Pendukung (Opsional) -->
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <label class="text-foreground block text-xs font-semibold">
+                            Bukti Pendukung
+                            <span class="text-muted-foreground font-normal">(Opsional)</span>
+                        </label>
+                        <button
+                            v-if="previewFile"
+                            type="button"
+                            @click="removeFile"
+                            class="text-destructive cursor-pointer text-[11px] font-medium hover:underline"
+                        >
+                            Hapus Berkas
+                        </button>
+                    </div>
+
+                    <div
+                        class="border-border/80 bg-muted/20 hover:border-primary-500 relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 text-center transition-colors"
+                    >
+                        <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,application/pdf"
+                            @change="handleFileChange"
+                            :disabled="isCompressingProof"
+                            class="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+                        />
+
+                        <!-- State Memproses Berkas -->
+                        <div v-if="isCompressingProof" class="space-y-1.5 py-4">
+                            <Loader2 class="text-primary-600 mx-auto h-8 w-8 animate-spin" />
+                            <p class="text-foreground text-xs font-medium">Memproses berkas...</p>
+                        </div>
+
+                        <!-- Pratinjau Gambar -->
+                        <div
+                            v-else-if="previewFile && previewFile.type === 'image'"
+                            class="space-y-2"
+                        >
+                            <img
+                                :src="previewFile.url"
+                                alt="Preview Bukti Pendukung"
+                                class="border-border mx-auto max-h-48 rounded-lg border object-contain"
+                            />
+                            <p class="text-muted-foreground text-[11px]">
+                                Klik atau seret untuk mengganti berkas
+                            </p>
+                        </div>
+
+                        <!-- Pratinjau Dokumen PDF -->
+                        <div
+                            v-else-if="previewFile && previewFile.type === 'pdf'"
+                            class="space-y-1.5 py-2"
+                        >
+                            <FileText
+                                class="text-primary-600 dark:text-primary-400 mx-auto h-10 w-10"
+                            />
+                            <p class="text-foreground text-xs font-semibold">
+                                {{ previewFile.name }}
+                            </p>
+                            <p class="text-muted-foreground text-[11px]">
+                                Dokumen PDF ({{ previewFile.size }}) &bull; Klik untuk mengganti
+                            </p>
+                        </div>
+
+                        <!-- State Kosong / Belum Unggah -->
+                        <div v-else class="space-y-1.5">
+                            <UploadCloud class="text-muted-foreground mx-auto h-8 w-8" />
+                            <p class="text-foreground text-xs font-medium">
+                                Klik atau seret berkas bukti ke sini
+                            </p>
+                            <p class="text-muted-foreground text-[11px]">
+                                Format JPG, PNG, WEBP, atau PDF (Maks. 5 MB)
+                            </p>
+                        </div>
+                    </div>
+
+                    <p class="text-muted-foreground text-[11px] leading-relaxed">
+                        Bukti pendukung seperti tangkapan layar percakapan chat WhatsApp, Telegram,
+                        atau bukti rekomendasi lainnya.
+                    </p>
+
+                    <p
+                        v-if="claimForm.errors.bukti_chat"
+                        class="text-destructive text-xs font-medium"
+                    >
+                        {{ claimForm.errors.bukti_chat }}
+                    </p>
+                </div>
+
+                <!-- Tombol Aksi Form -->
+                <div class="border-border flex items-center justify-end gap-2 border-t pt-3">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        @click="closeClaimModal"
+                        class="text-xs"
+                    >
+                        Batal
+                    </Button>
+                    <Button
+                        type="submit"
+                        :disabled="
+                            claimForm.processing ||
+                            !claimForm.downline_id ||
+                            isCheckingDownline ||
+                            isCompressingProof
+                        "
+                        class="bg-primary-600 hover:bg-primary-700 flex items-center gap-1.5 text-xs text-white"
+                    >
+                        <Loader2
+                            v-if="claimForm.processing || isCompressingProof"
+                            class="h-3.5 w-3.5 animate-spin"
+                        />
+                        <span>{{
+                            claimForm.processing
+                                ? 'Mengirim...'
+                                : isCompressingProof
+                                  ? 'Memproses...'
+                                  : 'Kirim Permohonan Klaim'
+                        }}</span>
+                    </Button>
+                </div>
+            </form>
+        </AppModal>
+
+        <!-- MODAL PRATINJAU BUKTI PENDUKUNG (GAMBAR & PDF) -->
+        <AppModal
+            :show="isProofModalOpen"
+            :title="`Bukti Pendukung: ${currentProofDownline}`"
+            :max-width="currentProofIsPdf ? '4xl' : '2xl'"
+            @close="isProofModalOpen = false"
+        >
+            <div class="p-1">
+                <!-- Pratinjau Dokumen PDF -->
+                <div v-if="currentProofIsPdf" class="w-full">
+                    <iframe
+                        :src="currentProofUrl"
+                        class="border-border bg-card h-[65vh] w-full rounded-lg border"
+                        title="Pratinjau Dokumen PDF"
+                    >
+                        <p class="text-muted-foreground p-4 text-center text-xs">
+                            Peramban Anda tidak mendukung pratinjau dokumen langsung di dalam modal.
+                            Silakan klik tombol "Lihat di Tab Baru" di bawah.
+                        </p>
+                    </iframe>
+                </div>
+
+                <!-- Pratinjau Gambar -->
+                <div v-else class="flex flex-col items-center justify-center p-2">
+                    <img
+                        :src="currentProofUrl"
+                        alt="Tangkapan Layar Bukti Pendukung"
+                        class="border-border max-h-[70vh] rounded-lg border object-contain"
+                    />
+                </div>
+            </div>
+
+            <div class="border-border flex items-center justify-between border-t pt-3">
+                <a
+                    :href="currentProofUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="border-border text-foreground hover:bg-muted inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors"
+                >
+                    <span>Lihat di Tab Baru</span>
+                    <ExternalLink class="text-muted-foreground h-3.5 w-3.5" />
+                </a>
+                <Button
+                    type="button"
+                    variant="outline"
+                    @click="isProofModalOpen = false"
+                    class="text-xs"
+                >
+                    Tutup
+                </Button>
+            </div>
+        </AppModal>
+
+        <!-- MODAL DETAIL ALASAN / KRONOLOGI KLAIM -->
+        <AppModal
+            :show="isReasonModalOpen"
+            title="Detail Alasan & Kronologi Klaim"
+            max-width="lg"
+            @close="isReasonModalOpen = false"
+        >
+            <div class="space-y-3 p-1">
+                <!-- Isi Lengkap Alasan / Kronologi -->
+                <div class="border-border bg-card space-y-1.5 rounded-xl border p-3.5">
+                    <p class="text-foreground flex items-center gap-1.5 text-xs font-semibold">
+                        <MessageSquare class="text-primary-600 dark:text-primary-400 h-3.5 w-3.5" />
+                        <span>Alasan / Kronologi:</span>
+                    </p>
+                    <p
+                        class="text-foreground text-xs leading-relaxed whitespace-pre-wrap sm:text-sm"
+                    >
+                        {{ selectedReasonText }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="border-border flex justify-end border-t pt-3">
+                <Button
+                    type="button"
+                    variant="outline"
+                    @click="isReasonModalOpen = false"
+                    class="text-xs"
+                >
+                    Tutup
+                </Button>
+            </div>
+        </AppModal>
+
+        <!-- MODAL DETAIL CATATAN ADMIN -->
+        <AppModal
+            :show="isAdminNoteModalOpen"
+            title="Catatan dari Administrator"
+            max-width="lg"
+            @close="isAdminNoteModalOpen = false"
+        >
+            <div class="space-y-3 p-1">
+                <div
+                    class="border-destructive/30 bg-destructive/5 space-y-1.5 rounded-xl border p-3.5"
+                >
+                    <p class="text-destructive flex items-center gap-1.5 text-xs font-semibold">
+                        <AlertCircle class="h-3.5 w-3.5 shrink-0" />
+                        <span>Catatan Keputusan / Evaluasi Admin:</span>
+                    </p>
+                    <p
+                        class="text-destructive text-xs leading-relaxed whitespace-pre-wrap sm:text-sm"
+                    >
+                        {{ selectedAdminNoteText }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="border-border flex justify-end border-t pt-3">
+                <Button
+                    type="button"
+                    variant="outline"
+                    @click="isAdminNoteModalOpen = false"
+                    class="text-xs"
+                >
+                    Tutup
+                </Button>
+            </div>
+        </AppModal>
+    </InvestorLayout>
+</template>

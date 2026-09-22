@@ -53,6 +53,9 @@ class RegisterRequest extends FormRequest
             // Berkas Legalitas / KYC (maksimal 10 MB mentah, auto-compressed di client)
             'dokumen_ktp'        => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:10240'],
             'dokumen_perjanjian' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'],
+
+            // Kode Referral Affiliator (Opsional di Step 4)
+            'referral_code' => ['nullable', 'string', 'max:20'],
         ];
 
         // Field khusus Tier 3
@@ -80,6 +83,19 @@ class RegisterRequest extends FormRequest
                 $v->errors()->add('estimasi_modal', 'Tier 2 hanya untuk modal antara $5,000 hingga $300,000.');
             } elseif ($tier === 'tier_3' && $modal < 300000) {
                 $v->errors()->add('estimasi_modal', 'Tier 3 membutuhkan modal minimal $300,000.');
+            }
+
+            if ($this->filled('referral_code')) {
+                $code = strtoupper(trim((string) $this->input('referral_code')));
+                $affiliatorExists = \App\Models\User::query()
+                    ->where('referral_code', $code)
+                    ->where('role', 'affiliator')
+                    ->where('is_active', true)
+                    ->exists();
+
+                if (!$affiliatorExists) {
+                    $v->errors()->add('referral_code', 'Kode referral tidak ditemukan.');
+                }
             }
         });
     }

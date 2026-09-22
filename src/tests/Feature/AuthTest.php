@@ -633,7 +633,9 @@ class AuthTest extends TestCase
         $this->assertEquals('affiliator', $user->role);
         $this->assertEquals('pending', $user->status);
         $this->assertNotNull($user->referral_code);
-        $this->assertStringStartsWith('RUDIMITRA', $user->referral_code);
+        $this->assertEquals(6, strlen($user->referral_code));
+        $this->assertStringStartsWith('RUD', $user->referral_code);
+        $this->assertMatchesRegularExpression('/^[A-Z]{3}[A-Z0-9]{3}$/', $user->referral_code);
         $response->assertRedirect(route('login'));
         $response->assertSessionHas('registration_success');
     }

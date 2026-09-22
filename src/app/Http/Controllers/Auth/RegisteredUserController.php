@@ -8,6 +8,7 @@ use App\Models\KontenLegal;
 use App\Services\AgreementTemplateService;
 use App\Services\AuthService;
 use App\Services\InvitationService;
+use App\Services\ReferralService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -80,5 +81,29 @@ class RegisteredUserController extends Controller
         return response()->download($result['path'], $result['filename'], [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ])->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Periksa keabsahan kode referral affiliator secara real-time pada formulir registrasi.
+     */
+    public function checkReferral(Request $request, ReferralService $referralService): \Illuminate\Http\JsonResponse
+    {
+        $code = $request->query('code');
+        $affiliator = $referralService->validateReferralCode($code);
+
+        if (!$affiliator) {
+            return response()->json([
+                'valid'   => false,
+                'message' => 'Kode referral tidak ditemukan.',
+            ], 422);
+        }
+
+        return response()->json([
+            'valid'      => true,
+            'affiliator' => [
+                'name'          => $affiliator->name,
+                'referral_code' => $affiliator->referral_code,
+            ],
+        ]);
     }
 }

@@ -18,6 +18,7 @@ class AuthService
 {
     public function __construct(
         private readonly KycService $kycService,
+        private readonly ReferralService $referralService,
     ) {}
 
     /**
@@ -68,11 +69,7 @@ class AuthService
 
             $referralCode = null;
             if ($invitation->target_role === 'affiliator') {
-                $baseCode = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $data['username']));
-                $referralCode = $baseCode . rand(100, 999);
-                while (User::where('referral_code', $referralCode)->exists()) {
-                    $referralCode = $baseCode . rand(1000, 9999);
-                }
+                $referralCode = $this->referralService->generateReferralCode($data['name']);
             }
 
             $terms = KontenLegal::getTerms();
@@ -98,6 +95,14 @@ class AuthService
                 'ip_address'      => $ip,
                 'created_by'      => 'invite:' . substr($invitation->token, 0, 8),
             ]);
+
+            // Rekam relasi referral jika pendaftar menginput kode referral affiliator
+            if (!empty($data['referral_code'])) {
+                $affiliator = $this->referralService->validateReferralCode($data['referral_code']);
+                if ($affiliator && $affiliator->id !== $user->id) {
+                    $this->referralService->attachDownline($affiliator, $user, 'link_otomatis');
+                }
+            }
 
             // Simpan data ahli waris wajib
             UserAhliWaris::create([

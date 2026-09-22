@@ -22,10 +22,10 @@
 ---
 
 ## 3. Standar Antarmuka Pengguna (UI Components)
-- **Toast Notification:**
-  Gunakan `vue-sonner` (`toast.success()`, `toast.error()`, `toast.info()`) via `AppToaster.vue` untuk feedback non-blocking (misal: salin link, flash messages).
+- **Toast Notification (Single Source of Truth):**
+  Gunakan flash message Controller (`with('success', ...)`) sebagai sumber utama notifikasi (otomatis ditangkap `AppToaster.vue`). Dilarang menduplikasi panggilan `toast.success()` di callback `onSuccess` Inertia. Panggilan manual `toast.xxx()` hanya untuk interaksi *client-side* murni (misal: salin tautan, peringatan berkas lokal).
 - **Modal Dialog & Konfirmasi:**
-  - Formulir input/fokus: Gunakan `AppModal.vue`.
+  - Formulir input/fokus: Gunakan `AppModal.vue`. Pastikan stabil dan bebas pergeseran layout (*layout shift*) saat elemen kondisional muncul. Hindari menentukan opsi default pada keputusan aksi kritis (biarkan *unselected* agar keputusan diambil secara sadar).
   - Konfirmasi aksi kritis/destruktif: Gunakan `AppConfirmDialog.vue` (tanpa tombol 'X' di header).
 - **Tampilan Tabel Data:**
   Gunakan `AppDataTable.vue` berbasis Native Server-Side Pagination, Debounced Search, Dynamic Sorting, dan Inertia Partial Reloads (jangan gunakan jQuery / Yajra DataTables).
@@ -97,4 +97,10 @@
 - **Frontend Build:**
   Pastikan `npm run build` sukses tanpa error sebelum menyerahkan hasil kerja ke user.
 
+---
 
+## 8. Sinkronisasi Data & Dokumentasi
+- **Sinkronisasi Menyeluruh Formulir & Helper:**
+  Setiap penambahan atau perubahan field form (khususnya registrasi & KYC) wajib disinkronkan konsisten di 4 titik: Backend (`FormRequest`, Eloquent, Migration), Frontend (`useForm`, validasi, template form & ringkasan), Dev Tool (`DevRegisterAutoFill.vue`), dan Feature Tests.
+- **Kesesuaian Dokumen Desain & Verifikasi:**
+  Jadikan `docs/information-design/` (spesifikasi arsitektur) dan `docs/verifikasi-model/` (panduan uji manual) sebagai acuan fungsional, serta selalu perbarui kedua dokumen tersebut jika ada penyesuaian aturan bisnis.

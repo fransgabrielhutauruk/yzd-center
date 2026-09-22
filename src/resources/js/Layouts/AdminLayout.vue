@@ -14,6 +14,8 @@ import {
     ChevronDown,
     PanelLeftClose,
     PanelLeft,
+    UserCheck,
+    Users,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
@@ -72,6 +74,12 @@ const navSections = [
                 icon: FileCheck,
                 routeName: 'admin.kyc.index',
             },
+            {
+                label: 'Klaim Susulan Referral',
+                href: '/admin/referral-claims',
+                icon: UserCheck,
+                routeName: 'admin.referral_claims.index',
+            },
         ],
     },
     {
@@ -82,6 +90,12 @@ const navSections = [
                 href: '/admin/invitations',
                 icon: Link2,
                 routeName: 'admin.invitations.index',
+            },
+            {
+                label: 'Jaringan Kemitraan',
+                href: '/admin/affiliates',
+                icon: Users,
+                routeName: 'admin.affiliates.index',
             },
         ],
     },

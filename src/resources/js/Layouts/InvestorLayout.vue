@@ -13,6 +13,7 @@ import {
     PanelLeftClose,
     PanelLeft,
     Lock,
+    Users,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
@@ -66,21 +67,33 @@ const isUserActive = computed(() => {
     return user.value?.status === 'active' || Boolean(user.value?.is_active);
 });
 
-// Menu aktif hanya untuk modul yang berjalan di Fase 1 & 2
-const navItems = [
-    {
-        label: 'Dasbor Portofolio',
-        href: '/investor/dashboard',
-        icon: LayoutDashboard,
-        requiresActive: true,
-    },
-    {
-        label: 'Status KYC & Legalitas',
-        href: '/investor/kyc',
-        icon: FileCheck,
-        requiresActive: false,
-    },
-];
+const navItems = computed(() => {
+    const items = [
+        {
+            label: 'Dasbor Portofolio',
+            href: '/investor/dashboard',
+            icon: LayoutDashboard,
+            requiresActive: true,
+        },
+        {
+            label: 'Status KYC & Legalitas',
+            href: '/investor/kyc',
+            icon: FileCheck,
+            requiresActive: false,
+        },
+    ];
+
+    if (isAffiliator.value) {
+        items.push({
+            label: 'Jaringan Kemitraan',
+            href: '/investor/affiliates',
+            icon: Users,
+            requiresActive: true,
+        });
+    }
+
+    return items;
+});
 
 const isActive = (href) => {
     return page.url.startsWith(href);

@@ -1,0 +1,56 @@
+<?php
+
+namespace App\Notifications;
+
+use App\Models\KlaimReferral;
+use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Notification;
+
+class ReferralClaimStatusChangedNotification extends Notification
+{
+    use Queueable;
+
+    public function __construct(
+        public KlaimReferral $claim,
+        public string $status,
+        public ?string $catatanAdmin = null
+    ) {}
+
+    /**
+     * @return array<int, string>
+     */
+    public function via(object $notifiable): array
+    {
+        return ['database'];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(object $notifiable): array
+    {
+        $isApproved = $this->status === 'approved';
+        $downline = $this->claim->downline;
+
+        $title = $isApproved
+            ? 'Klaim Referral Susulan Disetujui'
+            : 'Klaim Referral Susulan Ditolak';
+
+        $message = $isApproved
+            ? "Permohonan klaim referral Anda untuk investor {$downline?->name} (@{$downline?->username}) telah disetujui Administrator."
+            : ($this->catatanAdmin
+                ? "Permohonan klaim referral Anda untuk investor {$downline?->name} ditolak. Catatan: {$this->catatanAdmin}"
+                : "Permohonan klaim referral Anda untuk investor {$downline?->name} ditolak oleh Administrator.");
+
+        return [
+            'type'        => 'referral_claim_status',
+            'title'       => $title,
+            'message'     => $message,
+            'icon'        => $isApproved ? 'check-circle' : 'x-circle',
+            'status'      => $this->status,
+            'claim_id'    => $this->claim->id,
+            'downline_id' => $downline?->id,
+            'url'         => '/investor/affiliates',
+        ];
+    }
+}

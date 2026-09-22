@@ -104,4 +104,46 @@ class User extends Authenticatable
     {
         return $this->dokumen()->where('status', 'revision_needed')->exists();
     }
+
+    public function relasiUpline(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(RelasiReferral::class, 'downline_id');
+    }
+
+    public function relasiDownlines(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(RelasiReferral::class, 'affiliator_id');
+    }
+
+    public function downlines(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(
+            User::class,
+            RelasiReferral::class,
+            'affiliator_id',
+            'id',
+            'id',
+            'downline_id'
+        );
+    }
+
+    public function klaimReferralDiajukan(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(KlaimReferral::class, 'affiliator_id');
+    }
+
+    public function klaimReferralSebagaiDownline(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(KlaimReferral::class, 'downline_id');
+    }
+
+    public function hasUpline(): bool
+    {
+        return $this->relasiUpline()->exists();
+    }
+
+    public function getUpline(): ?User
+    {
+        return $this->relasiUpline?->affiliator;
+    }
 }

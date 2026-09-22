@@ -15,7 +15,6 @@ import {
     XCircle,
     Info,
     ExternalLink,
-    Check,
     ChevronLeft,
     ChevronRight,
     RefreshCw,
@@ -96,14 +95,6 @@ const handleOpenNotification = (item) => {
     } else if (item.url) {
         router.visit(item.url);
     }
-};
-
-const markAsRead = (item) => {
-    if (item.is_read) return;
-    router.post(`/notifications/${item.id}/read`, {}, {
-        preserveScroll: true,
-        preserveState: true,
-    });
 };
 
 const markAllAsRead = () => {
@@ -218,7 +209,7 @@ const goToPage = (url) => {
                         v-for="item in notificationsData.data"
                         :key="item.id"
                         :class="[
-                            'p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors',
+                            'p-4 sm:p-5 flex items-start justify-between gap-4 transition-colors',
                             item.is_read
                                 ? 'bg-card hover:bg-muted/30'
                                 : 'bg-primary-50/30 dark:bg-primary-950/15 hover:bg-primary-50/50 dark:hover:bg-primary-950/25'
@@ -272,22 +263,6 @@ const goToPage = (url) => {
                             </div>
                         </div>
 
-                        <!-- Action Buttons -->
-                        <div
-                            v-if="!item.is_read"
-                            class="flex items-center gap-2 shrink-0 self-end sm:self-center w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-border/60"
-                        >
-                            <!-- Tombol Tandai Dibaca (jika unread) -->
-                            <button
-                                type="button"
-                                @click="markAsRead(item)"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/80 rounded-lg transition-colors cursor-pointer min-h-[34px]"
-                                title="Tandai sudah dibaca"
-                            >
-                                <Check class="w-3.5 h-3.5" />
-                                <span>Tandai Dibaca</span>
-                            </button>
-                        </div>
                     </div>
                 </div>
 

@@ -73,10 +73,42 @@ stateDiagram-v2
 
 ---
 
-## 6. Ruang Catatan Tambahan (Area Kolaboratif Pengembang & AI)
+## 6. Notifikasi In-App Sistem (Database Notifications)
+
+Sistem mengintegrasikan notifikasi in-app realtime (lonceng notifikasi) untuk alur interaksi kemitraan:
+
+1. **`NewDownlineRegisteredNotification` (Ke Affiliator):**
+   - **Pemicu:** Investor menyelesaikan pendaftaran dengan mengisi kode referral affiliator.
+   - **Penerima:** Akun Affiliator pemilik kode referral.
+   - **Konten:** *"Investor [Nama] (@[Username]) telah bergabung ke jaringan kemitraan Anda menggunakan kode referral [Kode]."*
+   - **Aksi Klik:** Mengarahkan ke portal kemitraan (`/investor/affiliates`).
+
+2. **`ReferralClaimSubmittedNotification` (Ke Administrator):**
+   - **Pemicu:** Affiliator mengirim permohonan klaim referral susulan baru.
+   - **Penerima:** Seluruh Administrator aktif.
+   - **Konten:** *"Mitra Affiliator [Nama Affiliator] (@[Username]) mengajukan klaim susulan untuk investor [Nama Downline] (@[Username])."*
+   - **Aksi Klik:** Mengarahkan ke panel verifikasi klaim (`/admin/referral-claims`).
+
+3. **`ReferralClaimStatusChangedNotification` (Ke Affiliator):**
+   - **Pemicu:** Administrator menetapkan keputusan verifikasi (disetujui / ditolak).
+   - **Penerima:** Akun Affiliator pemohon klaim (serta affiliator pemohon lain yang klaimnya otomatis dibatalkan jika klaim disetujui untuk pemohon lain).
+   - **Konten:**
+     - Disetujui: *"Permohonan klaim referral Anda untuk investor [Nama Downline] telah disetujui Administrator. Relasi resmi telah aktif."*
+     - Ditolak: *"Permohonan klaim referral Anda untuk investor [Nama Downline] ditolak. Catatan: [Catatan Admin]"*
+   - **Aksi Klik:** Mengarahkan ke riwayat klaim (`/investor/affiliates`).
+
+---
+
+## 7. Ruang Catatan Tambahan (Area Kolaboratif Pengembang & AI)
 
 *Tambahkan catatan atau perubahan kebutuhan terkait jaringan affiliator di bawah ini:*
 
 - **[2026-09-08]**: Disepakati relasi bersifat permanen seumur hidup untuk menjaga kepercayaan affiliator Pak Abi.
-- *(Tulis catatan baru di sini jika ada perubahan flow)*
+- **[2026-09-21]**: Implementasi selesai. Penyesuaian arsitektur:
+  1. Parameter URL `?ref=` ditiadakan karena tautan registrasi eksklusif dibuat oleh Admin. Perekaman dilakukan via input manual kode referral pada Step 4 (Konfirmasi & Persetujuan Layanan) sebelum checkbox Syarat & Ketentuan Layanan.
+  2. Format kode referral distandardisasi menjadi 6 karakter: 3 huruf nama (kapital) + 3 karakter alfanumerik kapital acak (misal: `ABI8K2`, `ABIX79`).
+  3. Alur klaim referral susulan (PB 4) dilengkapi proteksi private storage (`storage/app/private/referral_claims/`), otorisasi akses streaming, dan verifikasi keputusan admin dengan relasi atomik. Panduan verifikasi manual tersedia di [`docs/verifikasi-model/03_jaringan_dan_afiliasi.md`](../verifikasi-model/03_jaringan_dan_afiliasi.md).
+- **[2026-09-22]**: Penerapan sistem notifikasi in-app Modul 03 (`NewDownlineRegisteredNotification`, `ReferralClaimSubmittedNotification`, `ReferralClaimStatusChangedNotification`) terhubung dengan lonceng notifikasi header dan halaman notifikasi pengguna.
+
+
 

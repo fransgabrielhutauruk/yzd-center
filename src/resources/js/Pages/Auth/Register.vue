@@ -125,7 +125,65 @@ const form = useForm({
 
     // Persetujuan T&C
     terms: false,
+
+    // Kode Referral Affiliator (Opsional di Step 4)
+    referral_code: '',
 });
+
+const isCheckingReferral = ref(false);
+const referralVerified = ref(false);
+const verifiedAffiliatorName = ref('');
+const referralCheckError = ref('');
+
+const checkReferralCode = async () => {
+    const rawCode = form.referral_code ? form.referral_code.trim() : '';
+    if (!rawCode) {
+        referralVerified.value = false;
+        verifiedAffiliatorName.value = '';
+        referralCheckError.value = '';
+        return;
+    }
+
+    isCheckingReferral.value = true;
+    referralCheckError.value = '';
+    referralVerified.value = false;
+
+    try {
+        const response = await fetch(`/register/check-referral?code=${encodeURIComponent(rawCode)}`);
+        const data = await response.json();
+
+        if (response.ok && data.valid) {
+            referralVerified.value = true;
+            verifiedAffiliatorName.value = data.affiliator.name;
+            referralCheckError.value = '';
+        } else {
+            referralVerified.value = false;
+            verifiedAffiliatorName.value = '';
+            referralCheckError.value = data.message || 'Kode referral tidak ditemukan.';
+        }
+    } catch {
+        referralVerified.value = false;
+        verifiedAffiliatorName.value = '';
+        referralCheckError.value = 'Gagal memeriksa kode referral. Silakan coba lagi.';
+    } finally {
+        isCheckingReferral.value = false;
+    }
+};
+
+watch(
+    () => form.referral_code,
+    (newVal) => {
+        if (!newVal) {
+            referralVerified.value = false;
+            verifiedAffiliatorName.value = '';
+            referralCheckError.value = '';
+        } else {
+            form.referral_code = newVal.toUpperCase().trim();
+            referralVerified.value = false;
+            referralCheckError.value = '';
+        }
+    }
+);
 
 const hubunganOptions = ['Anak', 'Istri', 'Suami', 'Orang Tua', 'Saudara Kandung', 'Lainnya'];
 
@@ -2246,6 +2304,61 @@ const submit = () => {
                                 <Edit3 class="h-3 w-3" /> Ubah
                             </button>
                         </div>
+                    </div>
+
+                    <!-- Kode Referral Affiliator (Opsional) -->
+                    <div class="space-y-2 rounded-xl border border-border/80 bg-card/60 p-4">
+                        <div class="flex items-center justify-between">
+                            <label for="referral_code" class="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                <Users class="h-3.5 w-3.5 text-primary-600 dark:text-primary-400" />
+                                <span>Kode Referral Affiliator</span>
+                                <span class="text-[11px] font-normal text-muted-foreground">(Opsional)</span>
+                            </label>
+                        </div>
+                        <p class="text-[11px] text-muted-foreground leading-relaxed">
+                            Jika Anda diajak oleh mitra affiliator, masukkan 6 karakter kode referral mereka di bawah ini.
+                        </p>
+                        <div class="flex items-center gap-2">
+                            <div class="relative flex-1">
+                                <input
+                                    id="referral_code"
+                                    v-model="form.referral_code"
+                                    type="text"
+                                    maxlength="10"
+                                    placeholder="Contoh: ABI8K2"
+                                    @keydown.enter.prevent="checkReferralCode"
+                                    class="w-full rounded-lg border border-input bg-background py-2 px-3 text-sm font-mono uppercase tracking-wider transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none"
+                                    :class="{ 'border-destructive': form.errors.referral_code || referralCheckError }"
+                                />
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                :disabled="!form.referral_code || isCheckingReferral"
+                                @click="checkReferralCode"
+                                class="shrink-0 text-xs flex items-center gap-1.5 h-9"
+                            >
+                                <Loader2 v-if="isCheckingReferral" class="h-3.5 w-3.5 animate-spin" />
+                                <span>{{ isCheckingReferral ? 'Memeriksa...' : 'Periksa' }}</span>
+                            </Button>
+                        </div>
+
+                        <!-- Status Verifikasi Sukses -->
+                        <div
+                            v-if="referralVerified"
+                            class="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-800 dark:text-emerald-300"
+                        >
+                            <span>Terhubung dengan Affiliator: <strong class="font-bold text-foreground">{{ verifiedAffiliatorName }}</strong></span>
+                        </div>
+
+                        <!-- Pesan Kesalahan / Validasi -->
+                        <p v-if="referralCheckError" class="text-xs font-medium text-destructive">
+                            {{ referralCheckError }}
+                        </p>
+                        <p v-if="form.errors.referral_code" class="text-xs font-medium text-destructive">
+                            {{ form.errors.referral_code }}
+                        </p>
                     </div>
 
                     <!-- Persetujuan Syarat & Ketentuan -->

@@ -33,6 +33,10 @@ export default defineConfig({
         },
     },
     server: {
+        host: true,
+        hmr: {
+            host: 'localhost',
+        },
         watch: {
             ignored: ['**/storage/framework/views/**'],
         },

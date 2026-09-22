@@ -361,6 +361,7 @@ const handleAutoFill = async () => {
 
         // 5. Persetujuan Syarat & Ketentuan
         props.form.terms = true;
+        props.form.referral_code = '';
 
         // Bersihkan error validasi sebelumnya
         props.form.clearErrors();
@@ -378,6 +379,7 @@ const handleReset = () => {
     props.form.password = '';
     props.form.password_confirmation = '';
     props.form.terms = false;
+    props.form.referral_code = '';
     props.form.tier_investasi = 'tier_1';
     props.form.tanggal_mulai_trading = new Date().toISOString().split('T')[0];
     props.form.dokumen_ktp = null;
