@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Crypt;
 
 class AkunCopytrade extends Model
 {
@@ -19,7 +18,9 @@ class AkunCopytrade extends Model
         'server_broker',
         'master_password',
         'investor_password',
-        'estimasi_modal',
+        'modal_riil',
+        'surat_perjanjian_path',
+        'url_mql5',
         'tanggal_mulai',
         'tanggal_selesai',
         'nama_bank',
@@ -27,6 +28,9 @@ class AkunCopytrade extends Model
         'atas_nama_rekening',
         'status',
         'catatan_admin',
+        'verified_by',
+        'verified_at',
+        'copy_started_at',
     ];
 
     protected $hidden = [
@@ -34,12 +38,21 @@ class AkunCopytrade extends Model
         'investor_password',
     ];
 
+    protected $appends = [
+        'tier_investasi',
+        'tanggal_mulai_trading',
+    ];
+
     protected function casts(): array
     {
         return [
-            'tanggal_mulai'   => 'date',
-            'tanggal_selesai' => 'date',
-            'estimasi_modal'  => 'decimal:2',
+            'tanggal_mulai'     => 'date',
+            'tanggal_selesai'   => 'date',
+            'modal_riil'        => 'decimal:2',
+            'master_password'   => 'encrypted',
+            'investor_password' => 'encrypted',
+            'verified_at'       => 'datetime',
+            'copy_started_at'   => 'datetime',
         ];
     }
 
@@ -52,47 +65,24 @@ class AkunCopytrade extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function verifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
+    }
+
     // -------------------------------------------------------------------------
-    // Mutators & Accessors – enkripsi password MT4
+    // Accessors
     // -------------------------------------------------------------------------
 
-    /** Simpan master password dalam bentuk terenkripsi. */
-    public function setMasterPasswordAttribute(?string $value): void
+    public function getTierInvestasiAttribute(): ?string
     {
-        $this->attributes['master_password'] = $value ? Crypt::encryptString($value) : null;
+        return $this->attributes['tier'] ?? null;
     }
 
-    /** Dekripsi master password saat dibaca. */
-    public function getMasterPasswordAttribute(?string $value): ?string
+    public function getTanggalMulaiTradingAttribute(): ?string
     {
-        if (!$value) {
-            return null;
-        }
-
-        try {
-            return Crypt::decryptString($value);
-        } catch (\Exception) {
-            return $value;
-        }
-    }
-
-    /** Simpan investor password dalam bentuk terenkripsi. */
-    public function setInvestorPasswordAttribute(?string $value): void
-    {
-        $this->attributes['investor_password'] = $value ? Crypt::encryptString($value) : null;
-    }
-
-    /** Dekripsi investor password saat dibaca. */
-    public function getInvestorPasswordAttribute(?string $value): ?string
-    {
-        if (!$value) {
-            return null;
-        }
-
-        try {
-            return Crypt::decryptString($value);
-        } catch (\Exception) {
-            return $value;
-        }
+        return isset($this->attributes['tanggal_mulai']) && $this->attributes['tanggal_mulai']
+            ? (function_exists('tanggal_indo') ? tanggal_indo($this->attributes['tanggal_mulai']) : $this->attributes['tanggal_mulai'])
+            : null;
     }
 }

@@ -380,7 +380,7 @@ class ReferralService
     public function getPaginatedDownlines(User $affiliator, array $filters): LengthAwarePaginator
     {
         $query = RelasiReferral::query()
-            ->with(['downline.akunCopytrade'])
+            ->with(['downline.akunCopytrades'])
             ->where('affiliator_id', $affiliator->id);
 
         if (!empty($filters['search'])) {
@@ -416,7 +416,7 @@ class ReferralService
             ->withQueryString()
             ->through(function (RelasiReferral $rel): array {
                 $downline = $rel->downline;
-                $akun = $downline?->akunCopytrade;
+                $akun = $downline?->akunCopytrades?->first();
 
                 return [
                     'id'               => $rel->id,

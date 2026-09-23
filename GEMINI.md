@@ -28,7 +28,10 @@
   - Formulir input/fokus: Gunakan `AppModal.vue`. Pastikan stabil dan bebas pergeseran layout (*layout shift*) saat elemen kondisional muncul. Hindari menentukan opsi default pada keputusan aksi kritis (biarkan *unselected* agar keputusan diambil secara sadar).
   - Konfirmasi aksi kritis/destruktif: Gunakan `AppConfirmDialog.vue` (tanpa tombol 'X' di header).
 - **Tampilan Tabel Data:**
-  Gunakan `AppDataTable.vue` berbasis Native Server-Side Pagination, Debounced Search, Dynamic Sorting, dan Inertia Partial Reloads (jangan gunakan jQuery / Yajra DataTables).
+  - Gunakan `AppDataTable.vue` berbasis Native Server-Side Pagination, Debounced Search, Dynamic Sorting, dan Inertia Partial Reloads (jangan gunakan jQuery / Yajra DataTables).
+  - **Isolasi Parameter Multi-Tab:** Jika satu halaman memuat lebih dari satu tabel/tab data, WAJIB menggunakan *namespacing* parameter URL (prop `paramPrefix`, misal: `claim_search`, `claim_status`, `claim_page`) agar filter dan paginasi antar tab tidak saling menimpa atau merusak state tabel lain di URL.
+  - **Format Tanggal Baku:** Seluruh tanggal pada baris tabel wajib menggunakan format ringkas dan konsisten (misal: `tanggal_singkat_waktu` $\to$ `22 Sep 2026 15:11` atau `tanggal_singkat` $\to$ `22 Sep 2026`), dilarang menampilkan string ISO mentah (`2026-09-22T12:16:00+07:00`).
+  - **Information Density & Anti-Clutter:** Hindari menyematkan kolom narasi teks panjang atau berkas fisik besar secara langsung ke tabel utama jika informasi tersebut dapat ditinjau lebih mendalam di dalam modal dialog.
 - **Bahasa Antarmuka:**
   Gunakan Bahasa Indonesia untuk semua teks UI, pesan validasi, dan feedback sistem.
 
@@ -39,6 +42,8 @@
   Seluruh halaman dan alur kerja (baik portal Investor maupun panel Admin) wajib dapat digunakan dengan nyaman pada layar ponsel (viewport 360px – 430px) tanpa ada fitur yang dipangkas/hilang.
 - **DILARANG Menghilangkan Filter atau Kontrol Aksi di Mobile:**
   Dilarang keras menyembunyikan filter data, tombol aksi, atau kontrol formulir esensial hanya demi kerapian visual dengan menggunakan `hidden md:...` atau `hidden sm:...`. Jika ruang layar sempit, tata elemen secara bertumpuk (*stacking*), gunakan grid responsif (`grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto`), atau sheet/modal filter.
+- **Dilarang Bergantung pada Hover untuk Membaca Teks (Anti-Hover Dependency):**
+  Dilarang keras hanya mengandalkan interaksi hover/tooltip browser (`:title` atau popover hover) untuk menampilkan isi lengkap dari teks yang dipotong (`line-clamp`, `truncate`, `max-w-x`). Pada perangkat layar sentuh (mobile/tablet), hover tidak tersedia. Wajib menyediakan aksi sentuh eksplisit yang ramah sentuhan, seperti tombol/tautan *"Baca Selengkapnya"* atau modal dialog detail.
 - **Tabel Data & Area Sentuh (Touch Target):**
   - Tabel data wajib memiliki pembungkus scroll horizontal (`overflow-x-auto`) yang mulus.
   - Toolbar tabel (`AppDataTable.vue`) harus responsif: input pencarian mengambil lebar penuh di HP, filter tersusun rapi di bawahnya, dan tombol baris/paginasi tidak bertumpuk/terpotong.
@@ -79,16 +84,22 @@
   - Periksa teliti agar tidak ada artefak kode duplikat, atribut template ganda, atau fragment sintaks yang rusak akibat proses copy-paste / regenerasi kode AI.
 - **Ketahanan UX di Dunia Nyata (Real-World Resilience):**
   - Seluruh layout dan kartu data wajib menangani skenario batas: teks panjang (`truncate`, `break-words`, `min-w-0`), data kosong (*empty state* yang informatif, bukan placeholder kosong atau rusak), dan penanganan error responsif.
+- **Kompresi Gambar di Belakang Layar (*Silent Background Execution*):**
+  Proses kompresi gambar client-side (`imageCompression.js`) pada formulir unggah berkas wajib berjalan otomatis di latar belakang tanpa memunculkan dialog konfirmasi atau banner peringatan yang mengganggu alur pengguna, serta wajib mempertahankan ketajaman visual teks dokumen/percakapan.
 
 ---
 
-## 7. Standar Kode & Eksekusi CLI
+## 7. Standar Kode, Backend & Eksekusi CLI
 - **PHP CLI:**
   Selalu gunakan PHP 8.3 dari Laragon:
   `& "C:\laragon\bin\php\php-8.3.12-nts-Win32-vs16-x64\php.exe"`
 - **Format Kode:**
   Wajib lolos Laravel Pint sesuai aturan `src/pint.json`:
   `vendor/bin/pint --test app database routes tests`
+- **Penyimpanan Berkas Privat (Anti-Folder Duplikat):**
+  Root direktori disk `'local'` pada Laravel secara bawaan sudah berada di `storage/app/private`. Dilarang menyertakan prefiks `"private/"` pada pemanggilan `storeAs()` atau `Storage::disk('local')` (contoh yang benar: `$file->storeAs("referral_claims/{$id}", ...)` bukan `storeAs("private/referral_claims/{$id}", ...)`).
+- **Kapasitas Validasi Kolom Tipe TEXT:**
+  Untuk input formulir yang menampung deskripsi bebas, kronologi, alasan penolakan, atau catatan instruksi dengan tipe data `TEXT` pada skema database, gunakan batas validasi yang memadai (hingga `max:20000`), hindari pembatasan sempit (misal `max:1000`) kecuali ada aturan bisnis spesifik.
 - **Pengecekan Integritas Kode & Anti-Duplikasi:**
   Lakukan audit `git diff` untuk memastikan tidak ada artefak atau potongan kode duplikat yang tertinggal sebelum menjalankan pengujian dan build final.
 - **Pengujian:**

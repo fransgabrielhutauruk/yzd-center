@@ -6,8 +6,11 @@ use App\Models\AkunCopytrade;
 use App\Models\User;
 use App\Models\UserDokumen;
 use App\Notifications\KycDocumentStatusChangedNotification;
+use App\Services\CopytradeService;
 use App\Services\KycService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class InAppNotificationTest extends TestCase
@@ -56,36 +59,6 @@ class InAppNotificationTest extends TestCase
         $this->assertEquals(1, $this->investor->unreadNotifications()->count());
         $notification = $this->investor->unreadNotifications()->first();
         $this->assertEquals('Dokumen KTP Disetujui', $notification->data['title']);
-    }
-
-    public function test_investor_receives_database_notification_when_copytrade_account_is_verified(): void
-    {
-        $akun = AkunCopytrade::create([
-            'user_id'            => $this->investor->id,
-            'tier'               => 'tier_1',
-            'broker'             => 'Broker A',
-            'tipe_akun'          => 'fix_balance',
-            'nomor_akun_trading' => '12345678',
-            'estimasi_modal'     => 50000000,
-            'tanggal_mulai'      => now()->toDateString(),
-            'tanggal_selesai'    => now()->addYear()->toDateString(),
-            'nama_bank'          => 'BCA',
-            'nomor_rekening'     => '1234567890',
-            'atas_nama_rekening' => 'Investor Test',
-            'status'             => 'pending',
-        ]);
-
-        $kycService = app(KycService::class);
-        $kycService->verifyAccount($akun, 'active', null, $this->admin);
-
-        $this->assertDatabaseHas('notifications', [
-            'notifiable_id'   => $this->investor->id,
-            'notifiable_type' => User::class,
-        ]);
-
-        $this->assertEquals(1, $this->investor->unreadNotifications()->count());
-        $notification = $this->investor->unreadNotifications()->first();
-        $this->assertEquals('Akun Copy Trade Valid & Aktif', $notification->data['title']);
     }
 
     public function test_user_can_mark_notification_as_read(): void
@@ -198,75 +171,101 @@ class InAppNotificationTest extends TestCase
         );
     }
 
-    public function test_admin_receives_notification_when_investor_updates_copytrade_account(): void
+    public function test_admin_receives_database_notification_when_investor_submits_copytrade(): void
     {
-        $akun = AkunCopytrade::create([
-            'user_id'            => $this->investor->id,
-            'tier'               => 'tier_1',
-            'broker'             => 'HFM',
-            'tipe_akun'          => 'cent',
-            'nomor_akun_trading' => '12345678',
-            'estimasi_modal'     => 1000,
-            'tanggal_mulai'      => now()->toDateString(),
-            'nama_bank'          => 'BCA',
-            'nomor_rekening'     => '1122334455',
-            'atas_nama_rekening' => 'Investor Lama',
-            'status'             => 'rejected',
-            'catatan_admin'      => 'Nomor MT4 salah',
-        ]);
+        Storage::fake('local');
+        $file = UploadedFile::fake()->create('perjanjian.pdf', 500, 'application/pdf');
 
-        $response = $this->actingAs($this->investor)->post('/investor/kyc/account/update', [
-            'nomor_akun_trading' => '87654321',
-            'estimasi_modal'     => 1500,
-            'nama_bank'          => 'Mandiri',
-            'nomor_rekening'     => '998877665544',
-            'atas_nama_rekening' => 'Investor Baru',
-        ]);
-
-        $response->assertSessionHasNoErrors();
+        $copytradeService = app(CopytradeService::class);
+        $akun = $copytradeService->storeCopytrade(
+            $this->investor,
+            [
+                'tier_investasi'        => 'tier_1',
+                'nomor_akun_trading'    => '99887766',
+                'modal_riil'            => 1500,
+                'tanggal_mulai_trading' => '2026-03-01',
+                'nama_bank'             => 'BCA',
+                'nomor_rekening'        => '1234567890',
+                'atas_nama_rekening'    => 'Investor Tester',
+            ],
+            $file
+        );
 
         $this->assertDatabaseHas('notifications', [
             'notifiable_id'   => $this->admin->id,
             'notifiable_type' => User::class,
         ]);
 
+        $this->assertEquals(1, $this->admin->unreadNotifications()->count());
         $notification = $this->admin->unreadNotifications()->first();
-        $this->assertNotNull($notification);
-        $this->assertEquals('Pembaruan Akun Copy Trade', $notification->data['title']);
-        $this->assertEquals('copytrade_account_updated', $notification->data['type']);
-        $this->assertEquals('update', $notification->data['action']);
+        $this->assertEquals('Pengajuan Akun Copytrade Baru', $notification->data['title']);
+        $this->assertEquals('/admin/copytrade', $notification->data['url']);
+        $this->assertEquals('file-check', $notification->data['icon']);
+        $this->assertEquals($akun->id, $notification->data['copytrade_id']);
     }
 
-    public function test_admin_receives_notification_when_investor_confirms_follow_master(): void
+    public function test_investor_receives_database_notification_when_copytrade_is_approved(): void
     {
         $akun = AkunCopytrade::create([
             'user_id'            => $this->investor->id,
             'tier'               => 'tier_1',
             'broker'             => 'HFM',
             'tipe_akun'          => 'cent',
-            'nomor_akun_trading' => '12345678',
-            'estimasi_modal'     => 1000,
-            'tanggal_mulai'      => now()->toDateString(),
+            'nomor_akun_trading' => '99887766',
+            'modal_riil'         => 1500,
+            'tanggal_mulai'      => '2026-03-01',
             'nama_bank'          => 'BCA',
-            'nomor_rekening'     => '1122334455',
-            'atas_nama_rekening' => 'Investor',
-            'status'             => 'rejected',
-            'catatan_admin'      => 'Belum follow master',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => 'Investor Tester',
+            'status'             => 'pending',
         ]);
 
-        $response = $this->actingAs($this->investor)->post('/investor/kyc/account/confirm-follow');
-
-        $response->assertSessionHasNoErrors();
+        $copytradeService = app(CopytradeService::class);
+        $copytradeService->verifyAccount($akun, 'active', 'Akun aktif dan terhubung.', $this->admin);
 
         $this->assertDatabaseHas('notifications', [
-            'notifiable_id'   => $this->admin->id,
+            'notifiable_id'   => $this->investor->id,
             'notifiable_type' => User::class,
         ]);
 
-        $notification = $this->admin->unreadNotifications()->first();
-        $this->assertNotNull($notification);
-        $this->assertEquals('Konfirmasi Follow Master Copy Trade', $notification->data['title']);
-        $this->assertEquals('copytrade_account_updated', $notification->data['type']);
-        $this->assertEquals('confirm_follow', $notification->data['action']);
+        $this->assertEquals(1, $this->investor->unreadNotifications()->count());
+        $notification = $this->investor->unreadNotifications()->first();
+        $this->assertEquals('Akun Copy Trade Valid & Aktif', $notification->data['title']);
+        $this->assertEquals('/investor/copytrade', $notification->data['url']);
+        $this->assertEquals('check-circle', $notification->data['icon']);
+        $this->assertEquals('active', $notification->data['status']);
+    }
+
+    public function test_investor_receives_database_notification_when_copytrade_is_rejected(): void
+    {
+        $akun = AkunCopytrade::create([
+            'user_id'            => $this->investor->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'HFM',
+            'tipe_akun'          => 'cent',
+            'nomor_akun_trading' => '99887766',
+            'modal_riil'         => 1500,
+            'tanggal_mulai'      => '2026-03-01',
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => 'Investor Tester',
+            'status'             => 'pending',
+        ]);
+
+        $copytradeService = app(CopytradeService::class);
+        $copytradeService->verifyAccount($akun, 'rejected', 'Nomor akun MT4 salah.', $this->admin);
+
+        $this->assertDatabaseHas('notifications', [
+            'notifiable_id'   => $this->investor->id,
+            'notifiable_type' => User::class,
+        ]);
+
+        $this->assertEquals(1, $this->investor->unreadNotifications()->count());
+        $notification = $this->investor->unreadNotifications()->first();
+        $this->assertEquals('Akun Copy Trade Ditolak', $notification->data['title']);
+        $this->assertEquals('/investor/copytrade', $notification->data['url']);
+        $this->assertEquals('x-circle', $notification->data['icon']);
+        $this->assertEquals('rejected', $notification->data['status']);
+        $this->assertStringContainsString('Nomor akun MT4 salah.', $notification->data['message']);
     }
 }

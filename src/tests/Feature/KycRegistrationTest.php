@@ -44,15 +44,7 @@ class KycRegistrationTest extends TestCase
             'ahli_waris_hubungan'   => 'Istri',
             'ahli_waris_phone'      => '081299998888',
             'ahli_waris_alamat'     => 'Jl. Thamrin No. 10',
-            'tier_investasi'        => 'tier_1',
-            'nomor_akun_trading'    => '66252077',
-            'estimasi_modal'        => 1000,
-            'tanggal_mulai_trading' => '2026-01-01',
-            'nama_bank'             => 'BCA',
-            'nomor_rekening'        => '1234567890',
-            'atas_nama_rekening'    => 'Investor Baru',
             'dokumen_ktp'           => UploadedFile::fake()->image('ktp.jpg', 800, 600),
-            'dokumen_perjanjian'    => UploadedFile::fake()->create('perjanjian.pdf', 300, 'application/pdf'),
         ], $overrides);
     }
 

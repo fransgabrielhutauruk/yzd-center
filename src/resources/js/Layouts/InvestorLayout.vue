@@ -14,6 +14,7 @@ import {
     PanelLeft,
     Lock,
     Users,
+    TrendingUp,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
@@ -80,6 +81,14 @@ const navItems = computed(() => {
             href: '/investor/kyc',
             icon: FileCheck,
             requiresActive: false,
+            routeName: 'investor.kyc',
+        },
+        {
+            label: 'Manajemen Copytrade',
+            href: '/investor/copytrade',
+            icon: TrendingUp,
+            requiresActive: false,
+            routeName: 'investor.copytrade.index',
         },
     ];
 
@@ -119,7 +128,7 @@ const logout = () => {
     <AppToaster />
 
     <div
-        class="min-h-screen min-h-dvh flex-1 bg-slate-50 dark:bg-slate-950 text-foreground flex transition-colors duration-200"
+        class="min-h-screen min-h-dvh flex-1 bg-white dark:bg-slate-900 text-foreground flex transition-colors duration-200"
     >
         <!-- Backdrop Mobile Sidebar -->
         <transition
@@ -140,7 +149,7 @@ const logout = () => {
         <!-- Sidebar Component -->
         <aside
             :class="[
-                'bg-primary-700 dark:bg-slate-900 text-white border-r border-primary-800/80 dark:border-slate-800 fixed inset-y-0 left-0 z-50 flex flex-col shadow-xl transition-all duration-300 ease-in-out md:static md:translate-x-0 md:shadow-none',
+                'bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 fixed inset-y-0 left-0 z-50 flex flex-col shadow-sm transition-all duration-300 ease-in-out md:static md:translate-x-0 md:shadow-none',
                 isCollapsed ? 'md:w-20' : 'md:w-64',
                 'w-64',
                 isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
@@ -148,14 +157,14 @@ const logout = () => {
         >
             <!-- Logo Brand & Mobile Close Button -->
             <div
-                class="h-16 px-4 flex items-center justify-center border-b border-white/15 dark:border-slate-800"
+                class="h-16 px-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800"
             >
                 <Link :href="isUserActive ? '/investor/dashboard' : '/investor/kyc'" class="flex items-center gap-1.5 overflow-hidden">
-                    <span class="text-accent-400 font-black text-2xl tracking-tight shrink-0">YZD</span>
-                    <span v-if="!isCollapsed" class="text-white font-bold text-xl tracking-tight shrink-0">Center</span>
+                    <span class="text-accent-500 font-black text-2xl tracking-tight shrink-0">YZD</span>
+                    <span v-if="!isCollapsed" class="text-primary-600 dark:text-primary-400 font-bold text-xl tracking-tight shrink-0">Center</span>
                     <span
                         v-if="!isCollapsed && isAffiliator"
-                        class="ml-1 text-[10px] font-bold bg-accent-500/25 text-accent-300 border border-accent-500/50 px-1.5 py-0.5 rounded shrink-0 tracking-wide"
+                        class="ml-1 text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded shrink-0 tracking-wide"
                     >
                         AFFILIATOR
                     </span>
@@ -165,7 +174,7 @@ const logout = () => {
                 <button
                     type="button"
                     @click="isMobileSidebarOpen = false"
-                    class="md:hidden p-1.5 text-white/80 hover:text-white rounded-lg hover:bg-white/10 cursor-pointer"
+                    class="md:hidden p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 rounded-lg cursor-pointer"
                     aria-label="Tutup Menu"
                 >
                     <X class="w-5 h-5" />
@@ -178,11 +187,11 @@ const logout = () => {
                     <!-- Section Title (Hidden when collapsed) -->
                     <p
                         v-if="!isCollapsed"
-                        class="px-3 text-[11px] font-bold uppercase tracking-wider text-white/60"
+                        class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500"
                     >
                         Menu Utama
                     </p>
-                    <div v-else class="h-px bg-white/10 mx-2 my-2"></div>
+                    <div v-else class="h-px bg-slate-200 dark:bg-slate-700 mx-2 my-2"></div>
 
                     <div class="space-y-1">
                         <template v-for="item in navItems" :key="item.href">
@@ -193,14 +202,14 @@ const logout = () => {
                                 @click="handleLockedClick(item)"
                                 :title="isCollapsed ? `${item.label} (Terkunci)` : `${item.label} (Terkunci - Menunggu verifikasi)`"
                                 :class="[
-                                    'w-full group flex items-center rounded-lg py-2.5 transition-all duration-150 cursor-pointer text-white/70 hover:bg-white/10 hover:text-white dark:hover:bg-slate-800/80',
+                                    'w-full group flex items-center rounded-lg py-2.5 transition-all duration-150 cursor-pointer text-slate-400 dark:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/60',
                                     isCollapsed ? 'justify-center px-2' : 'justify-between px-3',
                                 ]"
                             >
                                 <div class="flex items-center gap-3 min-w-0">
                                     <component
                                         :is="item.icon"
-                                        class="w-4 h-4 shrink-0 text-white/70 group-hover:text-white transition-colors"
+                                        class="w-4 h-4 shrink-0 text-slate-300 dark:text-slate-600 transition-colors"
                                     />
                                     <span v-if="!isCollapsed" class="truncate font-semibold text-[13px]">
                                         {{ item.label }}
@@ -210,7 +219,7 @@ const logout = () => {
                                 <!-- Gembok Indikator jika menu terkunci -->
                                 <div
                                     v-if="!isCollapsed"
-                                    class="flex items-center gap-1 text-[11px] text-amber-300 dark:text-amber-400 font-medium shrink-0 ml-2"
+                                    class="flex items-center gap-1 text-[11px] text-amber-500 dark:text-amber-400 font-medium shrink-0 ml-2"
                                 >
                                     <Lock class="w-3.5 h-3.5" />
                                 </div>
@@ -226,14 +235,19 @@ const logout = () => {
                                     'group flex items-center rounded-lg py-2.5 transition-all duration-150',
                                     isCollapsed ? 'justify-center px-2' : 'justify-between px-3',
                                     isActive(item.href)
-                                        ? 'bg-white/20 text-white font-bold shadow-xs dark:bg-slate-800'
-                                        : 'text-white/85 hover:bg-white/10 hover:text-white dark:hover:bg-slate-800/80',
+                                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold'
+                                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100',
                                 ]"
                             >
                                 <div class="flex items-center gap-3 min-w-0">
                                     <component
                                         :is="item.icon"
-                                        class="w-4 h-4 shrink-0 text-white transition-colors"
+                                        :class="[
+                                            'w-4 h-4 shrink-0 transition-colors',
+                                            isActive(item.href)
+                                                ? 'text-accent-600 dark:text-accent-400'
+                                                : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300',
+                                        ]"
                                     />
                                     <span v-if="!isCollapsed" class="truncate font-semibold text-[13px]">
                                         {{ item.label }}
@@ -250,7 +264,7 @@ const logout = () => {
         <div class="flex-1 flex flex-col min-w-0">
             <!-- Top Navbar -->
             <header
-                class="h-16 bg-white dark:bg-slate-900 border-b-2 border-accent-500 shadow-xs sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 transition-colors"
+                class="h-16 bg-slate-50 dark:bg-slate-950 border-b-2 border-accent-500 shadow-xs sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 transition-colors"
             >
                 <div class="flex items-center gap-2.5 sm:gap-3">
                     <!-- Mobile Menu Button -->

@@ -21,10 +21,9 @@ class KycController extends Controller
      */
     public function index(Request $request): Response
     {
-        $user = $request->user()->load(['ahliWaris', 'dokumen', 'akunCopytrade']);
+        $user = $request->user()->load(['ahliWaris', 'dokumen']);
 
         $ktp = $user->dokumen->firstWhere('tipe_dokumen', 'ktp');
-        $perjanjian = $user->dokumen->firstWhere('tipe_dokumen', 'perjanjian');
 
         return Inertia::render('Investor/Kyc/Index', [
             'user' => [
@@ -47,24 +46,7 @@ class KycController extends Controller
                 'no_hp'             => $user->ahliWaris->no_hp,
                 'alamat'            => $user->ahliWaris->alamat,
             ] : null,
-            'akun_copytrade' => $user->akunCopytrade ? [
-                'id'                 => $user->akunCopytrade->id,
-                'tier'               => $user->akunCopytrade->tier,
-                'broker'             => $user->akunCopytrade->broker,
-                'tipe_akun'          => $user->akunCopytrade->tipe_akun,
-                'nomor_akun_trading' => $user->akunCopytrade->nomor_akun_trading,
-                'server_broker'      => $user->akunCopytrade->server_broker,
-                'master_password'    => $user->akunCopytrade->master_password,
-                'investor_password'  => $user->akunCopytrade->investor_password,
-                'estimasi_modal'     => $user->akunCopytrade->estimasi_modal,
-                'tanggal_mulai'      => tanggal_indo($user->akunCopytrade->tanggal_mulai),
-                'tanggal_selesai'    => $user->akunCopytrade->tanggal_selesai ? tanggal_indo($user->akunCopytrade->tanggal_selesai) : null,
-                'nama_bank'          => $user->akunCopytrade->nama_bank,
-                'nomor_rekening'     => $user->akunCopytrade->nomor_rekening,
-                'atas_nama_rekening' => $user->akunCopytrade->atas_nama_rekening,
-                'status'             => $user->akunCopytrade->status,
-                'catatan_admin'      => $user->akunCopytrade->status === 'active' ? null : $user->akunCopytrade->catatan_admin,
-            ] : null,
+
             'dokumen' => [
                 'ktp' => $ktp ? [
                     'id'                 => $ktp->id,
@@ -77,17 +59,7 @@ class KycController extends Controller
                     'verified_at'        => $ktp->verified_at?->toIso8601String(),
                     'preview_url'        => route('documents.show', $ktp->id, false),
                 ] : null,
-                'perjanjian' => $perjanjian ? [
-                    'id'                 => $perjanjian->id,
-                    'file_name'          => $perjanjian->file_name,
-                    'file_size'          => $perjanjian->file_size,
-                    'mime_type'          => $perjanjian->mime_type,
-                    'status'             => $perjanjian->status,
-                    'catatan_admin'      => $perjanjian->status === 'approved' ? null : $perjanjian->catatan_admin,
-                    'is_quality_warning' => $perjanjian->is_quality_warning,
-                    'verified_at'        => $perjanjian->verified_at?->toIso8601String(),
-                    'preview_url'        => route('documents.show', $perjanjian->id, false),
-                ] : null,
+
             ],
             'is_kyc_approved' => $user->isKycApproved(),
         ]);

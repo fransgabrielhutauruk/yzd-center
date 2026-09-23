@@ -186,7 +186,7 @@ const submit = () => {
                         <strong class="text-foreground">{{
                             registrationData?.name || 'Investor'
                         }}</strong
-                        >. Berkas legalitas dan data akun Anda telah berhasil terkirim ke sistem
+                        >. Data akun Anda telah berhasil terkirim ke sistem
                         <strong class="text-foreground">YZD Center</strong>.
                     </p>
                 </div>

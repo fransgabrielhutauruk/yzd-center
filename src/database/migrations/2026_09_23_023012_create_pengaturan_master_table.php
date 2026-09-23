@@ -1,0 +1,38 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('pengaturan_master', function (Blueprint $table) {
+            $table->id();
+            $table->string('link_referral_broker')->nullable();
+            $table->string('link_master_akun')->nullable(); // MQL5 or direct link
+            $table->decimal('tier_1_min', 15, 2)->default(100);
+            $table->decimal('tier_2_min', 15, 2)->default(500);
+            $table->decimal('tier_3_min', 15, 2)->default(1000);
+            $table->text('tier_1_desc')->nullable();
+            $table->text('tier_2_desc')->nullable();
+            $table->text('tier_3_desc')->nullable();
+            $table->string('tier_1_pdf_path')->nullable();
+            $table->string('tier_2_pdf_path')->nullable();
+            $table->string('tier_3_pdf_path')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('pengaturan_master');
+    }
+};

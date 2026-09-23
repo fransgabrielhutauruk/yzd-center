@@ -3,13 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AkunCopytrade;
 use App\Models\User;
 use App\Models\UserDokumen;
 use App\Services\KycService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -36,16 +34,28 @@ class AdminKycController extends Controller
         }
         $sortDirection = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
 
-        $query = User::query()
-            ->whereIn('role', ['investor', 'affiliator'])
-            ->with(['ahliWaris', 'dokumen', 'akunCopytrade']);
+        $baseQuery = User::query()
+            ->whereIn('role', ['investor', 'affiliator']);
+
+        $counts = [
+            'all'             => (clone $baseQuery)->count(),
+            'pending'         => (clone $baseQuery)->where('status', 'pending')->count(),
+            'active'          => (clone $baseQuery)->where('status', 'active')->count(),
+            'revision_needed' => (clone $baseQuery)->whereHas('dokumen', function ($q) {
+                $q->where('status', 'revision_needed');
+            })->count(),
+        ];
+
+        $query = (clone $baseQuery)
+            ->with(['ahliWaris', 'dokumen', 'relasiUpline.affiliator']);
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
                     ->orWhere('username', 'like', "%{$search}%")
-                    ->orWhere('nik', 'like', "%{$search}%");
+                    ->orWhere('nik', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
@@ -58,10 +68,6 @@ class AdminKycController extends Controller
                 $query->whereHas('dokumen', function ($q) {
                     $q->where('status', 'revision_needed');
                 });
-            } elseif ($statusFilter === 'rejected') {
-                $query->whereHas('akunCopytrade', function ($q) {
-                    $q->where('status', 'rejected');
-                });
             }
         }
 
@@ -70,7 +76,7 @@ class AdminKycController extends Controller
             ->withQueryString()
             ->through(function (User $user) {
                 $ktp = $user->dokumen->firstWhere('tipe_dokumen', 'ktp');
-                $perjanjian = $user->dokumen->firstWhere('tipe_dokumen', 'perjanjian');
+                $upline = $user->relasiUpline?->affiliator;
 
                 return [
                     'id'              => $user->id,
@@ -88,30 +94,17 @@ class AdminKycController extends Controller
                     'created_at'      => tanggal_waktu_indo($user->created_at),
                     'created_at_date' => $user->created_at ? tanggal_indo($user->created_at) : '-',
                     'created_at_time' => $user->created_at ? $user->created_at->format('H:i:s \W\I\B') : '',
-                    'terms_agreed_at' => tanggal_waktu_indo($user->terms_agreed_at),
-                    'ahli_waris'      => $user->ahliWaris ? [
+                    'terms_agreed_at' => $user->terms_agreed_at ? tanggal_waktu_indo($user->terms_agreed_at) : null,
+                    'upline'          => $upline ? [
+                        'name'          => $upline->name,
+                        'username'      => $upline->username,
+                        'referral_code' => $upline->referral_code,
+                    ] : null,
+                    'ahli_waris' => $user->ahliWaris ? [
                         'nama'              => $user->ahliWaris->nama,
                         'hubungan_keluarga' => $user->ahliWaris->hubungan_keluarga,
                         'no_hp'             => $user->ahliWaris->no_hp,
                         'alamat'            => $user->ahliWaris->alamat,
-                    ] : null,
-                    'akun_copytrade' => $user->akunCopytrade ? [
-                        'id'                 => $user->akunCopytrade->id,
-                        'tier'               => $user->akunCopytrade->tier,
-                        'broker'             => $user->akunCopytrade->broker,
-                        'tipe_akun'          => $user->akunCopytrade->tipe_akun,
-                        'nomor_akun_trading' => $user->akunCopytrade->nomor_akun_trading,
-                        'server_broker'      => $user->akunCopytrade->server_broker,
-                        'master_password'    => $user->akunCopytrade->master_password,
-                        'investor_password'  => $user->akunCopytrade->investor_password,
-                        'estimasi_modal'     => $user->akunCopytrade->estimasi_modal,
-                        'tanggal_mulai'      => tanggal_indo($user->akunCopytrade->tanggal_mulai),
-                        'tanggal_selesai'    => $user->akunCopytrade->tanggal_selesai ? tanggal_indo($user->akunCopytrade->tanggal_selesai) : null,
-                        'nama_bank'          => $user->akunCopytrade->nama_bank,
-                        'nomor_rekening'     => $user->akunCopytrade->nomor_rekening,
-                        'atas_nama_rekening' => $user->akunCopytrade->atas_nama_rekening,
-                        'status'             => $user->akunCopytrade->status,
-                        'catatan_admin'      => $user->akunCopytrade->catatan_admin,
                     ] : null,
                     'dokumen' => [
                         'ktp' => $ktp ? [
@@ -122,19 +115,8 @@ class AdminKycController extends Controller
                             'status'             => $ktp->status,
                             'catatan_admin'      => $ktp->catatan_admin,
                             'is_quality_warning' => $ktp->is_quality_warning,
-                            'verified_at'        => tanggal_waktu_indo($ktp->verified_at),
+                            'verified_at'        => $ktp->verified_at ? tanggal_waktu_indo($ktp->verified_at) : null,
                             'preview_url'        => route('documents.show', $ktp->id, false),
-                        ] : null,
-                        'perjanjian' => $perjanjian ? [
-                            'id'                 => $perjanjian->id,
-                            'file_name'          => $perjanjian->file_name,
-                            'file_size'          => $perjanjian->file_size,
-                            'mime_type'          => $perjanjian->mime_type,
-                            'status'             => $perjanjian->status,
-                            'catatan_admin'      => $perjanjian->catatan_admin,
-                            'is_quality_warning' => $perjanjian->is_quality_warning,
-                            'verified_at'        => tanggal_waktu_indo($perjanjian->verified_at),
-                            'preview_url'        => route('documents.show', $perjanjian->id, false),
                         ] : null,
                     ],
                 ];
@@ -142,6 +124,7 @@ class AdminKycController extends Controller
 
         return Inertia::render('Admin/Kyc/Index', [
             'investors' => $users,
+            'counts'    => $counts,
             'filters'   => [
                 'search'         => $search,
                 'status'         => $statusFilter,
@@ -183,42 +166,5 @@ class AdminKycController extends Controller
 
         return redirect()->back()
             ->with('success', "Berkas {$dokumen->tipe_dokumen} milik {$dokumen->user->name} berhasil {$label}.");
-    }
-
-    /**
-     * Verifikasi status akun copy trade investor (active, rejected).
-     */
-    public function verifyAccount(Request $request, int $id): RedirectResponse
-    {
-        $akun = AkunCopytrade::with('user')->findOrFail($id);
-
-        $validated = $request->validate([
-            'status'        => ['required', 'string', 'in:active,rejected'],
-            'catatan_admin' => ['nullable', 'string', 'max:500'],
-        ], [
-            'status.required' => 'Pilih status verifikasi akun trading.',
-            'status.in'       => 'Pilihan status verifikasi tidak valid. Hanya disetujui (aktif) atau ditolak/belum follow yang diperbolehkan.',
-        ]);
-
-        if ($validated['status'] === 'rejected' && empty(trim((string) ($validated['catatan_admin'] ?? '')))) {
-            throw ValidationException::withMessages([
-                'catatan_admin' => 'Harap isi catatan admin saat menolak akun copy trade.',
-            ]);
-        }
-
-        $this->kycService->verifyAccount(
-            $akun,
-            $validated['status'],
-            $validated['catatan_admin'] ?? null,
-            $request->user()
-        );
-
-        $label = match ($validated['status']) {
-            'active'   => 'disetujui & aktif',
-            'rejected' => 'ditolak / belum follow',
-        };
-
-        return redirect()->back()
-            ->with('success', "Akun Copy Trade milik {$akun->user->name} berhasil {$label}.");
     }
 }

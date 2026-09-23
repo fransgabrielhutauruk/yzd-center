@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('akun_copytrade', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->unique()->constrained('users')->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('tier', 20); // tier_1, tier_2, tier_3
             $table->string('broker', 50); // HFM, XM
             $table->string('tipe_akun', 50); // cent, standard, private_vps
@@ -21,7 +21,9 @@ return new class extends Migration
             $table->string('server_broker', 100)->nullable();
             $table->text('master_password')->nullable();   // encrypted via Crypt::encryptString()
             $table->text('investor_password')->nullable(); // encrypted via Crypt::encryptString()
-            $table->decimal('estimasi_modal', 15, 2)->unsigned();
+            $table->decimal('modal_riil', 15, 2)->unsigned();
+            $table->string('surat_perjanjian_path')->nullable();
+            $table->string('url_mql5')->nullable();
             $table->date('tanggal_mulai');
             $table->date('tanggal_selesai')->nullable();
             $table->string('nama_bank', 100);
@@ -29,6 +31,9 @@ return new class extends Migration
             $table->string('atas_nama_rekening', 100);
             $table->string('status', 30)->default('pending'); // pending, active, suspended
             $table->text('catatan_admin')->nullable();
+            $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('verified_at')->nullable();
+            $table->timestamp('copy_started_at')->nullable();
             $table->timestamps();
         });
     }

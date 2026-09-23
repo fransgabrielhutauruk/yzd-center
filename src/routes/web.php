@@ -4,12 +4,15 @@ use App\Http\Controllers\Admin\AdminAffiliateController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminKycController;
 use App\Http\Controllers\Admin\AdminReferralClaimController;
+use App\Http\Controllers\Admin\CopytradeController as AdminCopytradeController;
 use App\Http\Controllers\Admin\InvitationController;
 use App\Http\Controllers\Admin\LegalContentController;
+use App\Http\Controllers\Admin\PengaturanMasterController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DocumentStreamController;
 use App\Http\Controllers\Investor\AffiliateNetworkController;
+use App\Http\Controllers\Investor\CopytradeController as InvestorCopytradeController;
 use App\Http\Controllers\Investor\InvestorDashboardController;
 use App\Http\Controllers\Investor\KycController;
 use App\Http\Controllers\NotificationController;
@@ -50,8 +53,6 @@ Route::middleware('guest')->group(function () {
     Route::post('/register', [RegisteredUserController::class, 'store']);
     Route::get('/register/check-referral', [RegisteredUserController::class, 'checkReferral'])
         ->name('register.check_referral');
-    Route::match(['get', 'post'], '/register/template-perjanjian/{tier}', [RegisteredUserController::class, 'downloadTemplate'])
-        ->name('register.template');
 });
 
 // Logout (Authenticated)
@@ -66,6 +67,9 @@ Route::get('/documents/{id}', [DocumentStreamController::class, 'show'])
 Route::get('/documents/claims/{id}', [DocumentStreamController::class, 'showClaimProof'])
     ->middleware('auth')
     ->name('documents.claim_proof');
+Route::get('/documents/copytrade/{id}', [DocumentStreamController::class, 'showCopytradeAgreement'])
+    ->middleware('auth')
+    ->name('documents.copytrade');
 
 // Notifikasi In-App (Terotentikasi)
 Route::middleware('auth')->prefix('notifications')->name('notifications.')->group(function () {
@@ -86,7 +90,15 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     // Verifikasi Dokumen KYC & Legalitas
     Route::get('/kyc', [AdminKycController::class, 'index'])->name('kyc.index');
     Route::post('/kyc/documents/{id}/verify', [AdminKycController::class, 'verify'])->name('kyc.verify');
-    Route::post('/kyc/accounts/{id}/verify', [AdminKycController::class, 'verifyAccount'])->name('kyc.accounts.verify');
+
+    // Verifikasi Copytrade
+    Route::get('/copytrade', [AdminCopytradeController::class, 'index'])->name('copytrade.index');
+    Route::post('/copytrade/{id}/verify', [AdminCopytradeController::class, 'verify'])->name('copytrade.verify');
+
+    // Pengaturan Master
+    Route::get('/settings/master', [PengaturanMasterController::class, 'index'])->name('settings.master');
+    Route::post('/settings/master', [PengaturanMasterController::class, 'update'])->name('settings.master.update');
+    Route::get('/settings/master/download-pdf/{tier}', [PengaturanMasterController::class, 'downloadPdf'])->name('settings.master.download_pdf');
 
     // Verifikasi Permohonan Klaim Referral Susulan
     Route::get('/referral-claims', [AdminReferralClaimController::class, 'index'])->name('referral_claims.index');
@@ -116,6 +128,10 @@ Route::middleware(['auth', 'role:investor,affiliator'])->prefix('investor')->nam
     // Status KYC & Unggah Ulang Berkas (Selalu dapat diakses oleh investor/afiliator)
     Route::get('/kyc', [KycController::class, 'index'])->name('kyc');
     Route::post('/kyc/reupload/{type}', [KycController::class, 'reupload'])->name('kyc.reupload');
-    Route::post('/kyc/account/update', [KycController::class, 'updateAccount'])->name('kyc.account.update');
-    Route::post('/kyc/account/confirm-follow', [KycController::class, 'confirmFollow'])->name('kyc.account.confirm_follow');
+
+    // Manajemen Akun Copytrade
+    Route::get('/copytrade', [InvestorCopytradeController::class, 'index'])->name('copytrade.index');
+    Route::post('/copytrade', [InvestorCopytradeController::class, 'store'])->name('copytrade.store');
+    Route::match(['get', 'post'], '/copytrade/template-perjanjian/{tier}', [InvestorCopytradeController::class, 'downloadTemplate'])->name('copytrade.template');
+    Route::get('/copytrade/panduan-pdf/{tier}', [InvestorCopytradeController::class, 'downloadGuidePdf'])->name('copytrade.guide_pdf');
 });

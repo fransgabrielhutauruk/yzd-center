@@ -12,13 +12,9 @@ const props = defineProps({
         type: Object,
         default: null,
     },
-    perjanjianInfo: {
-        type: Object,
-        default: null,
-    },
 });
 
-const emit = defineEmits(['update:ktpInfo', 'update:perjanjianInfo']);
+const emit = defineEmits(['update:ktpInfo']);
 
 const isGenerating = ref(false);
 
@@ -171,97 +167,6 @@ function generateDummyKtpFile(nama, nik) {
     });
 }
 
-// Buat dummy dokumen Surat Perjanjian dengan canvas (dimensi 800x1100)
-function generateDummyPerjanjianFile(nama) {
-    return new Promise((resolve) => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 800;
-        canvas.height = 1100;
-        const ctx = canvas.getContext('2d');
-
-        // Kertas putih
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, 800, 1100);
-
-        // Header Dokumen Resmi
-        ctx.fillStyle = '#111827';
-        ctx.font = 'bold 22px serif';
-        ctx.fillText('SURAT PERJANJIAN KERJASAMA KEMITRAAN', 130, 70);
-        ctx.font = 'bold 18px serif';
-        ctx.fillText('PLATFORM YZD CENTER', 280, 100);
-
-        ctx.strokeStyle = '#111827';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(50, 115);
-        ctx.lineTo(750, 115);
-        ctx.stroke();
-
-        // Paragraf Pembuka
-        ctx.fillStyle = '#374151';
-        ctx.font = '14px serif';
-        ctx.fillText(
-            'Pada hari ini, disepakati perjanjian kemitraan investasi antara Pihak Pertama (YZD Center)',
-            50,
-            150
-        );
-        ctx.fillText(`dan Pihak Kedua (${nama}) dengan ketentuan sebagai berikut:`, 50, 175);
-
-        // Garis-garis isi dokumen
-        for (let y = 220; y < 850; y += 35) {
-            ctx.fillStyle = '#e5e7eb';
-            ctx.fillRect(50, y, 700, 12);
-        }
-
-        // Kotak Materai 10000
-        ctx.strokeStyle = '#dc2626';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(80, 910, 130, 90);
-        ctx.fillStyle = '#dc2626';
-        ctx.font = 'bold 14px sans-serif';
-        ctx.fillText('MATERAI 10000', 90, 955);
-        ctx.font = '10px sans-serif';
-        ctx.fillText('TEMPEL DI SINI', 95, 975);
-
-        // Tanda tangan
-        ctx.strokeStyle = '#1e3a8a';
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.moveTo(90, 940);
-        ctx.lineTo(190, 970);
-        ctx.stroke();
-
-        // Penandatangan
-        ctx.fillStyle = '#111827';
-        ctx.font = 'bold 14px serif';
-        ctx.fillText(`( ${nama} )`, 90, 1030);
-        ctx.fillText('( Administrator YZD Center )', 500, 1030);
-
-        canvas.toBlob(
-            (blob) => {
-                const file = new File([blob], 'perjanjian_kemitraan_dummy.jpg', {
-                    type: 'image/jpeg',
-                });
-                resolve({
-                    file,
-                    info: {
-                        originalSize: formatBytes(file.size),
-                        compressedSize: formatBytes(file.size),
-                        isCompressed: false,
-                        previewUrl: URL.createObjectURL(blob),
-                        isPdf: false,
-                        name: 'perjanjian_kemitraan_dummy.jpg',
-                        isQualityWarning: false,
-                        warningMessage: null,
-                    },
-                });
-            },
-            'image/jpeg',
-            0.92
-        );
-    });
-}
-
 const handleAutoFill = async () => {
     isGenerating.value = true;
     try {
@@ -289,28 +194,6 @@ const handleAutoFill = async () => {
             'Guru / Dosen', 'Dokter', 'Teknisi IT', 'Petani',
         ];
 
-        const bankList = ['BCA', 'Mandiri', 'BRI', 'BNI', 'BSI', 'CIMB Niaga'];
-
-        // Pilih tier secara acak
-        const tierOptions = ['tier_1', 'tier_2', 'tier_3'];
-        const randTier = getRandomItem(tierOptions);
-
-        // Modal sesuai tier
-        let estimasiModal;
-        if (randTier === 'tier_1') {
-            estimasiModal = Math.floor(100 + Math.random() * 4900); // 100-4999
-        } else if (randTier === 'tier_2') {
-            estimasiModal = Math.floor(5000 + Math.random() * 295000); // 5000-299999
-        } else {
-            estimasiModal = Math.floor(300000 + Math.random() * 700000); // 300000+
-        }
-
-        // Tanggal mulai: hari ini atau mundur acak 1 tahun
-        const today = new Date();
-        const daysBack = Math.floor(Math.random() * 365);
-        const mulaiDate = new Date(today.getTime() - daysBack * 24 * 60 * 60 * 1000);
-        const tanggalMulai = mulaiDate.toISOString().split('T')[0];
-
         // 1. Data Akun (Password selalu asdf1234)
         props.form.name = randName;
         props.form.username = `${cleanName}_${uniqueId}`;
@@ -330,34 +213,10 @@ const handleAutoFill = async () => {
         props.form.ahli_waris_phone = warisPhone;
         props.form.ahli_waris_alamat = alamat;
 
-        // 3. Data Trading
-        props.form.tier_investasi = randTier;
-        props.form.nomor_akun_trading = getRandomDigits(8);
-        props.form.estimasi_modal = estimasiModal;
-        props.form.tanggal_mulai_trading = tanggalMulai;
-        props.form.nama_bank = getRandomItem(bankList);
-        props.form.nomor_rekening = getRandomDigits(10);
-        props.form.atas_nama_rekening = randName;
-
-        // Khusus Tier 3
-        if (randTier === 'tier_3') {
-            props.form.server_broker = 'XMGlobal-Real 50';
-            props.form.master_password = 'asdf1234';
-            props.form.investor_password = 'asdf1234';
-        } else {
-            props.form.server_broker = '';
-            props.form.master_password = '';
-            props.form.investor_password = '';
-        }
-
         // 4. Dokumen Legalitas (Canvas Dummy Berkualitas Tinggi)
         const ktpResult = await generateDummyKtpFile(randName, nik);
         props.form.dokumen_ktp = ktpResult.file;
         emit('update:ktpInfo', ktpResult.info);
-
-        const perjanjianResult = await generateDummyPerjanjianFile(randName);
-        props.form.dokumen_perjanjian = perjanjianResult.file;
-        emit('update:perjanjianInfo', perjanjianResult.info);
 
         // 5. Persetujuan Syarat & Ketentuan
         props.form.terms = true;
@@ -366,7 +225,7 @@ const handleAutoFill = async () => {
         // Bersihkan error validasi sebelumnya
         props.form.clearErrors();
 
-        toast.success(`Form diisi acak! Tier: ${randTier.toUpperCase()} | Password: asdf1234`);
+        toast.success(`Form diisi acak! Password: asdf1234`);
     } catch (e) {
         toast.error('Gagal mengisi form otomatis.');
     } finally {
@@ -380,12 +239,8 @@ const handleReset = () => {
     props.form.password_confirmation = '';
     props.form.terms = false;
     props.form.referral_code = '';
-    props.form.tier_investasi = 'tier_1';
-    props.form.tanggal_mulai_trading = new Date().toISOString().split('T')[0];
     props.form.dokumen_ktp = null;
-    props.form.dokumen_perjanjian = null;
     emit('update:ktpInfo', null);
-    emit('update:perjanjianInfo', null);
     props.form.clearErrors();
     toast.info('Form pendaftaran telah dikosongkan.');
 };
@@ -413,7 +268,7 @@ const handleReset = () => {
                         </span>
                     </div>
                     <p class="text-muted-foreground text-[11px]">
-                        Isi otomatis Akun, Ahli Waris, Berkas KTP/Perjanjian dummy & T&C (Password:
+                        Isi otomatis Akun, Ahli Waris, Berkas KTP dummy & T&C (Password:
                         <code
                             class="bg-background/80 text-amber-600 dark:text-amber-400 rounded px-1 font-mono font-bold"
                         >

@@ -23,10 +23,10 @@ const { isDark, toggleDarkMode } = useDarkMode();
     <AppToaster />
 
     <div
-        class="min-h-screen min-h-dvh flex-1 bg-slate-50 dark:bg-slate-950 text-foreground flex flex-col transition-colors duration-200"
+        class="min-h-screen min-h-dvh flex-1 bg-white dark:bg-slate-900 text-foreground flex flex-col transition-colors duration-200"
     >
         <!-- Top Navigation -->
-        <header class="w-full px-4 sm:px-6 py-3.5 flex items-center justify-between border-b border-border/60 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
+        <header class="w-full px-4 sm:px-6 py-3.5 flex items-center justify-between border-b border-border/60 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-sm sticky top-0 z-10">
             <Link href="/" class="flex items-center gap-1 text-xl font-bold tracking-tight">
                 <span class="text-accent-500 font-black text-2xl">YZD</span>
                 <span class="text-primary-600 dark:text-primary-400 font-extrabold">Center</span>

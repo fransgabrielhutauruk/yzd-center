@@ -309,7 +309,6 @@ const showMasterPassword = ref(false);
 const showInvestorPassword = ref(false);
 
 // Modal State & Form Edit Akun Copy Trade & Rekening
-const showAccountEditModal = ref(false);
 
 const bankOptions = [
     'BCA',
@@ -331,17 +330,7 @@ const bankOptions = [
 const selectedBankOption = ref('');
 const customBankName = ref('');
 
-const accountEditForm = useForm({
-    nomor_akun_trading: '',
-    server_broker: '',
-    estimasi_modal: '',
-    master_password: '',
-    investor_password: '',
-    nama_bank: '',
-    nomor_rekening: '',
-    atas_nama_rekening: '',
-    confirm_follow_ack: true,
-});
+
 
 const handleCustomBankInput = (event) => {
     const val = event.target.value;
@@ -361,62 +350,10 @@ const handleBankSelectChange = (val) => {
     }
 };
 
-const openAccountEditModal = () => {
-    if (!props.akun_copytrade) return;
-    const akun = props.akun_copytrade;
-    accountEditForm.nomor_akun_trading = akun.nomor_akun_trading || '';
-    accountEditForm.server_broker = akun.server_broker || '';
-    accountEditForm.estimasi_modal = akun.estimasi_modal || '';
-    accountEditForm.master_password = akun.master_password || '';
-    accountEditForm.investor_password = akun.investor_password || '';
-    accountEditForm.nomor_rekening = akun.nomor_rekening || '';
-    accountEditForm.atas_nama_rekening = akun.atas_nama_rekening || '';
-    accountEditForm.confirm_follow_ack = true;
 
-    // Sinkronisasi bank pilihan
-    const currentBank = akun.nama_bank || '';
-    if (bankOptions.filter((b) => b !== 'Lainnya').includes(currentBank)) {
-        selectedBankOption.value = currentBank;
-        customBankName.value = '';
-        accountEditForm.nama_bank = currentBank;
-    } else if (currentBank) {
-        selectedBankOption.value = 'Lainnya';
-        customBankName.value = currentBank;
-        accountEditForm.nama_bank = currentBank;
-    } else {
-        selectedBankOption.value = '';
-        customBankName.value = '';
-        accountEditForm.nama_bank = '';
-    }
-
-    accountEditForm.clearErrors();
-    showAccountEditModal.value = true;
-};
-
-const submitAccountEdit = () => {
-    if (!accountEditForm.confirm_follow_ack) {
-        toast.error('Harap centang konfirmasi follow master sebelum menyimpan.');
-        return;
-    }
-
-    accountEditForm.post('/investor/kyc/account/update', {
-        preserveScroll: true,
-        onSuccess: () => {
-            showAccountEditModal.value = false;
-        },
-        onError: () => {
-            toast.error('Gagal memperbarui data akun trading. Periksa kembali isian formulir.');
-        },
-    });
-};
 
 // Form Cepat: Konfirmasi Sudah Follow Master
-const confirmFollowForm = useForm({});
-const submitConfirmFollow = () => {
-    confirmFollowForm.post('/investor/kyc/account/confirm-follow', {
-        preserveScroll: true,
-    });
-};
+
 
 // Status Global Halaman
 const globalStatus = computed(() => {

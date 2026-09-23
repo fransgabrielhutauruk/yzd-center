@@ -33,11 +33,11 @@ class CopytradeAccountStatusChangedNotification extends Notification
 
         $title = $isActive
             ? 'Akun Copy Trade Valid & Aktif'
-            : 'Akun Copy Trade Ditolak / Belum Follow';
+            : 'Akun Copy Trade Ditolak';
 
         $message = $isActive
             ? "Akun trading MT4 ({$this->akun->nomor_akun_trading}) Anda telah berhasil divalidasi dan dinyatakan aktif."
-            : ($this->notes ? "Catatan: {$this->notes}" : 'Validasi akun trading ditolak. Mohon periksa kembali nomor akun dan status follow master.');
+            : ($this->notes ? "Pendaftaran akun trading ({$this->akun->nomor_akun_trading}) ditolak. Catatan: {$this->notes}" : "Pendaftaran akun trading ({$this->akun->nomor_akun_trading}) ditolak.");
 
         return [
             'type'               => 'copytrade_account_status',
@@ -47,7 +47,7 @@ class CopytradeAccountStatusChangedNotification extends Notification
             'status'             => $this->status,
             'copytrade_id'       => $this->akun->id,
             'nomor_akun_trading' => $this->akun->nomor_akun_trading,
-            'url'                => '/investor/kyc',
+            'url'                => '/investor/copytrade',
         ];
     }
 }

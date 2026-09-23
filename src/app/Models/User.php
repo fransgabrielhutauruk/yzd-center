@@ -67,9 +67,9 @@ class User extends Authenticatable
         ];
     }
 
-    public function akunCopytrade(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function akunCopytrades(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasOne(AkunCopytrade::class);
+        return $this->hasMany(AkunCopytrade::class);
     }
 
     public function ahliWaris(): \Illuminate\Database\Eloquent\Relations\HasOne
@@ -95,9 +95,8 @@ class User extends Authenticatable
     public function isKycApproved(): bool
     {
         $ktp = $this->dokumen()->where('tipe_dokumen', 'ktp')->first();
-        $perjanjian = $this->dokumen()->where('tipe_dokumen', 'perjanjian')->first();
 
-        return $ktp?->isApproved() && $perjanjian?->isApproved();
+        return $ktp?->isApproved() ?? false;
     }
 
     public function hasKycRevisionNeeded(): bool

@@ -16,6 +16,7 @@ import {
     PanelLeft,
     UserCheck,
     Users,
+    Settings,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
@@ -83,7 +84,18 @@ const navSections = [
         ],
     },
     {
-        title: 'Manajemen Data',
+        title: 'Manajemen Copytrade',
+        items: [
+            {
+                label: 'Verifikasi Copytrade',
+                href: '/admin/copytrade',
+                icon: FileCheck,
+                routeName: 'admin.copytrade.index',
+            },
+        ],
+    },
+    {
+        title: 'Manajemen Afiliasi',
         items: [
             {
                 label: 'Tautan Undangan',
@@ -100,8 +112,14 @@ const navSections = [
         ],
     },
     {
-        title: 'Kelola Konten (CMS)',
+        title: 'Pengaturan Sistem',
         items: [
+            {
+                label: 'Pengaturan Master',
+                href: '/admin/settings/master',
+                icon: Settings,
+                routeName: 'admin.settings.master',
+            },
             {
                 label: 'Konten Legalitas',
                 href: '/admin/settings/legal',
@@ -126,7 +144,7 @@ const logout = () => {
     <AppToaster />
 
     <div
-        class="text-foreground flex min-h-screen min-h-dvh flex-1 bg-slate-50 transition-colors duration-200 dark:bg-slate-950"
+        class="text-foreground flex min-h-screen min-h-dvh flex-1 bg-white transition-colors duration-200 dark:bg-slate-900"
     >
         <!-- Backdrop Mobile Sidebar -->
         <transition
@@ -147,7 +165,7 @@ const logout = () => {
         <!-- Sidebar Component -->
         <aside
             :class="[
-                'bg-primary-700 dark:bg-slate-900 text-white border-r border-primary-800/80 dark:border-slate-800 fixed inset-y-0 left-0 z-50 flex flex-col shadow-xl transition-all duration-300 ease-in-out md:static md:translate-x-0 md:shadow-none',
+                'bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 fixed inset-y-0 left-0 z-50 flex flex-col shadow-sm transition-all duration-300 ease-in-out md:static md:translate-x-0 md:shadow-none',
                 isCollapsed ? 'md:w-20' : 'md:w-64',
                 'w-64',
                 isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
@@ -155,14 +173,15 @@ const logout = () => {
         >
             <!-- Logo Brand & Mobile Close Button -->
             <div
-                class="flex h-16 items-center justify-between border-b border-white/15 px-4 dark:border-slate-800"
+                class="flex h-16 items-center justify-between border-b border-slate-200 px-4 dark:border-slate-800"
             >
                 <Link href="/admin/dashboard" class="flex items-center gap-1.5 overflow-hidden">
-                    <span class="text-accent-400 text-2xl font-black tracking-tight shrink-0">YZD</span>
-                    <span v-if="!isCollapsed" class="text-xl font-bold tracking-tight text-white shrink-0">Center</span>
+                    <span class="text-accent-500 text-2xl font-black tracking-tight shrink-0">YZD</span>
+                    <span v-if="!isCollapsed" class="text-xl font-bold tracking-tight text-primary-600 dark:text-primary-400 shrink-0">Center</span>
+
                     <span
                         v-if="!isCollapsed"
-                        class="bg-accent-500/20 text-accent-300 border-accent-500/40 ml-1 rounded border px-1.5 py-0.5 text-[10px] font-bold tracking-wide shrink-0"
+                        class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 ml-1 rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wide shrink-0"
                     >
                         ADMIN
                     </span>
@@ -172,7 +191,7 @@ const logout = () => {
                 <button
                     type="button"
                     @click="isMobileSidebarOpen = false"
-                    class="rounded-lg p-1.5 text-white/80 hover:bg-white/10 hover:text-white md:hidden cursor-pointer"
+                    class="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 md:hidden cursor-pointer"
                     aria-label="Tutup Menu"
                 >
                     <X class="h-5 w-5" />
@@ -185,11 +204,11 @@ const logout = () => {
                     <!-- Section Title (Hidden when collapsed) -->
                     <p
                         v-if="!isCollapsed"
-                        class="px-3 text-[11px] font-bold tracking-wider text-white/60 uppercase"
+                        class="px-3 text-[11px] font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase"
                     >
                         {{ section.title }}
                     </p>
-                    <div v-else class="h-px bg-white/10 mx-2 my-2"></div>
+                    <div v-else class="h-px bg-slate-200 dark:bg-slate-700 mx-2 my-2"></div>
 
                     <div class="space-y-1">
                         <Link
@@ -202,14 +221,19 @@ const logout = () => {
                                 'group flex items-center rounded-lg py-2.5 transition-all duration-150',
                                 isCollapsed ? 'justify-center px-2' : 'justify-between px-3',
                                 isActive(item)
-                                    ? 'bg-white/20 text-white font-bold shadow-xs dark:bg-slate-800'
-                                    : 'text-white/85 hover:bg-white/10 hover:text-white dark:hover:bg-slate-800/80',
+                                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold'
+                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100',
                             ]"
                         >
                             <div class="flex items-center gap-3 min-w-0">
                                 <component
                                     :is="item.icon"
-                                    class="h-4 w-4 shrink-0 text-white transition-colors"
+                                    :class="[
+                                        'h-4 w-4 shrink-0 transition-colors',
+                                        isActive(item)
+                                            ? 'text-accent-600 dark:text-accent-400'
+                                            : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300',
+                                    ]"
                                 />
                                 <span v-if="!isCollapsed" class="truncate font-semibold text-[13px]">
                                     {{ item.label }}
@@ -225,7 +249,7 @@ const logout = () => {
         <div class="flex min-w-0 flex-1 flex-col">
             <!-- Top Navbar -->
             <header
-                class="border-accent-500 sticky top-0 z-30 flex h-16 items-center justify-between border-b-2 bg-white px-4 shadow-xs transition-colors sm:px-6 dark:bg-slate-900"
+                class="border-accent-500 sticky top-0 z-30 flex h-16 items-center justify-between border-b-2 bg-slate-50 px-4 shadow-xs transition-colors sm:px-6 dark:bg-slate-950"
             >
                 <div class="flex items-center gap-2.5 sm:gap-3">
                     <!-- Mobile Menu Button -->
