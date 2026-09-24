@@ -136,6 +136,16 @@ class User extends Authenticatable
         return $this->hasMany(KlaimReferral::class, 'downline_id');
     }
 
+    public function klaimKomisiDiajukan(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(KlaimKomisi::class, 'affiliator_id');
+    }
+
+    public function klaimKomisiSebagaiDownline(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(KlaimKomisiItem::class, 'downline_id');
+    }
+
     public function hasUpline(): bool
     {
         return $this->relasiUpline()->exists();

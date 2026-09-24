@@ -113,4 +113,80 @@ class DocumentStreamController extends Controller
             ]
         );
     }
+
+    /**
+     * Tampilkan (stream) berkas bukti modal klaim komisi privat terotentikasi.
+     */
+    public function showCommissionProof(Request $request, int $id): StreamedResponse
+    {
+        $claim = \App\Models\KlaimKomisi::findOrFail($id);
+        $user = $request->user();
+
+        // Otorisasi: Hanya Admin atau Affiliator pemohon yang dapat mengakses
+        if (!$user || (!$user->isAdmin() && $user->id !== $claim->affiliator_id)) {
+            abort(403, 'Anda tidak memiliki hak akses untuk melihat bukti modal klaim komisi ini.');
+        }
+
+        if (empty($claim->bukti_modal_path)) {
+            abort(404, 'Berkas fisik bukti modal tidak ditemukan di penyimpanan server.');
+        }
+
+        $path = $claim->bukti_modal_path;
+        if (!Storage::disk('local')->exists($path)) {
+            $fallback = preg_replace('#^private/#', '', $path);
+            if (Storage::disk('local')->exists($fallback)) {
+                $path = $fallback;
+            } else {
+                abort(404, 'Berkas fisik bukti modal tidak ditemukan di penyimpanan server.');
+            }
+        }
+
+        return Storage::disk('local')->response(
+            $path,
+            basename($path),
+            [
+                'Cache-Control'          => 'no-cache, private, no-store, must-revalidate',
+                'X-Content-Type-Options' => 'nosniff',
+                'X-Frame-Options'        => 'SAMEORIGIN',
+            ]
+        );
+    }
+
+    /**
+     * Tampilkan (stream) berkas resi transfer bank klaim komisi privat terotentikasi.
+     */
+    public function showCommissionReceipt(Request $request, int $id): StreamedResponse
+    {
+        $claim = \App\Models\KlaimKomisi::findOrFail($id);
+        $user = $request->user();
+
+        // Otorisasi: Hanya Admin atau Affiliator pemohon yang dapat mengakses
+        if (!$user || (!$user->isAdmin() && $user->id !== $claim->affiliator_id)) {
+            abort(403, 'Anda tidak memiliki hak akses untuk melihat bukti transfer ini.');
+        }
+
+        if (empty($claim->bukti_transfer_path)) {
+            abort(404, 'Berkas bukti transfer belum tersedia atau tidak ditemukan di penyimpanan server.');
+        }
+
+        $path = $claim->bukti_transfer_path;
+        if (!Storage::disk('local')->exists($path)) {
+            $fallback = preg_replace('#^private/#', '', $path);
+            if (Storage::disk('local')->exists($fallback)) {
+                $path = $fallback;
+            } else {
+                abort(404, 'Berkas bukti transfer tidak ditemukan di penyimpanan server.');
+            }
+        }
+
+        return Storage::disk('local')->response(
+            $path,
+            basename($path),
+            [
+                'Cache-Control'          => 'no-cache, private, no-store, must-revalidate',
+                'X-Content-Type-Options' => 'nosniff',
+                'X-Frame-Options'        => 'SAMEORIGIN',
+            ]
+        );
+    }
 }

@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AdminAffiliateController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminKycController;
 use App\Http\Controllers\Admin\AdminReferralClaimController;
+use App\Http\Controllers\Admin\CommissionClaimController as AdminCommissionClaimController;
 use App\Http\Controllers\Admin\CopytradeController as AdminCopytradeController;
 use App\Http\Controllers\Admin\InvitationController;
 use App\Http\Controllers\Admin\LegalContentController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DocumentStreamController;
 use App\Http\Controllers\Investor\AffiliateNetworkController;
+use App\Http\Controllers\Investor\CommissionClaimController as InvestorCommissionClaimController;
 use App\Http\Controllers\Investor\CopytradeController as InvestorCopytradeController;
 use App\Http\Controllers\Investor\InvestorDashboardController;
 use App\Http\Controllers\Investor\KycController;
@@ -70,6 +72,12 @@ Route::get('/documents/claims/{id}', [DocumentStreamController::class, 'showClai
 Route::get('/documents/copytrade/{id}', [DocumentStreamController::class, 'showCopytradeAgreement'])
     ->middleware('auth')
     ->name('documents.copytrade');
+Route::get('/documents/commissions/{id}/proof', [DocumentStreamController::class, 'showCommissionProof'])
+    ->middleware('auth')
+    ->name('documents.commission_proof');
+Route::get('/documents/commissions/{id}/receipt', [DocumentStreamController::class, 'showCommissionReceipt'])
+    ->middleware('auth')
+    ->name('documents.commission_receipt');
 
 // Notifikasi In-App (Terotentikasi)
 Route::middleware('auth')->prefix('notifications')->name('notifications.')->group(function () {
@@ -107,6 +115,10 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     // Rekapitulasi Jaringan Mitra Affiliator
     Route::get('/affiliates', [AdminAffiliateController::class, 'index'])->name('affiliates.index');
 
+    // Pencairan Komisi Afiliasi (Modul 05)
+    Route::get('/commissions', [AdminCommissionClaimController::class, 'index'])->name('commissions.index');
+    Route::post('/commissions/{id}/process', [AdminCommissionClaimController::class, 'process'])->name('commissions.process');
+
     // Pengaturan Dokumen Legalitas (Terms & Privacy)
     Route::get('/settings/legal', [LegalContentController::class, 'index'])->name('settings.legal');
     Route::post('/settings/legal', [LegalContentController::class, 'update'])->name('settings.legal.update');
@@ -123,6 +135,11 @@ Route::middleware(['auth', 'role:investor,affiliator'])->prefix('investor')->nam
         Route::post('/affiliates/claims', [AffiliateNetworkController::class, 'storeClaim'])->name('affiliates.claims.store');
         Route::get('/affiliates/eligible-downlines', [AffiliateNetworkController::class, 'eligibleDownlines'])->name('affiliates.eligible_downlines');
         Route::get('/affiliates/check-downline', [AffiliateNetworkController::class, 'checkDownline'])->name('affiliates.check_downline');
+
+        // Klaim Komisi Afiliasi (Khusus Affiliator - Modul 05)
+        Route::get('/commissions', [InvestorCommissionClaimController::class, 'index'])->name('commissions.index');
+        Route::post('/commissions', [InvestorCommissionClaimController::class, 'store'])->name('commissions.store');
+        Route::get('/commissions/eligible-downlines', [InvestorCommissionClaimController::class, 'eligibleDownlines'])->name('commissions.eligible_downlines');
     });
 
     // Status KYC & Unggah Ulang Berkas (Selalu dapat diakses oleh investor/afiliator)

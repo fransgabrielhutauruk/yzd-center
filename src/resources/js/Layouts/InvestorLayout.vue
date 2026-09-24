@@ -15,6 +15,7 @@ import {
     Lock,
     Users,
     TrendingUp,
+    Banknote,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
@@ -98,6 +99,13 @@ const navItems = computed(() => {
             href: '/investor/affiliates',
             icon: Users,
             requiresActive: true,
+        });
+        items.push({
+            label: 'Klaim Komisi (PB 3)',
+            href: '/investor/commissions',
+            icon: Banknote,
+            requiresActive: true,
+            routeName: 'investor.commissions.index',
         });
     }
 

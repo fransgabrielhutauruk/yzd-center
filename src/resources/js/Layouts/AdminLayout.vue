@@ -17,6 +17,7 @@ import {
     UserCheck,
     Users,
     Settings,
+    Banknote,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
@@ -108,6 +109,12 @@ const navSections = [
                 href: '/admin/affiliates',
                 icon: Users,
                 routeName: 'admin.affiliates.index',
+            },
+            {
+                label: 'Pencairan Komisi',
+                href: '/admin/commissions',
+                icon: Banknote,
+                routeName: 'admin.commissions.index',
             },
         ],
     },

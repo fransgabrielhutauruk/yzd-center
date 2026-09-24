@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { Head, useForm, router } from '@inertiajs/vue3';
+import { Head, useForm, router, Link } from '@inertiajs/vue3';
 import InvestorLayout from '@/Layouts/InvestorLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
@@ -25,6 +25,7 @@ import {
     Info,
     ExternalLink,
     MessageSquare,
+    Banknote,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -356,14 +357,23 @@ const claimColumns = [
                     </p>
                 </div>
 
-                <Button
-                    type="button"
-                    @click="openClaimModal"
-                    class="bg-primary-600 hover:bg-primary-700 flex items-center gap-1.5 self-start text-xs text-white shadow-xs sm:text-sm"
-                >
-                    <PlusCircle class="h-4 w-4" />
-                    <span>Ajukan Klaim Susulan</span>
-                </Button>
+                <div class="flex items-center gap-2 self-start">
+                    <Link
+                        :href="route('investor.commissions.index')"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors shadow-xs"
+                    >
+                        <Banknote class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>Klaim Komisi (PB 3)</span>
+                    </Link>
+                    <Button
+                        type="button"
+                        @click="openClaimModal"
+                        class="bg-primary-600 hover:bg-primary-700 flex items-center gap-1.5 text-xs text-white shadow-xs sm:text-sm"
+                    >
+                        <PlusCircle class="h-4 w-4" />
+                        <span>Ajukan Klaim Susulan</span>
+                    </Button>
+                </div>
             </div>
 
             <!-- Banner Kode Referral -->
