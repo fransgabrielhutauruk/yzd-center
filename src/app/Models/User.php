@@ -82,6 +82,11 @@ class User extends Authenticatable
         return $this->hasMany(UserDokumen::class);
     }
 
+    public function akunCopytrade(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AkunCopytrade::class);
+    }
+
     public function isPendingKyc(): bool
     {
         return $this->status === 'pending';

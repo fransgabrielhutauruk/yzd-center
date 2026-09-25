@@ -12,15 +12,19 @@ use App\Http\Controllers\Admin\HelpCenterController;
 use App\Http\Controllers\Admin\InvitationController;
 use App\Http\Controllers\Admin\LegalContentController;
 use App\Http\Controllers\Admin\PengaturanMasterController;
+use App\Http\Controllers\Admin\ProfitReportController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DocumentStreamController;
 use App\Http\Controllers\Investor\AffiliateNetworkController;
+use App\Http\Controllers\Investor\BalanceHistoryController;
 use App\Http\Controllers\Investor\CommissionClaimController as InvestorCommissionClaimController;
 use App\Http\Controllers\Investor\CopytradeController as InvestorCopytradeController;
 use App\Http\Controllers\Investor\EducationController as InvestorEducationController;
 use App\Http\Controllers\Investor\InvestorDashboardController;
 use App\Http\Controllers\Investor\KycController;
+use App\Http\Controllers\Investor\PromotionMaterialController;
 use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -82,6 +86,12 @@ Route::get('/documents/commissions/{id}/proof', [DocumentStreamController::class
 Route::get('/documents/commissions/{id}/receipt', [DocumentStreamController::class, 'showCommissionReceipt'])
     ->middleware('auth')
     ->name('documents.commission_receipt');
+Route::get('/documents/profit-reports/{imageId}/view', [ProfitReportController::class, 'streamImage'])
+    ->middleware('auth')
+    ->name('documents.profit_report.view');
+Route::get('/documents/profit-reports/{imageId}/download', [ProfitReportController::class, 'downloadImage'])
+    ->middleware('auth')
+    ->name('documents.profit_report.download');
 
 // Notifikasi In-App (Terotentikasi)
 Route::middleware('auth')->prefix('notifications')->name('notifications.')->group(function () {
@@ -93,6 +103,11 @@ Route::middleware('auth')->prefix('notifications')->name('notifications.')->grou
 // Portal Administrator
 Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+
+    // Manajemen Pengguna (Investor & Affiliator)
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    Route::get('/users/{id}', [UserController::class, 'show'])->name('users.show');
+    Route::post('/users/{id}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle_status');
 
     // Manajemen Tautan Undangan
     Route::get('/invitations', [InvitationController::class, 'index'])->name('invitations.index');
@@ -151,6 +166,12 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::post('/education/faq/topics', [FaqController::class, 'storeTopic'])->name('education.faq.topics.store');
     Route::put('/education/faq/topics/{id}', [FaqController::class, 'updateTopic'])->name('education.faq.topics.update');
     Route::delete('/education/faq/topics/{id}', [FaqController::class, 'destroyTopic'])->name('education.faq.topics.destroy');
+
+    // Manajemen Laporan Keuntungan & Materi Promosi
+    Route::get('/profit-reports', [ProfitReportController::class, 'index'])->name('profit_reports.index');
+    Route::post('/profit-reports', [ProfitReportController::class, 'store'])->name('profit_reports.store');
+    Route::post('/profit-reports/{id}', [ProfitReportController::class, 'update'])->name('profit_reports.update');
+    Route::delete('/profit-reports/{id}', [ProfitReportController::class, 'destroy'])->name('profit_reports.destroy');
 });
 
 // Portal Investor & Afiliator
@@ -175,11 +196,19 @@ Route::middleware(['auth', 'role:investor,affiliator'])->prefix('investor')->nam
     Route::get('/kyc', [KycController::class, 'index'])->name('kyc');
     Route::post('/kyc/reupload/{type}', [KycController::class, 'reupload'])->name('kyc.reupload');
 
-    // Manajemen Akun Copytrade
+    // Manajemen Akun Copytrade & Input Saldo Tanggal 1
     Route::get('/copytrade', [InvestorCopytradeController::class, 'index'])->name('copytrade.index');
     Route::post('/copytrade', [InvestorCopytradeController::class, 'store'])->name('copytrade.store');
     Route::match(['get', 'post'], '/copytrade/template-perjanjian/{tier}', [InvestorCopytradeController::class, 'downloadTemplate'])->name('copytrade.template');
     Route::get('/copytrade/panduan-pdf/{tier}', [InvestorCopytradeController::class, 'downloadGuidePdf'])->name('copytrade.guide_pdf');
+
+    // Fitur Input Saldo Tanggal 1 & Kinerja Periode Bebas
+    Route::get('/copytrade/balance', [BalanceHistoryController::class, 'index'])->name('copytrade.balance.index');
+    Route::post('/copytrade/balance', [BalanceHistoryController::class, 'store'])->name('copytrade.balance.store');
+    Route::delete('/copytrade/balance/{id}', [BalanceHistoryController::class, 'destroy'])->name('copytrade.balance.destroy');
+
+    // Materi Promosi & Laporan Keuntungan (Untuk Affiliator & Investor)
+    Route::get('/promotions', [PromotionMaterialController::class, 'index'])->name('promotions.index');
 
     // Edukasi, Pusat Bantuan & Kalkulator Proyeksi (Modul 06 - Selalu dapat diakses)
     Route::get('/education/glossary', [InvestorEducationController::class, 'glossary'])->name('education.glossary');

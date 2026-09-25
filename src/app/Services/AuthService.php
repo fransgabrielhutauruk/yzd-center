@@ -27,6 +27,13 @@ class AuthService
     {
         $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
 
+        $user = User::where($field, $login)->first();
+        if ($user && !$user->is_active && Hash::check($password, $user->password)) {
+            throw ValidationException::withMessages([
+                'login' => 'Akun Anda telah dinonaktifkan oleh administrator. Silakan hubungi admin.',
+            ]);
+        }
+
         return Auth::attempt([
             $field      => $login,
             'password'  => $password,

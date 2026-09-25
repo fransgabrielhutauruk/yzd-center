@@ -8,6 +8,7 @@ use App\Models\EdukasiGlosarium;
 use App\Models\PanduanBantuan;
 use App\Models\PanduanKategori;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -394,6 +395,118 @@ class EducationService
                 'phone'        => '082388986189',
                 'whatsapp_url' => 'https://wa.me/6282388986189?text=Halo%20Pak%20Yazid%2C%20saya%20ingin%20konsultasi%20mengenai%20proyeksi%20investasi%20copytrade%20YZD%20Center.',
             ],
+        ];
+    }
+
+    /**
+     * Menghitung progress BEP (Break Even Point) investor berdasarkan akumulasi profit bulanan sejak awal join.
+     * Menghitung kuota balik modal mencakup profit yang sudah di-WD + penambahan modal dari compounding.
+     */
+    public function getInvestorBepSummary(User $user): array
+    {
+        $activeAccounts = $user->akunCopytrade()
+            ->where('status', 'active')
+            ->orderBy('copy_started_at')
+            ->get();
+
+        $hasActiveCopytrade = $activeAccounts->isNotEmpty();
+        $rateData = app(ExchangeRateService::class)->getUsdToIdrRate();
+        $kurs = (float) ($rateData['rate'] ?? 16796.0);
+
+        if ($hasActiveCopytrade) {
+            $totalModalRiil = (float) $activeAccounts->sum('modal_riil');
+            $earliestAccount = $activeAccounts->first();
+            $joinDate = $earliestAccount->copy_started_at ?? $earliestAccount->tanggal_mulai;
+            $startCarbon = $joinDate ? Carbon::parse($joinDate) : now();
+            // Menghitung bulan aktif berjalan sejak join (minimal 1 bulan)
+            $diffMonths = (int) $startCarbon->diffInMonths(now());
+            $monthsActive = max(1, $diffMonths > 0 ? $diffMonths : 1);
+        } else {
+            // Mode contoh simulasi bawaan
+            $totalModalRiil = 100.0;
+            $startCarbon = now()->subMonths(1);
+            $monthsActive = 1;
+        }
+
+        $monthlyProfitRate = 5.0; // Standar konservatif 5%
+        $monthlyRateDecimal = $monthlyProfitRate / 100.0;
+
+        // Hitung simulasi akumulasi profit sejak awal join s/d bulan saat ini
+        // Sesuai formula YZD: 30% WD Investor, 40% Compounding Modal, 30% Master Fee
+        $currentModal = $totalModalRiil;
+        $totalWithdrawn = 0.0;
+        $totalCompounded = 0.0;
+        $totalGrossProfit = 0.0;
+
+        for ($m = 1; $m <= $monthsActive; $m++) {
+            $grossProfit = $currentModal * $monthlyRateDecimal;
+            $wd = $grossProfit * 0.30;
+            $compounding = $grossProfit * 0.40;
+
+            $totalGrossProfit += $grossProfit;
+            $totalWithdrawn += $wd;
+            $totalCompounded += $compounding;
+            $currentModal += $compounding;
+        }
+
+        // Total akumulasi keuntungan bersih yang diterima investor (WD + Compounding)
+        $totalProfitAccumulated = $totalWithdrawn + $totalCompounded;
+
+        // Persentase BEP (Berapa persen modal awal sudah kembali)
+        $bepProgressPct = $totalModalRiil > 0
+            ? min(100.0, round(($totalProfitAccumulated / $totalModalRiil) * 100.0, 1))
+            : 0.0;
+
+        $remainingCapitalToBep = max(0.0, $totalModalRiil - $totalProfitAccumulated);
+        $isBepAchieved = $totalProfitAccumulated >= $totalModalRiil;
+
+        // Hitung estimasi di bulan ke berapa BEP 100% tercapai sejak awal join
+        $tempModal = $totalModalRiil;
+        $tempAccumulated = 0.0;
+        $monthsToBep = 0;
+        for ($m = 1; $m <= 120; $m++) {
+            $p = $tempModal * $monthlyRateDecimal;
+            $wd = $p * 0.30;
+            $comp = $p * 0.40;
+            $tempAccumulated += ($wd + $comp);
+            $tempModal += $comp;
+
+            if ($tempAccumulated >= $totalModalRiil && $monthsToBep === 0) {
+                $monthsToBep = $m;
+                break;
+            }
+        }
+
+        $remainingMonthsToBep = max(0, $monthsToBep - $monthsActive);
+
+        $roundedWithdrawn = round($totalWithdrawn, 2);
+        $roundedCompounded = round($totalCompounded, 2);
+        $roundedTotalProfit = round($roundedWithdrawn + $roundedCompounded, 2);
+
+        return [
+            'has_active_copytrade'     => $hasActiveCopytrade,
+            'active_accounts_count'    => $activeAccounts->count(),
+            'initial_capital'          => $totalModalRiil,
+            'initial_capital_idr'      => $totalModalRiil * $kurs,
+            'current_equity'           => round($currentModal, 2),
+            'current_equity_idr'       => round($currentModal * $kurs, 0),
+            'monthly_profit_rate'      => $monthlyProfitRate,
+            'join_date'                => $startCarbon->format('Y-m-d'),
+            'join_date_formatted'      => function_exists('tanggal_indo') ? tanggal_indo($startCarbon) : $startCarbon->format('d M Y'),
+            'months_active'            => $monthsActive,
+            'total_withdrawn'          => $roundedWithdrawn,
+            'total_withdrawn_idr'      => round($roundedWithdrawn * $kurs, 0),
+            'total_compounded'         => $roundedCompounded,
+            'total_compounded_idr'     => round($roundedCompounded * $kurs, 0),
+            'total_profit_accumulated' => $roundedTotalProfit,
+            'total_profit_idr'         => round($roundedTotalProfit * $kurs, 0),
+            'bep_progress_pct'         => $bepProgressPct,
+            'remaining_capital_to_bep' => round($remainingCapitalToBep, 2),
+            'remaining_capital_idr'    => round($remainingCapitalToBep * $kurs, 0),
+            'months_to_bep'            => $monthsToBep,
+            'remaining_months_to_bep'  => $remainingMonthsToBep,
+            'is_bep_achieved'          => $isBepAchieved,
+            'exchange_rate'            => $kurs,
         ];
     }
 

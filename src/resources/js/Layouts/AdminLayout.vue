@@ -21,6 +21,7 @@ import {
     BookOpen,
     HelpCircle,
     MessageCircleQuestion,
+    TrendingUp,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
@@ -67,6 +68,12 @@ const navSections = [
                 href: '/admin/dashboard',
                 icon: LayoutDashboard,
                 routeName: 'admin.dashboard',
+            },
+            {
+                label: 'Pengguna',
+                href: '/admin/users',
+                icon: Users,
+                routeName: 'admin.users.index',
             },
         ],
     },
@@ -118,6 +125,12 @@ const navSections = [
                 href: '/admin/commissions',
                 icon: Banknote,
                 routeName: 'admin.commissions.index',
+            },
+            {
+                label: 'Laporan Keuntungan',
+                href: '/admin/profit-reports',
+                icon: TrendingUp,
+                routeName: 'admin.profit_reports.index',
             },
         ],
     },

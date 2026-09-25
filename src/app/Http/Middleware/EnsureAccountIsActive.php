@@ -17,6 +17,16 @@ class EnsureAccountIsActive
     {
         $user = $request->user();
 
+        if ($user && !$user->isAdmin() && !$user->is_active) {
+            \Illuminate\Support\Facades\Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors([
+                'login' => 'Akun Anda telah dinonaktifkan oleh administrator. Silakan hubungi admin.',
+            ]);
+        }
+
         if ($user && !$user->isAdmin() && $user->status !== 'active') {
             if ($request->routeIs('investor.kyc*') || $request->routeIs('investor.copytrade*')) {
                 return $next($request);

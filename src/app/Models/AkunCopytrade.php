@@ -70,6 +70,11 @@ class AkunCopytrade extends Model
         return $this->belongsTo(User::class, 'verified_by');
     }
 
+    public function riwayatBalance(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(RiwayatBalanceCopytrade::class, 'akun_copytrade_id')->orderBy('tanggal_pencatatan', 'asc');
+    }
+
     // -------------------------------------------------------------------------
     // Accessors
     // -------------------------------------------------------------------------

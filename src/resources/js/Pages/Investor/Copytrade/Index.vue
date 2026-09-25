@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import {
     PlusCircle,
     ExternalLink,
@@ -18,6 +18,7 @@ import {
     Layers,
     Download,
     FileText,
+    LineChart,
 } from 'lucide-vue-next';
 import InvestorLayout from '@/Layouts/InvestorLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
@@ -141,14 +142,23 @@ const getTierBadge = (tier) => {
                         Kelola akun trading MT4 Anda yang tersambung dengan sistem Copytrade YZD Center. Anda dapat mendaftarkan lebih dari satu akun.
                     </p>
                 </div>
-                <Button
-                    type="button"
-                    class="bg-primary-600 hover:bg-primary-700 text-white shrink-0 gap-2"
-                    @click="openAddModalWithTier('tier_1')"
-                >
-                    <PlusCircle class="h-4 w-4" />
-                    <span>Tambah Akun Copytrade</span>
-                </Button>
+                <div class="flex flex-wrap items-center gap-2 shrink-0">
+                    <Link
+                        href="/investor/copytrade/balance"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border bg-card hover:bg-muted text-foreground text-xs font-bold transition-colors shadow-xs cursor-pointer min-h-[40px]"
+                    >
+                        <LineChart class="h-4 w-4 text-primary" />
+                        <span>Kinerja & Saldo MT4</span>
+                    </Link>
+                    <Button
+                        type="button"
+                        class="bg-primary-600 hover:bg-primary-700 text-white gap-2 cursor-pointer min-h-[40px]"
+                        @click="openAddModalWithTier('tier_1')"
+                    >
+                        <PlusCircle class="h-4 w-4" />
+                        <span>Tambah Akun Copytrade</span>
+                    </Button>
+                </div>
             </div>
 
             <!-- Master Account Information Card -->
@@ -461,16 +471,27 @@ const getTierBadge = (tier) => {
 
                 <!-- Custom Column: Aksi -->
                 <template #column-actions="{ item }">
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        class="flex items-center gap-1.5 text-xs"
-                        @click="openDetailModal(item)"
-                    >
-                        <Eye class="h-3.5 w-3.5" />
-                        <span>Detail</span>
-                    </Button>
+                    <div class="flex items-center justify-end gap-1.5">
+                        <Link
+                            v-if="item.status === 'active'"
+                            :href="`/investor/copytrade/balance?account_id=${item.id}`"
+                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-foreground text-xs font-semibold transition-colors cursor-pointer"
+                            title="Input Saldo & Kinerja"
+                        >
+                            <LineChart class="h-3.5 w-3.5 text-primary" />
+                            <span class="hidden sm:inline">Saldo & Kinerja</span>
+                        </Link>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            class="flex items-center gap-1.5 text-xs cursor-pointer"
+                            @click="openDetailModal(item)"
+                        >
+                            <Eye class="h-3.5 w-3.5" />
+                            <span>Detail</span>
+                        </Button>
+                    </div>
                 </template>
             </AppDataTable>
         </div>

@@ -15,11 +15,13 @@ import {
     Lock,
     Users,
     TrendingUp,
+    LineChart,
     Banknote,
     Calculator,
     BookOpen,
     HelpCircle,
     MessageCircleQuestion,
+    Megaphone,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
@@ -96,6 +98,13 @@ const navItems = computed(() => {
             routeName: 'investor.copytrade.index',
         },
         {
+            label: 'Kinerja & Saldo MT4',
+            href: '/investor/copytrade/balance',
+            icon: LineChart,
+            requiresActive: false,
+            routeName: 'investor.copytrade.balance.index',
+        },
+        {
             label: 'Kalkulator Proyeksi',
             href: '/investor/education/calculator',
             icon: Calculator,
@@ -127,6 +136,13 @@ const navItems = computed(() => {
 
     if (isAffiliator.value) {
         items.push({
+            label: 'Materi Promosi & Profit',
+            href: '/investor/promotions',
+            icon: Megaphone,
+            requiresActive: false,
+            routeName: 'investor.promotions.index',
+        });
+        items.push({
             label: 'Jaringan Kemitraan',
             href: '/investor/affiliates',
             icon: Users,
@@ -138,6 +154,14 @@ const navItems = computed(() => {
             icon: Banknote,
             requiresActive: true,
             routeName: 'investor.commissions.index',
+        });
+    } else {
+        items.push({
+            label: 'Laporan Profit Trading',
+            href: '/investor/promotions',
+            icon: Megaphone,
+            requiresActive: false,
+            routeName: 'investor.promotions.index',
         });
     }
 
