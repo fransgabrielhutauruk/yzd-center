@@ -25,13 +25,13 @@ r@destroy` | - |
 
 ## 2. Kredensial Akun Pengujian Default
 
-Kredensial bawaan dari database seeder (`AdminUserSeeder.php`):
+Kredensial bawaan dari database seeder (`AdminUserSeeder.php` & `DemoUserSeeder.php`):
 
-| Peran (*Role*) | Email | Kata Sandi (*Password*) | Keterangan |
-| :--- | :--- | :--- | :--- |
-| **Administrator** | `admin@yzdcenter.com` | `password` | Akun pengelola penuh sistem YZD Center |
-| **Investor** | *(Dibuat via `/register`)* | Sesuai pendaftaran (atau `asdf1234` jika menggunakan Dev Tool) | Status awal akun: `pending` |
-| **Affiliator** | *(Dibuat via `/register` dengan token affiliator)* | Sesuai pendaftaran | Memiliki peran ganda: `investor` + `affiliator` |
+| Peran (*Role*) | Username | Email | Kata Sandi (*Password*) | Status Akun | Keterangan |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Administrator** | `admin` | `admin@example.com` | `admin` | `active` | Akun pengelola penuh sistem YZD Center |
+| **Investor** | `investor` | `investor@example.com` | `investor` | `active` (KYC Approved) | Akun investor demo siap pakai & siap copytrade |
+| **Affiliator** | `affiliator` | `affiliator@example.com` | `affiliator` | `active` (KYC Approved) | Akun affiliator demo (upline dari investor demo) |
 
 ---
 

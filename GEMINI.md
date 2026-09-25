@@ -58,4 +58,5 @@ Untuk menjaga kecepatan respon agentic tanpa mengorbankan mutu:
 - **Validasi Kolom TEXT:** Batas validasi form untuk kolom `TEXT` database wajib memadai (hingga `max:20000`).
 - **Streaming Aman:** Berkas sensitif (KTP, perjanjian, bukti transfer) dialirkan via `DocumentStreamController` dengan cek otorisasi kepemilikan/admin.
 - **Enkripsi Kredensial:** Password MT4 dan VPS menggunakan Eloquent cast `'encrypted'`.
+- **Single Source Migrasi (Ubah Langsung di Sumber Create):** Dilarang membuat file migrasi alter (`add_..._to_..._table` atau `update_...`). Setiap penambahan atau perubahan skema tabel wajib dimodifikasi langsung pada file migrasi sumbernya (`create_{nama_tabel}_table.php`) lalu disinkronkan dengan `php artisan migrate:fresh --seed`.
 - **Sinkronisasi 4-Titik:** Setiap penambahan field formulir disinkronkan di FormRequest, Model/Migration, Frontend (`useForm`), DevTool (`DevRegisterAutoFill.vue`), dan Feature Tests.

@@ -12,8 +12,8 @@ Direktori ini memuat seluruh panduan verifikasi fungsionalitas, daftar rute web 
 | **02** | Legalitas, KYC & Perlindungan Ahli Waris | [02_legalitas_kyc_dan_ahli_waris.md](../information-design/02_legalitas_kyc_dan_ahli_waris.md) | [02_legalitas_kyc_dan_ahli_waris.md](02_legalitas_kyc_dan_ahli_waris.md) | Selesai | 39/39 Lulus |
 | **03** | Jaringan & Afiliasi | [03_jaringan_dan_afiliasi.md](../information-design/03_jaringan_dan_afiliasi.md) | [03_jaringan_dan_afiliasi.md](03_jaringan_dan_afiliasi.md) | Selesai | 15/15 Lulus |
 | **04** | Copytrade, Akun Broker & Manajemen Multi-Akun | [04_copytrade_dan_broker.md](../information-design/04_copytrade_dan_broker.md) | [04_copytrade_dan_broker.md](04_copytrade_dan_broker.md) | Selesai | 16/16 Lulus |
-| **05** | Klaim Komisi Afiliasi (Tiering & Pro-Rata 3 Bulan) | [05_klaim_komisi_afiliasi.md](../information-design/05_klaim_komisi_afiliasi.md) | [05_klaim_komisi_afiliasi.md](05_klaim_komisi_afiliasi.md) | Selesai | 11/11 Lulus |
-| **06** | Edukasi & Fitur Interaktif | [06_edukasi_dan_fitur_interaktif.md](../information-design/06_edukasi_dan_fitur_interaktif.md) | *(Tahap Berikutnya)* | Pending | - |
+| **05** | Klaim Komisi Afiliasi (Tiering & Formula ROI) | [05_klaim_komisi_afiliasi.md](../information-design/05_klaim_komisi_afiliasi.md) | [05_klaim_komisi_afiliasi.md](05_klaim_komisi_afiliasi.md) | Selesai | 13/13 Lulus |
+| **06** | Edukasi, Glosarium & Kalkulator Proyeksi Finansial | [06_edukasi_dan_fitur_interaktif.md](../information-design/06_edukasi_dan_fitur_interaktif.md) | [06_edukasi_dan_fitur_interaktif.md](06_edukasi_dan_fitur_interaktif.md) | Selesai | 12/12 Lulus |
 | **07** | Pengaturan Sistem & Konten Legal | [07_pengaturan_sistem_dan_konten_legal.md](../information-design/07_pengaturan_sistem_dan_konten_legal.md) | *(Tergabung di Modul 02)* | Selesai | 10/10 Lulus |
 
 ---

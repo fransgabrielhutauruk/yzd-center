@@ -75,7 +75,7 @@ const pageKey = computed(() => (props.paramPrefix ? `${props.paramPrefix}page` :
 const search = ref(props.filters[searchKey.value] || props.filters.search || '');
 const sortBy = ref(props.filters[sortByKey.value] || props.filters.sort_by || '');
 const sortDirection = ref(props.filters[sortDirectionKey.value] || props.filters.sort_direction || 'desc');
-const perPage = ref(props.filters[perPageKey.value] || props.filters.per_page || props.data.per_page || 10);
+const perPage = ref(props.filters[perPageKey.value] || props.filters.per_page || props.data?.per_page || 10);
 const isLoading = ref(false);
 
 let debounceTimeout = null;
@@ -141,7 +141,7 @@ watch(
             search.value = newFilters[searchKey.value] ?? newFilters.search ?? '';
             sortBy.value = newFilters[sortByKey.value] ?? newFilters.sort_by ?? '';
             sortDirection.value = newFilters[sortDirectionKey.value] ?? newFilters.sort_direction ?? 'desc';
-            perPage.value = newFilters[perPageKey.value] ?? newFilters.per_page ?? props.data.per_page ?? 10;
+            perPage.value = newFilters[perPageKey.value] ?? newFilters.per_page ?? props.data?.per_page ?? 10;
         }
     },
     { deep: true }

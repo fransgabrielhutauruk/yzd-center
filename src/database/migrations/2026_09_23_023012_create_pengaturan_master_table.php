@@ -24,6 +24,8 @@ return new class extends Migration
             $table->string('tier_1_pdf_path')->nullable();
             $table->string('tier_2_pdf_path')->nullable();
             $table->string('tier_3_pdf_path')->nullable();
+            $table->decimal('kurs_usd_idr', 15, 2)->default(16796.00);
+            $table->timestamp('kurs_usd_idr_updated_at')->nullable();
             $table->timestamps();
         });
     }

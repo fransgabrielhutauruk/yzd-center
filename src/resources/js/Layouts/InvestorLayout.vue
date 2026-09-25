@@ -16,6 +16,10 @@ import {
     Users,
     TrendingUp,
     Banknote,
+    Calculator,
+    BookOpen,
+    HelpCircle,
+    MessageCircleQuestion,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
@@ -90,6 +94,34 @@ const navItems = computed(() => {
             icon: TrendingUp,
             requiresActive: false,
             routeName: 'investor.copytrade.index',
+        },
+        {
+            label: 'Kalkulator Proyeksi',
+            href: '/investor/education/calculator',
+            icon: Calculator,
+            requiresActive: false,
+            routeName: 'investor.education.calculator',
+        },
+        {
+            label: 'Pusat Bantuan & Video',
+            href: '/investor/education/help',
+            icon: HelpCircle,
+            requiresActive: false,
+            routeName: 'investor.education.help',
+        },
+        {
+            label: 'Tanya Jawab (FAQ)',
+            href: '/investor/education/faq',
+            icon: MessageCircleQuestion,
+            requiresActive: false,
+            routeName: 'investor.education.faq',
+        },
+        {
+            label: 'Glosarium Forex',
+            href: '/investor/education/glossary',
+            icon: BookOpen,
+            requiresActive: false,
+            routeName: 'investor.education.glossary',
         },
     ];
 

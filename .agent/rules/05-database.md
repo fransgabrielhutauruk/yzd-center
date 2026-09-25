@@ -6,6 +6,11 @@
 - Gunakan Eloquent ORM secara konsisten. Hindari query SQL mentah (`DB::raw`) kecuali untuk kalkulasi agregasi kompleks yang sangat mendesak.
 - **Pencegahan N+1 Query:** Selalu lakukan *eager loading* (`with(['affiliator', 'downline'])`) saat mengambil data koleksi untuk tabel atau daftar.
 - **Presisi Nilai Finansial:** Nilai uang (deposit, komisi, profit, estimasi modal) disimpan menggunakan tipe data `DECIMAL(15, 2)`. **DILARANG** menggunakan tipe data `FLOAT` atau `DOUBLE` karena rentan terhadap galat pembulatan biner.
+- **Single Source of Truth Migrasi (Ubah Langsung di Sumber Create):**
+  - **DILARANG** membuat file alter migration (`add_{kolom}_to_{tabel}_table.php` atau `update_...`).
+  - Setiap penambahan kolom, perubahan tipe data, atau penyesuaian index wajib diubah langsung pada file migrasi sumbernya (`create_{nama_tabel}_table.php`).
+  - Setelah memodifikasi file sumber, sinkronkan basis data lokal menggunakan:
+    `& "C:\laragon\bin\php\php-8.3.12-nts-Win32-vs16-x64\php.exe" artisan migrate:fresh --seed`
 
 ---
 

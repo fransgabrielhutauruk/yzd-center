@@ -18,6 +18,9 @@ import {
     Users,
     Settings,
     Banknote,
+    BookOpen,
+    HelpCircle,
+    MessageCircleQuestion,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
@@ -115,6 +118,29 @@ const navSections = [
                 href: '/admin/commissions',
                 icon: Banknote,
                 routeName: 'admin.commissions.index',
+            },
+        ],
+    },
+    {
+        title: 'Edukasi & Bantuan',
+        items: [
+            {
+                label: 'Glosarium Forex',
+                href: '/admin/education/glossary',
+                icon: BookOpen,
+                routeName: 'admin.education.glossary.index',
+            },
+            {
+                label: 'Pusat Bantuan & Video',
+                href: '/admin/education/help',
+                icon: HelpCircle,
+                routeName: 'admin.education.help.index',
+            },
+            {
+                label: 'Tanya Jawab (FAQ)',
+                href: '/admin/education/faq',
+                icon: MessageCircleQuestion,
+                routeName: 'admin.education.faq.index',
             },
         ],
     },
