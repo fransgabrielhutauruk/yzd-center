@@ -20,9 +20,13 @@ class AuthenticatedSessionController extends Controller
     /**
      * Tampilkan formulir login.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return Inertia::render('Auth/Login');
+        $lockoutSeconds = LoginRequest::getLockoutSeconds($request);
+
+        return Inertia::render('Auth/Login', [
+            'lockoutSeconds' => $lockoutSeconds,
+        ]);
     }
 
     /**
@@ -40,6 +44,15 @@ class AuthenticatedSessionController extends Controller
 
         if (!$this->authService->authenticate($login, $password, $remember)) {
             $request->hitRateLimit();
+
+            if ($request->isRateLimited()) {
+                event(new \Illuminate\Auth\Events\Lockout($request));
+                $seconds = $request->availableIn();
+
+                throw ValidationException::withMessages([
+                    'login' => "Terlalu banyak percobaan masuk. Silakan coba lagi dalam {$seconds} detik.",
+                ]);
+            }
 
             throw ValidationException::withMessages([
                 'login' => 'Username/email atau kata sandi tidak cocok.',

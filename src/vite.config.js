@@ -29,6 +29,7 @@ export default defineConfig({
     resolve: {
         alias: {
             '@': `${import.meta.dirname}/resources/js`,
+            '@images': `${import.meta.dirname}/resources/images`,
             'tw-animate-css': `${import.meta.dirname}/node_modules/tw-animate-css/dist/tw-animate.css`,
         },
     },

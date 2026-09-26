@@ -570,4 +570,100 @@ class AuthTest extends TestCase
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page->component('Investor/Kyc/Index'));
     }
+
+    public function test_login_rate_limiting_locks_out_after_five_failed_attempts(): void
+    {
+        User::factory()->create([
+            'email'    => 'throttle_user@example.com',
+            'password' => bcrypt('correct-password'),
+        ]);
+
+        // 4 failed attempts should yield standard credential error
+        for ($i = 1; $i <= 4; $i++) {
+            $response = $this->post('/login', [
+                'login'    => 'throttle_user@example.com',
+                'password' => 'wrong-password',
+            ]);
+            $response->assertSessionHasErrors([
+                'login' => 'Username/email atau kata sandi tidak cocok.',
+            ]);
+        }
+
+        // 5th failed attempt should immediately trigger rate limiter
+        $fifthResponse = $this->post('/login', [
+            'login'    => 'throttle_user@example.com',
+            'password' => 'wrong-password',
+        ]);
+        $fifthResponse->assertSessionHasErrors('login');
+        $errorMessage = session('errors')->first('login');
+        $this->assertStringContainsString('Terlalu banyak percobaan masuk', $errorMessage);
+
+        // 6th attempt should be blocked before reaching authentication
+        $sixthResponse = $this->post('/login', [
+            'login'    => 'throttle_user@example.com',
+            'password' => 'correct-password',
+        ]);
+        $sixthResponse->assertSessionHasErrors('login');
+        $errorMessage6 = session('errors')->first('login');
+        $this->assertStringContainsString('Terlalu banyak percobaan masuk', $errorMessage6);
+    }
+
+    public function test_login_screen_retains_lockout_seconds_when_refreshed(): void
+    {
+        User::factory()->create([
+            'email'    => 'lockout_refresh@example.com',
+            'password' => bcrypt('password123'),
+        ]);
+
+        for ($i = 1; $i <= 5; $i++) {
+            $this->post('/login', [
+                'login'    => 'lockout_refresh@example.com',
+                'password' => 'wrong-password',
+            ]);
+        }
+
+        // Simulate page refresh via GET /login
+        $response = $this->get('/login');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Auth/Login')
+            ->where('lockoutSeconds', fn ($seconds) => $seconds > 0)
+        );
+    }
+
+    public function test_successful_login_clears_rate_limiter(): void
+    {
+        $user = User::factory()->create([
+            'email'    => 'clear_throttle@example.com',
+            'password' => bcrypt('validpass123'),
+        ]);
+
+        // Failed attempts
+        $this->post('/login', [
+            'login'    => 'clear_throttle@example.com',
+            'password' => 'wrong-password',
+        ]);
+        $this->post('/login', [
+            'login'    => 'clear_throttle@example.com',
+            'password' => 'wrong-password',
+        ]);
+
+        // Successful login
+        $response = $this->post('/login', [
+            'login'    => 'clear_throttle@example.com',
+            'password' => 'validpass123',
+        ]);
+        $this->assertAuthenticatedAs($user);
+
+        // Logout
+        $this->post('/logout');
+
+        // Check login screen
+        $loginScreen = $this->get('/login');
+        $loginScreen->assertInertia(fn ($page) => $page
+            ->component('Auth/Login')
+            ->where('lockoutSeconds', 0)
+        );
+    }
 }
