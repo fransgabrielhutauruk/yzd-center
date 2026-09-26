@@ -30,6 +30,7 @@ import {
     AlertCircle,
     UserCheck,
     Calendar,
+    AtSign,
 } from 'lucide-vue-next';
 
 // === [DEV ONLY: AUTO-FILL] Hapus blok import di bawah ini kelak jika tidak diperlukan lagi ===
@@ -68,9 +69,9 @@ const showLeaveConfirmation = ref(false);
 const pendingNavigation = ref(null);
 
 const steps = [
-    { id: 1, title: 'Identitas', icon: User, desc: 'Data Diri & KTP' },
+    { id: 1, title: 'Identitas', icon: User, desc: 'Data Diri' },
     { id: 2, title: 'Ahli Waris', icon: Users, desc: 'Kontak Darurat' },
-    { id: 3, title: 'Konfirmasi', icon: CheckCircle2, desc: 'Persetujuan & Submit' },
+    { id: 3, title: 'Konfirmasi', icon: CheckCircle2, desc: 'Persetujuan' },
 ];
 
 const form = useForm({
@@ -122,7 +123,9 @@ const checkReferralCode = async () => {
     referralVerified.value = false;
 
     try {
-        const response = await fetch(`/register/check-referral?code=${encodeURIComponent(rawCode)}`);
+        const response = await fetch(
+            `/register/check-referral?code=${encodeURIComponent(rawCode)}`
+        );
         const data = await response.json();
 
         if (response.ok && data.valid) {
@@ -365,7 +368,6 @@ const validateStep2 = () => {
 const nextStep = () => {
     if (currentStep.value === 1 && !validateStep1()) return;
     if (currentStep.value === 2 && !validateStep2()) return;
-    
 
     if (currentStep.value < 3) {
         currentStep.value++;
@@ -480,7 +482,7 @@ const submit = () => {
         currentStep.value = 2;
         return;
     }
-    
+
     if (!form.terms) {
         toast.error('Anda wajib menyetujui Syarat & Ketentuan Layanan.');
         return;
@@ -513,7 +515,7 @@ const submit = () => {
                 'ahli_waris_alamat',
             ];
             const step3Fields = ['terms'];
-            
+
             const errorKeys = Object.keys(form.errors);
 
             if (errorKeys.some((k) => step1Fields.includes(k))) {
@@ -565,8 +567,8 @@ const submit = () => {
                     Kebijakan Pendaftaran Tertutup:
                 </p>
                 <p class="leading-relaxed">
-                    YZD Center menerapkan sistem eksklusif berbasis undangan. Setiap pendaftaran akun wajib menggunakan  tautan resmi
-                    yang masih aktif dari Administrator.
+                    YZD Center menerapkan sistem eksklusif berbasis undangan. Setiap pendaftaran
+                    akun wajib menggunakan tautan resmi yang masih aktif dari Administrator.
                 </p>
             </div>
 
@@ -585,9 +587,7 @@ const submit = () => {
         <div v-else class="space-y-6">
             <!-- Header Judul -->
             <div class="space-y-1 text-center">
-                <h1 class="text-foreground text-xl font-bold tracking-tight">
-                    Pendaftaran Akun
-                </h1>
+                <h1 class="text-foreground text-xl font-bold tracking-tight">Pendaftaran Akun</h1>
                 <p class="text-muted-foreground text-xs">
                     Selesaikan tahapan pendaftaran secara bertahap untuk aktivasi akun Anda.
                 </p>
@@ -763,7 +763,7 @@ const submit = () => {
                                 <div
                                     class="text-muted-foreground pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"
                                 >
-                                    <span class="text-xs font-bold">@</span>
+                                    <AtSign class="h-4 w-4" />
                                 </div>
                                 <input
                                     id="username"
@@ -916,7 +916,10 @@ const submit = () => {
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <!-- Tempat Lahir -->
                         <div class="space-y-1.5">
-                            <label for="tempat_lahir" class="text-foreground block text-xs font-semibold">
+                            <label
+                                for="tempat_lahir"
+                                class="text-foreground block text-xs font-semibold"
+                            >
                                 Tempat Lahir <span class="text-destructive">*</span>
                             </label>
                             <div class="relative">
@@ -938,14 +941,20 @@ const submit = () => {
                                     }"
                                 />
                             </div>
-                            <p v-if="form.errors.tempat_lahir" class="text-destructive text-xs font-medium">
+                            <p
+                                v-if="form.errors.tempat_lahir"
+                                class="text-destructive text-xs font-medium"
+                            >
                                 {{ form.errors.tempat_lahir }}
                             </p>
                         </div>
 
                         <!-- Tanggal Lahir -->
                         <div class="space-y-1.5">
-                            <label for="tanggal_lahir" class="text-foreground block text-xs font-semibold">
+                            <label
+                                for="tanggal_lahir"
+                                class="text-foreground block text-xs font-semibold"
+                            >
                                 Tanggal Lahir <span class="text-destructive">*</span>
                             </label>
                             <div class="relative">
@@ -966,7 +975,10 @@ const submit = () => {
                                     }"
                                 />
                             </div>
-                            <p v-if="form.errors.tanggal_lahir" class="text-destructive text-xs font-medium">
+                            <p
+                                v-if="form.errors.tanggal_lahir"
+                                class="text-destructive text-xs font-medium"
+                            >
                                 {{ form.errors.tanggal_lahir }}
                             </p>
                         </div>
@@ -991,11 +1003,15 @@ const submit = () => {
                                 placeholder="Contoh: Karyawan Swasta / Wiraswasta"
                                 class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border py-2 pr-3 pl-9 text-sm transition-all focus:border-transparent focus:ring-2 focus:outline-none"
                                 :class="{
-                                    'border-destructive focus:ring-destructive': form.errors.pekerjaan,
+                                    'border-destructive focus:ring-destructive':
+                                        form.errors.pekerjaan,
                                 }"
                             />
                         </div>
-                        <p v-if="form.errors.pekerjaan" class="text-destructive text-xs font-medium">
+                        <p
+                            v-if="form.errors.pekerjaan"
+                            class="text-destructive text-xs font-medium"
+                        >
                             {{ form.errors.pekerjaan }}
                         </p>
                     </div>
@@ -1081,65 +1097,98 @@ const submit = () => {
                     </div>
 
                     <!-- Upload KTP -->
-                            <div class="border-border bg-card/60 space-y-3 rounded-xl border p-4">
-                                <div class="flex items-start justify-between">
-                                    <div>
-                                        <label class="text-foreground block text-xs font-bold">
-                                            Foto KTP <span class="text-destructive">*</span>
-                                        </label>
-                                        <p class="text-muted-foreground mt-0.5 text-[11px]">
-                                            JPG, JPEG, PNG (Maks 10 MB)
-                                        </p>
-                                    </div>
-                                    <span class="bg-primary-500/10 text-primary-600 rounded px-2 py-0.5 text-[10px] font-bold">Wajib</span>
-                                </div>
-
-                                <div
-                                    class="border-input hover:border-primary-500 bg-background/50 group relative cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-all"
-                                >
-                                    <input
-                                        type="file"
-                                        accept="image/jpeg,image/png,image/jpg"
-                                        @change="handleKtpChange"
-                                        class="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
-                                    />
-                                    <div v-if="ktpCompressing" class="flex flex-col items-center justify-center space-y-2 py-4">
-                                        <Loader2 class="text-primary-600 h-6 w-6 animate-spin" />
-                                        <p class="text-foreground text-xs font-semibold">Memproses foto KTP...</p>
-                                    </div>
-                                    <div v-else-if="ktpInfo" class="space-y-2">
-                                        <img
-                                            v-if="ktpInfo.previewUrl"
-                                            :src="ktpInfo.previewUrl"
-                                            alt="Preview KTP"
-                                            class="border-border mx-auto h-28 rounded-lg border object-contain shadow-xs"
-                                        />
-                                        <p class="text-foreground flex items-center justify-center gap-1.5 text-xs font-semibold break-all px-2">
-                                            <CheckCircle class="h-4 w-4 text-emerald-600 shrink-0" />
-                                            <span>{{ ktpInfo.name || 'Foto KTP Terpilih' }}</span>
-                                        </p>
-                                        <div v-if="ktpInfo.isQualityWarning" class="mt-2 flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-left text-xs text-amber-800 dark:text-amber-200">
-                                            <AlertCircle class="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                                            <p class="text-[11px] leading-relaxed">{{ ktpInfo.warningMessage || 'Foto terindikasi buram. Pastikan teks NIK dan nama terbaca jelas.' }}</p>
-                                        </div>
-                                        <span class="border-input bg-background/80 text-primary-600 hover:bg-muted inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-semibold shadow-2xs">
-                                            <Edit3 class="h-3 w-3" /> Ganti Foto KTP
-                                        </span>
-                                    </div>
-                                    <div v-else class="flex flex-col items-center justify-center space-y-1.5 py-4">
-                                        <div class="bg-primary-500/10 text-primary-600 flex h-10 w-10 items-center justify-center rounded-full transition-transform group-hover:scale-110">
-                                            <UploadCloud class="h-5 w-5" />
-                                        </div>
-                                        <p class="text-foreground text-xs font-semibold">Pilih atau seret foto KTP</p>
-                                        <p class="text-muted-foreground text-[10px]">Pastikan seluruh teks identitas terbaca jelas</p>
-                                    </div>
-                                </div>
-                                <p v-if="form.errors.dokumen_ktp" class="text-destructive text-xs font-medium">
-                                    {{ form.errors.dokumen_ktp }}
+                    <div class="border-border bg-card/60 space-y-3 rounded-xl border p-4">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <label class="text-foreground block text-xs font-bold">
+                                    Foto KTP <span class="text-destructive">*</span>
+                                </label>
+                                <p class="text-muted-foreground mt-0.5 text-[11px]">
+                                    JPG, JPEG, PNG (Maks 10 MB)
                                 </p>
                             </div>
+                            <span
+                                class="bg-primary-500/10 text-primary-600 rounded px-2 py-0.5 text-[10px] font-bold"
+                                >Wajib</span
+                            >
+                        </div>
 
-                            
+                        <div
+                            class="border-input hover:border-primary-500 bg-background/50 group relative cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-all"
+                        >
+                            <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/jpg"
+                                @change="handleKtpChange"
+                                class="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                            />
+                            <div
+                                v-if="ktpCompressing"
+                                class="flex flex-col items-center justify-center space-y-2 py-4"
+                            >
+                                <Loader2 class="text-primary-600 h-6 w-6 animate-spin" />
+                                <p class="text-foreground text-xs font-semibold">
+                                    Memproses foto KTP...
+                                </p>
+                            </div>
+                            <div v-else-if="ktpInfo" class="space-y-2">
+                                <img
+                                    v-if="ktpInfo.previewUrl"
+                                    :src="ktpInfo.previewUrl"
+                                    alt="Preview KTP"
+                                    class="border-border mx-auto h-28 rounded-lg border object-contain shadow-xs"
+                                />
+                                <p
+                                    class="text-foreground flex items-center justify-center gap-1.5 px-2 text-xs font-semibold break-all"
+                                >
+                                    <CheckCircle class="h-4 w-4 shrink-0 text-emerald-600" />
+                                    <span>{{ ktpInfo.name || 'Foto KTP Terpilih' }}</span>
+                                </p>
+                                <div
+                                    v-if="ktpInfo.isQualityWarning"
+                                    class="mt-2 flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-left text-xs text-amber-800 dark:text-amber-200"
+                                >
+                                    <AlertCircle
+                                        class="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
+                                    />
+                                    <p class="text-[11px] leading-relaxed">
+                                        {{
+                                            ktpInfo.warningMessage ||
+                                            'Foto terindikasi buram. Pastikan teks NIK dan nama terbaca jelas.'
+                                        }}
+                                    </p>
+                                </div>
+                                <span
+                                    class="border-input bg-background/80 text-primary-600 dark:text-primary-100 hover:bg-muted inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-semibold shadow-2xs"
+                                >
+                                    <Edit3 class="h-3 w-3" /> Ganti Foto KTP
+                                </span>
+                            </div>
+                            <div
+                                v-else
+                                class="flex flex-col items-center justify-center space-y-1.5 py-4"
+                            >
+                                <div
+                                    class="bg-primary-500/10 text-primary-600 flex h-10 w-10 items-center justify-center rounded-full transition-transform group-hover:scale-110"
+                                >
+                                    <UploadCloud class="h-5 w-5" />
+                                </div>
+                                <p class="text-foreground text-xs font-semibold">
+                                    Pilih atau seret foto KTP
+                                </p>
+                                <p class="text-muted-foreground text-[10px]">
+                                    Pastikan seluruh teks identitas terbaca jelas
+                                </p>
+                            </div>
+                        </div>
+                        <p
+                            v-if="form.errors.dokumen_ktp"
+                            class="text-destructive text-xs font-medium"
+                        >
+                            {{ form.errors.dokumen_ktp }}
+                        </p>
+                    </div>
+
                     <!-- Footer Navigasi Step 1 -->
                     <div class="flex items-center justify-end pt-4">
                         <Button
@@ -1285,7 +1334,7 @@ const submit = () => {
                             for="ahli_waris_alamat"
                             class="text-foreground block text-xs font-semibold"
                         >
-                            Alamat Domisili Ahli Waris <span class="text-destructive">*</span>
+                            Alamat Ahli Waris <span class="text-destructive">*</span>
                         </label>
                         <div class="relative">
                             <div
@@ -1344,12 +1393,14 @@ const submit = () => {
                     <div
                         class="border-border text-foreground flex items-center gap-2.5 border-b pb-2.5"
                     >
-                        <div class="bg-primary-500/10 text-primary-600 dark:text-primary-400 rounded-lg p-1.5 shrink-0">
+                        <div
+                            class="bg-primary-500/10 text-primary-600 dark:text-primary-400 shrink-0 rounded-lg p-1.5"
+                        >
                             <CheckCircle2 class="h-4 w-4" />
                         </div>
                         <div class="min-w-0">
-                            <h2 class="text-sm font-bold tracking-wider uppercase text-foreground">
-                                3. Konfirmasi & Persetujuan Layanan
+                            <h2 class="text-foreground text-sm font-bold tracking-wider uppercase">
+                                3. Konfirmasi & Persetujuan
                             </h2>
                             <p class="text-muted-foreground text-xs">
                                 Periksa kembali ringkasan pendaftaran Anda sebelum mengirimkannya.
@@ -1359,24 +1410,30 @@ const submit = () => {
 
                     <!-- Ringkasan Data Pendaftaran -->
                     <div
-                        class="border-border bg-card/60 divide-border/60 divide-y rounded-2xl border text-xs shadow-2xs overflow-hidden"
+                        class="border-border bg-card/60 divide-border/60 divide-y overflow-hidden rounded-2xl border text-xs shadow-2xs"
                     >
                         <!-- 1. Akun Ringkasan -->
-                        <div class="p-4 sm:p-5 space-y-3.5">
+                        <div class="space-y-3.5 p-4 sm:p-5">
                             <!-- Header Section 1 -->
-                            <div class="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5">
-                                <div class="flex items-center gap-2 min-w-0">
-                                    <div class="flex h-6 w-6 items-center justify-center rounded-md bg-primary-500/10 text-primary-600 dark:text-primary-400 shrink-0">
+                            <div
+                                class="border-border/50 flex items-center justify-between gap-3 border-b pb-2.5"
+                            >
+                                <div class="flex min-w-0 items-center gap-2">
+                                    <div
+                                        class="bg-primary-500/10 text-primary-600 dark:text-primary-400 flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
+                                    >
                                         <User class="h-3.5 w-3.5" />
                                     </div>
-                                    <span class="text-xs font-bold uppercase tracking-wider text-foreground truncate">
+                                    <span
+                                        class="text-foreground truncate text-xs font-bold tracking-wider uppercase"
+                                    >
                                         Data Identitas Diri
                                     </span>
                                 </div>
                                 <button
                                     type="button"
                                     @click="jumpToStep(1)"
-                                    class="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-[11px] font-semibold text-primary-600 dark:text-primary-400 hover:bg-muted hover:text-primary-700 transition-colors shrink-0 shadow-2xs cursor-pointer min-h-[30px]"
+                                    class="border-border bg-background text-primary-600 dark:text-primary-400 hover:bg-muted hover:text-primary-700 inline-flex min-h-[30px] shrink-0 cursor-pointer items-center gap-1 rounded-md border px-2.5 py-1 text-[11px] font-semibold shadow-2xs transition-colors"
                                 >
                                     <Edit3 class="h-3 w-3" />
                                     <span>Ubah</span>
@@ -1384,77 +1441,126 @@ const submit = () => {
                             </div>
 
                             <!-- Content Grid -->
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <!-- Nama & Username Highlight Banner -->
-                                <div class="sm:col-span-2 rounded-xl bg-muted/40 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border border-border/50">
-                                    <div class="min-w-0">
-                                        <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
-                                            Nama Lengkap (Sesuai KTP)
-                                        </span>
-                                        <span class="text-sm font-bold text-foreground break-words block">
-                                            {{ form.name || '-' }}
-                                        </span>
-                                    </div>
-                                    <div class="shrink-0 flex items-center gap-1 text-xs font-mono text-muted-foreground bg-background px-2.5 py-1 rounded-md border border-border/60 w-fit">
-                                        <span>@{{ form.username || '-' }}</span>
-                                    </div>
+                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <!-- Nama -->
+                                <div class="min-w-0 space-y-1">
+                                    <span
+                                        class="text-muted-foreground block text-[11px] font-medium"
+                                        >Nama Lengkap (Sesuai KTP)</span
+                                    >
+                                    <span
+                                        class="text-foreground block text-xs font-semibold break-all"
+                                        >{{ form.name || '-' }}</span
+                                    >
+                                </div>
+
+                                <!-- Username -->
+                                <div class="min-w-0 space-y-1">
+                                    <span
+                                        class="text-muted-foreground block text-[11px] font-medium"
+                                        >Username</span
+                                    >
+                                    <span
+                                        class="text-foreground block text-xs font-semibold break-all"
+                                        >{{ form.username || '-' }}</span
+                                    >
                                 </div>
 
                                 <!-- Email -->
-                                <div class="space-y-1 min-w-0">
-                                    <span class="text-[11px] text-muted-foreground font-medium block">Alamat Email</span>
-                                    <span class="text-xs font-semibold text-foreground break-all block">{{ form.email || '-' }}</span>
+                                <div class="min-w-0 space-y-1">
+                                    <span
+                                        class="text-muted-foreground block text-[11px] font-medium"
+                                        >Alamat Email</span
+                                    >
+                                    <span
+                                        class="text-foreground block text-xs font-semibold break-all"
+                                        >{{ form.email || '-' }}</span
+                                    >
                                 </div>
 
                                 <!-- Nomor HP -->
-                                <div class="space-y-1 min-w-0">
-                                    <span class="text-[11px] text-muted-foreground font-medium block">Nomor HP / WhatsApp</span>
-                                    <span class="text-xs font-semibold text-foreground font-mono block">{{ form.phone || '-' }}</span>
+                                <div class="min-w-0 space-y-1">
+                                    <span
+                                        class="text-muted-foreground block text-[11px] font-medium"
+                                        >Nomor WhatsApp / HP</span
+                                    >
+                                    <span
+                                        class="text-foreground block font-mono text-xs font-bold tracking-wide"
+                                        >{{ form.phone || '-' }}</span
+                                    >
                                 </div>
 
                                 <!-- NIK -->
-                                <div class="space-y-1 min-w-0">
-                                    <span class="text-[11px] text-muted-foreground font-medium block">NIK</span>
-                                    <span class="text-xs font-semibold text-foreground font-mono tracking-wide block">{{ form.nik || '-' }}</span>
+                                <div class="min-w-0 space-y-1">
+                                    <span
+                                        class="text-muted-foreground block text-[11px] font-medium"
+                                        >NIK</span
+                                    >
+                                    <span
+                                        class="text-foreground block font-mono text-xs font-bold tracking-wide"
+                                        >{{ form.nik || '-' }}</span
+                                    >
                                 </div>
 
                                 <!-- Tempat, Tanggal Lahir -->
-                                <div class="space-y-1 min-w-0">
-                                    <span class="text-[11px] text-muted-foreground font-medium block">Tempat, Tanggal Lahir</span>
-                                    <span class="text-xs font-semibold text-foreground block">
-                                        {{ form.tempat_lahir || '-' }}{{ form.tanggal_lahir ? ', ' + form.tanggal_lahir : '' }}
+                                <div class="min-w-0 space-y-1">
+                                    <span
+                                        class="text-muted-foreground block text-[11px] font-medium"
+                                        >Tempat, Tanggal Lahir</span
+                                    >
+                                    <span class="text-foreground block text-xs font-semibold">
+                                        {{ form.tempat_lahir || '-'
+                                        }}{{ form.tanggal_lahir ? ', ' + form.tanggal_lahir : '' }}
                                     </span>
                                 </div>
 
                                 <!-- Pekerjaan -->
-                                <div class="space-y-1 min-w-0">
-                                    <span class="text-[11px] text-muted-foreground font-medium block">Pekerjaan</span>
-                                    <span class="text-xs font-semibold text-foreground block">{{ form.pekerjaan || '-' }}</span>
+                                <div class="min-w-0 space-y-1">
+                                    <span
+                                        class="text-muted-foreground block text-[11px] font-medium"
+                                        >Pekerjaan</span
+                                    >
+                                    <span class="text-foreground block text-xs font-semibold">{{
+                                        form.pekerjaan || '-'
+                                    }}</span>
                                 </div>
 
                                 <!-- Berkas KTP -->
-                                <div class="space-y-1 min-w-0">
-                                    <span class="text-[11px] text-muted-foreground font-medium block">Dokumen KTP</span>
+                                <div class="min-w-0 space-y-1">
+                                    <span
+                                        class="text-muted-foreground block text-[11px] font-medium"
+                                        >Dokumen KTP</span
+                                    >
                                     <div>
                                         <span
-                                            class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold border"
+                                            class="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-semibold"
                                             :class="
                                                 form.dokumen_ktp
-                                                    ? 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-500/30'
+                                                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
                                                     : 'bg-destructive/10 text-destructive border-destructive/30'
                                             "
                                         >
-                                            <CheckCircle2 v-if="form.dokumen_ktp" class="h-3.5 w-3.5 shrink-0" />
+                                            <CheckCircle2
+                                                v-if="form.dokumen_ktp"
+                                                class="h-3.5 w-3.5 shrink-0"
+                                            />
                                             <AlertCircle v-else class="h-3.5 w-3.5 shrink-0" />
-                                            <span>{{ form.dokumen_ktp ? 'Siap Diunggah' : 'Belum Dipilih' }}</span>
+                                            <span>{{
+                                                form.dokumen_ktp ? 'Siap Diunggah' : 'Belum Dipilih'
+                                            }}</span>
                                         </span>
                                     </div>
                                 </div>
 
                                 <!-- Alamat Domisili (Full Width) -->
-                                <div class="sm:col-span-2 space-y-1 pt-1.5">
-                                    <span class="text-[11px] text-muted-foreground font-medium block">Alamat Domisili</span>
-                                    <p class="text-xs font-medium text-foreground leading-relaxed break-words">
+                                <div class="min-w-0 space-y-1">
+                                    <span
+                                        class="text-muted-foreground block text-[11px] font-medium"
+                                        >Alamat</span
+                                    >
+                                    <p
+                                        class="text-foreground text-xs leading-relaxed font-semibold break-words"
+                                    >
                                         {{ form.alamat || '-' }}
                                     </p>
                                 </div>
@@ -1462,21 +1568,27 @@ const submit = () => {
                         </div>
 
                         <!-- 2. Ahli Waris Ringkasan -->
-                        <div class="p-4 sm:p-5 space-y-3.5">
+                        <div class="space-y-3.5 p-4 sm:p-5">
                             <!-- Header Section 2 -->
-                            <div class="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5">
-                                <div class="flex items-center gap-2 min-w-0">
-                                    <div class="flex h-6 w-6 items-center justify-center rounded-md bg-accent-500/10 text-accent-600 dark:text-accent-400 shrink-0">
+                            <div
+                                class="border-border/50 flex items-center justify-between gap-3 border-b pb-2.5"
+                            >
+                                <div class="flex min-w-0 items-center gap-2">
+                                    <div
+                                        class="bg-accent-500/10 text-accent-600 dark:text-accent-400 flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
+                                    >
                                         <Users class="h-3.5 w-3.5" />
                                     </div>
-                                    <span class="text-xs font-bold uppercase tracking-wider text-foreground truncate">
+                                    <span
+                                        class="text-foreground truncate text-xs font-bold tracking-wider uppercase"
+                                    >
                                         Data Ahli Waris
                                     </span>
                                 </div>
                                 <button
                                     type="button"
                                     @click="jumpToStep(2)"
-                                    class="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-[11px] font-semibold text-primary-600 dark:text-primary-400 hover:bg-muted hover:text-primary-700 transition-colors shrink-0 shadow-2xs cursor-pointer min-h-[30px]"
+                                    class="border-border bg-background text-primary-600 dark:text-primary-400 hover:bg-muted hover:text-primary-700 inline-flex min-h-[30px] shrink-0 cursor-pointer items-center gap-1 rounded-md border px-2.5 py-1 text-[11px] font-semibold shadow-2xs transition-colors"
                                 >
                                     <Edit3 class="h-3 w-3" />
                                     <span>Ubah</span>
@@ -1484,35 +1596,57 @@ const submit = () => {
                             </div>
 
                             <!-- Content Grid -->
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <!-- Nama Ahli Waris -->
-                                <div class="space-y-1 min-w-0">
-                                    <span class="text-[11px] text-muted-foreground font-medium block">Nama Lengkap Ahli Waris</span>
-                                    <span class="text-xs font-bold text-foreground break-words block">
+                                <div class="min-w-0 space-y-1">
+                                    <span
+                                        class="text-muted-foreground block text-[11px] font-medium"
+                                        >Nama Lengkap Ahli Waris</span
+                                    >
+                                    <span
+                                        class="text-foreground block text-xs font-semibold break-words"
+                                    >
                                         {{ form.ahli_waris_nama || '-' }}
                                     </span>
                                 </div>
 
                                 <!-- Hubungan Keluarga -->
-                                <div class="space-y-1 min-w-0">
-                                    <span class="text-[11px] text-muted-foreground font-medium block">Hubungan Keluarga</span>
-                                    <span class="text-xs font-semibold text-foreground capitalize block">
+                                <div class="min-w-0 space-y-1">
+                                    <span
+                                        class="text-muted-foreground block text-[11px] font-medium"
+                                        >Hubungan / Relasi</span
+                                    >
+                                    <span
+                                        class="text-foreground block text-xs font-semibold capitalize"
+                                    >
                                         {{ form.ahli_waris_hubungan || '-' }}
                                     </span>
                                 </div>
 
                                 <!-- Kontak Darurat -->
-                                <div class="space-y-1 min-w-0 sm:col-span-2">
-                                    <span class="text-[11px] text-muted-foreground font-medium block">Kontak Darurat (WhatsApp / HP)</span>
-                                    <span class="text-xs font-semibold text-foreground font-mono block">
+                                <div class="min-w-0 space-y-1">
+                                    <span
+                                        class="text-muted-foreground block text-[11px] font-medium"
+                                        >Nomor WhatsApp / HP Ahli Waris</span
+                                    >
+                                    <span
+                                        class="text-foreground block font-mono text-xs font-bold"
+                                    >
                                         {{ form.ahli_waris_phone || '-' }}
                                     </span>
                                 </div>
 
                                 <!-- Alamat Domisili Ahli Waris (Full Width) -->
-                                <div class="sm:col-span-2 space-y-1 pt-1.5 border-t border-border/40">
-                                    <span class="text-[11px] text-muted-foreground font-medium block">Alamat Domisili Ahli Waris</span>
-                                    <p class="text-xs font-medium text-foreground leading-relaxed break-words">
+                                <div
+                                    class="min-w-0 space-y-1 "
+                                >
+                                    <span
+                                        class="text-muted-foreground block text-[11px] font-medium"
+                                        >Alamat Ahli Waris</span
+                                    >
+                                    <p
+                                        class="text-foreground text-xs leading-relaxed font-semibold break-words"
+                                    >
                                         {{ form.ahli_waris_alamat || '-' }}
                                     </p>
                                 </div>
@@ -1521,16 +1655,24 @@ const submit = () => {
                     </div>
 
                     <!-- Kode Referral Affiliator (Opsional) -->
-                    <div class="space-y-2 rounded-2xl border border-border/80 bg-card/60 p-4 sm:p-5 shadow-2xs">
+                    <div
+                        class="border-border/80 bg-card/60 space-y-2 rounded-2xl border p-4 shadow-2xs sm:p-5"
+                    >
                         <div class="flex items-center justify-between">
-                            <label for="referral_code" class="text-xs font-bold text-foreground flex items-center gap-1.5">
-                                <Users class="h-3.5 w-3.5 text-primary-600 dark:text-primary-400" />
+                            <label
+                                for="referral_code"
+                                class="text-foreground flex items-center gap-1.5 text-xs font-bold"
+                            >
+                                <Users class="text-primary-600 dark:text-primary-400 h-3.5 w-3.5" />
                                 <span>Kode Referral Affiliator</span>
-                                <span class="text-[11px] font-normal text-muted-foreground">(Opsional)</span>
+                                <span class="text-muted-foreground text-[11px] font-normal"
+                                    >(Opsional)</span
+                                >
                             </label>
                         </div>
-                        <p class="text-[11px] text-muted-foreground leading-relaxed">
-                            Jika Anda diajak oleh mitra affiliator, masukkan 6 karakter kode referral mereka di bawah ini.
+                        <p class="text-muted-foreground text-[11px] leading-relaxed">
+                            Jika Anda diajak oleh mitra affiliator, masukkan 6 karakter kode
+                            referral mereka di bawah ini.
                         </p>
                         <div class="flex items-center gap-2">
                             <div class="relative flex-1">
@@ -1541,8 +1683,11 @@ const submit = () => {
                                     maxlength="10"
                                     placeholder="Contoh: ABI8K2"
                                     @keydown.enter.prevent="checkReferralCode"
-                                    class="w-full h-9 rounded-lg border border-input bg-background py-2 px-3 text-sm font-mono uppercase tracking-wider transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none"
-                                    :class="{ 'border-destructive': form.errors.referral_code || referralCheckError }"
+                                    class="border-input bg-background focus:border-primary-500 focus:ring-primary-500/20 h-9 w-full rounded-lg border px-3 py-2 font-mono text-sm tracking-wider uppercase transition-all focus:ring-2 focus:outline-none"
+                                    :class="{
+                                        'border-destructive':
+                                            form.errors.referral_code || referralCheckError,
+                                    }"
                                 />
                             </div>
                             <Button
@@ -1551,9 +1696,12 @@ const submit = () => {
                                 size="sm"
                                 :disabled="!form.referral_code || isCheckingReferral"
                                 @click="checkReferralCode"
-                                class="shrink-0 text-xs flex items-center gap-1.5 h-9 min-h-[36px] cursor-pointer"
+                                class="flex h-9 min-h-[36px] shrink-0 cursor-pointer items-center gap-1.5 text-xs"
                             >
-                                <Loader2 v-if="isCheckingReferral" class="h-3.5 w-3.5 animate-spin" />
+                                <Loader2
+                                    v-if="isCheckingReferral"
+                                    class="h-3.5 w-3.5 animate-spin"
+                                />
                                 <span>{{ isCheckingReferral ? 'Memeriksa...' : 'Periksa' }}</span>
                             </Button>
                         </div>
@@ -1563,20 +1711,30 @@ const submit = () => {
                             v-if="referralVerified"
                             class="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-800 dark:text-emerald-300"
                         >
-                            <span>Terhubung dengan Affiliator: <strong class="font-bold text-foreground">{{ verifiedAffiliatorName }}</strong></span>
+                            <span
+                                >Terhubung dengan Affiliator:
+                                <strong class="text-foreground font-bold">{{
+                                    verifiedAffiliatorName
+                                }}</strong></span
+                            >
                         </div>
 
                         <!-- Pesan Kesalahan / Validasi -->
-                        <p v-if="referralCheckError" class="text-xs font-medium text-destructive">
+                        <p v-if="referralCheckError" class="text-destructive text-xs font-medium">
                             {{ referralCheckError }}
                         </p>
-                        <p v-if="form.errors.referral_code" class="text-xs font-medium text-destructive">
+                        <p
+                            v-if="form.errors.referral_code"
+                            class="text-destructive text-xs font-medium"
+                        >
                             {{ form.errors.referral_code }}
                         </p>
                     </div>
 
                     <!-- Persetujuan Syarat & Ketentuan -->
-                    <div class="rounded-2xl border border-border/80 bg-card/60 p-4 sm:p-5 shadow-2xs space-y-2">
+                    <div
+                        class="border-border/80 bg-card/60 space-y-2 rounded-2xl border p-4 shadow-2xs sm:p-5"
+                    >
                         <!-- Checkbox Persetujuan -->
                         <label class="flex cursor-pointer items-start gap-3">
                             <input
@@ -1591,7 +1749,7 @@ const submit = () => {
                                 <button
                                     type="button"
                                     @click.prevent="openTermsModal"
-                                    class="text-primary-600 dark:text-primary-400 font-semibold hover:underline inline"
+                                    class="text-primary-600 dark:text-primary-400 inline font-semibold hover:underline"
                                 >
                                     Syarat & Ketentuan Layanan
                                 </button>
@@ -1599,7 +1757,7 @@ const submit = () => {
                                 <button
                                     type="button"
                                     @click.prevent="openPrivacyModal"
-                                    class="text-primary-600 dark:text-primary-400 font-semibold hover:underline inline"
+                                    class="text-primary-600 dark:text-primary-400 inline font-semibold hover:underline"
                                 >
                                     Kebijakan Privasi
                                 </button>
@@ -1617,12 +1775,12 @@ const submit = () => {
                     </p>
 
                     <!-- Footer Navigasi Step 3 & Tombol Submit Final -->
-                    <div class="flex items-center justify-between pt-2 gap-3">
+                    <div class="flex items-center justify-between gap-3 pt-2">
                         <Button
                             type="button"
                             variant="outline"
                             @click="prevStep"
-                            class="flex items-center gap-1.5 px-4 py-2 text-xs min-h-[38px] cursor-pointer"
+                            class="flex min-h-[38px] cursor-pointer items-center gap-1.5 px-4 py-2 text-xs"
                         >
                             <ArrowLeft class="h-4 w-4" />
                             <span>Kembali</span>
@@ -1631,11 +1789,13 @@ const submit = () => {
                         <Button
                             type="submit"
                             :disabled="form.processing || ktpCompressing"
-                            class="bg-primary-600 hover:bg-primary-700 flex items-center justify-center gap-2 rounded-lg px-6 py-2.5 text-xs font-semibold text-white shadow-sm transition-colors disabled:opacity-50 sm:text-sm min-h-[38px] cursor-pointer"
+                            class="bg-primary-600 hover:bg-primary-700 flex min-h-[38px] cursor-pointer items-center justify-center gap-2 rounded-lg px-6 py-2.5 text-xs font-semibold text-white shadow-sm transition-colors disabled:opacity-50 sm:text-sm"
                         >
                             <Loader2 v-if="form.processing" class="h-4 w-4 animate-spin" />
                             <UserCheck v-else class="h-4 w-4" />
-                            <span>{{ form.processing ? 'Mengirim Pendaftaran...' : 'Kirim Pendaftaran' }}</span>
+                            <span>{{
+                                form.processing ? 'Mengirim Pendaftaran...' : 'Kirim Pendaftaran'
+                            }}</span>
                         </Button>
                     </div>
                 </div>
