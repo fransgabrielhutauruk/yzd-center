@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, watchEffect } from 'vue';
 import { router } from '@inertiajs/vue3';
 import {
     Search,
@@ -64,7 +64,22 @@ const props = defineProps({
         type: Array,
         default: () => [10, 25, 50, 100],
     },
+    enableBatch: {
+        type: Boolean,
+        default: false,
+    },
+    idKey: {
+        type: String,
+        default: 'id',
+    },
 });
+
+const selected = defineModel('selected', {
+    type: Array,
+    default: () => [],
+});
+
+const emit = defineEmits(['batch-action']);
 
 const searchKey = computed(() => (props.paramPrefix ? `${props.paramPrefix}search` : 'search'));
 const sortByKey = computed(() => (props.paramPrefix ? `${props.paramPrefix}sort_by` : 'sort_by'));
@@ -195,6 +210,85 @@ const getAlignmentClass = (align) => {
             return 'text-left justify-start';
     }
 };
+
+// ==========================================
+// Logika Pilihan Batch (Checklist Masal)
+// ==========================================
+const getItemId = (item, index) => {
+    return item[props.idKey] ?? item.id ?? item.invitation_id ?? index;
+};
+
+const isAllSelected = computed(() => {
+    const pageItems = props.data?.data || [];
+    if (pageItems.length === 0) return false;
+    const current = Array.isArray(selected.value) ? selected.value : [];
+    return pageItems.every((item, idx) => current.includes(getItemId(item, idx)));
+});
+
+const isIndeterminate = computed(() => {
+    const pageItems = props.data?.data || [];
+    if (pageItems.length === 0) return false;
+    const current = Array.isArray(selected.value) ? selected.value : [];
+    const selectedCountOnPage = pageItems.filter((item, idx) =>
+        current.includes(getItemId(item, idx))
+    ).length;
+    return selectedCountOnPage > 0 && selectedCountOnPage < pageItems.length;
+});
+
+const selectAllCheckboxRef = ref(null);
+
+watch(
+    isIndeterminate,
+    (val) => {
+        if (selectAllCheckboxRef.value) {
+            selectAllCheckboxRef.value.indeterminate = val;
+        }
+    },
+    { flush: 'post' }
+);
+
+const toggleSelectAll = () => {
+    const pageItems = props.data?.data || [];
+    if (pageItems.length === 0) return;
+
+    const current = Array.isArray(selected.value) ? selected.value : [];
+    if (isAllSelected.value) {
+        const pageIds = pageItems.map((item, idx) => getItemId(item, idx));
+        selected.value = current.filter((id) => !pageIds.includes(id));
+    } else {
+        const newIds = new Set(current);
+        pageItems.forEach((item, idx) => {
+            newIds.add(getItemId(item, idx));
+        });
+        selected.value = Array.from(newIds);
+    }
+};
+
+const toggleSelectItem = (item, index) => {
+    const id = getItemId(item, index);
+    const current = Array.isArray(selected.value) ? selected.value : [];
+    const pos = current.indexOf(id);
+    if (pos > -1) {
+        selected.value = current.filter((i) => i !== id);
+    } else {
+        selected.value = [...current, id];
+    }
+};
+
+const isItemSelected = (item, index) => {
+    const current = Array.isArray(selected.value) ? selected.value : [];
+    return current.includes(getItemId(item, index));
+};
+
+const clearSelection = () => {
+    selected.value = [];
+};
+
+defineExpose({
+    clearSelection,
+    selected,
+    selectedIds: selected,
+});
 </script>
 
 <template>
@@ -240,6 +334,46 @@ const getAlignmentClass = (align) => {
             </div>
         </div>
 
+        <!-- Batch Action Banner -->
+        <transition
+            enter-active-class="transition duration-150 ease-out"
+            enter-from-class="opacity-0 -translate-y-1"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition duration-100 ease-in"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 -translate-y-1"
+        >
+            <div
+                v-if="enableBatch && (selected?.length > 0)"
+                class="flex flex-wrap items-center justify-between gap-3 p-3 bg-primary-50 dark:bg-primary-950/40 border border-primary-200 dark:border-primary-800/60 rounded-xl text-xs shadow-xs"
+            >
+                <div class="flex items-center gap-2.5">
+                    <span class="inline-flex items-center justify-center bg-primary-600 text-white font-bold text-[11px] h-5 min-w-[20px] px-1.5 rounded-full shadow-2xs">
+                        {{ selected.length }}
+                    </span>
+                    <span class="font-medium text-slate-800 dark:text-slate-200">
+                        data terpilih
+                    </span>
+                    <button
+                        type="button"
+                        @click="clearSelection"
+                        class="text-xs text-primary-600 dark:text-primary-400 hover:underline font-semibold ml-1 cursor-pointer"
+                    >
+                        Batal pilih
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <slot
+                        name="batch-actions"
+                        :selected="selected"
+                        :selected-count="selected.length"
+                        :clear-selection="clearSelection"
+                    />
+                </div>
+            </div>
+        </transition>
+
         <!-- Table Container -->
         <div class="bg-card rounded-xl border border-border shadow-xs overflow-hidden relative">
             <!-- Loading Overlay Indicator -->
@@ -258,6 +392,17 @@ const getAlignmentClass = (align) => {
                     <!-- Table Head -->
                     <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase tracking-wider">
                         <tr>
+                            <!-- Batch Select All Checkbox -->
+                            <th v-if="enableBatch" class="w-10 px-3 py-3 text-center">
+                                <input
+                                    ref="selectAllCheckboxRef"
+                                    type="checkbox"
+                                    :checked="isAllSelected"
+                                    @change="toggleSelectAll"
+                                    class="rounded border-input text-primary-600 focus:ring-primary-500 h-4 w-4 cursor-pointer align-middle transition-colors"
+                                    aria-label="Pilih semua baris pada halaman ini"
+                                />
+                            </th>
                             <th
                                 v-for="col in columns"
                                 :key="col.key"
@@ -282,10 +427,30 @@ const getAlignmentClass = (align) => {
                         <template v-if="data?.data?.length > 0">
                             <tr
                                 v-for="(item, index) in data.data"
-                                :key="item.id || item.invitation_id || index"
-                                class="hover:bg-muted/30 transition-colors"
+                                :key="getItemId(item, index)"
+                                :class="[
+                                    enableBatch && isItemSelected(item, index) ? 'bg-primary-50/40 dark:bg-primary-950/20' : 'hover:bg-muted/30',
+                                    'transition-colors'
+                                ]"
                             >
-                                <slot name="row" :item="item" :index="index">
+                                <!-- Batch Row Checkbox -->
+                                <td v-if="enableBatch" class="w-10 px-3 py-3 text-center">
+                                    <input
+                                        type="checkbox"
+                                        :checked="isItemSelected(item, index)"
+                                        @change="toggleSelectItem(item, index)"
+                                        class="rounded border-input text-primary-600 focus:ring-primary-500 h-4 w-4 cursor-pointer align-middle transition-colors"
+                                        :aria-label="`Pilih baris ${index + 1}`"
+                                    />
+                                </td>
+
+                                <slot
+                                    name="row"
+                                    :item="item"
+                                    :index="index"
+                                    :is-selected="isItemSelected(item, index)"
+                                    :toggle-select="() => toggleSelectItem(item, index)"
+                                >
                                     <td
                                         v-for="col in columns"
                                         :key="col.key"
@@ -307,7 +472,7 @@ const getAlignmentClass = (align) => {
 
                         <!-- Empty State -->
                         <tr v-else>
-                            <td :colspan="columns.length" class="py-12 text-center text-muted-foreground">
+                            <td :colspan="columns.length + (enableBatch ? 1 : 0)" class="py-12 text-center text-muted-foreground">
                                 <div class="max-w-xs mx-auto space-y-3">
                                     <div class="w-12 h-12 rounded-2xl bg-muted/80 flex items-center justify-center mx-auto text-muted-foreground border border-border">
                                         <Inbox class="w-6 h-6" />

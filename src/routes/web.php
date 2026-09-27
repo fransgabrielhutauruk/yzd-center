@@ -112,6 +112,7 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     // Manajemen Tautan Undangan
     Route::get('/invitations', [InvitationController::class, 'index'])->name('invitations.index');
     Route::post('/invitations', [InvitationController::class, 'store'])->name('invitations.store');
+    Route::delete('/invitations/batch-delete', [InvitationController::class, 'batchDestroy'])->name('invitations.batch_destroy');
     Route::delete('/invitations/{id}', [InvitationController::class, 'destroy'])->name('invitations.destroy');
 
     // Verifikasi Dokumen KYC & Legalitas

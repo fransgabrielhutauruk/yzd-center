@@ -93,7 +93,7 @@ const copyLink = async (item) => {
     }
 };
 
-// State Konfirmasi Hapus Modal
+// State Konfirmasi Hapus Modal Tunggal
 const isDeleteDialogOpen = ref(false);
 const itemToDelete = ref(null);
 const isDeleting = ref(false);
@@ -124,6 +124,44 @@ const executeDelete = () => {
     });
 };
 
+// State & Aksi Konfirmasi Hapus Massal (Batch Delete)
+const selectedInvitationIds = ref([]);
+const isBatchDeleteDialogOpen = ref(false);
+let clearBatchSelectionCallback = null;
+
+const openBatchDeleteConfirm = (selectedIds, clearSelection) => {
+    if (Array.isArray(selectedIds) && selectedInvitationIds.value !== selectedIds) {
+        selectedInvitationIds.value = selectedIds;
+    }
+    clearBatchSelectionCallback = clearSelection;
+    isBatchDeleteDialogOpen.value = true;
+};
+
+const cancelBatchDelete = () => {
+    isBatchDeleteDialogOpen.value = false;
+};
+
+const executeBatchDelete = () => {
+    if (selectedInvitationIds.value.length === 0) return;
+
+    isDeleting.value = true;
+    router.delete('/admin/invitations/batch-delete', {
+        data: { ids: selectedInvitationIds.value },
+        preserveScroll: true,
+        onSuccess: () => {
+            isBatchDeleteDialogOpen.value = false;
+            if (clearBatchSelectionCallback) {
+                clearBatchSelectionCallback();
+            } else {
+                selectedInvitationIds.value = [];
+            }
+        },
+        onFinish: () => {
+            isDeleting.value = false;
+        },
+    });
+};
+
 const getStatusBadgeClass = (statusKey) => {
     switch (statusKey) {
         case 'active':
@@ -141,17 +179,14 @@ const getStatusBadgeClass = (statusKey) => {
 <template>
     <AdminLayout
         title="Tautan Undangan Pendaftaran"
-        subtitle="Kelola token pendaftaran tertutup untuk Calon Investor dan Affiliator."
-        :breadcrumbs="[
-            { label: 'Manajemen Afiliasi' },
-            { label: 'Tautan Undangan' }
-        ]"
+        subtitle="Kelola tautan pendaftaran tertutup untuk Calon Investor dan Affiliator."
+        :breadcrumbs="[{ label: 'Menu Utama' }, { label: 'Tautan Undangan' }]"
     >
         <template #header-actions>
             <Button
                 type="button"
                 @click="openCreateModal"
-                class="bg-primary-600 hover:bg-primary-700 flex items-center gap-2 self-start rounded-lg px-4 py-2 font-medium text-white shadow-xs transition-colors sm:self-auto cursor-pointer"
+                class="bg-primary-600 hover:bg-primary-700 flex cursor-pointer items-center gap-2 self-start rounded-lg px-4 py-2 font-medium text-white shadow-xs transition-colors sm:self-auto"
             >
                 <Plus class="h-4 w-4" />
                 <span>Buat Undangan Baru</span>
@@ -159,27 +194,44 @@ const getStatusBadgeClass = (statusKey) => {
         </template>
 
         <div class="space-y-6">
-
             <!-- Server-Side Reusable Data Table -->
             <AppDataTable
                 :data="invitations"
                 :columns="columns"
                 :filters="filters"
+                enable-batch
+                id-key="invitation_id"
+                v-model:selected="selectedInvitationIds"
                 fetch-url="/admin/invitations"
-                search-placeholder="Cari label atau token..."
+                search-placeholder="Cari label..."
                 empty-title="Belum Ada Tautan Undangan"
                 empty-message="Tidak ditemukan data undangan yang sesuai dengan kriteria filter Anda."
             >
+                <!-- Custom Batch Action Slot: Hapus Massal -->
+                <template #batch-actions="{ selected, selectedCount, clearSelection }">
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        @click="openBatchDeleteConfirm(selected, clearSelection)"
+                        :disabled="isDeleting"
+                        class="h-8 cursor-pointer gap-1.5 px-3 text-xs font-semibold shadow-xs"
+                    >
+                        <Trash2 class="h-3.5 w-3.5" />
+                        <span>Hapus Terpilih ({{ selectedCount }})</span>
+                    </Button>
+                </template>
+
                 <!-- Custom Filter Slot: Role & Status Filter Dropdowns -->
                 <template #filters="{ applyFilters }">
-                    <div class="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center">
+                    <div class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
                         <!-- Filter Role -->
                         <select
                             :value="filters.role || ''"
                             @change="
                                 applyFilters({ role: $event.target.value || undefined, page: 1 })
                             "
-                            class="bg-background border-input focus:ring-primary-500 rounded-lg border px-2.5 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none w-full sm:w-auto"
+                            class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border px-2.5 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none sm:w-auto"
                         >
                             <option value="">Semua Peran</option>
                             <option value="investor">Investor</option>
@@ -192,13 +244,12 @@ const getStatusBadgeClass = (statusKey) => {
                             @change="
                                 applyFilters({ status: $event.target.value || undefined, page: 1 })
                             "
-                            class="bg-background border-input focus:ring-primary-500 rounded-lg border px-2.5 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none w-full sm:w-auto"
+                            class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border px-2.5 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none sm:w-auto"
                         >
                             <option value="">Semua Status</option>
                             <option value="active">Aktif</option>
                             <option value="quota_full">Kuota Habis</option>
                             <option value="expired">Kedaluwarsa</option>
-                            <option value="inactive">Nonaktif</option>
                         </select>
                     </div>
                 </template>
@@ -206,7 +257,6 @@ const getStatusBadgeClass = (statusKey) => {
                 <!-- Custom Column: Label Kegiatan -->
                 <template #column-label="{ item }">
                     <div class="flex items-center gap-2">
-                        <Link2 class="text-primary-500 h-4 w-4 flex-shrink-0" />
                         <span
                             class="text-foreground max-w-[220px] truncate font-semibold"
                             :title="item.label"
@@ -214,7 +264,7 @@ const getStatusBadgeClass = (statusKey) => {
                             {{ item.label }}
                         </span>
                     </div>
-                    <span class="text-muted-foreground mt-0.5 block pl-6 font-mono text-[10px]">
+                    <span class="text-muted-foreground mt-0.5 block font-mono text-[10px]">
                         Dibuat: {{ item.created_at_label }}
                     </span>
                 </template>
@@ -229,10 +279,6 @@ const getStatusBadgeClass = (statusKey) => {
                                 : 'border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400',
                         ]"
                     >
-                        <component
-                            :is="item.target_role === 'affiliator' ? UserCheck : Users"
-                            class="h-3 w-3"
-                        />
                         {{ item.target_role_label }}
                     </span>
                 </template>
@@ -240,15 +286,10 @@ const getStatusBadgeClass = (statusKey) => {
                 <!-- Custom Column: Penggunaan Kuota -->
                 <template #column-total_terpakai="{ item }">
                     <div class="space-y-1">
-                        <div
-                            class="text-foreground flex items-center justify-between font-mono font-medium"
-                        >
+                        <div class="text-foreground font-mono font-medium">
                             <span>{{ item.usage_label }}</span>
-                            <span class="text-muted-foreground text-[10px]">
-                                {{ Math.round((item.total_terpakai / item.kuota_maksimal) * 100) }}%
-                            </span>
                         </div>
-                        <div class="bg-muted h-1.5 w-24 overflow-hidden rounded-full">
+                        <div class="bg-muted h-1.5  overflow-hidden rounded-full">
                             <div
                                 class="bg-primary-600 h-1.5 rounded-full transition-all"
                                 :style="{
@@ -275,7 +316,6 @@ const getStatusBadgeClass = (statusKey) => {
                             getStatusBadgeClass(item.status_key),
                         ]"
                     >
-                        <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
                         {{ item.status_label }}
                     </span>
                 </template>
@@ -384,9 +424,6 @@ const getStatusBadgeClass = (statusKey) => {
                             <Users class="h-4 w-4 flex-shrink-0 text-blue-600 dark:text-blue-400" />
                             <div class="text-xs">
                                 <p class="text-foreground">Investor</p>
-                                <p class="text-muted-foreground text-[10px] font-normal">
-                                    Anggota pemodal
-                                </p>
                             </div>
                         </label>
 
@@ -409,9 +446,6 @@ const getStatusBadgeClass = (statusKey) => {
                             />
                             <div class="text-xs">
                                 <p class="text-foreground">Affiliator</p>
-                                <p class="text-muted-foreground text-[10px] font-normal">
-                                    Mitra referral
-                                </p>
                             </div>
                         </label>
                     </div>
@@ -491,7 +525,7 @@ const getStatusBadgeClass = (statusKey) => {
             </form>
         </AppModal>
 
-        <!-- Reusable Confirm Dialog: Hapus Undangan -->
+        <!-- Reusable Confirm Dialog: Hapus Undangan Tunggal -->
         <AppConfirmDialog
             :show="isDeleteDialogOpen"
             title="Hapus Tautan Undangan"
@@ -502,6 +536,19 @@ const getStatusBadgeClass = (statusKey) => {
             :loading="isDeleting"
             @confirm="executeDelete"
             @cancel="cancelDelete"
+        />
+
+        <!-- Reusable Confirm Dialog: Hapus Massal Undangan (Batch Delete) -->
+        <AppConfirmDialog
+            :show="isBatchDeleteDialogOpen"
+            title="Hapus Massal Tautan Undangan"
+            :message="`Apakah Anda yakin ingin menghapus ${selectedInvitationIds.length} tautan undangan yang dipilih? Calon pengguna yang belum mendaftar tidak akan dapat lagi menggunakan tautan-tautan ini.`"
+            confirm-text="Ya, Hapus Semua Terpilih"
+            cancel-text="Batal"
+            type="danger"
+            :loading="isDeleting"
+            @confirm="executeBatchDelete"
+            @cancel="cancelBatchDelete"
         />
     </AdminLayout>
 </template>

@@ -22,8 +22,7 @@ class InvitationService
         if (!empty($filters['search'])) {
             $search = trim((string) $filters['search']);
             $query->where(function ($q) use ($search) {
-                $q->where('label', 'like', "%{$search}%")
-                    ->orWhere('token', 'like', "%{$search}%");
+                $q->where('label', 'like', "%{$search}%");
             });
         }
 
@@ -35,7 +34,6 @@ class InvitationService
                     ->whereColumn('total_terpakai', '<', 'kuota_maksimal'),
                 'expired'    => $query->whereNotNull('expired_at')->where('expired_at', '<=', now()),
                 'quota_full' => $query->whereColumn('total_terpakai', '>=', 'kuota_maksimal'),
-                'inactive'   => $query->where('is_active', false),
                 default      => null,
             };
         }
@@ -230,5 +228,17 @@ class InvitationService
     {
         $invitation = Invitation::findOrFail($invitationId);
         $invitation->delete();
+    }
+
+    /**
+     * Hapus beberapa tautan undangan secara massal (batch delete).
+     *
+     * @param array<int> $invitationIds
+     */
+    public function batchDeleteInvitations(array $invitationIds): int
+    {
+        return DB::transaction(function () use ($invitationIds): int {
+            return Invitation::whereIn('invitation_id', $invitationIds)->delete();
+        });
     }
 }

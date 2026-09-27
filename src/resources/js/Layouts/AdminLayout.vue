@@ -90,6 +90,24 @@ const navSections = [
                 routeName: 'admin.dashboard',
             },
             {
+                label: 'Tautan Undangan',
+                href: '/admin/invitations',
+                icon: Link2,
+                routeName: 'admin.invitations.index',
+            },
+            {
+                label: 'Verifikasi Pendaftaran',
+                href: '/admin/kyc',
+                icon: BadgeCheck,
+                routeName: 'admin.kyc.index',
+            },
+            {
+                label: 'Verifikasi Copytrade',
+                href: '/admin/copytrade',
+                icon: ArrowLeftRight,
+                routeName: 'admin.copytrade.index',
+            },
+            {
                 label: 'Pengguna',
                 href: '/admin/users',
                 icon: Users,
@@ -98,42 +116,8 @@ const navSections = [
         ],
     },
     {
-        title: 'Operasional & Validasi',
-        items: [
-            {
-                label: 'Verifikasi Legalitas',
-                href: '/admin/kyc',
-                icon: BadgeCheck,
-                routeName: 'admin.kyc.index',
-            },
-            {
-                label: 'Klaim Susulan Referral',
-                href: '/admin/referral-claims',
-                icon: UserCheck,
-                routeName: 'admin.referral_claims.index',
-            },
-        ],
-    },
-    {
-        title: 'Manajemen Copytrade',
-        items: [
-            {
-                label: 'Verifikasi Copytrade',
-                href: '/admin/copytrade',
-                icon: ArrowLeftRight,
-                routeName: 'admin.copytrade.index',
-            },
-        ],
-    },
-    {
         title: 'Manajemen Afiliasi',
         items: [
-            {
-                label: 'Tautan Undangan',
-                href: '/admin/invitations',
-                icon: Link2,
-                routeName: 'admin.invitations.index',
-            },
             {
                 label: 'Jaringan Kemitraan',
                 href: '/admin/affiliates',
@@ -152,10 +136,16 @@ const navSections = [
                 icon: TrendingUp,
                 routeName: 'admin.profit_reports.index',
             },
+            {
+                label: 'Klaim Susulan Referral',
+                href: '/admin/referral-claims',
+                icon: UserCheck,
+                routeName: 'admin.referral_claims.index',
+            },
         ],
     },
     {
-        title: 'Edukasi & Bantuan',
+        title: 'Edukasi & Informasi',
         items: [
             {
                 label: 'Glosarium Forex',
@@ -274,7 +264,6 @@ const logout = () => {
                     >
                         {{ section.title }}
                     </p>
-                    <div v-else class="h-px bg-slate-200 dark:bg-slate-800 mx-2 my-2"></div>
 
                     <div class="space-y-1">
                         <Link

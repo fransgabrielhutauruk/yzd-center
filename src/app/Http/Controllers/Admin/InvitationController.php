@@ -53,4 +53,23 @@ class InvitationController extends Controller
         return redirect()->route('admin.invitations.index')
             ->with('success', 'Tautan undangan berhasil dihapus.');
     }
+
+    /**
+     * Hapus beberapa tautan undangan sekaligus (batch delete).
+     */
+    public function batchDestroy(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids'   => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+        ], [
+            'ids.required' => 'Pilih minimal satu tautan undangan untuk dihapus.',
+            'ids.min'      => 'Pilih minimal satu tautan undangan untuk dihapus.',
+        ]);
+
+        $count = $this->invitationService->batchDeleteInvitations($validated['ids']);
+
+        return redirect()->route('admin.invitations.index')
+            ->with('success', "{$count} tautan undangan berhasil dihapus.");
+    }
 }
