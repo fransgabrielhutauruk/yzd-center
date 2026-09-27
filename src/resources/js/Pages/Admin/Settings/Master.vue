@@ -101,24 +101,15 @@ const submit = () => {
 
 <template>
     <Head title="Pengaturan Master Copytrade" />
-    <AdminLayout title="Pengaturan Master Copytrade">
+    <AdminLayout
+        title="Pengaturan Master & Tier Copytrade"
+        subtitle="Konfigurasi tautan broker, tautan profil master trading MQL5, batas modal riil, serta instruksi panduan langkah pendaftaran & berkas brosur PDF per tier."
+        :breadcrumbs="[
+            { label: 'Pengaturan Sistem' },
+            { label: 'Pengaturan Master' }
+        ]"
+    >
         <div class="max-w-4xl space-y-6">
-            <!-- Header Section -->
-            <div
-                class="bg-card border-border flex flex-col justify-between gap-4 rounded-2xl border p-6 shadow-xs sm:flex-row sm:items-center"
-            >
-                <div class="space-y-1">
-                    <div class="flex items-center gap-2">
-                        <Settings class="h-5 w-5 text-primary-600 dark:text-primary-400" />
-                        <h1 class="text-foreground text-xl font-bold tracking-tight">
-                            Pengaturan Master & Tier Copytrade
-                        </h1>
-                    </div>
-                    <p class="text-muted-foreground text-xs leading-relaxed">
-                        Konfigurasi tautan broker, tautan profil master trading MQL5, batas modal riil, serta instruksi panduan langkah pendaftaran & berkas brosur PDF per tier.
-                    </p>
-                </div>
-            </div>
 
             <!-- Form Pengaturan -->
             <form @submit.prevent="submit" class="space-y-6">

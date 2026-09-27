@@ -273,32 +273,28 @@ const monthNames = [
 </script>
 
 <template>
-    <AdminLayout title="Laporan Keuntungan & Promosi">
+    <AdminLayout
+        title="Laporan Keuntungan Trading"
+        subtitle="Unggah bukti profit harian, bulanan, dan kalender trading dengan multi-foto untuk amunisi promosi affiliator."
+        :breadcrumbs="[
+            { label: 'Manajemen Afiliasi' },
+            { label: 'Laporan Keuntungan' }
+        ]"
+    >
+        <template #header-actions>
+            <Button
+                type="button"
+                class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium flex items-center gap-2 shadow-xs cursor-pointer"
+                @click="openCreateModal"
+            >
+                <Plus class="w-4 h-4" />
+                Unggah Keuntungan Baru
+            </Button>
+        </template>
+
         <Head title="Laporan Keuntungan & Materi Promosi" />
 
         <div class="space-y-6">
-            <!-- Header Section -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                        <TrendingUp class="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
-                        Laporan Keuntungan & Materi Promosi
-                    </h1>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Unggah bukti profit harian, bulanan, dan kalender trading dengan multi-foto untuk amunisi promosi affiliator.
-                    </p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <Button
-                        type="button"
-                        class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium flex items-center gap-2 shadow-sm"
-                        @click="openCreateModal"
-                    >
-                        <Plus class="w-4 h-4" />
-                        Unggah Keuntungan Baru
-                    </Button>
-                </div>
-            </div>
 
             <!-- Stats Bar -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">

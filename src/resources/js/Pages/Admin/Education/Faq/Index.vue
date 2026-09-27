@@ -205,40 +205,36 @@ const faqColumns = [
 </script>
 
 <template>
-    <AdminLayout title="Tanya Jawab (FAQ)">
+    <AdminLayout
+        title="Tanya Jawab (FAQ) & Topik"
+        subtitle="Kelola daftar tanya jawab interaktif tanpa slug yang dikelompokkan berdasarkan topik untuk investor."
+        :breadcrumbs="[
+            { label: 'Edukasi & Bantuan' },
+            { label: 'Tanya Jawab (FAQ)' }
+        ]"
+    >
+        <template #header-actions>
+            <Button
+                v-if="activeTab === 'topics'"
+                @click="openCreateTopicModal"
+                class="gap-1.5 cursor-pointer"
+            >
+                <Plus class="h-4 w-4" />
+                Tambah Topik FAQ
+            </Button>
+            <Button
+                v-else
+                @click="openCreateFaqModal"
+                class="gap-1.5 cursor-pointer"
+            >
+                <Plus class="h-4 w-4" />
+                Tambah Pertanyaan FAQ
+            </Button>
+        </template>
+
         <Head title="Manajemen Tanya Jawab (FAQ) - Admin" />
 
         <div class="space-y-6">
-            <!-- Header Halaman -->
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                        <MessageCircleQuestion class="h-6 w-6 text-primary" />
-                        Tanya Jawab (FAQ) & Topik
-                    </h1>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Kelola daftar tanya jawab interaktif tanpa slug yang dikelompokkan berdasarkan topik untuk investor.
-                    </p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <Button
-                        v-if="activeTab === 'topics'"
-                        @click="openCreateTopicModal"
-                        class="gap-1.5"
-                    >
-                        <Plus class="h-4 w-4" />
-                        Tambah Topik FAQ
-                    </Button>
-                    <Button
-                        v-else
-                        @click="openCreateFaqModal"
-                        class="gap-1.5"
-                    >
-                        <Plus class="h-4 w-4" />
-                        Tambah Pertanyaan FAQ
-                    </Button>
-                </div>
-            </div>
 
             <!-- Tab Navigasi (Pertanyaan FAQ vs Topik FAQ) -->
             <div class="flex border-b border-slate-200 dark:border-slate-800">

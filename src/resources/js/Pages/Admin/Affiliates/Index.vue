@@ -35,19 +35,17 @@ const columns = [
 </script>
 
 <template>
-    <AdminLayout title="Jaringan Kemitraan">
+    <AdminLayout
+        title="Jaringan Kemitraan & Mitra Affiliator"
+        subtitle="Rekapitulasi dan pemantauan seluruh mitra affiliator serta jumlah anggota jaringan downline."
+        :breadcrumbs="[
+            { label: 'Manajemen Afiliasi' },
+            { label: 'Jaringan Kemitraan' }
+        ]"
+    >
         <Head title="Jaringan Kemitraan" />
 
         <div class="space-y-6">
-            <!-- Header Halaman -->
-            <div>
-                <h1 class="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                    Jaringan Kemitraan & Mitra Affiliator
-                </h1>
-                <p class="text-xs text-muted-foreground sm:text-sm">
-                    Rekapitulasi dan pemantauan seluruh mitra affiliator serta jumlah anggota jaringan downline.
-                </p>
-            </div>
 
             <!-- Kartu Ringkasan Jaringan Kemitraan (Data Perbaris) -->
             <div class="w-full max-w-md">

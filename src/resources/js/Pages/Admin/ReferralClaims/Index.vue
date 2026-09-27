@@ -77,30 +77,27 @@ const columns = [
 </script>
 
 <template>
-    <AdminLayout title="Verifikasi Klaim Referral">
+    <AdminLayout
+        title="Verifikasi Klaim Susulan Referral"
+        subtitle="Tinjau dan verifikasi permohonan klaim downline susulan yang diajukan oleh mitra affiliator."
+        :breadcrumbs="[
+            { label: 'Operasional & Validasi' },
+            { label: 'Klaim Susulan Referral' }
+        ]"
+    >
+        <template #header-actions>
+            <div
+                v-if="pendingCount > 0"
+                class="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 text-xs font-semibold text-amber-800 dark:text-amber-300"
+            >
+                <Clock class="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <span>{{ pendingCount }} Permohonan Menunggu Peninjauan</span>
+            </div>
+        </template>
+
         <Head title="Verifikasi Klaim Referral" />
 
         <div class="space-y-6">
-            <!-- Header Halaman -->
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h1 class="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                        Verifikasi Klaim Susulan Referral
-                    </h1>
-                    <p class="text-xs text-muted-foreground sm:text-sm">
-                        Tinjau dan verifikasi permohonan klaim downline susulan yang diajukan oleh mitra affiliator.
-                    </p>
-                </div>
-
-                <!-- Badge Pending Counter -->
-                <div
-                    v-if="pendingCount > 0"
-                    class="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 text-xs font-semibold text-amber-800 dark:text-amber-300"
-                >
-                    <Clock class="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                    <span>{{ pendingCount }} Permohonan Menunggu Peninjauan</span>
-                </div>
-            </div>
 
             <!-- Tabel Data Klaim Susulan -->
             <AppDataTable

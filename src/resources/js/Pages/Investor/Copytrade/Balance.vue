@@ -229,38 +229,30 @@ const executeDelete = () => {
 </script>
 
 <template>
-    <InvestorLayout title="Kinerja & Saldo MT4">
+    <InvestorLayout
+        title="Kinerja & Riwayat Saldo MT4"
+        subtitle="Input saldo akun trading Anda secara disiplin setiap tanggal 1. Sistem secara otomatis menghitung keuntungan bulan berjalan serta akumulasi profit multi-periode."
+        :breadcrumbs="[
+            { label: 'Menu Utama' },
+            { label: 'Kinerja & Saldo MT4' }
+        ]"
+    >
+        <template #header-actions>
+            <div v-if="accounts.length > 0" class="shrink-0 self-start sm:self-center">
+                <Button
+                    type="button"
+                    @click="openCreateModal"
+                    class="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold py-2.5 px-4 rounded-xl shadow-xs flex items-center gap-2 cursor-pointer min-h-[40px]"
+                >
+                    <Plus class="w-4 h-4" />
+                    <span>Input Saldo Tanggal 1</span>
+                </Button>
+            </div>
+        </template>
+
         <Head title="Kinerja & Saldo MT4" />
 
         <div class="space-y-6">
-            <!-- Header Banner -->
-            <div class="rounded-2xl bg-gradient-to-r from-slate-900 via-primary-950 to-slate-900 p-6 sm:p-8 text-white shadow-md border border-primary-800/40">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div class="max-w-2xl space-y-2">
-                        <span class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur-sm border border-white/10 text-primary-200">
-                            <Scale class="h-3.5 w-3.5 text-primary-300" />
-                            Pencatatan Saldo Bulanan & Analisis Kinerja
-                        </span>
-                        <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                            Kinerja & Riwayat Saldo MT4
-                        </h1>
-                        <p class="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
-                            Input saldo akun trading Anda secara disiplin <strong>setiap tanggal 1</strong>. Sistem secara otomatis menghitung keuntungan bulan berjalan (MoM) serta akumulasi profit pada berbagai periode bebas (3 bulan, 6 bulan, 1 hingga 4 tahun terakhir).
-                        </p>
-                    </div>
-
-                    <div v-if="accounts.length > 0" class="shrink-0 self-start sm:self-center">
-                        <Button
-                            type="button"
-                            @click="openCreateModal"
-                            class="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold py-2.5 px-4 rounded-xl shadow-xs flex items-center gap-2 cursor-pointer min-h-[40px]"
-                        >
-                            <Plus class="w-4 h-4" />
-                            <span>Input Saldo Tanggal 1</span>
-                        </Button>
-                    </div>
-                </div>
-            </div>
 
             <!-- Banner Pengingat Khusus Tanggal 1 / Awal Bulan -->
             <div

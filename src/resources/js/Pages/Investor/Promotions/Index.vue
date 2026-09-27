@@ -212,55 +212,33 @@ const monthNames = [
 </script>
 
 <template>
-    <InvestorLayout :title="isAffiliator ? 'Materi Promosi & Profit' : 'Laporan Keuntungan Trading'">
+    <InvestorLayout
+        :title="isAffiliator ? 'Materi Promosi & Kalender Keuntungan' : 'Laporan Keuntungan & Kalender Profit'"
+        :subtitle="isAffiliator
+            ? 'Unduh bukti screenshot kalender trading dan profit nyata dari Master Trader YZD Center. Gunakan gambar dan caption otomatis dengan link referral Anda untuk menjaring investor baru!'
+            : 'Pantau rekap performa profit trading harian, bulanan, dan kalender akun Master YZD Center secara terbuka dan terverifikasi.'"
+        :breadcrumbs="[
+            { label: 'Program Afiliasi' },
+            { label: 'Materi Promosi & Profit' }
+        ]"
+    >
+        <template #header-actions>
+            <div v-if="isAffiliator && referralUrl" class="flex items-center gap-2">
+                <button
+                    type="button"
+                    @click="copyReferralLink"
+                    class="flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors shadow-xs cursor-pointer min-h-[38px]"
+                >
+                    <Check v-if="copiedReferral" class="w-4 h-4" />
+                    <Copy v-else class="w-4 h-4" />
+                    <span>{{ copiedReferral ? 'Tautan Tersalin!' : 'Salin Tautan Referral' }}</span>
+                </button>
+            </div>
+        </template>
+
         <Head :title="isAffiliator ? 'Materi Promosi & Laporan Keuntungan' : 'Laporan Keuntungan Trading'" />
 
         <div class="space-y-6 max-w-7xl mx-auto">
-            <!-- Hero / Header Section -->
-            <div class="bg-gradient-to-br from-emerald-900 via-slate-900 to-slate-950 text-white rounded-2xl p-6 sm:p-8 border border-emerald-800/40 shadow-xl relative overflow-hidden">
-                <!-- Background Glow -->
-                <div class="absolute -right-16 -top-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-                <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div class="space-y-2 max-w-2xl">
-                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                            <Sparkles class="w-3.5 h-3.5" />
-                            <span>{{ isAffiliator ? 'Amunisi Promosi Resmi Affiliator' : 'Transparansi Kinerja Trading' }}</span>
-                        </div>
-                        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                            {{ isAffiliator ? 'Materi Promosi & Kalender Keuntungan' : 'Laporan Keuntungan & Kalender Profit' }}
-                        </h1>
-                        <p class="text-sm text-slate-300 leading-relaxed">
-                            {{ isAffiliator
-                                ? 'Unduh bukti screenshot kalender trading dan profit nyata dari Master Trader YZD Center. Gunakan gambar dan caption otomatis dengan link referral Anda untuk menjaring investor baru!'
-                                : 'Pantau rekap performa profit trading harian, bulanan, dan kalender akun Master YZD Center secara terbuka dan terverifikasi.'
-                            }}
-                        </p>
-                    </div>
-
-                    <!-- Box Tautan Referral Affiliator -->
-                    <div v-if="isAffiliator && referralUrl" class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 sm:p-5 shrink-0 w-full lg:w-96 shadow-lg">
-                        <span class="text-xs font-semibold text-emerald-300 uppercase tracking-wider block mb-1">
-                            Tautan Referral Anda:
-                        </span>
-                        <div class="flex items-center gap-2 bg-slate-950/70 p-2 rounded-lg border border-white/10 mb-3">
-                            <Link2 class="w-4 h-4 text-emerald-400 shrink-0" />
-                            <span class="text-xs text-slate-200 truncate font-mono select-all flex-1">
-                                {{ referralUrl }}
-                            </span>
-                        </div>
-                        <button
-                            type="button"
-                            @click="copyReferralLink"
-                            class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs transition-colors shadow-sm"
-                        >
-                            <Check v-if="copiedReferral" class="w-4 h-4" />
-                            <Copy v-else class="w-4 h-4" />
-                            <span>{{ copiedReferral ? 'Tautan Tersalin!' : 'Salin Tautan Referral' }}</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
 
             <!-- Stats Bar Ringkas -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">

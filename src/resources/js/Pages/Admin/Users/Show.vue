@@ -69,41 +69,39 @@ const copyReferralCode = () => {
 
 <template>
     <Head :title="`Detail Pengguna - ${user.name}`" />
-    <AdminLayout :title="`Detail Pengguna: ${user.name}`">
-        <div class="space-y-6">
-            <!-- Navigation Back & Action Header -->
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <Link
-                    :href="route('admin.users.index')"
-                    class="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-                >
-                    <ArrowLeft class="h-4 w-4" />
-                    Kembali ke Daftar Pengguna
-                </Link>
+    <AdminLayout
+        :title="`Detail Pengguna: ${user.name}`"
+        subtitle="Informasi profil lengkap, kontak darurat, data bank, dan histori keanggotaan pengguna."
+        :breadcrumbs="[
+            { label: 'Menu Utama' },
+            { label: 'Pengguna', href: route('admin.users.index') },
+            { label: 'Detail Pengguna' }
+        ]"
+    >
+        <template #header-actions>
+            <Button
+                v-if="user.is_active"
+                variant="destructive"
+                size="sm"
+                class="h-9 px-3 text-xs font-medium cursor-pointer"
+                @click="isConfirmDialogOpen = true"
+            >
+                <UserX class="h-4 w-4 mr-1.5" />
+                Nonaktifkan Akun
+            </Button>
+            <Button
+                v-else
+                variant="default"
+                size="sm"
+                class="h-9 px-3 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                @click="isConfirmDialogOpen = true"
+            >
+                <UserCheck class="h-4 w-4 mr-1.5" />
+                Aktifkan Kembali Akun
+            </Button>
+        </template>
 
-                <div class="flex items-center gap-2">
-                    <Button
-                        v-if="user.is_active"
-                        variant="destructive"
-                        size="sm"
-                        class="h-9 px-3 text-xs font-medium cursor-pointer"
-                        @click="isConfirmDialogOpen = true"
-                    >
-                        <UserX class="h-4 w-4 mr-1.5" />
-                        Nonaktifkan Akun
-                    </Button>
-                    <Button
-                        v-else
-                        variant="default"
-                        size="sm"
-                        class="h-9 px-3 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
-                        @click="isConfirmDialogOpen = true"
-                    >
-                        <UserCheck class="h-4 w-4 mr-1.5" />
-                        Aktifkan Kembali Akun
-                    </Button>
-                </div>
-            </div>
+        <div class="space-y-6">
 
             <!-- Profile Summary Banner Card -->
             <div class="rounded-2xl border border-border bg-card p-6 shadow-xs">

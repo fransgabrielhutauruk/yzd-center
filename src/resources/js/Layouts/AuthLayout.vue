@@ -27,7 +27,7 @@ const { isDark, toggleDarkMode } = useDarkMode();
     <AppToaster />
 
     <div
-        class="min-h-screen min-h-dvh flex-1 bg-slate-50/80 dark:bg-slate-950 text-foreground flex flex-col justify-center items-center p-4 sm:p-6 md:p-8 transition-colors duration-200"
+        class="min-h-screen min-h-dvh flex-1 bg-[#f8f9ff] dark:bg-slate-950 text-foreground flex flex-col justify-center items-center p-4 sm:p-6 md:p-8 transition-colors duration-200"
     >
         <div :class="['w-full', maxWidth]">
             <!-- Header di atas Form: Logo di Kiri & Dark Mode Toggle di Kanan -->

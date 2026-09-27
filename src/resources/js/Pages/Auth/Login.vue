@@ -271,7 +271,7 @@ const submit = () => {
 
             <!-- Kolom Kanan: Gambar Ilustrasi (Hanya Tampil di Desktop, Hidden di HP) -->
             <div
-                class="hidden lg:flex flex-col items-center justify-center bg-slate-50/70 dark:bg-slate-900/40"
+                class="hidden lg:flex flex-col items-center justify-center bg-[#f8f9ff] dark:bg-slate-900/40"
             >
                 <div class="w-full h-full min-h-[440px] max-h-[560px]  overflow-hidden shadow-xs">
                     <img

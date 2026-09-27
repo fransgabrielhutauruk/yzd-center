@@ -22,19 +22,26 @@ const props = defineProps({
 </script>
 
 <template>
-    <InvestorLayout :title="article.judul">
-        <div class="max-w-4xl mx-auto space-y-6">
-            <!-- Navigasi Kembali / Breadcrumb -->
-            <div>
-                <Link
-                    href="/investor/education/help"
-                    class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
-                >
+    <Head :title="`${article.judul} - Bantuan & Edukasi`" />
+    <InvestorLayout
+        :title="article.judul"
+        :subtitle="article.ringkasan || 'Panduan langkah demi langkah dan materi edukasi trading.'"
+        :breadcrumbs="[
+            { label: 'Bantuan & Edukasi' },
+            { label: 'Pusat Bantuan & Video', href: '/investor/education/help' },
+            { label: article.kategori?.nama || 'Panduan' }
+        ]"
+    >
+        <template #header-actions>
+            <Button variant="outline" size="sm" as-child class="h-9 gap-1.5 text-xs font-medium cursor-pointer">
+                <Link href="/investor/education/help">
                     <ArrowLeft class="h-4 w-4" />
                     Kembali ke Pusat Bantuan
                 </Link>
-            </div>
+            </Button>
+        </template>
 
+        <div class="max-w-4xl space-y-6">
             <!-- Konten Utama Artikel -->
             <article class="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <!-- Metadata Topik -->

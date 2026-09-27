@@ -68,44 +68,42 @@ const copyReferralCode = async () => {
 </script>
 
 <template>
-    <InvestorLayout title="Dasbor Portofolio">
-        <div class="space-y-6">
-            <!-- Welcome Header Card -->
-            <div class="rounded-2xl bg-gradient-to-r from-primary-700 via-primary-800 to-slate-900 text-white p-6 sm:p-8 shadow-md border border-primary-600/40">
-                <div class="max-w-2xl space-y-3">
-                    <div class="flex flex-wrap items-center gap-2">
-                        <span
-                            v-if="user.is_active"
-                            class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                        >
-                            <ShieldCheck class="w-3.5 h-3.5" />
-                            Akun Terverifikasi
-                        </span>
-                        <span
-                            v-else
-                            class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                        >
-                            <AlertCircle class="w-3.5 h-3.5" />
-                            Akun Belum Terverifikasi
-                        </span>
+    <InvestorLayout
+        :title="`Selamat Datang, ${user.name}!`"
+        subtitle="Kelola portofolio copy trade, tinjau legalitas KYC, dan pantau performa investasi Anda."
+        :breadcrumbs="[
+            { label: 'Menu Utama' },
+            { label: 'Dasbor Portofolio' }
+        ]"
+    >
+        <template #header-actions>
+            <div class="flex flex-wrap items-center gap-2">
+                <span
+                    v-if="user.is_active"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
+                >
+                    <ShieldCheck class="w-3.5 h-3.5" />
+                    Akun Terverifikasi
+                </span>
+                <span
+                    v-else
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30"
+                >
+                    <AlertCircle class="w-3.5 h-3.5" />
+                    Akun Belum Terverifikasi
+                </span>
 
-                        <span
-                            v-if="user.role === 'affiliator'"
-                            class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-accent-500 text-white shadow-xs"
-                        >
-                            <UserCheck class="w-3.5 h-3.5" />
-                            Affiliator
-                        </span>
-                    </div>
-
-                    <h2 class="text-xl sm:text-2xl font-black tracking-tight text-white">
-                        Selamat Datang, {{ user.name }}!
-                    </h2>
-                    <p class="text-xs sm:text-sm text-white/90 leading-relaxed font-normal">
-                        Kelola portofolio copy trade, tinjau legalitas KYC, dan pantau performa investasi Anda.
-                    </p>
-                </div>
+                <span
+                    v-if="user.role === 'affiliator'"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-accent-500 text-white shadow-xs"
+                >
+                    <UserCheck class="w-3.5 h-3.5" />
+                    Affiliator
+                </span>
             </div>
+        </template>
+
+        <div class="space-y-6">
 
             <!-- KYC Status Reminder Banner if account is not active -->
             <div

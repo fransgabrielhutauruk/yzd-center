@@ -341,40 +341,37 @@ const claimColumns = [
 </script>
 
 <template>
-    <InvestorLayout title="Jaringan Kemitraan">
+    <InvestorLayout
+        title="Jaringan Kemitraan"
+        subtitle="Pantau investor binaan Anda, kelola kode referral, dan ajukan klaim referral susulan."
+        :breadcrumbs="[
+            { label: 'Program Afiliasi' },
+            { label: 'Jaringan Kemitraan' }
+        ]"
+    >
+        <template #header-actions>
+            <div class="flex items-center gap-2 self-start sm:self-center">
+                <Link
+                    :href="route('investor.commissions.index')"
+                    class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors shadow-xs"
+                >
+                    <Banknote class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Klaim Komisi (PB 3)</span>
+                </Link>
+                <Button
+                    type="button"
+                    @click="openClaimModal"
+                    class="bg-primary-600 hover:bg-primary-700 flex items-center gap-1.5 text-xs text-white shadow-xs sm:text-sm cursor-pointer"
+                >
+                    <PlusCircle class="h-4 w-4" />
+                    <span>Ajukan Klaim Susulan</span>
+                </Button>
+            </div>
+        </template>
+
         <Head title="Jaringan Kemitraan" />
 
         <div class="space-y-6">
-            <!-- Header Halaman -->
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h1 class="text-foreground text-xl font-bold tracking-tight sm:text-2xl">
-                        Jaringan Kemitraan
-                    </h1>
-                    <p class="text-muted-foreground text-xs sm:text-sm">
-                        Pantau investor binaan Anda, kelola kode referral, dan ajukan klaim referral
-                        susulan.
-                    </p>
-                </div>
-
-                <div class="flex items-center gap-2 self-start">
-                    <Link
-                        :href="route('investor.commissions.index')"
-                        class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors shadow-xs"
-                    >
-                        <Banknote class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        <span>Klaim Komisi (PB 3)</span>
-                    </Link>
-                    <Button
-                        type="button"
-                        @click="openClaimModal"
-                        class="bg-primary-600 hover:bg-primary-700 flex items-center gap-1.5 text-xs text-white shadow-xs sm:text-sm"
-                    >
-                        <PlusCircle class="h-4 w-4" />
-                        <span>Ajukan Klaim Susulan</span>
-                    </Button>
-                </div>
-            </div>
 
             <!-- Banner Kode Referral -->
             <div class="grid grid-cols-1 gap-4 lg:grid-cols-5">

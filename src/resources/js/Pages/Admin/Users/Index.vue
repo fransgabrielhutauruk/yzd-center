@@ -94,24 +94,15 @@ const filterByQuick = (key, val) => {
 
 <template>
     <Head title="Manajemen Pengguna" />
-    <AdminLayout title="Manajemen Pengguna">
+    <AdminLayout
+        title="Manajemen Pengguna"
+        subtitle="Daftar lengkap seluruh pengguna terdaftar (Investor & Affiliator), pemantauan status KYC, rincian profil, serta kontrol akses sistem."
+        :breadcrumbs="[
+            { label: 'Menu Utama' },
+            { label: 'Pengguna' }
+        ]"
+    >
         <div class="space-y-6">
-            <!-- Header Section -->
-            <div
-                class="bg-card border-border flex flex-col justify-between gap-4 rounded-2xl border p-6 shadow-xs sm:flex-row sm:items-center"
-            >
-                <div class="space-y-1">
-                    <div class="flex items-center gap-2">
-                        <Users class="h-5 w-5 text-primary-600 dark:text-primary-400" />
-                        <h1 class="text-foreground text-xl font-bold tracking-tight">
-                            Manajemen Pengguna
-                        </h1>
-                    </div>
-                    <p class="text-muted-foreground text-xs leading-relaxed">
-                        Daftar lengkap seluruh pengguna terdaftar (Investor & Affiliator), pemantauan status KYC, rincian profil, serta kontrol akses sistem.
-                    </p>
-                </div>
-            </div>
 
             <!-- Quick Filter Stat Cards -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

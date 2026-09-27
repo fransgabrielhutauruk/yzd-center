@@ -25,23 +25,15 @@ defineProps({
 </script>
 
 <template>
-    <AdminLayout title="Dasbor Admin">
+    <AdminLayout
+        title="Dasbor Administrator"
+        subtitle="Sistem manajemen trading terintegrasi YZD Center. Pantau keanggotaan investor, mitra affiliator, dan kelola tautan pendaftaran eksklusif."
+        :breadcrumbs="[
+            { label: 'Menu Utama' },
+            { label: 'Dasbor Admin' }
+        ]"
+    >
         <div class="space-y-6">
-            <!-- Welcome Header Card -->
-            <div class="rounded-2xl bg-gradient-to-r from-primary-700 via-primary-800 to-slate-900 text-white p-6 sm:p-8 shadow-md border border-primary-600/30">
-                <div class="max-w-2xl space-y-2">
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent-500 text-white shadow-xs">
-                        <ShieldCheck class="w-3.5 h-3.5" />
-                        Admin Portal
-                    </span>
-                    <h2 class="text-xl sm:text-2xl font-bold tracking-tight">
-                        Selamat Datang di Dasbor Administrator
-                    </h2>
-                    <p class="text-xs sm:text-sm text-white/80 leading-relaxed">
-                        Sistem manajemen trading terintegrasi YZD Center. Pantau keanggotaan investor, mitra affiliator, dan kelola tautan pendaftaran eksklusif.
-                    </p>
-                </div>
-            </div>
 
             <!-- Stats Metric Grid -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">

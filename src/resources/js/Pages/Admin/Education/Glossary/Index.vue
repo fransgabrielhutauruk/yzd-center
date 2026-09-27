@@ -101,26 +101,22 @@ const handleDelete = () => {
 </script>
 
 <template>
-    <AdminLayout title="Glosarium Forex">
+    <AdminLayout
+        title="Glosarium Istilah Forex"
+        subtitle="Kelola kamus istilah teknis, dasar, dan manajemen risiko forex yang ditampilkan kepada investor."
+        :breadcrumbs="[
+            { label: 'Edukasi & Bantuan' },
+            { label: 'Glosarium Forex' }
+        ]"
+    >
+        <template #header-actions>
+            <Button @click="openCreateModal" class="gap-2 cursor-pointer">
+                <Plus class="h-4 w-4" />
+                Tambah Istilah Baru
+            </Button>
+        </template>
+
         <div class="space-y-6">
-            <!-- Header Halaman -->
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                        <BookOpen class="h-6 w-6 text-primary" />
-                        Glosarium Istilah Forex
-                    </h1>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Kelola kamus istilah teknis, dasar, dan manajemen risiko forex yang ditampilkan kepada investor.
-                    </p>
-                </div>
-                <div>
-                    <Button @click="openCreateModal" class="gap-2">
-                        <Plus class="h-4 w-4" />
-                        Tambah Istilah Baru
-                    </Button>
-                </div>
-            </div>
 
             <!-- Tabel Glosarium (AppDataTable) -->
             <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">

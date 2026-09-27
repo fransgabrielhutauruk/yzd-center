@@ -98,25 +98,22 @@ const getStatusBadge = (status) => {
 <template>
     <Head title="Klaim Komisi Afiliasi (PB 3)" />
 
-    <InvestorLayout title="Klaim Komisi Afiliasi">
+    <InvestorLayout
+        title="Klaim Komisi Afiliasi (PB 3)"
+        subtitle="Kelola hak komisi dari profit Master Trader per investor downline aktif minimal 90 hari (3 bulan masa salin copytrade)."
+        :breadcrumbs="[
+            { label: 'Program Afiliasi' },
+            { label: 'Klaim Komisi (PB 3)' }
+        ]"
+    >
+        <template #header-actions>
+            <Button @click="isSubmitModalOpen = true" class="w-full sm:w-auto cursor-pointer">
+                <PlusCircle class="h-4 w-4 mr-1.5" />
+                <span>Ajukan Klaim Komisi Baru</span>
+            </Button>
+        </template>
+
         <div class="space-y-6">
-            <!-- Header Halaman -->
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h1 class="text-foreground text-lg sm:text-xl font-bold tracking-tight">
-                        Klaim Komisi Afiliasi (PB 3)
-                    </h1>
-                    <p class="text-muted-foreground text-xs sm:text-sm">
-                        Kelola hak komisi dari profit Master Trader per investor downline aktif minimal 90 hari (3 bulan masa salin copytrade).
-                    </p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <Button @click="isSubmitModalOpen = true" class="w-full sm:w-auto">
-                        <PlusCircle class="h-4 w-4 mr-1.5" />
-                        <span>Ajukan Klaim Komisi Baru</span>
-                    </Button>
-                </div>
-            </div>
 
             <!-- 4 Kartu Statistik Ringkas -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

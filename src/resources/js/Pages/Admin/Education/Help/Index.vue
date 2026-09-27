@@ -224,38 +224,34 @@ const articleColumns = [
 </script>
 
 <template>
-    <AdminLayout title="Pusat Bantuan & Tutorial">
+    <AdminLayout
+        title="Pusat Bantuan & Tutorial Video"
+        subtitle="Kelola topik kategori, artikel panduan bertahap, dan tautan video edukasi untuk investor."
+        :breadcrumbs="[
+            { label: 'Edukasi & Bantuan' },
+            { label: 'Pusat Bantuan & Video' }
+        ]"
+    >
+        <template #header-actions>
+            <Button
+                v-if="activeTab === 'categories'"
+                @click="openCreateCategoryModal"
+                class="gap-1.5 cursor-pointer"
+            >
+                <Plus class="h-4 w-4" />
+                Tambah Kategori Topik
+            </Button>
+            <Button
+                v-else
+                @click="openCreateArticleModal"
+                class="gap-1.5 cursor-pointer"
+            >
+                <Plus class="h-4 w-4" />
+                Tambah Artikel Panduan
+            </Button>
+        </template>
+
         <div class="space-y-6">
-            <!-- Header Halaman -->
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                        <HelpCircle class="h-6 w-6 text-primary" />
-                        Pusat Bantuan & Tutorial Video
-                    </h1>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Kelola topik kategori, artikel panduan bertahap, dan tautan video edukasi untuk investor.
-                    </p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <Button
-                        v-if="activeTab === 'categories'"
-                        @click="openCreateCategoryModal"
-                        class="gap-1.5"
-                    >
-                        <Plus class="h-4 w-4" />
-                        Tambah Kategori Topik
-                    </Button>
-                    <Button
-                        v-else
-                        @click="openCreateArticleModal"
-                        class="gap-1.5"
-                    >
-                        <Plus class="h-4 w-4" />
-                        Tambah Artikel Panduan
-                    </Button>
-                </div>
-            </div>
 
             <!-- Tab Navigasi (Artikel vs Kategori Topik) -->
             <div class="flex border-b border-slate-200 dark:border-slate-800">

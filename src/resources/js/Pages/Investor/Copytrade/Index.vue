@@ -125,41 +125,35 @@ const getTierBadge = (tier) => {
 
 <template>
     <Head title="Manajemen Copytrade" />
-    <InvestorLayout title="Manajemen Copytrade">
-        <div class="space-y-6">
-            <!-- Header & Action Section -->
-            <div
-                class="bg-card border-border flex flex-col justify-between gap-4 rounded-2xl border p-6 shadow-xs sm:flex-row sm:items-center"
-            >
-                <div class="space-y-1">
-                    <div class="flex items-center gap-2">
-                        <TrendingUp class="h-5 w-5 text-primary-600 dark:text-primary-400" />
-                        <h1 class="text-foreground text-xl font-bold tracking-tight">
-                            Manajemen Akun Copytrade
-                        </h1>
-                    </div>
-                    <p class="text-muted-foreground text-xs leading-relaxed">
-                        Kelola akun trading MT4 Anda yang tersambung dengan sistem Copytrade YZD Center. Anda dapat mendaftarkan lebih dari satu akun.
-                    </p>
-                </div>
-                <div class="flex flex-wrap items-center gap-2 shrink-0">
-                    <Link
-                        href="/investor/copytrade/balance"
-                        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border bg-card hover:bg-muted text-foreground text-xs font-bold transition-colors shadow-xs cursor-pointer min-h-[40px]"
-                    >
-                        <LineChart class="h-4 w-4 text-primary" />
-                        <span>Kinerja & Saldo MT4</span>
-                    </Link>
-                    <Button
-                        type="button"
-                        class="bg-primary-600 hover:bg-primary-700 text-white gap-2 cursor-pointer min-h-[40px]"
-                        @click="openAddModalWithTier('tier_1')"
-                    >
-                        <PlusCircle class="h-4 w-4" />
-                        <span>Tambah Akun Copytrade</span>
-                    </Button>
-                </div>
+    <InvestorLayout
+        title="Manajemen Akun Copytrade"
+        subtitle="Kelola akun trading MT4 Anda yang tersambung dengan sistem Copytrade YZD Center. Anda dapat mendaftarkan lebih dari satu akun."
+        :breadcrumbs="[
+            { label: 'Menu Utama' },
+            { label: 'Manajemen Copytrade' }
+        ]"
+    >
+        <template #header-actions>
+            <div class="flex flex-wrap items-center gap-2 shrink-0">
+                <Link
+                    href="/investor/copytrade/balance"
+                    class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border bg-card hover:bg-muted text-foreground text-xs font-bold transition-colors shadow-xs cursor-pointer min-h-[40px]"
+                >
+                    <LineChart class="h-4 w-4 text-primary" />
+                    <span>Kinerja & Saldo MT4</span>
+                </Link>
+                <Button
+                    type="button"
+                    class="bg-primary-600 hover:bg-primary-700 text-white gap-2 cursor-pointer min-h-[40px]"
+                    @click="openAddModalWithTier('tier_1')"
+                >
+                    <PlusCircle class="h-4 w-4" />
+                    <span>Tambah Akun Copytrade</span>
+                </Button>
             </div>
+        </template>
+
+        <div class="space-y-6">
 
             <!-- Master Account Information Card -->
             <div class="bg-card border-border rounded-2xl border p-5 shadow-xs space-y-4">

@@ -1,9 +1,9 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { Head, Link, usePage, router } from '@inertiajs/vue3';
 import {
     LayoutDashboard,
-    FileCheck,
+    BadgeCheck,
     Link2,
     FileText,
     Sun,
@@ -12,8 +12,6 @@ import {
     Menu,
     X,
     ChevronDown,
-    PanelLeftClose,
-    PanelLeft,
     UserCheck,
     Users,
     Settings,
@@ -22,15 +20,27 @@ import {
     HelpCircle,
     MessageCircleQuestion,
     TrendingUp,
+    ArrowLeftRight,
+    Network,
+    SquarePlay,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
 import AppNotificationBell from '@/Components/Common/AppNotificationBell.vue';
+import AppPageHeader from '@/Components/Common/AppPageHeader.vue';
 
 defineProps({
     title: {
         type: String,
         default: 'Admin Panel',
+    },
+    subtitle: {
+        type: String,
+        default: '',
+    },
+    breadcrumbs: {
+        type: Array,
+        default: () => [],
     },
 });
 
@@ -58,6 +68,16 @@ const toggleCollapse = () => {
     }
 };
 
+const user = computed(() => page.props.auth?.user || {});
+const userInitials = computed(() => {
+    const name = user.value?.name || 'Administrator';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+});
+
 // Navigasi aktif hanya untuk modul yang berjalan di Fase 1 & 2
 const navSections = [
     {
@@ -83,7 +103,7 @@ const navSections = [
             {
                 label: 'Verifikasi Legalitas',
                 href: '/admin/kyc',
-                icon: FileCheck,
+                icon: BadgeCheck,
                 routeName: 'admin.kyc.index',
             },
             {
@@ -100,7 +120,7 @@ const navSections = [
             {
                 label: 'Verifikasi Copytrade',
                 href: '/admin/copytrade',
-                icon: FileCheck,
+                icon: ArrowLeftRight,
                 routeName: 'admin.copytrade.index',
             },
         ],
@@ -117,7 +137,7 @@ const navSections = [
             {
                 label: 'Jaringan Kemitraan',
                 href: '/admin/affiliates',
-                icon: Users,
+                icon: Network,
                 routeName: 'admin.affiliates.index',
             },
             {
@@ -146,13 +166,13 @@ const navSections = [
             {
                 label: 'Pusat Bantuan & Video',
                 href: '/admin/education/help',
-                icon: HelpCircle,
+                icon: SquarePlay,
                 routeName: 'admin.education.help.index',
             },
             {
                 label: 'Tanya Jawab (FAQ)',
                 href: '/admin/education/faq',
-                icon: MessageCircleQuestion,
+                icon: HelpCircle,
                 routeName: 'admin.education.faq.index',
             },
         ],
@@ -190,7 +210,7 @@ const logout = () => {
     <AppToaster />
 
     <div
-        class="text-foreground flex min-h-screen min-h-dvh flex-1 bg-white transition-colors duration-200 dark:bg-slate-900"
+        class="text-foreground flex min-h-screen min-h-dvh flex-1 bg-white transition-colors duration-200 dark:bg-slate-950"
     >
         <!-- Backdrop Mobile Sidebar -->
         <transition
@@ -211,7 +231,7 @@ const logout = () => {
         <!-- Sidebar Component -->
         <aside
             :class="[
-                'bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 fixed inset-y-0 left-0 z-50 flex flex-col shadow-sm transition-all duration-300 ease-in-out md:static md:translate-x-0 md:shadow-none',
+                'bg-[#f8f9ff] dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 fixed inset-y-0 left-0 z-50 flex flex-col shadow-xs transition-all duration-300 ease-in-out md:static md:translate-x-0 md:shadow-none',
                 isCollapsed ? 'md:w-20' : 'md:w-64',
                 'w-64',
                 isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
@@ -219,15 +239,15 @@ const logout = () => {
         >
             <!-- Logo Brand & Mobile Close Button -->
             <div
-                class="flex h-16 items-center justify-between border-b border-slate-200 px-4 dark:border-slate-800"
+                class="flex h-16 items-center justify-between px-4  "
             >
-                <Link href="/admin/dashboard" class="flex items-center gap-1.5 overflow-hidden">
+                <Link href="/admin/dashboard" class="flex items-center gap-1.5 overflow-hidden mx-auto">
                     <span class="text-accent-500 text-2xl font-black tracking-tight shrink-0">YZD</span>
                     <span v-if="!isCollapsed" class="text-xl font-bold tracking-tight text-primary-600 dark:text-primary-400 shrink-0">Center</span>
 
                     <span
                         v-if="!isCollapsed"
-                        class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 ml-1 rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wide shrink-0"
+                        class="bg-primary-600 text-white ml-1.5 rounded-md px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase shrink-0"
                     >
                         ADMIN
                     </span>
@@ -245,16 +265,16 @@ const logout = () => {
             </div>
 
             <!-- Sidebar Navigation Links -->
-            <nav class="flex-1 space-y-5 overflow-y-auto px-3 py-4 text-sm font-medium">
+            <nav class="flex-1 space-y-4 overflow-y-auto px-3 py-1 text-sm font-medium">
                 <div v-for="(section, idx) in navSections" :key="idx" class="space-y-1">
                     <!-- Section Title (Hidden when collapsed) -->
                     <p
                         v-if="!isCollapsed"
-                        class="px-3 text-[11px] font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase"
+                        class="px-3 pt-3 pb-1 text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase"
                     >
                         {{ section.title }}
                     </p>
-                    <div v-else class="h-px bg-slate-200 dark:bg-slate-700 mx-2 my-2"></div>
+                    <div v-else class="h-px bg-slate-200 dark:bg-slate-800 mx-2 my-2"></div>
 
                     <div class="space-y-1">
                         <Link
@@ -264,11 +284,11 @@ const logout = () => {
                             @click="isMobileSidebarOpen = false"
                             :title="isCollapsed ? item.label : undefined"
                             :class="[
-                                'group flex items-center rounded-lg py-2.5 transition-all duration-150',
-                                isCollapsed ? 'justify-center px-2' : 'justify-between px-3',
+                                'group flex items-center rounded-xl py-2.5 transition-all duration-150',
+                                isCollapsed ? 'justify-center px-2' : 'justify-between px-3.5',
                                 isActive(item)
-                                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold'
-                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100',
+                                    ? 'bg-primary-600 text-white font-semibold shadow-xs'
+                                    : 'text-slate-700 dark:text-slate-300 font-semibold hover:bg-primary-50 dark:hover:bg-primary-950/40 hover:text-primary-600 dark:hover:text-primary-400',
                             ]"
                         >
                             <div class="flex items-center gap-3 min-w-0">
@@ -277,8 +297,8 @@ const logout = () => {
                                     :class="[
                                         'h-4 w-4 shrink-0 transition-colors',
                                         isActive(item)
-                                            ? 'text-accent-600 dark:text-accent-400'
-                                            : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300',
+                                            ? 'text-white'
+                                            : 'text-slate-500 dark:text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400',
                                     ]"
                                 />
                                 <span v-if="!isCollapsed" class="truncate font-semibold text-[13px]">
@@ -295,34 +315,33 @@ const logout = () => {
         <div class="flex min-w-0 flex-1 flex-col">
             <!-- Top Navbar -->
             <header
-                class="border-accent-500 sticky top-0 z-30 flex h-16 items-center justify-between border-b-2 bg-slate-50 px-4 shadow-xs transition-colors sm:px-6 dark:bg-slate-950"
+                class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-[#f8f9ff] px-4 transition-colors sm:px-6 dark:bg-slate-900"
             >
                 <div class="flex items-center gap-2.5 sm:gap-3">
-                    <!-- Mobile Menu Button -->
+                    <!-- Mobile Menu Button (Hamburger) -->
                     <button
                         type="button"
                         @click="isMobileSidebarOpen = true"
-                        class="text-slate-700 dark:text-slate-200 hover:text-foreground rounded-lg p-2 hover:bg-slate-100 md:hidden dark:hover:bg-slate-800 cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
+                        class="text-slate-700 dark:text-slate-200 hover:text-slate-900 rounded-lg p-2 hover:bg-slate-200/60 md:hidden dark:hover:bg-slate-800 cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center transition-colors"
                         aria-label="Buka Menu"
                     >
                         <Menu class="h-5 w-5" />
                     </button>
 
-                    <!-- Desktop Sidebar Minimize/Maximize Button -->
+                    <!-- Desktop Sidebar Minimize/Maximize Button (Hamburger) -->
                     <button
                         type="button"
                         @click="toggleCollapse"
-                        class="hidden md:flex rounded-lg p-2 text-slate-700 dark:text-slate-200 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer min-h-[38px] min-w-[38px] items-center justify-center"
+                        class="hidden md:flex rounded-lg p-2 text-slate-700 dark:text-slate-200 hover:text-slate-900 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer min-h-[38px] min-w-[38px] items-center justify-center"
                         :title="isCollapsed ? 'Tampilkan Sidebar' : 'Sembunyikan Sidebar'"
                         :aria-label="isCollapsed ? 'Perluas Sidebar' : 'Kecilkan Sidebar'"
                     >
-                        <PanelLeftClose v-if="!isCollapsed" class="h-5 w-5" />
-                        <PanelLeft v-else class="h-5 w-5" />
+                        <Menu class="h-5 w-5" />
                     </button>
                 </div>
 
                 <!-- Right Header Actions -->
-                <div class="flex items-center gap-2 sm:gap-3">
+                <div class="flex items-center gap-2 sm:gap-2.5">
                     <!-- Notifications Bell Component -->
                     <AppNotificationBell />
 
@@ -330,30 +349,38 @@ const logout = () => {
                     <button
                         type="button"
                         @click="toggleDarkMode"
-                        class="text-slate-700 dark:text-slate-200 hover:text-foreground rounded-lg p-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
+                        class="text-slate-700 dark:text-slate-200 hover:text-slate-900 rounded-lg p-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
                         :title="isDark ? 'Mode Terang' : 'Mode Gelap'"
                         aria-label="Toggle Tema"
                     >
                         <Sun v-if="isDark" class="h-5 w-5 text-amber-500" />
-                        <Moon v-else class="h-5 w-5 text-slate-700" />
+                        <Moon v-else class="h-5 w-5 text-slate-700 dark:text-slate-300" />
                     </button>
+
+                    <!-- Vertical Divider -->
+                    <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1 sm:mx-1.5"></div>
 
                     <!-- User Dropdown Menu -->
                     <div class="relative">
                         <button
                             type="button"
                             @click="isUserDropdownOpen = !isUserDropdownOpen"
-                            class="flex items-center gap-2 rounded-lg p-1.5 text-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer min-h-[38px]"
+                            class="flex items-center gap-2.5 rounded-lg p-1.5 text-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer min-h-[38px]"
                         >
                             <div
-                                class="bg-accent-500 flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs"
+                                class="bg-primary-600 flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs shrink-0"
                             >
-                                AD
+                                {{ userInitials }}
                             </div>
-                            <span class="text-foreground hidden font-bold lg:inline-block">
-                                {{ page.props.auth?.user?.name || 'Admin' }}
-                            </span>
-                            <ChevronDown class="text-slate-600 dark:text-slate-300 h-4 w-4" />
+                            <div class="hidden text-left sm:block">
+                                <p class="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight truncate">
+                                    {{ page.props.auth?.user?.name || 'Administrator' }}
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 leading-tight">
+                                    Super User
+                                </p>
+                            </div>
+                            <ChevronDown class="text-slate-500 dark:text-slate-400 h-4 w-4 shrink-0" />
                         </button>
 
                         <div
@@ -398,7 +425,17 @@ const logout = () => {
             </header>
 
             <!-- Main Content Area -->
-            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-white dark:bg-slate-950">
+                <AppPageHeader
+                    v-if="breadcrumbs && breadcrumbs.length > 0"
+                    :breadcrumbs="breadcrumbs"
+                    :title="title"
+                    :subtitle="subtitle"
+                >
+                    <template v-if="$slots['header-actions']" #actions>
+                        <slot name="header-actions" />
+                    </template>
+                </AppPageHeader>
                 <slot />
             </main>
         </div>

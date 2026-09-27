@@ -97,57 +97,47 @@ const previewHtml = computed(
 </script>
 
 <template>
-    <AdminLayout title="Pengelolaan Dokumen Legalitas">
-        <div class="space-y-6">
-            <!-- Header -->
-            <div
-                class="bg-card border-border flex flex-col justify-between gap-4 rounded-2xl border p-6 shadow-xs sm:flex-row sm:items-center"
-            >
-                <div class="space-y-1">
-                    <div class="flex items-center gap-2">
-                        <span class="bg-primary-500/10 text-primary-600 rounded-xl p-2">
-                            <FileText class="h-5 w-5" />
-                        </span>
-                        <h1 class="text-foreground text-xl font-bold tracking-tight">
-                            Pengelolaan Konten Legalitas Platform
-                        </h1>
-                    </div>
-                    <p class="text-muted-foreground pl-11 text-xs">
-                        Sesuaikan pasal Syarat & Ketentuan serta Kebijakan Privasi yang berlaku.
-                    </p>
-                </div>
+    <AdminLayout
+        title="Pengelolaan Konten Legalitas Platform"
+        subtitle="Sesuaikan pasal Syarat & Ketentuan serta Kebijakan Privasi yang berlaku pada sistem."
+        :breadcrumbs="[
+            { label: 'Pengaturan Sistem' },
+            { label: 'Konten Legalitas' }
+        ]"
+    >
+        <template #header-actions>
+            <div class="flex items-center gap-2">
+                <button
+                    type="button"
+                    @click="isPreviewMode = false"
+                    :class="[
+                        'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer',
+                        !isPreviewMode
+                            ? 'bg-primary-600 text-white shadow-xs'
+                            : 'bg-muted text-muted-foreground hover:text-foreground',
+                    ]"
+                >
+                    <Edit3 class="h-3.5 w-3.5" />
+                    <span>Mode Editor</span>
+                </button>
 
-                <!-- Mode Pratinjau Toggle -->
-                <div class="flex items-center gap-2">
-                    <button
-                        type="button"
-                        @click="isPreviewMode = false"
-                        :class="[
-                            'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
-                            !isPreviewMode
-                                ? 'bg-primary-600 text-white shadow-xs'
-                                : 'bg-muted text-muted-foreground hover:text-foreground',
-                        ]"
-                    >
-                        <Edit3 class="h-3.5 w-3.5" />
-                        <span>Mode Editor</span>
-                    </button>
-
-                    <button
-                        type="button"
-                        @click="isPreviewMode = true"
-                        :class="[
-                            'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
-                            isPreviewMode
-                                ? 'bg-primary-600 text-white shadow-xs'
-                                : 'bg-muted text-muted-foreground hover:text-foreground',
-                        ]"
-                    >
-                        <Eye class="h-3.5 w-3.5" />
-                        <span>Pratinjau Pengguna</span>
-                    </button>
-                </div>
+                <button
+                    type="button"
+                    @click="isPreviewMode = true"
+                    :class="[
+                        'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer',
+                        isPreviewMode
+                            ? 'bg-primary-600 text-white shadow-xs'
+                            : 'bg-muted text-muted-foreground hover:text-foreground',
+                    ]"
+                >
+                    <Eye class="h-3.5 w-3.5" />
+                    <span>Pratinjau Pengguna</span>
+                </button>
             </div>
+        </template>
+
+        <div class="space-y-6">
 
             <!-- Tab Pemilihan Dokumen -->
             <div class="border-border flex items-center gap-3 border-b">

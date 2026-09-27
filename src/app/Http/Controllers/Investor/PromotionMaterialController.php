@@ -16,11 +16,13 @@ class PromotionMaterialController extends Controller
     ) {}
 
     /**
-     * Tampilkan galeri materi promosi dan laporan keuntungan untuk Affiliator & Investor.
+     * Tampilkan galeri materi promosi dan laporan keuntungan khusus untuk Affiliator.
      */
     public function index(Request $request): Response
     {
         $user = $request->user();
+        abort_unless($user->isAffiliator(), 403, 'Akses materi promosi dan laporan keuntungan hanya tersedia untuk mitra affiliator.');
+
         $filters = $request->only(['tipe', 'is_kalender', 'tahun', 'bulan', 'search', 'sort_by']);
 
         $reports = $this->profitReportService->getPaginatedReports(

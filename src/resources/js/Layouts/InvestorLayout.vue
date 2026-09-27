@@ -3,15 +3,13 @@ import { ref, computed, onMounted } from 'vue';
 import { Head, Link, usePage, router } from '@inertiajs/vue3';
 import {
     LayoutDashboard,
-    FileCheck,
+    BadgeCheck,
     Sun,
     Moon,
     LogOut,
     Menu,
     X,
     ChevronDown,
-    PanelLeftClose,
-    PanelLeft,
     Lock,
     Users,
     TrendingUp,
@@ -22,16 +20,27 @@ import {
     HelpCircle,
     MessageCircleQuestion,
     Megaphone,
+    Network,
+    SquarePlay,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
 import AppNotificationBell from '@/Components/Common/AppNotificationBell.vue';
+import AppPageHeader from '@/Components/Common/AppPageHeader.vue';
 import { toast } from 'vue-sonner';
 
 defineProps({
     title: {
         type: String,
         default: 'Dasbor Portofolio',
+    },
+    subtitle: {
+        type: String,
+        default: '',
+    },
+    breadcrumbs: {
+        type: Array,
+        default: () => [],
     },
 });
 
@@ -75,97 +84,105 @@ const isUserActive = computed(() => {
     return user.value?.status === 'active' || Boolean(user.value?.is_active);
 });
 
-const navItems = computed(() => {
-    const items = [
+const navSections = computed(() => {
+    const sections = [
         {
-            label: 'Dasbor Portofolio',
-            href: '/investor/dashboard',
-            icon: LayoutDashboard,
-            requiresActive: true,
-        },
-        {
-            label: 'Status KYC & Legalitas',
-            href: '/investor/kyc',
-            icon: FileCheck,
-            requiresActive: false,
-            routeName: 'investor.kyc',
-        },
-        {
-            label: 'Manajemen Copytrade',
-            href: '/investor/copytrade',
-            icon: TrendingUp,
-            requiresActive: false,
-            routeName: 'investor.copytrade.index',
-        },
-        {
-            label: 'Kinerja & Saldo MT4',
-            href: '/investor/copytrade/balance',
-            icon: LineChart,
-            requiresActive: false,
-            routeName: 'investor.copytrade.balance.index',
-        },
-        {
-            label: 'Kalkulator Proyeksi',
-            href: '/investor/education/calculator',
-            icon: Calculator,
-            requiresActive: false,
-            routeName: 'investor.education.calculator',
-        },
-        {
-            label: 'Pusat Bantuan & Video',
-            href: '/investor/education/help',
-            icon: HelpCircle,
-            requiresActive: false,
-            routeName: 'investor.education.help',
-        },
-        {
-            label: 'Tanya Jawab (FAQ)',
-            href: '/investor/education/faq',
-            icon: MessageCircleQuestion,
-            requiresActive: false,
-            routeName: 'investor.education.faq',
-        },
-        {
-            label: 'Glosarium Forex',
-            href: '/investor/education/glossary',
-            icon: BookOpen,
-            requiresActive: false,
-            routeName: 'investor.education.glossary',
+            title: 'Menu Utama',
+            items: [
+                {
+                    label: 'Dasbor Portofolio',
+                    href: '/investor/dashboard',
+                    icon: LayoutDashboard,
+                    requiresActive: true,
+                },
+                {
+                    label: 'Status KYC & Legalitas',
+                    href: '/investor/kyc',
+                    icon: BadgeCheck,
+                    requiresActive: false,
+                    routeName: 'investor.kyc',
+                },
+                {
+                    label: 'Manajemen Copytrade',
+                    href: '/investor/copytrade',
+                    icon: TrendingUp,
+                    requiresActive: false,
+                    routeName: 'investor.copytrade.index',
+                },
+                {
+                    label: 'Kinerja & Saldo MT4',
+                    href: '/investor/copytrade/balance',
+                    icon: LineChart,
+                    requiresActive: false,
+                    routeName: 'investor.copytrade.balance.index',
+                },
+                {
+                    label: 'Kalkulator Proyeksi',
+                    href: '/investor/education/calculator',
+                    icon: Calculator,
+                    requiresActive: false,
+                    routeName: 'investor.education.calculator',
+                },
+            ],
         },
     ];
 
     if (isAffiliator.value) {
-        items.push({
-            label: 'Materi Promosi & Profit',
-            href: '/investor/promotions',
-            icon: Megaphone,
-            requiresActive: false,
-            routeName: 'investor.promotions.index',
-        });
-        items.push({
-            label: 'Jaringan Kemitraan',
-            href: '/investor/affiliates',
-            icon: Users,
-            requiresActive: true,
-        });
-        items.push({
-            label: 'Klaim Komisi (PB 3)',
-            href: '/investor/commissions',
-            icon: Banknote,
-            requiresActive: true,
-            routeName: 'investor.commissions.index',
-        });
-    } else {
-        items.push({
-            label: 'Laporan Profit Trading',
-            href: '/investor/promotions',
-            icon: Megaphone,
-            requiresActive: false,
-            routeName: 'investor.promotions.index',
+        sections.push({
+            title: 'Program Afiliasi',
+            items: [
+                {
+                    label: 'Materi Promosi & Profit',
+                    href: '/investor/promotions',
+                    icon: Megaphone,
+                    requiresActive: false,
+                    routeName: 'investor.promotions.index',
+                },
+                {
+                    label: 'Jaringan Kemitraan',
+                    href: '/investor/affiliates',
+                    icon: Network,
+                    requiresActive: true,
+                },
+                {
+                    label: 'Klaim Komisi (PB 3)',
+                    href: '/investor/commissions',
+                    icon: Banknote,
+                    requiresActive: true,
+                    routeName: 'investor.commissions.index',
+                },
+            ],
         });
     }
 
-    return items;
+    sections.push({
+        title: 'Bantuan & Edukasi',
+        items: [
+            {
+                label: 'Pusat Bantuan & Video',
+                href: '/investor/education/help',
+                icon: SquarePlay,
+                requiresActive: false,
+                routeName: 'investor.education.help',
+            },
+            {
+                label: 'Tanya Jawab (FAQ)',
+                href: '/investor/education/faq',
+                icon: HelpCircle,
+                requiresActive: false,
+                routeName: 'investor.education.faq',
+            },
+            {
+                label: 'Glosarium Forex',
+                href: '/investor/education/glossary',
+                icon: BookOpen,
+                requiresActive: false,
+                routeName: 'investor.education.glossary',
+            },
+        ],
+    });
+
+    return sections;
 });
 
 const isActive = (href) => {
@@ -192,7 +209,7 @@ const logout = () => {
     <AppToaster />
 
     <div
-        class="min-h-screen min-h-dvh flex-1 bg-white dark:bg-slate-900 text-foreground flex transition-colors duration-200"
+        class="min-h-screen min-h-dvh flex-1 bg-white dark:bg-slate-950 text-foreground flex transition-colors duration-200"
     >
         <!-- Backdrop Mobile Sidebar -->
         <transition
@@ -213,7 +230,7 @@ const logout = () => {
         <!-- Sidebar Component -->
         <aside
             :class="[
-                'bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 fixed inset-y-0 left-0 z-50 flex flex-col shadow-sm transition-all duration-300 ease-in-out md:static md:translate-x-0 md:shadow-none',
+                'bg-[#f8f9ff] dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 fixed inset-y-0 left-0 z-50 flex flex-col shadow-xs transition-all duration-300 ease-in-out md:static md:translate-x-0 md:shadow-none',
                 isCollapsed ? 'md:w-20' : 'md:w-64',
                 'w-64',
                 isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
@@ -221,16 +238,22 @@ const logout = () => {
         >
             <!-- Logo Brand & Mobile Close Button -->
             <div
-                class="h-16 px-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800"
+                class="h-16 px-4 flex items-center justify-between"
             >
-                <Link :href="isUserActive ? '/investor/dashboard' : '/investor/kyc'" class="flex items-center gap-1.5 overflow-hidden">
+                <Link :href="isUserActive ? '/investor/dashboard' : '/investor/kyc'" class="flex items-center gap-1.5 overflow-hidden mx-auto">
                     <span class="text-accent-500 font-black text-2xl tracking-tight shrink-0">YZD</span>
                     <span v-if="!isCollapsed" class="text-primary-600 dark:text-primary-400 font-bold text-xl tracking-tight shrink-0">Center</span>
                     <span
                         v-if="!isCollapsed && isAffiliator"
-                        class="ml-1 text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded shrink-0 tracking-wide"
+                        class="ml-1.5 text-[10px] font-bold bg-primary-600 text-white px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0"
                     >
                         AFFILIATOR
+                    </span>
+                    <span
+                        v-else-if="!isCollapsed"
+                        class="ml-1.5 text-[10px] font-bold bg-primary-600 text-white px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0"
+                    >
+                        INVESTOR
                     </span>
                 </Link>
 
@@ -246,19 +269,19 @@ const logout = () => {
             </div>
 
             <!-- Sidebar Navigation Links -->
-            <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-5 text-sm font-medium">
-                <div class="space-y-1">
+            <nav class="flex-1 overflow-y-auto px-3 py-1 space-y-4 text-sm font-medium">
+                <div v-for="(section, idx) in navSections" :key="idx" class="space-y-1">
                     <!-- Section Title (Hidden when collapsed) -->
                     <p
                         v-if="!isCollapsed"
-                        class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500"
+                        class="px-3 pt-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400"
                     >
-                        Menu Utama
+                        {{ section.title }}
                     </p>
-                    <div v-else class="h-px bg-slate-200 dark:bg-slate-700 mx-2 my-2"></div>
+                    <div v-else-if="idx > 0" class="h-px bg-slate-200 dark:bg-slate-800 mx-2 my-2"></div>
 
                     <div class="space-y-1">
-                        <template v-for="item in navItems" :key="item.href">
+                        <template v-for="item in section.items" :key="item.href">
                             <!-- Menu Terkunci (Klik memicu Toast) -->
                             <button
                                 v-if="isLocked(item)"
@@ -266,8 +289,8 @@ const logout = () => {
                                 @click="handleLockedClick(item)"
                                 :title="isCollapsed ? `${item.label} (Terkunci)` : `${item.label} (Terkunci - Menunggu verifikasi)`"
                                 :class="[
-                                    'w-full group flex items-center rounded-lg py-2.5 transition-all duration-150 cursor-pointer text-slate-400 dark:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/60',
-                                    isCollapsed ? 'justify-center px-2' : 'justify-between px-3',
+                                    'w-full group flex items-center rounded-xl py-2.5 transition-all duration-150 cursor-pointer text-slate-400 dark:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800/60',
+                                    isCollapsed ? 'justify-center px-2' : 'justify-between px-3.5',
                                 ]"
                             >
                                 <div class="flex items-center gap-3 min-w-0">
@@ -296,11 +319,11 @@ const logout = () => {
                                 @click="isMobileSidebarOpen = false"
                                 :title="isCollapsed ? item.label : undefined"
                                 :class="[
-                                    'group flex items-center rounded-lg py-2.5 transition-all duration-150',
-                                    isCollapsed ? 'justify-center px-2' : 'justify-between px-3',
+                                    'group flex items-center rounded-xl py-2.5 transition-all duration-150',
+                                    isCollapsed ? 'justify-center px-2' : 'justify-between px-3.5',
                                     isActive(item.href)
-                                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold'
-                                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100',
+                                        ? 'bg-primary-600 text-white font-semibold shadow-xs'
+                                        : 'text-slate-700 dark:text-slate-300 font-semibold hover:bg-primary-50 dark:hover:bg-primary-950/40 hover:text-primary-600 dark:hover:text-primary-400',
                                 ]"
                             >
                                 <div class="flex items-center gap-3 min-w-0">
@@ -309,8 +332,8 @@ const logout = () => {
                                         :class="[
                                             'w-4 h-4 shrink-0 transition-colors',
                                             isActive(item.href)
-                                                ? 'text-accent-600 dark:text-accent-400'
-                                                : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300',
+                                                ? 'text-white'
+                                                : 'text-slate-500 dark:text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400',
                                         ]"
                                     />
                                     <span v-if="!isCollapsed" class="truncate font-semibold text-[13px]">
@@ -328,34 +351,33 @@ const logout = () => {
         <div class="flex-1 flex flex-col min-w-0">
             <!-- Top Navbar -->
             <header
-                class="h-16 bg-slate-50 dark:bg-slate-950 border-b-2 border-accent-500 shadow-xs sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 transition-colors"
+                class="h-16 bg-[#f8f9ff] dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 transition-colors"
             >
                 <div class="flex items-center gap-2.5 sm:gap-3">
-                    <!-- Mobile Menu Button -->
+                    <!-- Mobile Menu Button (Hamburger) -->
                     <button
                         type="button"
                         @click="isMobileSidebarOpen = true"
-                        class="md:hidden p-2 rounded-lg text-slate-700 dark:text-slate-200 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
+                        class="md:hidden p-2 rounded-lg text-slate-700 dark:text-slate-200 hover:text-slate-900 hover:bg-slate-200/60 dark:hover:bg-slate-800 cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center transition-colors"
                         aria-label="Buka Menu"
                     >
                         <Menu class="w-5 h-5" />
                     </button>
 
-                    <!-- Desktop Sidebar Minimize/Maximize Button -->
+                    <!-- Desktop Sidebar Minimize/Maximize Button (Hamburger) -->
                     <button
                         type="button"
                         @click="toggleCollapse"
-                        class="hidden md:flex rounded-lg p-2 text-slate-700 dark:text-slate-200 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer min-h-[38px] min-w-[38px] items-center justify-center"
+                        class="hidden md:flex rounded-lg p-2 text-slate-700 dark:text-slate-200 hover:text-slate-900 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer min-h-[38px] min-w-[38px] items-center justify-center"
                         :title="isCollapsed ? 'Tampilkan Sidebar' : 'Sembunyikan Sidebar'"
                         :aria-label="isCollapsed ? 'Perluas Sidebar' : 'Kecilkan Sidebar'"
                     >
-                        <PanelLeftClose v-if="!isCollapsed" class="w-5 h-5" />
-                        <PanelLeft v-else class="w-5 h-5" />
+                        <Menu class="w-5 h-5" />
                     </button>
                 </div>
 
                 <!-- Right Header Actions -->
-                <div class="flex items-center gap-2 sm:gap-3">
+                <div class="flex items-center gap-2 sm:gap-2.5">
                     <!-- In-App Notification Bell Component -->
                     <AppNotificationBell />
 
@@ -363,30 +385,38 @@ const logout = () => {
                     <button
                         type="button"
                         @click="toggleDarkMode"
-                        class="p-2 rounded-lg text-slate-700 dark:text-slate-200 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
+                        class="p-2 rounded-lg text-slate-700 dark:text-slate-200 hover:text-slate-900 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
                         :title="isDark ? 'Mode Terang' : 'Mode Gelap'"
                         aria-label="Toggle Tema"
                     >
                         <Sun v-if="isDark" class="w-5 h-5 text-amber-500" />
-                        <Moon v-else class="w-5 h-5 text-slate-700" />
+                        <Moon v-else class="w-5 h-5 text-slate-700 dark:text-slate-300" />
                     </button>
+
+                    <!-- Vertical Divider -->
+                    <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1 sm:mx-1.5"></div>
 
                     <!-- User Dropdown Menu -->
                     <div class="relative">
                         <button
                             type="button"
                             @click="isUserDropdownOpen = !isUserDropdownOpen"
-                            class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-sm transition-colors cursor-pointer min-h-[38px]"
+                            class="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800 text-sm transition-colors cursor-pointer min-h-[38px]"
                         >
                             <div
-                                class="w-8 h-8 rounded-full bg-accent-500 text-white font-bold text-xs flex items-center justify-center shadow-xs"
+                                class="w-9 h-9 rounded-full bg-primary-600 text-white font-bold text-xs flex items-center justify-center shadow-xs shrink-0"
                             >
                                 {{ userInitials }}
                             </div>
-                            <span class="hidden lg:inline-block font-bold text-foreground">
-                                {{ user.name || 'Investor' }}
-                            </span>
-                            <ChevronDown class="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                            <div class="hidden text-left sm:block">
+                                <p class="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight truncate">
+                                    {{ user.name || 'Investor' }}
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 leading-tight">
+                                    {{ isAffiliator ? 'Affiliator' : 'Investor' }}
+                                </p>
+                            </div>
+                            <ChevronDown class="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0 ml-0.5" />
                         </button>
 
                         <div
@@ -416,7 +446,7 @@ const logout = () => {
                                     href="/investor/kyc"
                                     class="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-foreground transition-colors font-medium"
                                 >
-                                    <FileCheck class="w-4 h-4 text-muted-foreground" />
+                                    <BadgeCheck class="w-4 h-4 text-muted-foreground" />
                                     <span>Status KYC & Legalitas</span>
                                 </Link>
 
@@ -437,7 +467,17 @@ const logout = () => {
             </header>
 
             <!-- Main Content Area -->
-            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-white dark:bg-slate-950">
+                <AppPageHeader
+                    v-if="breadcrumbs && breadcrumbs.length > 0"
+                    :breadcrumbs="breadcrumbs"
+                    :title="title"
+                    :subtitle="subtitle"
+                >
+                    <template v-if="$slots['header-actions']" #actions>
+                        <slot name="header-actions" />
+                    </template>
+                </AppPageHeader>
                 <slot />
             </main>
         </div>

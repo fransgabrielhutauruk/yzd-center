@@ -131,8 +131,8 @@
     --chart-4: oklch(0.828 0.189 84.429);
     --chart-5: oklch(0.769 0.188 70.08);
 
-    /* Sidebar — primary violet tones */
-    --sidebar: oklch(97.1% 0.014 281.3);
+    /* Sidebar — #f8f9ff */
+    --sidebar: #f8f9ff;
     --sidebar-foreground: oklch(0.145 0 0);
     --sidebar-primary: oklch(55.8% 0.258 281.3);
     --sidebar-primary-foreground: oklch(1 0 0);
@@ -196,10 +196,10 @@
         @apply border-border outline-ring/50;
     }
     html {
-        @apply h-full bg-slate-50 dark:bg-slate-950;
+        @apply h-full bg-white dark:bg-slate-950;
     }
     body {
-        @apply min-h-full min-h-screen min-h-dvh bg-slate-50 text-foreground dark:bg-slate-950;
+        @apply min-h-full min-h-screen min-h-dvh bg-white text-foreground dark:bg-slate-950;
     }
     #app {
         @apply min-h-full min-h-screen min-h-dvh flex flex-col flex-1;

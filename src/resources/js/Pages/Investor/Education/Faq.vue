@@ -99,53 +99,44 @@ const resetAllFilters = () => {
 </script>
 
 <template>
-    <InvestorLayout title="Tanya Jawab (FAQ)">
+    <InvestorLayout
+        title="Pertanyaan yang Sering Diajukan (FAQ)"
+        subtitle="Temukan jawaban instan seputar legalitas, skema copytrade non-custodial, tata cara deposit, dan transparansi bagi hasil."
+        :breadcrumbs="[
+            { label: 'Bantuan & Edukasi' },
+            { label: 'Tanya Jawab (FAQ)' }
+        ]"
+    >
         <Head title="Tanya Jawab (FAQ) - YZD Center" />
 
-        <div class="space-y-8 max-w-5xl mx-auto">
-            <!-- Banner Utama & Kotak Pencarian -->
-            <div class="rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-900 p-6 sm:p-8 text-white shadow-md">
-                <div class="max-w-2xl">
-                    <span class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur-sm">
-                        <MessageCircleQuestion class="h-3.5 w-3.5 text-blue-300" />
-                        Pusat Tanya Jawab
-                    </span>
-                    <h1 class="mt-3 text-2xl sm:text-3xl font-bold tracking-tight">
-                        Pertanyaan yang Sering Diajukan (FAQ)
-                    </h1>
-                    <p class="mt-2 text-sm sm:text-base text-blue-100/90 leading-relaxed">
-                        Temukan jawaban instan seputar legalitas, skema copytrade non-custodial, tata cara deposit, dan transparansi bagi hasil.
-                    </p>
-                </div>
-
-                <!-- Input Pencarian FAQ -->
-                <div class="mt-6 max-w-xl">
-                    <div class="relative">
-                        <Search class="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                        <input
-                            v-model="searchQuery"
-                            type="text"
-                            placeholder="Ketik kata kunci (misal: penarikan modal, margin call, komisi)..."
-                            @keyup.enter="handleSearch"
-                            class="w-full rounded-xl border-0 bg-white/95 py-3 pl-10 pr-24 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        />
-                        <button
-                            v-if="searchQuery"
-                            type="button"
-                            @click="clearSearch"
-                            class="absolute right-20 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors"
-                            title="Bersihkan pencarian"
-                        >
-                            <X class="h-4 w-4" />
-                        </button>
-                        <button
-                            type="button"
-                            @click="handleSearch"
-                            class="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-500 transition-colors"
-                        >
-                            Cari
-                        </button>
-                    </div>
+        <div class="space-y-6 max-w-5xl mx-auto">
+            <!-- Kotak Pencarian -->
+            <div class="max-w-xl">
+                <div class="relative">
+                    <Search class="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                        v-model="searchQuery"
+                        type="text"
+                        placeholder="Ketik kata kunci (misal: penarikan modal, margin call, komisi)..."
+                        @keyup.enter="handleSearch"
+                        class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2.5 pl-10 pr-24 text-sm text-foreground shadow-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                    <button
+                        v-if="searchQuery"
+                        type="button"
+                        @click="clearSearch"
+                        class="absolute right-20 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                        title="Bersihkan pencarian"
+                    >
+                        <X class="h-4 w-4" />
+                    </button>
+                    <button
+                        type="button"
+                        @click="handleSearch"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-primary-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-primary-700 transition-colors cursor-pointer"
+                    >
+                        Cari
+                    </button>
                 </div>
             </div>
 

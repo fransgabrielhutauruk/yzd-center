@@ -136,7 +136,7 @@ const markAllAsRead = () => {
             <!-- Unread Badge Indicator -->
             <span
                 v-if="unreadCount > 0"
-                class="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[11px] font-extrabold text-white bg-rose-600 dark:bg-rose-500 rounded-full border-2 border-white dark:border-slate-900 shadow-xs animate-in fade-in duration-200"
+                class="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-accent-500 rounded-full border-2 border-[#f8f9ff] dark:border-slate-900 shadow-xs animate-in fade-in duration-200"
             >
                 {{ unreadCount > 99 ? '99+' : unreadCount }}
             </span>
@@ -161,7 +161,7 @@ const markAllAsRead = () => {
                         <span class="font-bold text-sm text-foreground">Notifikasi</span>
                         <span
                             v-if="unreadCount > 0"
-                            class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-200 border border-rose-300 dark:border-rose-800"
+                            class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-accent-500/15 text-accent-700 dark:text-accent-300 border border-accent-500/30"
                         >
                             {{ unreadCount }} baru
                         </span>

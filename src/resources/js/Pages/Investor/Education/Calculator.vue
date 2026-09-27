@@ -345,47 +345,38 @@ const whatsappConsultUrl = computed(() => {
 </script>
 
 <template>
-    <InvestorLayout title="Kalkulator Proyeksi Finansial">
-        <div class="space-y-6">
-            <!-- Header Banner -->
-            <div class="rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-900 p-6 sm:p-8 text-white shadow-md border border-indigo-800/40">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div class="max-w-2xl space-y-2">
-                        <span class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur-sm border border-white/10 text-sky-200">
-                            <Calculator class="h-3.5 w-3.5 text-sky-300" />
-                            Kalkulator Finansial Investor — Proyeksi Modal & Kuota BEP
-                        </span>
-                        <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                            Kalkulator Proyeksi Capital Gain & Balik Modal (BEP)
-                        </h1>
-                        <p class="text-xs sm:text-sm text-blue-100/90 leading-relaxed font-normal">
-                            Hitung pertumbuhan portofolio modal hingga <strong>{{ durationYears }} tahun</strong> (misal 20 tahun), pantau estimasi waktu <strong>Balik Modal (BEP 100%)</strong>, serta bandingkan skenario <strong>Dengan WD Rutin</strong> vs <strong>Tanpa WD</strong> di akhir siklus.
-                        </p>
-                    </div>
-
-                    <!-- Tombol Aksi Simpan & Reset -->
-                    <div class="flex items-center gap-2 self-start sm:self-center">
-                        <Button
-                            variant="secondary"
-                            size="sm"
-                            class="gap-1.5 bg-white text-slate-900 hover:bg-slate-100 shadow-xs min-h-[36px] cursor-pointer"
-                            @click="saveVariables"
-                        >
-                            <Save class="h-4 w-4" />
-                            Simpan Variabel
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            class="gap-1.5 border-white/20 text-white hover:bg-white/10 min-h-[36px] cursor-pointer"
-                            @click="resetToDefaults"
-                        >
-                            <RotateCcw class="h-4 w-4" />
-                            Reset
-                        </Button>
-                    </div>
-                </div>
+    <InvestorLayout
+        title="Kalkulator Proyeksi Capital Gain & Balik Modal (BEP)"
+        subtitle="Hitung pertumbuhan portofolio modal, pantau estimasi waktu Balik Modal (BEP 100%), serta bandingkan skenario Dengan WD Rutin vs Tanpa WD."
+        :breadcrumbs="[
+            { label: 'Menu Utama' },
+            { label: 'Kalkulator Proyeksi' }
+        ]"
+    >
+        <template #header-actions>
+            <div class="flex items-center gap-2 self-start sm:self-center">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    class="gap-1.5 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 min-h-[36px] cursor-pointer"
+                    @click="resetToDefaults"
+                >
+                    <RotateCcw class="h-4 w-4" />
+                    Reset
+                </Button>
+                <Button
+                    variant="default"
+                    size="sm"
+                    class="gap-1.5 bg-primary-600 hover:bg-primary-700 text-white shadow-xs min-h-[36px] cursor-pointer"
+                    @click="saveVariables"
+                >
+                    <Save class="h-4 w-4" />
+                    Simpan Variabel
+                </Button>
             </div>
+        </template>
+
+        <div class="space-y-6">
 
             <!-- 1. WIDGET KUOTA BALIK MODAL (BEP) ALA KUOTA INTERNET -->
             <InvestorBepQuotaCard

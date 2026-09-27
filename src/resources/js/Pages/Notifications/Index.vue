@@ -83,15 +83,19 @@ const getIconColor = (iconName) => {
 
 const handleOpenNotification = (item) => {
     if (!item.is_read) {
-        router.post(`/notifications/${item.id}/read`, {}, {
-            preserveScroll: true,
-            preserveState: true,
-            onFinish: () => {
-                if (item.url) {
-                    router.visit(item.url);
-                }
-            },
-        });
+        router.post(
+            `/notifications/${item.id}/read`,
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onFinish: () => {
+                    if (item.url) {
+                        router.visit(item.url);
+                    }
+                },
+            }
+        );
     } else if (item.url) {
         router.visit(item.url);
     }
@@ -101,13 +105,17 @@ const markAllAsRead = () => {
     if (unreadCount.value === 0 || isProcessing.value) return;
 
     isProcessing.value = true;
-    router.post('/notifications/mark-all-read', {}, {
-        preserveScroll: true,
-        preserveState: true,
-        onFinish: () => {
-            isProcessing.value = false;
-        },
-    });
+    router.post(
+        '/notifications/mark-all-read',
+        {},
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => {
+                isProcessing.value = false;
+            },
+        }
+    );
 };
 
 const goToPage = (url) => {
@@ -120,43 +128,36 @@ const goToPage = (url) => {
 </script>
 
 <template>
-    <component :is="layoutComponent" title="Semua Notifikasi">
+    <component
+        :is="layoutComponent"
+        title="Semua Notifikasi"
+        subtitle="Riwayat seluruh pemberitahuan dan aktivitas sistem."
+        :breadcrumbs="[{ label: 'Sistem' }, { label: 'Semua Notifikasi' }]"
+    >
+        <template #header-actions>
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                @click="markAllAsRead"
+                :disabled="unreadCount === 0 || isProcessing"
+                class="flex h-9 cursor-pointer items-center gap-1.5 text-xs font-semibold disabled:opacity-50"
+            >
+                <CheckCheck class="text-primary-600 dark:text-primary-400 h-4 w-4" />
+                <span>Tandai Semua Dibaca</span>
+            </Button>
+        </template>
+
         <div class="space-y-6">
-            <!-- Header Card -->
-            <div class="rounded-2xl bg-card border border-border p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-xl font-black tracking-tight text-foreground flex items-center gap-2.5">
-                        <Bell class="w-6 h-6 text-primary-600 dark:text-primary-400" />
-                        <span>Semua Notifikasi</span>
-                    </h2>
-                    <p class="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
-                        Riwayat seluruh pemberitahuan sistem.
-                    </p>
-                </div>
-
-                <div class="flex items-center gap-2 self-start sm:self-auto">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        @click="markAllAsRead"
-                        :disabled="unreadCount === 0 || isProcessing"
-                        class="text-xs font-semibold flex items-center gap-1.5 cursor-pointer min-h-[38px] disabled:opacity-50"
-                    >
-                        <CheckCheck class="w-4 h-4 text-primary-600 dark:text-primary-400" />
-                        <span>Tandai Semua Dibaca</span>
-                    </Button>
-                </div>
-            </div>
-
             <!-- Filter Tabs -->
-            <div class="flex items-center gap-2 border-b border-border pb-3">
+            <div class="border-border flex items-center gap-2 border-b pb-3">
                 <Link
                     href="/notifications"
                     :class="[
-                        'px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer min-h-[36px] flex items-center justify-center',
+                        'flex min-h-[36px] cursor-pointer items-center justify-center rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors',
                         currentFilter === 'all'
                             ? 'bg-primary-600 text-white shadow-xs'
-                            : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+                            : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted',
                     ]"
                 >
                     Semua
@@ -165,20 +166,20 @@ const goToPage = (url) => {
                 <Link
                     href="/notifications?filter=unread"
                     :class="[
-                        'px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer min-h-[36px] flex items-center justify-center gap-1.5',
+                        'flex min-h-[36px] cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors',
                         currentFilter === 'unread'
                             ? 'bg-primary-600 text-white shadow-xs'
-                            : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+                            : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted',
                     ]"
                 >
                     <span>Belum Dibaca</span>
                     <span
                         v-if="unreadCount > 0"
                         :class="[
-                            'px-1.5 py-0.2 rounded-full text-[10px] font-extrabold',
+                            'py-0.2 rounded-full px-1.5 text-[10px] font-extrabold',
                             currentFilter === 'unread'
-                                ? 'bg-white text-primary-700'
-                                : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200'
+                                ? 'text-primary-700 bg-white'
+                                : 'bg-accent-500 text-white',
                         ]"
                     >
                         {{ unreadCount }}
@@ -187,14 +188,16 @@ const goToPage = (url) => {
             </div>
 
             <!-- List Container -->
-            <div class="bg-card rounded-2xl border border-border shadow-xs overflow-hidden">
+            <div class="bg-card border-border overflow-hidden rounded-2xl border shadow-xs">
                 <!-- Empty State -->
-                <div v-if="notificationsData.data.length === 0" class="py-14 px-4 text-center">
-                    <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
-                        <Bell class="w-6 h-6 opacity-60" />
+                <div v-if="notificationsData.data.length === 0" class="px-4 py-14 text-center">
+                    <div
+                        class="bg-muted text-muted-foreground mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full"
+                    >
+                        <Bell class="h-6 w-6 opacity-60" />
                     </div>
-                    <h3 class="text-sm font-bold text-foreground">Tidak Ada Notifikasi</h3>
-                    <p class="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                    <h3 class="text-foreground text-sm font-bold">Tidak Ada Notifikasi</h3>
+                    <p class="text-muted-foreground mx-auto mt-1 max-w-sm text-xs">
                         {{
                             currentFilter === 'unread'
                                 ? 'Semua notifikasi sudah Anda baca.'
@@ -204,26 +207,26 @@ const goToPage = (url) => {
                 </div>
 
                 <!-- Notification Cards List -->
-                <div v-else class="divide-y divide-border">
+                <div v-else class="divide-border divide-y">
                     <div
                         v-for="item in notificationsData.data"
                         :key="item.id"
                         :class="[
-                            'p-4 sm:p-5 flex items-start justify-between gap-4 transition-colors',
+                            'flex items-start justify-between gap-4 p-4 transition-colors sm:p-5',
                             item.is_read
                                 ? 'bg-card hover:bg-muted/30'
-                                : 'bg-primary-50/30 dark:bg-primary-950/15 hover:bg-primary-50/50 dark:hover:bg-primary-950/25'
+                                : 'bg-primary-50/30 dark:bg-primary-950/15 hover:bg-primary-50/50 dark:hover:bg-primary-950/25',
                         ]"
                     >
-                        <div class="flex items-start gap-3.5 min-w-0 flex-1">
+                        <div class="flex min-w-0 flex-1 items-start gap-3.5">
                             <!-- Icon -->
                             <div
                                 :class="[
-                                    'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border mt-0.5 shadow-xs',
-                                    getIconColor(item.icon)
+                                    'mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border shadow-xs',
+                                    getIconColor(item.icon),
                                 ]"
                             >
-                                <component :is="getIcon(item.icon)" class="w-5 h-5" />
+                                <component :is="getIcon(item.icon)" class="h-5 w-5" />
                             </div>
 
                             <!-- Detail Content -->
@@ -233,52 +236,72 @@ const goToPage = (url) => {
                                         v-if="item.url"
                                         type="button"
                                         @click="handleOpenNotification(item)"
-                                        class="text-sm font-bold text-foreground hover:text-primary-600 dark:hover:text-primary-400 hover:underline transition-colors text-left inline-flex items-center gap-1.5 cursor-pointer group"
+                                        class="text-foreground hover:text-primary-600 dark:hover:text-primary-400 group inline-flex cursor-pointer items-center gap-1.5 text-left text-sm font-bold transition-colors hover:underline"
                                         title="Buka halaman terkait"
                                     >
                                         <span>{{ item.title }}</span>
-                                        <ExternalLink class="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors shrink-0" />
+                                        <ExternalLink
+                                            class="text-muted-foreground group-hover:text-primary-600 dark:group-hover:text-primary-400 h-3.5 w-3.5 shrink-0 transition-colors"
+                                        />
                                     </button>
-                                    <h4 v-else class="text-sm font-bold text-foreground">
+                                    <h4 v-else class="text-foreground text-sm font-bold">
                                         {{ item.title }}
                                     </h4>
 
                                     <span
                                         v-if="!item.is_read"
-                                        class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-200 border border-rose-300 dark:border-rose-800"
+                                        class="inline-flex items-center rounded-full border border-accent-500/30 bg-accent-500/15  px-2 py-0.5 text-[10px] font-bold text-accent-700 "
                                     >
                                         Baru
                                     </span>
                                 </div>
 
-                                <p class="text-xs text-muted-foreground leading-relaxed break-words">
+                                <p
+                                    class="text-muted-foreground text-xs leading-relaxed break-words"
+                                >
                                     {{ item.message }}
                                 </p>
 
-                                <div class="flex items-center gap-2 text-[11px] text-muted-foreground pt-1">
-                                    <span class="font-medium text-foreground/80">{{ item.full_date }}</span>
+                                <div
+                                    class="text-muted-foreground flex items-center gap-2 pt-1 text-[11px]"
+                                >
+                                    <span class="text-foreground/80 font-medium">{{
+                                        item.full_date
+                                    }}</span>
                                     <span>•</span>
                                     <span>{{ item.created_at }}</span>
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </div>
 
                 <!-- Pagination Footer -->
                 <div
                     v-if="notificationsData.total > 0"
-                    class="px-4 py-3 bg-muted/30 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground"
+                    class="bg-muted/30 border-border text-muted-foreground flex flex-col items-center justify-between gap-3 border-t px-4 py-3 text-xs sm:flex-row"
                 >
                     <div>
-                        Menampilkan <strong class="font-semibold text-foreground">{{ notificationsData.from || 0 }}</strong> sampai
-                        <strong class="font-semibold text-foreground">{{ notificationsData.to || 0 }}</strong> dari
-                        <strong class="font-semibold text-foreground">{{ notificationsData.total || 0 }}</strong> notifikasi
+                        Menampilkan
+                        <strong class="text-foreground font-semibold">{{
+                            notificationsData.from || 0
+                        }}</strong>
+                        sampai
+                        <strong class="text-foreground font-semibold">{{
+                            notificationsData.to || 0
+                        }}</strong>
+                        dari
+                        <strong class="text-foreground font-semibold">{{
+                            notificationsData.total || 0
+                        }}</strong>
+                        notifikasi
                     </div>
 
                     <!-- Page Links -->
-                    <div v-if="notificationsData.links && notificationsData.links.length > 3" class="flex items-center gap-1">
+                    <div
+                        v-if="notificationsData.links && notificationsData.links.length > 3"
+                        class="flex items-center gap-1"
+                    >
                         <template v-for="(link, lIdx) in notificationsData.links" :key="lIdx">
                             <!-- Tombol Sebelumnya -->
                             <button
@@ -286,10 +309,10 @@ const goToPage = (url) => {
                                 type="button"
                                 :disabled="!link.url"
                                 @click="goToPage(link.url)"
-                                class="p-1.5 rounded-lg border border-input bg-background hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                class="border-input bg-background hover:bg-muted rounded-lg border p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                                 aria-label="Halaman Sebelumnya"
                             >
-                                <ChevronLeft class="w-4 h-4" />
+                                <ChevronLeft class="h-4 w-4" />
                             </button>
 
                             <!-- Tombol Selanjutnya -->
@@ -298,10 +321,10 @@ const goToPage = (url) => {
                                 type="button"
                                 :disabled="!link.url"
                                 @click="goToPage(link.url)"
-                                class="p-1.5 rounded-lg border border-input bg-background hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                class="border-input bg-background hover:bg-muted rounded-lg border p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                                 aria-label="Halaman Selanjutnya"
                             >
-                                <ChevronRight class="w-4 h-4" />
+                                <ChevronRight class="h-4 w-4" />
                             </button>
 
                             <!-- Nomor Halaman -->
@@ -311,10 +334,10 @@ const goToPage = (url) => {
                                 :disabled="!link.url || link.active"
                                 @click="goToPage(link.url)"
                                 :class="[
-                                    'min-w-[32px] h-8 px-2 rounded-lg font-medium text-xs transition-colors flex items-center justify-center',
+                                    'flex h-8 min-w-[32px] items-center justify-center rounded-lg px-2 text-xs font-medium transition-colors',
                                     link.active
-                                        ? 'bg-primary-600 text-white font-bold shadow-xs'
-                                        : 'border border-input bg-background hover:bg-muted text-foreground'
+                                        ? 'bg-primary-600 font-bold text-white shadow-xs'
+                                        : 'border-input bg-background hover:bg-muted text-foreground border',
                                 ]"
                                 v-html="link.label"
                             ></button>

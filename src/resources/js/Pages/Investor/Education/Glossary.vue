@@ -58,43 +58,34 @@ const resetFilter = () => {
 </script>
 
 <template>
-    <InvestorLayout title="Glosarium Istilah Forex">
+    <InvestorLayout
+        title="Kamus & Glosarium Forex"
+        subtitle="Pahami istilah-istilah penting dalam dunia trading dan copytrade dengan bahasa yang lugas, transparan, dan ramah bagi pemula."
+        :breadcrumbs="[
+            { label: 'Bantuan & Edukasi' },
+            { label: 'Glosarium Forex' }
+        ]"
+    >
         <div class="space-y-6">
-            <!-- Banner / Header -->
-            <div class="rounded-2xl bg-gradient-to-r from-blue-700 via-indigo-800 to-slate-900 p-6 sm:p-8 text-white shadow-md">
-                <div class="max-w-2xl">
-                    <span class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur-sm">
-                        <BookOpen class="h-3.5 w-3.5 text-blue-300" />
-                        Pusat Pengetahuan Investor
-                    </span>
-                    <h1 class="mt-3 text-2xl sm:text-3xl font-bold tracking-tight">
-                        Kamus & Glosarium Forex
-                    </h1>
-                    <p class="mt-2 text-sm sm:text-base text-blue-100/90 leading-relaxed">
-                        Pahami istilah-istilah penting dalam dunia trading dan copytrade dengan bahasa yang lugas, transparan, dan ramah bagi pemula.
-                    </p>
-                </div>
-
-                <!-- Input Pencarian (Live Search) -->
-                <div class="mt-6 max-w-xl">
-                    <div class="relative">
-                        <Search class="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                        <input
-                            v-model="searchQuery"
-                            type="text"
-                            placeholder="Cari nama istilah forex (misal: Margin, Drawdown, Lot)..."
-                            class="w-full rounded-xl border-0 bg-white/95 py-3 pl-10 pr-10 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        />
-                        <button
-                            v-if="searchQuery"
-                            type="button"
-                            @click="clearSearch"
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                            title="Hapus pencarian"
-                        >
-                            <X class="h-4 w-4" />
-                        </button>
-                    </div>
+            <!-- Input Pencarian (Live Search) -->
+            <div class="max-w-xl">
+                <div class="relative">
+                    <Search class="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                        v-model="searchQuery"
+                        type="text"
+                        placeholder="Cari nama istilah forex (misal: Margin, Drawdown, Lot)..."
+                        class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2.5 pl-10 pr-10 text-sm text-foreground shadow-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                    <button
+                        v-if="searchQuery"
+                        type="button"
+                        @click="clearSearch"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                        title="Hapus pencarian"
+                    >
+                        <X class="h-4 w-4" />
+                    </button>
                 </div>
             </div>
 

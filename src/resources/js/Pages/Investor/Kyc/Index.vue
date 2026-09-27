@@ -415,35 +415,25 @@ const globalStatus = computed(() => {
 </script>
 
 <template>
-    <InvestorLayout title="Status & Verifikasi Legalitas">
-        <div class="space-y-6">
-            <!-- Header Page -->
+    <InvestorLayout
+        title="Status Verifikasi & Legalitas"
+        subtitle="Informasi validasi identitas diri, dokumen, akun copytrade, dan data perlindungan hak ahli waris."
+        :breadcrumbs="[
+            { label: 'Menu Utama' },
+            { label: 'Status KYC & Legalitas' }
+        ]"
+    >
+        <template #header-actions>
             <div
-                class="bg-card border-border flex flex-col justify-between gap-4 rounded-2xl border p-6 shadow-xs sm:flex-row sm:items-center"
+                class="inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold shadow-xs"
+                :class="globalStatus.badge"
             >
-                <div class="space-y-1">
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-foreground text-xl font-bold tracking-tight">
-                            Status Verifikasi & Legalitas
-                        </h1>
-                    </div>
-                    <p class="text-muted-foreground text-xs">
-                        Informasi validasi identitas diri, dokumen, akun copytrade, dan data
-                        perlindungan hak ahli waris.
-                    </p>
-                </div>
-
-                <!-- Global Status Indicator -->
-                <div>
-                    <div
-                        class="inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold shadow-xs"
-                        :class="globalStatus.badge"
-                    >
-                        <component :is="globalStatus.icon" class="h-4 w-4" />
-                        <span>{{ globalStatus.label }}</span>
-                    </div>
-                </div>
+                <component :is="globalStatus.icon" class="h-4 w-4" />
+                <span>{{ globalStatus.label }}</span>
             </div>
+        </template>
+
+        <div class="space-y-6">
 
             <!-- Konten Utama: 2 Kolom -->
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">

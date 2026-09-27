@@ -207,7 +207,7 @@ Route::middleware(['auth', 'role:investor,affiliator'])->prefix('investor')->nam
     Route::post('/copytrade/balance', [BalanceHistoryController::class, 'store'])->name('copytrade.balance.store');
     Route::delete('/copytrade/balance/{id}', [BalanceHistoryController::class, 'destroy'])->name('copytrade.balance.destroy');
 
-    // Materi Promosi & Laporan Keuntungan (Untuk Affiliator & Investor)
+    // Materi Promosi & Laporan Keuntungan (Khusus Affiliator)
     Route::get('/promotions', [PromotionMaterialController::class, 'index'])->name('promotions.index');
 
     // Edukasi, Pusat Bantuan & Kalkulator Proyeksi (Modul 06 - Selalu dapat diakses)

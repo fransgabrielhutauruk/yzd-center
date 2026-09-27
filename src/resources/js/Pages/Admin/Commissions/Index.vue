@@ -98,17 +98,15 @@ const getStatusBadge = (status) => {
 <template>
     <Head title="Pencairan Komisi Afiliasi" />
 
-    <AdminLayout title="Pencairan Komisi Afiliasi">
+    <AdminLayout
+        title="Pencairan Komisi Afiliasi (PB 3)"
+        subtitle="Verifikasi permohonan klaim komisi periode 90 hari dari affiliator dan selesaikan pencairan transfer profit Master Trader per akun copytrade."
+        :breadcrumbs="[
+            { label: 'Manajemen Afiliasi' },
+            { label: 'Pencairan Komisi' }
+        ]"
+    >
         <div class="space-y-6">
-            <!-- Header Halaman -->
-            <div>
-                <h1 class="text-foreground text-lg sm:text-xl font-bold tracking-tight">
-                    Pencairan Komisi Afiliasi (PB 3)
-                </h1>
-                <p class="text-muted-foreground text-xs sm:text-sm">
-                    Verifikasi permohonan klaim komisi periode 90 hari dari affiliator dan selesaikan pencairan transfer profit Master Trader per akun copytrade.
-                </p>
-            </div>
 
             <!-- Kartu Statistik & Quick Filter -->
             <div class="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">

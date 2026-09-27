@@ -139,29 +139,26 @@ const getStatusBadgeClass = (statusKey) => {
 </script>
 
 <template>
-    <AdminLayout title="Manajemen Tautan Undangan">
-        <div class="space-y-6">
-            <!-- Header Section -->
-            <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                <div>
-                    <h2 class="text-foreground text-xl font-bold tracking-tight">
-                        Tautan Undangan Pendaftaran
-                    </h2>
-                    <p class="text-muted-foreground mt-0.5 text-xs sm:text-sm">
-                        Kelola token pendaftaran tertutup untuk Calon
-                        Investor dan Affiliator.
-                    </p>
-                </div>
+    <AdminLayout
+        title="Tautan Undangan Pendaftaran"
+        subtitle="Kelola token pendaftaran tertutup untuk Calon Investor dan Affiliator."
+        :breadcrumbs="[
+            { label: 'Manajemen Afiliasi' },
+            { label: 'Tautan Undangan' }
+        ]"
+    >
+        <template #header-actions>
+            <Button
+                type="button"
+                @click="openCreateModal"
+                class="bg-primary-600 hover:bg-primary-700 flex items-center gap-2 self-start rounded-lg px-4 py-2 font-medium text-white shadow-xs transition-colors sm:self-auto cursor-pointer"
+            >
+                <Plus class="h-4 w-4" />
+                <span>Buat Undangan Baru</span>
+            </Button>
+        </template>
 
-                <Button
-                    type="button"
-                    @click="openCreateModal"
-                    class="bg-primary-600 hover:bg-primary-700 flex items-center gap-2 self-start rounded-lg px-4 py-2 font-medium text-white shadow-sm transition-colors sm:self-auto"
-                >
-                    <Plus class="h-4 w-4" />
-                    <span>Buat Undangan Baru</span>
-                </Button>
-            </div>
+        <div class="space-y-6">
 
             <!-- Server-Side Reusable Data Table -->
             <AppDataTable

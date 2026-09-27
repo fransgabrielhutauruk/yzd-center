@@ -241,6 +241,13 @@ class ProfitReportTest extends TestCase
         );
     }
 
+    public function test_investor_cannot_view_promotions_index(): void
+    {
+        $response = $this->actingAs($this->investor)->get(route('investor.promotions.index'));
+
+        $response->assertForbidden();
+    }
+
     public function test_authenticated_user_can_stream_and_download_image(): void
     {
         $file = UploadedFile::fake()->image('bukti_profit.png');
