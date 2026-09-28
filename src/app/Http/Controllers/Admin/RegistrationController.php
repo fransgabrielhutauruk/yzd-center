@@ -119,7 +119,7 @@ class RegistrationController extends Controller
                             'catatan_admin'      => $ktp->catatan_admin,
                             'is_quality_warning' => $ktp->is_quality_warning,
                             'verified_at'        => $ktp->verified_at ? tanggal_waktu_indo($ktp->verified_at) : null,
-                            'preview_url'        => route('documents.show', $ktp->id, false),
+                            'preview_url'        => route('documents.show', $ktp->id, false) . '?v=' . ($ktp->updated_at?->timestamp ?? time()),
                         ] : null,
                     ],
                 ];

@@ -109,7 +109,7 @@ class KycVerificationTest extends TestCase
 
         $file = UploadedFile::fake()->image('ktp_baru.jpg');
 
-        $response = $this->actingAs($this->investor)->post("/investor/kyc/reupload/ktp", [
+        $response = $this->actingAs($this->investor)->post("/investor/account/reupload/ktp", [
             'file' => $file,
         ]);
 
@@ -127,7 +127,7 @@ class KycVerificationTest extends TestCase
 
         $file = UploadedFile::fake()->image('ktp_baru.jpg');
 
-        $response = $this->actingAs($this->investor)->post('/investor/kyc/reupload/ktp', [
+        $response = $this->actingAs($this->investor)->post('/investor/account/reupload/ktp', [
             'file' => $file,
         ]);
 

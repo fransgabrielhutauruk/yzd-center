@@ -539,36 +539,36 @@ class AuthTest extends TestCase
         ]);
 
         $this->assertAuthenticatedAs($investor);
-        $response->assertRedirect(route('investor.kyc'));
+        $response->assertRedirect(route('investor.account'));
     }
 
-    public function test_unverified_investor_accessing_dashboard_is_redirected_to_kyc(): void
+    public function test_unverified_investor_accessing_dashboard_is_redirected_to_account(): void
     {
         $investor = User::factory()->pending()->create();
 
         $response = $this->actingAs($investor)->get('/investor/dashboard');
 
-        $response->assertRedirect(route('investor.kyc'));
+        $response->assertRedirect(route('investor.account'));
         $response->assertSessionHas('error');
     }
 
-    public function test_unverified_investor_accessing_root_is_redirected_to_kyc(): void
+    public function test_unverified_investor_accessing_root_is_redirected_to_account(): void
     {
         $investor = User::factory()->pending()->create();
 
         $response = $this->actingAs($investor)->get('/');
 
-        $response->assertRedirect(route('investor.kyc'));
+        $response->assertRedirect(route('investor.account'));
     }
 
-    public function test_unverified_investor_can_access_kyc_page(): void
+    public function test_unverified_investor_can_access_account_page(): void
     {
         $investor = User::factory()->pending()->create();
 
-        $response = $this->actingAs($investor)->get('/investor/kyc');
+        $response = $this->actingAs($investor)->get('/investor/account');
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page->component('Investor/Kyc/Index'));
+        $response->assertInertia(fn ($page) => $page->component('Investor/Account/Index'));
     }
 
     public function test_login_rate_limiting_locks_out_after_five_failed_attempts(): void

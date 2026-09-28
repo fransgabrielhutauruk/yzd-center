@@ -30,7 +30,9 @@ class DocumentStreamController extends Controller
             $dokumen->file_path,
             $dokumen->file_name,
             [
-                'Cache-Control'          => 'no-cache, private, no-store, must-revalidate',
+                'Cache-Control'          => 'no-store, no-cache, must-revalidate, max-age=0',
+                'Pragma'                 => 'no-cache',
+                'Expires'                => '0',
                 'X-Content-Type-Options' => 'nosniff',
                 'X-Frame-Options'        => 'SAMEORIGIN',
             ]
@@ -69,7 +71,9 @@ class DocumentStreamController extends Controller
             $path,
             basename($path),
             [
-                'Cache-Control'          => 'no-cache, private, no-store, must-revalidate',
+                'Cache-Control'          => 'no-store, no-cache, must-revalidate, max-age=0',
+                'Pragma'                 => 'no-cache',
+                'Expires'                => '0',
                 'X-Content-Type-Options' => 'nosniff',
                 'X-Frame-Options'        => 'SAMEORIGIN',
             ]
@@ -107,7 +111,9 @@ class DocumentStreamController extends Controller
             $path,
             basename($path),
             [
-                'Cache-Control'          => 'no-cache, private, no-store, must-revalidate',
+                'Cache-Control'          => 'no-store, no-cache, must-revalidate, max-age=0',
+                'Pragma'                 => 'no-cache',
+                'Expires'                => '0',
                 'X-Content-Type-Options' => 'nosniff',
                 'X-Frame-Options'        => 'SAMEORIGIN',
             ]
@@ -145,7 +151,9 @@ class DocumentStreamController extends Controller
             $path,
             basename($path),
             [
-                'Cache-Control'          => 'no-cache, private, no-store, must-revalidate',
+                'Cache-Control'          => 'no-store, no-cache, must-revalidate, max-age=0',
+                'Pragma'                 => 'no-cache',
+                'Expires'                => '0',
                 'X-Content-Type-Options' => 'nosniff',
                 'X-Frame-Options'        => 'SAMEORIGIN',
             ]
@@ -183,7 +191,9 @@ class DocumentStreamController extends Controller
             $path,
             basename($path),
             [
-                'Cache-Control'          => 'no-cache, private, no-store, must-revalidate',
+                'Cache-Control'          => 'no-store, no-cache, must-revalidate, max-age=0',
+                'Pragma'                 => 'no-cache',
+                'Expires'                => '0',
                 'X-Content-Type-Options' => 'nosniff',
                 'X-Frame-Options'        => 'SAMEORIGIN',
             ]

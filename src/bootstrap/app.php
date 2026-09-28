@@ -30,7 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             if ($user && $user->status !== 'active') {
-                return route('investor.kyc');
+                return route('investor.account');
             }
 
             return route('investor.dashboard');

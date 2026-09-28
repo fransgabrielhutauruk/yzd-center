@@ -23,6 +23,7 @@ import {
     ArrowLeftRight,
     Network,
     SquarePlay,
+    KeyRound,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
@@ -200,7 +201,7 @@ const logout = () => {
     <AppToaster />
 
     <div
-        class="text-foreground flex min-h-screen min-h-dvh flex-1 bg-white transition-colors duration-200 dark:bg-slate-950"
+        class="text-foreground flex h-screen h-dvh overflow-hidden bg-white transition-colors duration-200 dark:bg-slate-950"
     >
         <!-- Backdrop Mobile Sidebar -->
         <transition
@@ -395,9 +396,20 @@ const logout = () => {
                                         {{ page.props.auth?.user?.name || 'Administrator' }}
                                     </p>
                                     <p class="text-muted-foreground truncate text-xs">
-                                        {{ page.props.auth?.user?.email }}
+                                        @{{ page.props.auth?.user?.username }}
                                     </p>
                                 </div>
+
+                                <Link
+                                    href="/admin/settings/password"
+                                    @click="isUserDropdownOpen = false"
+                                    class="flex w-full items-center gap-2 px-4 py-2 text-left text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium"
+                                >
+                                    <KeyRound class="h-4 w-4 text-slate-400" />
+                                    <span>Ganti Password</span>
+                                </Link>
+
+                                <div class="my-1 border-t border-border/60"></div>
 
                                 <button
                                     type="button"

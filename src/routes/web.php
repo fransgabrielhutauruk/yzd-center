@@ -13,17 +13,20 @@ use App\Http\Controllers\Admin\LegalContentController;
 use App\Http\Controllers\Admin\PengaturanMasterController;
 use App\Http\Controllers\Admin\ProfitReportController;
 use App\Http\Controllers\Admin\RegistrationController;
+use App\Http\Controllers\Admin\Settings\PasswordController as AdminPasswordController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DocumentStreamController;
+use App\Http\Controllers\Investor\AccountController;
 use App\Http\Controllers\Investor\AffiliateNetworkController;
 use App\Http\Controllers\Investor\BalanceHistoryController;
 use App\Http\Controllers\Investor\CommissionClaimController as InvestorCommissionClaimController;
 use App\Http\Controllers\Investor\CopytradeController as InvestorCopytradeController;
 use App\Http\Controllers\Investor\EducationController as InvestorEducationController;
 use App\Http\Controllers\Investor\InvestorDashboardController;
-use App\Http\Controllers\Investor\KycController;
+use App\Http\Controllers\Investor\PasswordController as InvestorPasswordController;
 use App\Http\Controllers\Investor\PromotionMaterialController;
 use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Auth;
@@ -45,7 +48,7 @@ Route::get('/', function () {
         }
 
         if ($user && $user->status !== 'active') {
-            return redirect()->route('investor.kyc');
+            return redirect()->route('investor.account');
         }
 
         return redirect()->route('investor.dashboard');
@@ -69,6 +72,11 @@ Route::middleware('guest')->group(function () {
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
+
+// Ganti Password (Shared — semua role terotentikasi)
+Route::post('/password/change', [ChangePasswordController::class, 'update'])
+    ->middleware('auth')
+    ->name('password.change');
 
 // Akses Berkas Privat Terotentikasi (Akses terkontrol untuk Admin & Pemilik Dokumen)
 Route::get('/documents/{id}', [DocumentStreamController::class, 'show'])
@@ -127,6 +135,9 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::get('/settings/master', [PengaturanMasterController::class, 'index'])->name('settings.master');
     Route::post('/settings/master', [PengaturanMasterController::class, 'update'])->name('settings.master.update');
     Route::get('/settings/master/download-pdf/{tier}', [PengaturanMasterController::class, 'downloadPdf'])->name('settings.master.download_pdf');
+
+    // Ganti Password Admin
+    Route::get('/settings/password', [AdminPasswordController::class, 'index'])->name('settings.password');
 
     // Verifikasi Permohonan Klaim Referral Susulan
     Route::get('/referral-claims', [AdminReferralClaimController::class, 'index'])->name('referral_claims.index');
@@ -193,9 +204,12 @@ Route::middleware(['auth', 'role:investor,affiliator'])->prefix('investor')->nam
         Route::get('/commissions/eligible-downlines', [InvestorCommissionClaimController::class, 'eligibleDownlines'])->name('commissions.eligible_downlines');
     });
 
-    // Status KYC & Unggah Ulang Berkas (Selalu dapat diakses oleh investor/afiliator)
-    Route::get('/kyc', [KycController::class, 'index'])->name('kyc');
-    Route::post('/kyc/reupload/{type}', [KycController::class, 'reupload'])->name('kyc.reupload');
+    // Informasi Akun & Unggah Ulang Berkas Verifikasi (Selalu dapat diakses oleh investor/afiliator)
+    Route::get('/account', [AccountController::class, 'index'])->name('account');
+    Route::post('/account/reupload/{type}', [AccountController::class, 'reupload'])->name('account.reupload');
+
+    // Ganti Password Investor/Affiliator
+    Route::get('/account/password', [InvestorPasswordController::class, 'index'])->name('account.password');
 
     // Manajemen Akun Copytrade & Input Saldo Tanggal 1
     Route::get('/copytrade', [InvestorCopytradeController::class, 'index'])->name('copytrade.index');

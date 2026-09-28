@@ -4,6 +4,7 @@ import { Head, Link, usePage, router } from '@inertiajs/vue3';
 import {
     LayoutDashboard,
     BadgeCheck,
+    User,
     Sun,
     Moon,
     LogOut,
@@ -22,6 +23,7 @@ import {
     Megaphone,
     Network,
     SquarePlay,
+    KeyRound,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
@@ -94,13 +96,6 @@ const navSections = computed(() => {
                     href: '/investor/dashboard',
                     icon: LayoutDashboard,
                     requiresActive: true,
-                },
-                {
-                    label: 'Status KYC & Legalitas',
-                    href: '/investor/kyc',
-                    icon: BadgeCheck,
-                    requiresActive: false,
-                    routeName: 'investor.kyc',
                 },
                 {
                     label: 'Manajemen Copytrade',
@@ -209,7 +204,7 @@ const logout = () => {
     <AppToaster />
 
     <div
-        class="min-h-screen min-h-dvh flex-1 bg-white dark:bg-slate-950 text-foreground flex transition-colors duration-200"
+        class="h-screen h-dvh overflow-hidden bg-white dark:bg-slate-950 text-foreground flex transition-colors duration-200"
     >
         <!-- Backdrop Mobile Sidebar -->
         <transition
@@ -240,7 +235,7 @@ const logout = () => {
             <div
                 class="h-16 px-4 flex items-center justify-between"
             >
-                <Link :href="isUserActive ? '/investor/dashboard' : '/investor/kyc'" class="flex items-center gap-1.5 overflow-hidden mx-auto">
+                <Link :href="isUserActive ? '/investor/dashboard' : '/investor/account'" class="flex items-center gap-1.5 overflow-hidden mx-auto">
                     <span class="text-accent-500 font-black text-2xl tracking-tight shrink-0">YZD</span>
                     <span v-if="!isCollapsed" class="text-primary-600 dark:text-primary-400 font-bold text-xl tracking-tight shrink-0">Center</span>
                     <span
@@ -439,15 +434,24 @@ const logout = () => {
                             >
                                 <div class="px-4 py-2 border-b border-border/60">
                                     <p class="font-bold text-foreground truncate">{{ user.name }}</p>
-                                    <p class="text-xs text-muted-foreground truncate">{{ user.email }}</p>
+                                    <p class="text-xs text-muted-foreground truncate">@{{ user.username }}</p>
                                 </div>
 
                                 <Link
-                                    href="/investor/kyc"
+                                    href="/investor/account"
                                     class="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-foreground transition-colors font-medium"
                                 >
-                                    <BadgeCheck class="w-4 h-4 text-muted-foreground" />
-                                    <span>Status KYC & Legalitas</span>
+                                    <User class="w-4 h-4 text-muted-foreground" />
+                                    <span>Informasi Akun</span>
+                                </Link>
+
+                                <Link
+                                    href="/investor/account/password"
+                                    @click="isUserDropdownOpen = false"
+                                    class="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-foreground transition-colors font-medium"
+                                >
+                                    <KeyRound class="w-4 h-4 text-muted-foreground" />
+                                    <span>Ganti Password</span>
                                 </Link>
 
                                 <div class="my-1 border-t border-border/60"></div>

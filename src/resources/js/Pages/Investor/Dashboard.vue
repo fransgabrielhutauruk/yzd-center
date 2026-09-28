@@ -70,7 +70,7 @@ const copyReferralCode = async () => {
 <template>
     <InvestorLayout
         :title="`Selamat Datang, ${user.name}!`"
-        subtitle="Kelola portofolio copy trade, tinjau legalitas KYC, dan pantau performa investasi Anda."
+        subtitle="Kelola portofolio copy trade, tinjau informasi akun, dan pantau performa investasi Anda."
         :breadcrumbs="[
             { label: 'Menu Utama' },
             { label: 'Dasbor Portofolio' }
@@ -105,7 +105,7 @@ const copyReferralCode = async () => {
 
         <div class="space-y-6">
 
-            <!-- KYC Status Reminder Banner if account is not active -->
+            <!-- Account Status Reminder Banner if account is not active -->
             <div
                 v-if="!user.is_active"
                 class="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-900 dark:text-amber-200"
@@ -117,17 +117,17 @@ const copyReferralCode = async () => {
                             Akun Belum Aktif
                         </h4>
                         <p class="text-xs text-amber-800 dark:text-amber-300 mt-0.5 leading-relaxed">
-                            Verifikasi Dokumen KYC Anda sedang ditinjau oleh Administrator.
+                            Verifikasi dokumen pendaftaran Anda sedang ditinjau oleh Administrator.
                         </p>
                     </div>
                 </div>
 
                 <Link
-                    href="/investor/kyc"
+                    href="/investor/account"
                     class="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-lg bg-amber-600 hover:bg-amber-700 text-white transition-colors shrink-0 shadow-xs cursor-pointer min-h-[36px]"
                 >
                     <FileCheck class="w-4 h-4" />
-                    <span>Buka Status KYC</span>
+                    <span>Lihat Informasi Akun</span>
                 </Link>
             </div>
 
@@ -199,13 +199,13 @@ const copyReferralCode = async () => {
                             Status Copy Trade
                         </p>
                         <p class="text-base font-bold text-foreground">
-                            {{ bep_summary?.has_active_copytrade ? `Aktif (${bep_summary.active_accounts_count} Akun)` : (user.is_active ? 'Siap Hubungkan Akun' : 'Menunggu Validasi KYC') }}
+                            {{ bep_summary?.has_active_copytrade ? `Aktif (${bep_summary.active_accounts_count} Akun)` : (user.is_active ? 'Siap Hubungkan Akun' : 'Menunggu Verifikasi Pendaftaran') }}
                         </p>
                         <Link
-                            :href="bep_summary?.has_active_copytrade ? '/investor/copytrade' : (user.is_active ? '/investor/copytrade' : '/investor/kyc')"
+                            :href="bep_summary?.has_active_copytrade ? '/investor/copytrade' : (user.is_active ? '/investor/copytrade' : '/investor/account')"
                             class="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline cursor-pointer"
                         >
-                            {{ bep_summary?.has_active_copytrade ? 'Kelola Akun Copytrade' : (user.is_active ? 'Daftarkan Akun Trading' : 'Buka Status KYC') }} <ArrowRight class="w-3 h-3" />
+                            {{ bep_summary?.has_active_copytrade ? 'Kelola Akun Copytrade' : (user.is_active ? 'Daftarkan Akun Trading' : 'Lihat Informasi Akun') }} <ArrowRight class="w-3 h-3" />
                         </Link>
                     </div>
                     <div class="w-12 h-12 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">

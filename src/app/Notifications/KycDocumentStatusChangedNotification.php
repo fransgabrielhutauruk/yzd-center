@@ -47,7 +47,7 @@ class KycDocumentStatusChangedNotification extends Notification
             'icon'       => $isApproved ? 'file-check' : 'alert-circle',
             'status'     => $this->status,
             'dokumen_id' => $this->dokumen->dokumen_id,
-            'url'        => '/investor/kyc',
+            'url'        => '/investor/account',
         ];
     }
 }

@@ -28,11 +28,11 @@ class EnsureAccountIsActive
         }
 
         if ($user && !$user->isAdmin() && $user->status !== 'active') {
-            if ($request->routeIs('investor.kyc*') || $request->routeIs('investor.copytrade*')) {
+            if ($request->routeIs('investor.account*') || $request->routeIs('investor.copytrade*')) {
                 return $next($request);
             }
 
-            return redirect()->route('investor.kyc')->with('error', 'Akun Anda belum aktif. Harap tunggu atau lengkapi proses verifikasi KYC dan pendaftaran Copytrade.');
+            return redirect()->route('investor.account')->with('error', 'Akun Anda belum aktif. Harap tunggu atau lengkapi proses verifikasi dokumen dan pendaftaran Copytrade.');
         }
 
         return $next($request);

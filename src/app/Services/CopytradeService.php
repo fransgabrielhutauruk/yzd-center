@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AkunCopytrade;
 use App\Models\User;
+use App\Models\UserDokumen;
 use App\Notifications\CopytradeAccountStatusChangedNotification;
 use App\Notifications\NewCopytradeSubmittedNotification;
 use Illuminate\Http\UploadedFile;
@@ -65,6 +66,24 @@ class CopytradeService
             if ($suratPerjanjian) {
                 $storedPath = $suratPerjanjian->store("copytrade_agreements/{$user->id}", 'local');
                 $akunData['surat_perjanjian_path'] = $storedPath;
+
+                UserDokumen::updateOrCreate(
+                    [
+                        'user_id'      => $user->id,
+                        'tipe_dokumen' => 'perjanjian',
+                    ],
+                    [
+                        'file_path'          => $storedPath,
+                        'file_name'          => $suratPerjanjian->getClientOriginalName(),
+                        'mime_type'          => $suratPerjanjian->getClientMimeType() ?? $suratPerjanjian->getMimeType(),
+                        'file_size'          => $suratPerjanjian->getSize(),
+                        'status'             => 'pending',
+                        'catatan_admin'      => null,
+                        'is_quality_warning' => false,
+                        'verified_at'        => null,
+                        'verified_by'        => null,
+                    ]
+                );
             }
 
             $akun = AkunCopytrade::create($akunData);
@@ -104,6 +123,16 @@ class CopytradeService
                 'verified_at'     => now(),
                 'copy_started_at' => $status === 'active' ? now() : null,
             ]);
+
+            if ($status === 'active') {
+                UserDokumen::where('user_id', $akun->user_id)
+                    ->where('tipe_dokumen', 'perjanjian')
+                    ->update([
+                        'status'      => 'approved',
+                        'verified_at' => now(),
+                        'verified_by' => $verifier->id,
+                    ]);
+            }
 
             // Kirim notifikasi database in-app ke investor pemilik akun
             $akun->user->notify(new CopytradeAccountStatusChangedNotification($akun, $status, $catatanAdmin));

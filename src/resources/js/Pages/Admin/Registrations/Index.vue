@@ -634,6 +634,7 @@ const getStatusBadge = (status) => {
                             <!-- PDF Viewer -->
                             <iframe
                                 v-if="selectedInvestor.dokumen.ktp.mime_type === 'application/pdf'"
+                                :key="selectedInvestor.dokumen.ktp.preview_url"
                                 :src="selectedInvestor.dokumen.ktp.preview_url"
                                 class="h-full w-full rounded-xl"
                             ></iframe>
@@ -644,6 +645,7 @@ const getStatusBadge = (status) => {
                                 class="flex h-full w-full items-center justify-center overflow-auto p-4"
                             >
                                 <img
+                                    :key="selectedInvestor.dokumen.ktp.preview_url"
                                     :src="selectedInvestor.dokumen.ktp.preview_url"
                                     alt="Foto KTP Investor"
                                     :style="{
