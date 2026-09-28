@@ -97,9 +97,9 @@ const navSections = [
             },
             {
                 label: 'Verifikasi Pendaftaran',
-                href: '/admin/kyc',
+                href: '/admin/registrations',
                 icon: BadgeCheck,
-                routeName: 'admin.kyc.index',
+                routeName: 'admin.registrations.index',
             },
             {
                 label: 'Verifikasi Copytrade',

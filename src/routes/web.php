@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Admin\AdminAffiliateController;
 use App\Http\Controllers\Admin\AdminDashboardController;
-use App\Http\Controllers\Admin\AdminKycController;
 use App\Http\Controllers\Admin\AdminReferralClaimController;
 use App\Http\Controllers\Admin\CommissionClaimController as AdminCommissionClaimController;
 use App\Http\Controllers\Admin\CopytradeController as AdminCopytradeController;
@@ -13,6 +12,7 @@ use App\Http\Controllers\Admin\InvitationController;
 use App\Http\Controllers\Admin\LegalContentController;
 use App\Http\Controllers\Admin\PengaturanMasterController;
 use App\Http\Controllers\Admin\ProfitReportController;
+use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -115,9 +115,9 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::delete('/invitations/batch-delete', [InvitationController::class, 'batchDestroy'])->name('invitations.batch_destroy');
     Route::delete('/invitations/{id}', [InvitationController::class, 'destroy'])->name('invitations.destroy');
 
-    // Verifikasi Dokumen KYC & Legalitas
-    Route::get('/kyc', [AdminKycController::class, 'index'])->name('kyc.index');
-    Route::post('/kyc/documents/{id}/verify', [AdminKycController::class, 'verify'])->name('kyc.verify');
+    // Verifikasi Pendaftaran (KYC & Akun Investor/Affiliator)
+    Route::get('/registrations', [RegistrationController::class, 'index'])->name('registrations.index');
+    Route::post('/registrations/documents/{id}/verify', [RegistrationController::class, 'verify'])->name('registrations.verify');
 
     // Verifikasi Copytrade
     Route::get('/copytrade', [AdminCopytradeController::class, 'index'])->name('copytrade.index');

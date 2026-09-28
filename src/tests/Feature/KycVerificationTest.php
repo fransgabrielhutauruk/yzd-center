@@ -51,10 +51,10 @@ class KycVerificationTest extends TestCase
 
     public function test_only_admin_can_access_kyc_verification_page(): void
     {
-        $response = $this->actingAs($this->investor)->get('/admin/kyc');
+        $response = $this->actingAs($this->investor)->get('/admin/registrations');
         $response->assertStatus(403);
 
-        $response = $this->actingAs($this->admin)->get('/admin/kyc');
+        $response = $this->actingAs($this->admin)->get('/admin/registrations');
         $response->assertStatus(200);
     }
 
@@ -62,7 +62,7 @@ class KycVerificationTest extends TestCase
     {
         $dokumen = $this->createDummyDokumen(['status' => 'pending']);
 
-        $response = $this->actingAs($this->admin)->post("/admin/kyc/documents/{$dokumen->id}/verify", [
+        $response = $this->actingAs($this->admin)->post("/admin/registrations/documents/{$dokumen->id}/verify", [
             'status' => 'approved',
         ]);
 
@@ -88,7 +88,7 @@ class KycVerificationTest extends TestCase
     {
         $dokumen = $this->createDummyDokumen(['status' => 'pending']);
 
-        $response = $this->actingAs($this->admin)->post("/admin/kyc/documents/{$dokumen->id}/verify", [
+        $response = $this->actingAs($this->admin)->post("/admin/registrations/documents/{$dokumen->id}/verify", [
             'status'        => 'revision_needed',
             'catatan_admin' => '',
         ]);
@@ -138,11 +138,11 @@ class KycVerificationTest extends TestCase
     {
         $this->createDummyDokumen(['status' => 'pending']);
 
-        $response = $this->actingAs($this->admin)->get('/admin/kyc');
+        $response = $this->actingAs($this->admin)->get('/admin/registrations');
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Admin/Kyc/Index')
+            ->component('Admin/Registrations/Index')
             ->has('counts')
             ->has('investors.data', 1)
             ->where('counts.pending', 1)
@@ -154,18 +154,95 @@ class KycVerificationTest extends TestCase
     {
         $this->createDummyDokumen(['status' => 'revision_needed']);
 
-        $response = $this->actingAs($this->admin)->get('/admin/kyc?status=revision_needed');
+        $response = $this->actingAs($this->admin)->get('/admin/registrations?status=revision_needed');
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Admin/Kyc/Index')
+            ->component('Admin/Registrations/Index')
             ->where('counts.revision_needed', 1)
             ->has('investors.data', 1)
         );
 
-        $responseEmpty = $this->actingAs($this->admin)->get('/admin/kyc?status=active');
+        $responseEmpty = $this->actingAs($this->admin)->get('/admin/registrations?status=pending');
         $responseEmpty->assertInertia(fn ($page) => $page
-            ->where('counts.active', 0)
+            ->where('counts.pending', 0)
+            ->has('investors.data', 0)
+        );
+    }
+
+    public function test_approved_user_is_not_displayed_in_registrations_queue(): void
+    {
+        // Investor 1 is pending
+        $this->createDummyDokumen(['status' => 'pending']);
+
+        // Investor 2 is active (already approved)
+        $approvedInvestor = User::factory()->create([
+            'role'   => 'investor',
+            'status' => 'active',
+        ]);
+        UserDokumen::create([
+            'user_id'       => $approvedInvestor->id,
+            'jenis_dokumen' => 'ktp',
+            'tipe_dokumen'  => 'ktp',
+            'status'        => 'approved',
+            'file_name'     => 'approved.jpg',
+            'file_path'     => 'docs/approved.jpg',
+            'file_size'     => 1024,
+            'mime_type'     => 'image/jpeg',
+            'verified_at'   => now(),
+        ]);
+
+        $response = $this->actingAs($this->admin)->get('/admin/registrations');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Registrations/Index')
+            ->has('investors.data', 1)
+            ->where('investors.data.0.id', $this->investor->id)
+            ->where('counts.all', 1)
+        );
+    }
+
+    public function test_admin_can_search_by_upline_name(): void
+    {
+        $this->createDummyDokumen(['status' => 'pending']);
+
+        $upline = User::factory()->create([
+            'name'          => 'Budi Santoso Upline',
+            'username'      => 'budisantoso',
+            'role'          => 'affiliator',
+            'status'        => 'active',
+            'referral_code' => 'BUDI123',
+        ]);
+
+        \App\Models\RelasiReferral::create([
+            'affiliator_id' => $upline->id,
+            'downline_id'   => $this->investor->id,
+            'sumber'        => 'link_otomatis',
+            'joined_at'     => now(),
+            'status'        => 'active',
+        ]);
+
+        // Search by upline name
+        $response = $this->actingAs($this->admin)->get('/admin/registrations?search=Budi+Santoso');
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->has('investors.data', 1)
+            ->where('investors.data.0.id', $this->investor->id)
+        );
+
+        // Search by upline referral code
+        $responseCode = $this->actingAs($this->admin)->get('/admin/registrations?search=BUDI123');
+        $responseCode->assertStatus(200);
+        $responseCode->assertInertia(fn ($page) => $page
+            ->has('investors.data', 1)
+            ->where('investors.data.0.id', $this->investor->id)
+        );
+
+        // Search by non-matching string
+        $responseEmpty = $this->actingAs($this->admin)->get('/admin/registrations?search=NonExistentName');
+        $responseEmpty->assertStatus(200);
+        $responseEmpty->assertInertia(fn ($page) => $page
             ->has('investors.data', 0)
         );
     }

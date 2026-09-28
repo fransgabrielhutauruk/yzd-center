@@ -39,7 +39,7 @@ class KycDocumentReuploadedNotification extends Notification
             'user_id'    => $this->user->id,
             'user_name'  => $this->user->name,
             'dokumen_id' => $this->dokumen->dokumen_id,
-            'url'        => '/admin/kyc',
+            'url'        => '/admin/registrations',
         ];
     }
 }

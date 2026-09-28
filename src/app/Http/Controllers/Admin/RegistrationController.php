@@ -11,14 +11,14 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class AdminKycController extends Controller
+class RegistrationController extends Controller
 {
     public function __construct(
         private readonly KycService $kycService,
     ) {}
 
     /**
-     * Tampilkan daftar verifikasi berkas KYC investor.
+     * Tampilkan daftar verifikasi pendaftaran akun investor & affiliator.
      */
     public function index(Request $request): Response
     {
@@ -35,12 +35,14 @@ class AdminKycController extends Controller
         $sortDirection = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
 
         $baseQuery = User::query()
-            ->whereIn('role', ['investor', 'affiliator']);
+            ->whereIn('role', ['investor', 'affiliator'])
+            ->where('status', '!=', 'active');
 
         $counts = [
-            'all'             => (clone $baseQuery)->count(),
-            'pending'         => (clone $baseQuery)->where('status', 'pending')->count(),
-            'active'          => (clone $baseQuery)->where('status', 'active')->count(),
+            'all'     => (clone $baseQuery)->count(),
+            'pending' => (clone $baseQuery)->whereDoesntHave('dokumen', function ($q) {
+                $q->where('status', 'revision_needed');
+            })->count(),
             'revision_needed' => (clone $baseQuery)->whereHas('dokumen', function ($q) {
                 $q->where('status', 'revision_needed');
             })->count(),
@@ -52,18 +54,20 @@ class AdminKycController extends Controller
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
                     ->orWhere('username', 'like', "%{$search}%")
-                    ->orWhere('nik', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhereHas('relasiUpline.affiliator', function ($uplineQuery) use ($search) {
+                        $uplineQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('username', 'like', "%{$search}%")
+                            ->orWhere('referral_code', 'like', "%{$search}%");
+                    });
             });
         }
 
         if ($statusFilter !== '') {
             if ($statusFilter === 'pending') {
-                $query->where('status', 'pending');
-            } elseif ($statusFilter === 'active') {
-                $query->where('status', 'active');
+                $query->whereDoesntHave('dokumen', function ($q) {
+                    $q->where('status', 'revision_needed');
+                });
             } elseif ($statusFilter === 'revision_needed') {
                 $query->whereHas('dokumen', function ($q) {
                     $q->where('status', 'revision_needed');
@@ -93,8 +97,7 @@ class AdminKycController extends Controller
                     'status'          => $user->status,
                     'created_at'      => tanggal_waktu_indo($user->created_at),
                     'created_at_date' => $user->created_at ? tanggal_indo($user->created_at) : '-',
-                    'created_at_time' => $user->created_at ? $user->created_at->format('H:i:s \W\I\B') : '',
-                    'terms_agreed_at' => $user->terms_agreed_at ? tanggal_waktu_indo($user->terms_agreed_at) : null,
+                    'created_at_time' => $user->created_at ? $user->created_at->format('H:i') : '',
                     'upline'          => $upline ? [
                         'name'          => $upline->name,
                         'username'      => $upline->username,
@@ -122,7 +125,7 @@ class AdminKycController extends Controller
                 ];
             });
 
-        return Inertia::render('Admin/Kyc/Index', [
+        return Inertia::render('Admin/Registrations/Index', [
             'investors' => $users,
             'counts'    => $counts,
             'filters'   => [

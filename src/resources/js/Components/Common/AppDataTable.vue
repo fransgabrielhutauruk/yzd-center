@@ -8,8 +8,11 @@ import {
     ArrowDown,
     ChevronLeft,
     ChevronRight,
+    ChevronDown,
     Inbox,
-    Loader2
+    Loader2,
+    ListFilter,
+    X
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -72,6 +75,10 @@ const props = defineProps({
         type: String,
         default: 'id',
     },
+    defaultFiltersOpen: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const selected = defineModel('selected', {
@@ -87,6 +94,40 @@ const sortDirectionKey = computed(() => (props.paramPrefix ? `${props.paramPrefi
 const perPageKey = computed(() => (props.paramPrefix ? `${props.paramPrefix}per_page` : 'per_page'));
 const pageKey = computed(() => (props.paramPrefix ? `${props.paramPrefix}page` : 'page'));
 
+// Filter panel state & active filter detection
+const activeFilterCount = computed(() => {
+    if (!props.filters || typeof props.filters !== 'object') return 0;
+
+    const standardKeys = new Set([
+        'search',
+        'sort',
+        'sort_by',
+        'sortBy',
+        'direction',
+        'sort_direction',
+        'sortDirection',
+        'per_page',
+        'perPage',
+        'page',
+        'tab',
+        searchKey.value,
+        sortByKey.value,
+        sortDirectionKey.value,
+        perPageKey.value,
+        pageKey.value,
+    ]);
+
+    let count = 0;
+    for (const [key, val] of Object.entries(props.filters)) {
+        if (!standardKeys.has(key) && val !== undefined && val !== null && val !== '') {
+            count++;
+        }
+    }
+    return count;
+});
+
+const isFilterOpen = ref(props.defaultFiltersOpen || activeFilterCount.value > 0);
+
 const search = ref(props.filters[searchKey.value] || props.filters.search || '');
 const sortBy = ref(props.filters[sortByKey.value] || props.filters.sort_by || '');
 const sortDirection = ref(props.filters[sortDirectionKey.value] || props.filters.sort_direction || 'desc');
@@ -94,6 +135,37 @@ const perPage = ref(props.filters[perPageKey.value] || props.filters.per_page ||
 const isLoading = ref(false);
 
 let debounceTimeout = null;
+
+const resetCustomFilters = () => {
+    if (!props.filters || typeof props.filters !== 'object') return;
+
+    const standardKeys = new Set([
+        'search',
+        'sort',
+        'sort_by',
+        'sortBy',
+        'direction',
+        'sort_direction',
+        'sortDirection',
+        'per_page',
+        'perPage',
+        'page',
+        'tab',
+        searchKey.value,
+        sortByKey.value,
+        sortDirectionKey.value,
+        perPageKey.value,
+        pageKey.value,
+    ]);
+
+    const resetParams = { [pageKey.value]: 1 };
+    for (const key of Object.keys(props.filters)) {
+        if (!standardKeys.has(key)) {
+            resetParams[key] = undefined;
+        }
+    }
+    applyFilters(resetParams);
+};
 
 const applyFilters = (customParams = {}) => {
     isLoading.value = true;
@@ -288,14 +360,16 @@ defineExpose({
     clearSelection,
     selected,
     selectedIds: selected,
+    isFilterOpen,
+    resetCustomFilters,
 });
 </script>
 
 <template>
     <div class="space-y-4">
-        <!-- Toolbar: Search Bar, Per-Page Selector, Custom Filters & Action Slot -->
-        <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-card p-3 sm:p-4 rounded-xl border border-border shadow-xs">
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 flex-1">
+        <!-- Toolbar: Search Bar, Custom Actions, Filters Button, Per-Page Selector & Collapsible Filters -->
+        <div class="bg-card p-3 sm:p-4 rounded-xl border border-border shadow-xs">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                 <!-- Search Input -->
                 <div v-if="showSearch" class="relative w-full sm:max-w-xs md:max-w-sm">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
@@ -309,29 +383,97 @@ defineExpose({
                         class="w-full pl-9 pr-3 py-1.5 text-xs bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all placeholder:text-muted-foreground"
                     />
                 </div>
+                <div v-else class="hidden sm:block flex-1" />
 
-                <!-- Custom Filter Slot -->
-                <slot name="filters" :apply-filters="applyFilters" />
-            </div>
+                <!-- Right Toolbar: Custom Actions, Filters Button & Per-Page Selector -->
+                <div class="flex items-center gap-2 sm:gap-2.5 justify-between sm:justify-end flex-wrap sm:flex-nowrap">
+                    <slot name="actions" />
 
-            <!-- Right Toolbar: Custom Actions & Per-Page Selector -->
-            <div class="flex items-center gap-3 justify-between sm:justify-end">
-                <slot name="actions" />
-
-                <!-- Per-Page Selector -->
-                <div v-if="showPerPage" class="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap ml-auto sm:ml-0">
-                    <span>Baris:</span>
-                    <select
-                        :value="perPage"
-                        @change="onPerPageChange"
-                        class="px-2 py-1 bg-background border border-input rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium"
+                    <!-- Filters Toggle Button (di samping kiri elemen 'Baris: x') -->
+                    <button
+                        v-if="$slots.filters"
+                        type="button"
+                        @click="isFilterOpen = !isFilterOpen"
+                        :class="[
+                            'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer select-none',
+                            isFilterOpen
+                                ? 'bg-muted/80 text-foreground border-border shadow-2xs'
+                                : 'bg-background hover:bg-muted/50 text-foreground border-input shadow-2xs'
+                        ]"
+                        :aria-expanded="isFilterOpen"
+                        aria-label="Toggle filter"
                     >
-                        <option v-for="opt in perPageOptions" :key="opt" :value="opt">
-                            {{ opt }}
-                        </option>
-                    </select>
+                        <span>Filters</span>
+                        <ListFilter class="w-3.5 h-3.5 text-muted-foreground" :class="{ 'text-foreground': isFilterOpen }" />
+                        <span
+                            v-if="activeFilterCount > 0"
+                            class="ml-0.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 text-[10px] font-bold rounded-full bg-primary-600 text-white leading-none"
+                        >
+                            {{ activeFilterCount }}
+                        </span>
+                    </button>
+
+                    <!-- Per-Page Selector Card (mirip dengan desain Filters) -->
+                    <div
+                        v-if="showPerPage"
+                        class="relative inline-flex items-center bg-background hover:bg-muted/50 text-foreground border border-input rounded-lg px-3 py-1.5 text-xs font-medium shadow-2xs transition-all cursor-pointer select-none ml-auto sm:ml-0"
+                    >
+                        <div class="flex items-center gap-1.5 pointer-events-none">
+                            <span>Baris: {{ perPage }}</span>
+                            <ChevronDown class="w-3.5 h-3.5 text-muted-foreground ml-0.5" />
+                        </div>
+                        <select
+                            :value="perPage"
+                            @change="onPerPageChange"
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            aria-label="Pilih jumlah baris per halaman"
+                        >
+                            <option v-for="opt in perPageOptions" :key="opt" :value="opt">
+                                Baris: {{ opt }}
+                            </option>
+                        </select>
+                    </div>
                 </div>
             </div>
+
+            <!-- Collapsible Filters Panel -->
+            <transition
+                enter-active-class="transition-all duration-200 ease-out"
+                enter-from-class="opacity-0 -translate-y-1"
+                enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition-all duration-150 ease-in"
+                leave-from-class="opacity-100 translate-y-0"
+                leave-to-class="opacity-0 -translate-y-1"
+            >
+                <div
+                    v-if="$slots.filters && isFilterOpen"
+                    class="mt-3 pt-3 border-t border-border flex flex-wrap items-center gap-2.5 sm:gap-3"
+                >
+                    <div class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground mr-1">
+                        <ListFilter class="w-3.5 h-3.5" />
+                        <span>Filter:</span>
+                    </div>
+
+                    <slot
+                        name="filters"
+                        :apply-filters="applyFilters"
+                        :reset-filters="resetCustomFilters"
+                        :is-open="isFilterOpen"
+                    />
+
+                    <!-- Reset Filter Button -->
+                    <button
+                        v-if="activeFilterCount > 0"
+                        type="button"
+                        @click="resetCustomFilters"
+                        class="text-xs text-muted-foreground hover:text-destructive transition-colors ml-auto sm:ml-2 inline-flex items-center gap-1 cursor-pointer font-medium"
+                        title="Reset semua filter kustom"
+                    >
+                        <X class="w-3 h-3" />
+                        <span>Reset Filter</span>
+                    </button>
+                </div>
+            </transition>
         </div>
 
         <!-- Batch Action Banner -->

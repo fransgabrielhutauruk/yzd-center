@@ -39,7 +39,6 @@ const props = defineProps({
         default: () => ({
             all: 0,
             pending: 0,
-            active: 0,
             revision_needed: 0,
         }),
     },
@@ -52,12 +51,11 @@ const props = defineProps({
 // Kolom Tabel AppDataTable
 const columns = [
     { key: 'created_at', label: 'Terdaftar', sortable: true },
-    { key: 'name', label: 'Investor', sortable: true },
+    { key: 'name', label: 'Investor / Afiliator', sortable: true },
     { key: 'nik', label: 'NIK & Kontak' },
     { key: 'upline', label: 'Upline / Referral' },
-    { key: 'dokumen_ktp', label: 'Status KTP' },
-    { key: 'status', label: 'Status Akun', sortable: true },
-    { key: 'actions', label: 'Aksi', align: 'right' },
+    { key: 'dokumen_ktp', label: 'Status Verifikasi' },
+    { key: 'actions', label: 'Aksi', align: 'center' },
 ];
 
 // State Modal Detail & Verifikasi
@@ -95,9 +93,12 @@ const openVerifyModal = (investor) => {
     selectedInvestor.value = investor;
     resetImageTransform();
 
-    verifyForm.status = investor.dokumen?.ktp?.status === 'approved'
-        ? 'approved'
-        : (investor.dokumen?.ktp?.status === 'revision_needed' ? 'revision_needed' : '');
+    verifyForm.status =
+        investor.dokumen?.ktp?.status === 'approved'
+            ? 'approved'
+            : investor.dokumen?.ktp?.status === 'revision_needed'
+              ? 'revision_needed'
+              : '';
     verifyForm.catatan_admin = investor.dokumen?.ktp?.catatan_admin || '';
 
     isVerifyModalOpen.value = true;
@@ -110,17 +111,6 @@ const closeVerifyModal = () => {
     verifyForm.status = '';
     verifyForm.catatan_admin = '';
 };
-
-const checkAndUpdateInvestorStatus = () => {
-    if (!selectedInvestor.value) return;
-    const ktpOk = selectedInvestor.value.dokumen?.ktp?.status === 'approved';
-    selectedInvestor.value.status = ktpOk ? 'active' : 'pending';
-};
-
-const isInvestorActive = computed(() => {
-    if (!selectedInvestor.value) return false;
-    return selectedInvestor.value.dokumen?.ktp?.status === 'approved';
-});
 
 const submitVerification = () => {
     const doc = selectedInvestor.value?.dokumen?.ktp;
@@ -141,28 +131,12 @@ const submitVerification = () => {
         return;
     }
 
-    verifyForm.post(`/admin/kyc/documents/${doc.id}/verify`, {
+    verifyForm.post(`/admin/registrations/documents/${doc.id}/verify`, {
         preserveScroll: true,
         onSuccess: () => {
-            if (selectedInvestor.value?.dokumen?.ktp) {
-                selectedInvestor.value.dokumen.ktp.status = verifyForm.status;
-                selectedInvestor.value.dokumen.ktp.catatan_admin = verifyForm.catatan_admin;
-            }
-            checkAndUpdateInvestorStatus();
+            closeVerifyModal();
         },
     });
-};
-
-const filterByQuickStatus = (statusValue) => {
-    router.get(
-        '/admin/kyc',
-        {
-            ...props.filters,
-            status: statusValue === props.filters.status ? undefined : statusValue,
-            page: 1,
-        },
-        { preserveState: true, preserveScroll: true }
-    );
 };
 
 const getStatusBadge = (status) => {
@@ -190,132 +164,48 @@ const getStatusBadge = (status) => {
     }
 };
 
-const getInitials = (name) => {
-    if (!name) return 'U';
-    const parts = name.trim().split(/\s+/);
-    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-};
 </script>
 
 <template>
-    <Head title="Verifikasi Dokumen Legalitas (KYC)" />
+    <Head title="Verifikasi Pendaftaran" />
     <AdminLayout
-        title="Verifikasi Dokumen Legalitas (KYC)"
-        subtitle="Pemeriksaan keaslian identitas KTP, verifikasi data pribadi, kontak darurat/ahli waris, dan persetujuan legalitas investor."
-        :breadcrumbs="[
-            { label: 'Operasional & Validasi' },
-            { label: 'Verifikasi Legalitas' }
-        ]"
+        title="Verifikasi Pendaftaran"
+        subtitle="Validasi  identitas KTP pendaftar baru yang menunggu persetujuan atau perbaikan dokumen."
+        :breadcrumbs="[{ label: 'Menu Utama' }, { label: 'Verifikasi Pendaftaran' }]"
     >
         <div class="space-y-6">
-
-            <!-- Quick Filter Stat Cards -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <button
-                    type="button"
-                    @click="filterByQuickStatus('')"
-                    :class="[
-                        'p-4 rounded-xl border text-left transition-all',
-                        !filters.status
-                            ? 'border-primary-500 bg-primary-500/10 ring-1 ring-primary-500/30'
-                            : 'border-border bg-card hover:bg-muted/40',
-                    ]"
-                >
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold text-primary-700 dark:text-primary-300">Semua Investor</span>
-                        <Users class="h-4 w-4 text-primary-600 dark:text-primary-400" />
-                    </div>
-                    <p class="mt-2 text-2xl font-bold text-foreground font-mono">{{ counts.all }}</p>
-                    <span class="text-[11px] text-muted-foreground">Total pendaftar</span>
-                </button>
-
-                <button
-                    type="button"
-                    @click="filterByQuickStatus('pending')"
-                    :class="[
-                        'p-4 rounded-xl border text-left transition-all',
-                        filters.status === 'pending'
-                            ? 'border-sky-500 bg-sky-500/10 ring-1 ring-sky-500/30'
-                            : 'border-border bg-card hover:bg-muted/40',
-                    ]"
-                >
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold text-sky-700 dark:text-sky-300">Menunggu</span>
-                        <Clock class="h-4 w-4 text-sky-600 dark:text-sky-400" />
-                    </div>
-                    <p class="mt-2 text-2xl font-bold text-foreground font-mono">{{ counts.pending }}</p>
-                    <span class="text-[11px] text-muted-foreground">Perlu ditinjau</span>
-                </button>
-
-                <button
-                    type="button"
-                    @click="filterByQuickStatus('revision_needed')"
-                    :class="[
-                        'p-4 rounded-xl border text-left transition-all',
-                        filters.status === 'revision_needed'
-                            ? 'border-amber-500 bg-amber-500/10 ring-1 ring-amber-500/30'
-                            : 'border-border bg-card hover:bg-muted/40',
-                    ]"
-                >
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold text-amber-800 dark:text-amber-300">Perlu Revisi</span>
-                        <AlertTriangle class="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                    </div>
-                    <p class="mt-2 text-2xl font-bold text-foreground font-mono">{{ counts.revision_needed }}</p>
-                    <span class="text-[11px] text-muted-foreground">Dokumen tidak valid</span>
-                </button>
-
-                <button
-                    type="button"
-                    @click="filterByQuickStatus('active')"
-                    :class="[
-                        'p-4 rounded-xl border text-left transition-all',
-                        filters.status === 'active'
-                            ? 'border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500/30'
-                            : 'border-border bg-card hover:bg-muted/40',
-                    ]"
-                >
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold text-emerald-800 dark:text-emerald-300">Aktif & Disetujui</span>
-                        <CheckCircle2 class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <p class="mt-2 text-2xl font-bold text-foreground font-mono">{{ counts.active }}</p>
-                    <span class="text-[11px] text-muted-foreground">KYC Terverifikasi</span>
-                </button>
-            </div>
-
-            <!-- Tabel Daftar KYC via AppDataTable -->
+            <!-- Tabel Daftar Verifikasi Pendaftaran via AppDataTable -->
             <AppDataTable
                 :data="investors"
                 :columns="columns"
                 :filters="filters"
-                fetch-url="/admin/kyc"
-                search-placeholder="Cari investor, username, NIK, no HP..."
-                empty-title="Tidak Ada Berkas KYC Ditemukan"
-                empty-message="Belum ada pendaftaran akun atau tidak ada hasil yang cocok dengan filter pencarian."
+                fetch-url="/admin/registrations"
+                search-placeholder="Cari nama, username, upline..."
+                empty-title="Tidak Ada Antrean Verifikasi"
+                empty-message="Semua pendaftaran telah diproses atau tidak ada antrean verifikasi yang sesuai dengan kriteria filter Anda."
             >
                 <!-- Filter Slot: Status Filter Dropdown -->
                 <template #filters="{ applyFilters }">
                     <select
                         :value="filters.status || ''"
-                        @change="(e) => applyFilters({ status: e.target.value || undefined, page: 1 })"
-                        class="bg-background border-input focus:ring-primary-500 min-h-[38px] w-full rounded-lg border px-3 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none sm:w-auto"
+                        @change="
+                            (e) => applyFilters({ status: e.target.value || undefined, page: 1 })
+                        "
+                        class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border px-3 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none sm:w-auto"
                     >
-                        <option value="">Semua Status</option>
-                        <option value="pending">Menunggu Verifikasi (Pending)</option>
-                        <option value="active">Aktif & Disetujui (Active)</option>
-                        <option value="revision_needed">Perlu Revisi Dokumen</option>
+                        <option value="">Semua Status Antrean</option>
+                        <option value="pending">Menunggu Verifikasi</option>
+                        <option value="revision_needed">Perlu Revisi</option>
                     </select>
                 </template>
 
                 <!-- Custom Column: Terdaftar -->
                 <template #column-created_at="{ item }">
                     <div class="space-y-0.5 whitespace-nowrap">
-                        <span class="text-foreground text-xs font-medium block">
+                        <span class="text-foreground block text-xs font-medium">
                             {{ item.created_at_date }}
                         </span>
-                        <span class="text-muted-foreground text-[11px] font-mono block">
+                        <span class="text-muted-foreground block font-mono text-[11px]">
                             {{ item.created_at_time }}
                         </span>
                     </div>
@@ -323,17 +213,25 @@ const getInitials = (name) => {
 
                 <!-- Custom Column: Investor Name & Username -->
                 <template #column-name="{ item }">
-                    <div class="space-y-0.5 min-w-[140px]">
+                    <div class="min-w-[140px] space-y-0.5">
                         <div class="flex items-center gap-1.5">
-                            <span class="text-foreground font-bold text-xs">{{ item.name }}</span>
+                            <span class="text-foreground text-xs font-bold">{{ item.name }}</span>
                             <span
                                 v-if="item.role === 'affiliator'"
-                                class="inline-flex items-center rounded-full border border-primary-500/30 bg-primary-500/10 px-1.5 py-0.2 text-[9px] font-semibold text-primary-700 dark:text-primary-300"
+                                class="border-indigo-200 dark:border-indigo-800  bg-indigo-50 dark:bg-indigo-950/50 py-0.2 text-indigo-700 dark:text-indigo-300 inline-flex items-center rounded-full border px-1.5 text-[9px] font-semibold"
                             >
                                 Affiliator
                             </span>
+                            <span
+                                v-else
+                                class="py-0.2 inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-1.5 text-[9px] font-semibold text-sky-700 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-300"
+                            >
+                                Investor
+                            </span>
                         </div>
-                        <div class="text-muted-foreground text-[11px] flex flex-wrap items-center gap-1">
+                        <div
+                            class="text-muted-foreground flex flex-wrap items-center gap-1 text-[11px]"
+                        >
                             <span>@{{ item.username }}</span>
                             <span>&bull;</span>
                             <span>{{ item.email }}</span>
@@ -344,10 +242,10 @@ const getInitials = (name) => {
                 <!-- Custom Column: NIK & Kontak -->
                 <template #column-nik="{ item }">
                     <div class="space-y-0.5 whitespace-nowrap">
-                        <span class="text-foreground font-mono font-bold text-xs block">
+                        <span class="text-foreground block font-mono text-xs">
                             {{ item.nik || '-' }}
                         </span>
-                        <span class="text-muted-foreground font-mono text-[11px] block">
+                        <span class="text-muted-foreground block font-mono text-[11px]">
                             {{ item.phone || '-' }}
                         </span>
                     </div>
@@ -356,17 +254,16 @@ const getInitials = (name) => {
                 <!-- Custom Column: Upline / Referral -->
                 <template #column-upline="{ item }">
                     <div v-if="item.upline" class="space-y-0.5">
-                        <div class="inline-flex items-center gap-1 text-xs font-semibold text-foreground">
-                            <Link2 class="h-3 w-3 text-primary-500 shrink-0" />
+                        <div
+                            class="text-foreground inline-flex items-center gap-1 text-xs font-semibold"
+                        >
                             <span>{{ item.upline.name }}</span>
                         </div>
-                        <span class="text-muted-foreground text-[10px] font-mono block">
+                        <span class="text-muted-foreground block font-mono text-[10px]">
                             Ref: {{ item.upline.referral_code }}
                         </span>
                     </div>
-                    <span v-else class="text-muted-foreground text-xs italic">
-                        Organik
-                    </span>
+                    <span v-else class="text-muted-foreground text-xs italic"> Tanpa Referral </span>
                 </template>
 
                 <!-- Custom Column: Dokumen KTP -->
@@ -384,33 +281,9 @@ const getInitials = (name) => {
                             />
                             <span>{{ getStatusBadge(item.dokumen.ktp.status).label }}</span>
                         </div>
-                        <div
-                            v-if="item.dokumen.ktp.is_quality_warning"
-                            class="text-[10px] text-amber-700 dark:text-amber-400 flex items-center gap-0.5"
-                        >
-                            <AlertTriangle class="h-2.5 w-2.5 shrink-0" />
-                            <span>Resolusi rendah</span>
-                        </div>
+
                     </div>
                     <span v-else class="text-muted-foreground text-xs italic">Belum Ada</span>
-                </template>
-
-                <!-- Custom Column: Status Akun -->
-                <template #column-status="{ item }">
-                    <span
-                        :class="[
-                            'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold',
-                            item.status === 'active'
-                                ? 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-500/30'
-                                : 'bg-sky-500/10 text-sky-800 dark:text-sky-300 border-sky-500/30',
-                        ]"
-                    >
-                        <component
-                            :is="item.status === 'active' ? CheckCircle2 : Clock"
-                            class="h-3 w-3"
-                        />
-                        <span>{{ item.status === 'active' ? 'Aktif' : 'Pending' }}</span>
-                    </span>
                 </template>
 
                 <!-- Custom Column: Actions -->
@@ -440,20 +313,13 @@ const getInitials = (name) => {
         >
             <div v-if="selectedInvestor" class="max-h-[75vh] space-y-5 overflow-y-auto ps-0.5 pe-1">
                 <!-- Header Profil Investor -->
-                <div class="rounded-xl border border-border bg-card p-4 sm:p-5">
-                    <!-- Baris Atas: Avatar, Identitas, Status Akun -->
-                    <div
-                        class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60"
-                    >
-                        <div class="flex items-center gap-3.5 min-w-0">
-                            <div
-                                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-muted font-bold text-sm text-foreground ring-1 ring-border"
-                            >
-                                {{ getInitials(selectedInvestor.name) }}
-                            </div>
+                <div class="border-border bg-card rounded-xl border p-4 sm:p-5">
+                    <!-- Baris Atas: Identitas Investor -->
+                    <div class="border-border/60 border-b pb-4">
+                        <div class="flex min-w-0 items-center gap-3.5">
                             <div class="min-w-0">
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <h3 class="text-foreground text-sm font-bold truncate">
+                                    <h3 class="text-foreground truncate text-sm font-bold">
                                         {{ selectedInvestor.name }}
                                     </h3>
                                     <span class="text-muted-foreground text-xs font-normal">
@@ -461,7 +327,7 @@ const getInitials = (name) => {
                                     </span>
                                     <span
                                         v-if="selectedInvestor.role === 'affiliator'"
-                                        class="inline-flex items-center rounded-full border border-primary-500/30 bg-primary-500/10 px-2 py-0.5 text-[10px] font-semibold text-primary-700 dark:text-primary-300"
+                                        class="border-primary-500/30 bg-primary-500/10 text-primary-700 dark:text-primary-300 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold"
                                     >
                                         Affiliator
                                     </span>
@@ -471,64 +337,58 @@ const getInitials = (name) => {
                                 </p>
                             </div>
                         </div>
-
-                        <!-- Status Akun Investor -->
-                        <div class="flex items-center shrink-0">
-                            <span
-                                :class="[
-                                    'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
-                                    isInvestorActive
-                                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
-                                        : 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300',
-                                ]
-                            "
-                            >
-                                <component
-                                    :is="isInvestorActive ? CheckCircle2 : Clock"
-                                    class="h-3.5 w-3.5 shrink-0"
-                                />
-                                <span>{{
-                                    isInvestorActive
-                                        ? 'Akun Aktif & Disetujui'
-                                        : 'Menunggu Verifikasi KTP'
-                                }}</span>
-                            </span>
-                        </div>
                     </div>
 
                     <!-- Baris Bawah: Grid Atribut Detail 3 Kolom Responsif -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 text-xs">
+                    <div class="grid grid-cols-1 gap-4 pt-4 text-xs md:grid-cols-3">
                         <!-- Kolom 1: Data Identitas Pribadi -->
-                        <div class="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2">
-                            <div class="flex items-center gap-1.5 font-bold text-foreground">
-                                <CreditCard class="h-3.5 w-3.5 text-primary-600 dark:text-primary-400" />
+                        <div class="border-border/60 bg-muted/20 space-y-2 rounded-lg border p-3">
+                            <div class="text-foreground flex items-center gap-1.5 font-bold">
+                                <CreditCard
+                                    class="text-primary-600 dark:text-primary-400 h-3.5 w-3.5"
+                                />
                                 <span>Identitas Pribadi</span>
                             </div>
                             <div class="space-y-1">
                                 <div>
-                                    <span class="text-muted-foreground text-[10px] uppercase font-semibold block">NIK</span>
-                                    <p class="text-foreground font-mono font-bold text-xs">
+                                    <span
+                                        class="text-muted-foreground block text-[10px] font-semibold uppercase"
+                                        >NIK</span
+                                    >
+                                    <p class="text-foreground font-mono text-xs">
                                         {{ selectedInvestor.nik || '-' }}
                                     </p>
                                 </div>
                                 <div>
-                                    <span class="text-muted-foreground text-[10px] uppercase font-semibold block">Kelahiran</span>
+                                    <span
+                                        class="text-muted-foreground block text-[10px] font-semibold uppercase"
+                                        >Kelahiran</span
+                                    >
                                     <p class="text-foreground text-xs">
                                         {{
-                                            [selectedInvestor.tempat_lahir, selectedInvestor.tanggal_lahir]
+                                            [
+                                                selectedInvestor.tempat_lahir,
+                                                selectedInvestor.tanggal_lahir,
+                                            ]
                                                 .filter(Boolean)
                                                 .join(', ') || '-'
                                         }}
                                     </p>
                                 </div>
                                 <div>
-                                    <span class="text-muted-foreground text-[10px] uppercase font-semibold block">Pekerjaan</span>
+                                    <span
+                                        class="text-muted-foreground block text-[10px] font-semibold uppercase"
+                                        >Pekerjaan</span
+                                    >
                                     <p class="text-foreground text-xs">
                                         {{ selectedInvestor.pekerjaan || '-' }}
                                     </p>
                                 </div>
                                 <div>
-                                    <span class="text-muted-foreground text-[10px] uppercase font-semibold block">Domisili</span>
+                                    <span
+                                        class="text-muted-foreground block text-[10px] font-semibold uppercase"
+                                        >Alamat</span
+                                    >
                                     <p class="text-foreground text-xs">
                                         {{ selectedInvestor.alamat || '-' }}
                                     </p>
@@ -537,73 +397,90 @@ const getInitials = (name) => {
                         </div>
 
                         <!-- Kolom 2: Kontak Darurat & Ahli Waris -->
-                        <div class="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2">
-                            <div class="flex items-center gap-1.5 font-bold text-foreground">
-                                <Users class="h-3.5 w-3.5 text-primary-600 dark:text-primary-400" />
+                        <div class="border-border/60 bg-muted/20 space-y-2 rounded-lg border p-3">
+                            <div class="text-foreground flex items-center gap-1.5 font-bold">
+                                <Users class="text-primary-600 dark:text-primary-400 h-3.5 w-3.5" />
                                 <span>Kontak Darurat / Ahli Waris</span>
                             </div>
                             <div v-if="selectedInvestor.ahli_waris" class="space-y-1">
                                 <div>
-                                    <span class="text-muted-foreground text-[10px] uppercase font-semibold block">Nama Lengkap</span>
-                                    <p class="text-foreground font-bold text-xs">
+                                    <span
+                                        class="text-muted-foreground block text-[10px] font-semibold uppercase"
+                                        >Nama Lengkap</span
+                                    >
+                                    <p class="text-foreground text-xs">
                                         {{ selectedInvestor.ahli_waris.nama }}
                                     </p>
                                 </div>
                                 <div>
-                                    <span class="text-muted-foreground text-[10px] uppercase font-semibold block">Hubungan Keluarga</span>
+                                    <span
+                                        class="text-muted-foreground block text-[10px] font-semibold uppercase"
+                                        >Hubungan Keluarga</span
+                                    >
                                     <p class="text-foreground text-xs">
                                         {{ selectedInvestor.ahli_waris.hubungan_keluarga }}
                                     </p>
                                 </div>
                                 <div>
-                                    <span class="text-muted-foreground text-[10px] uppercase font-semibold block">No. Telepon / WA</span>
+                                    <span
+                                        class="text-muted-foreground block text-[10px] font-semibold uppercase"
+                                        >No. Telepon / WA</span
+                                    >
                                     <p class="text-foreground font-mono text-xs">
                                         {{ selectedInvestor.ahli_waris.no_hp }}
                                     </p>
                                 </div>
                                 <div>
-                                    <span class="text-muted-foreground text-[10px] uppercase font-semibold block">Alamat</span>
+                                    <span
+                                        class="text-muted-foreground block text-[10px] font-semibold uppercase"
+                                        >Alamat</span
+                                    >
                                     <p class="text-foreground text-xs">
                                         {{ selectedInvestor.ahli_waris.alamat || '-' }}
                                     </p>
                                 </div>
                             </div>
-                            <p v-else class="text-muted-foreground text-xs italic py-2">
+                            <p v-else class="text-muted-foreground py-2 text-xs italic">
                                 Data ahli waris belum dilengkapi
                             </p>
                         </div>
 
                         <!-- Kolom 3: Registrasi, Legalitas & Referral -->
-                        <div class="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2">
-                            <div class="flex items-center gap-1.5 font-bold text-foreground">
-                                <FileText class="h-3.5 w-3.5 text-primary-600 dark:text-primary-400" />
-                                <span>Pendaftaran & Legalitas</span>
+                        <div class="border-border/60 bg-muted/20 space-y-2 rounded-lg border p-3">
+                            <div class="text-foreground flex items-center gap-1.5 font-bold">
+                                <FileText
+                                    class="text-primary-600 dark:text-primary-400 h-3.5 w-3.5"
+                                />
+                                <span>Pendaftaran</span>
                             </div>
                             <div class="space-y-1">
                                 <div>
-                                    <span class="text-muted-foreground text-[10px] uppercase font-semibold block">Waktu Registrasi</span>
-                                    <p class="text-foreground text-xs font-medium">
-                                        {{ selectedInvestor.created_at_date }} {{ selectedInvestor.created_at_time }}
+                                    <span
+                                        class="text-muted-foreground block text-[10px] font-semibold uppercase"
+                                        >Waktu Registrasi</span
+                                    >
+                                    <p class="text-foreground text-xs">
+                                        {{ selectedInvestor.created_at_date }}
+                                        {{ selectedInvestor.created_at_time }}
                                     </p>
                                 </div>
                                 <div>
-                                    <span class="text-muted-foreground text-[10px] uppercase font-semibold block">Persetujuan S&K</span>
-                                    <p v-if="selectedInvestor.terms_agreed_at" class="text-emerald-700 dark:text-emerald-400 text-xs font-medium flex items-center gap-1">
-                                        <CheckCircle2 class="h-3.5 w-3.5 shrink-0" />
-                                        <span>Disetujui: {{ selectedInvestor.terms_agreed_at }}</span>
+                                    <span
+                                        class="text-muted-foreground block text-[10px] font-semibold uppercase"
+                                        >Referral Affiliator</span
+                                    >
+                                    <p
+                                        v-if="selectedInvestor.upline"
+                                        class="text-foreground flex items-center gap-1 text-xs"
+                                    >
+                                        <span
+                                            >{{ selectedInvestor.upline.name }} ({{
+                                                selectedInvestor.upline.referral_code
+                                            }})</span
+                                        >
                                     </p>
-                                    <p v-else class="text-muted-foreground text-xs italic">
-                                        Belum disetujui
-                                    </p>
-                                </div>
-                                <div>
-                                    <span class="text-muted-foreground text-[10px] uppercase font-semibold block">Referral Affiliator</span>
-                                    <p v-if="selectedInvestor.upline" class="text-foreground text-xs font-medium flex items-center gap-1">
-                                        <Link2 class="h-3.5 w-3.5 text-primary-500 shrink-0" />
-                                        <span>{{ selectedInvestor.upline.name }} ({{ selectedInvestor.upline.referral_code }})</span>
-                                    </p>
-                                    <p v-else class="text-muted-foreground text-xs italic">
-                                        Organik (Tanpa Upline)
+                                    <p v-else class="text -foreground text-xs italic">
+                                        Tanpa Upline
                                     </p>
                                 </div>
                             </div>
@@ -612,12 +489,12 @@ const getInitials = (name) => {
                 </div>
 
                 <!-- Dokumen Identitas (Foto KTP) -->
-                <div class="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-4">
-                    <div class="flex items-center justify-between border-b border-border/60 pb-3">
+                <div class="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5">
+                    <div class="border-border/60 flex items-center justify-between border-b pb-3">
                         <div class="flex items-center gap-2">
-                            <CreditCard class="h-4 w-4 text-primary-600 dark:text-primary-400" />
-                            <h4 class="font-bold text-xs uppercase tracking-wider text-foreground">
-                                Dokumen Identitas (Foto KTP)
+                            <CreditCard class="text-primary-600 dark:text-primary-400 h-4 w-4" />
+                            <h4 class="text-foreground text-xs font-bold tracking-wider uppercase">
+                                Foto KTP
                             </h4>
                         </div>
                         <span
@@ -631,7 +508,9 @@ const getInitials = (name) => {
                                 :is="getStatusBadge(selectedInvestor.dokumen.ktp.status).icon"
                                 class="h-3 w-3"
                             />
-                            <span>{{ getStatusBadge(selectedInvestor.dokumen.ktp.status).label }}</span>
+                            <span>{{
+                                getStatusBadge(selectedInvestor.dokumen.ktp.status).label
+                            }}</span>
                         </span>
                     </div>
 
@@ -643,31 +522,42 @@ const getInitials = (name) => {
                             class="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300"
                         >
                             <AlertTriangle class="h-4 w-4 shrink-0" />
-                            <span>
-                                <strong>Peringatan Kualitas Dokumen:</strong> Resolusi atau ketajaman berkas KTP terdeteksi rendah. Pastikan teks NIK dan identitas dapat dibaca dengan jelas sebelum menyetujui.
-                            </span>
+                            <spanm>
+                                <strong>Peringatan Kualitas Dokumen:</strong> <br/>
+                                Resolusi atau ketajaman berkas KTP terdeteksi rendah.
+                            </spanm>
                         </div>
 
                         <!-- Previous Admin Note if revision needed -->
                         <div
-                            v-if="selectedInvestor.dokumen.ktp.status === 'revision_needed' && selectedInvestor.dokumen.ktp.catatan_admin"
+                            v-if="
+                                selectedInvestor.dokumen.ktp.status === 'revision_needed' &&
+                                selectedInvestor.dokumen.ktp.catatan_admin
+                            "
                             class="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200"
                         >
-                            <AlertTriangle class="h-4 w-4 shrink-0 mt-0.5" />
+                            <AlertTriangle class="mt-0.5 h-4 w-4 shrink-0" />
                             <div>
                                 <strong class="block">Catatan Revisi Saat Ini:</strong>
-                                <p class="mt-0.5">{{ selectedInvestor.dokumen.ktp.catatan_admin }}</p>
+                                <p class="mt-0.5">
+                                    {{ selectedInvestor.dokumen.ktp.catatan_admin }}
+                                </p>
                             </div>
                         </div>
 
                         <!-- Previous Approval Info if already approved -->
                         <div
-                            v-if="selectedInvestor.dokumen.ktp.status === 'approved' && selectedInvestor.dokumen.ktp.verified_at"
+                            v-if="
+                                selectedInvestor.dokumen.ktp.status === 'approved' &&
+                                selectedInvestor.dokumen.ktp.verified_at
+                            "
                             class="flex items-center gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-800 dark:text-emerald-300"
                         >
                             <CheckCircle2 class="h-4 w-4 shrink-0" />
                             <span>
-                                Berkas KTP ini telah disetujui pada <strong>{{ selectedInvestor.dokumen.ktp.verified_at }}</strong>.
+                                Berkas KTP ini telah disetujui pada
+                                <strong>{{ selectedInvestor.dokumen.ktp.verified_at }}</strong
+                                >.
                             </span>
                         </div>
 
@@ -675,23 +565,18 @@ const getInitials = (name) => {
                         <div
                             class="bg-muted/40 border-border text-muted-foreground flex items-center justify-between rounded-lg border p-2 text-xs"
                         >
-                            <span class="text-foreground font-semibold truncate">
+                            <span class="text-foreground truncate font-semibold">
                                 {{ selectedInvestor.dokumen.ktp.file_name }}
                                 <span class="text-muted-foreground font-normal">
-                                    ({{
-                                        formatBytes(
-                                            selectedInvestor.dokumen.ktp.file_size
-                                        )
-                                    }})
+                                    ({{ formatBytes(selectedInvestor.dokumen.ktp.file_size) }})
                                 </span>
                             </span>
 
                             <!-- Toolbar Zoom / Rotate -->
-                            <div class="flex items-center gap-1 shrink-0">
+                            <div class="flex shrink-0 items-center gap-1">
                                 <template
                                     v-if="
-                                        selectedInvestor.dokumen.ktp
-                                            .mime_type !== 'application/pdf'
+                                        selectedInvestor.dokumen.ktp.mime_type !== 'application/pdf'
                                     "
                                 >
                                     <button
@@ -748,10 +633,7 @@ const getInitials = (name) => {
                         >
                             <!-- PDF Viewer -->
                             <iframe
-                                v-if="
-                                    selectedInvestor.dokumen.ktp.mime_type ===
-                                    'application/pdf'
-                                "
+                                v-if="selectedInvestor.dokumen.ktp.mime_type === 'application/pdf'"
                                 :src="selectedInvestor.dokumen.ktp.preview_url"
                                 class="h-full w-full rounded-xl"
                             ></iframe>
@@ -776,23 +658,27 @@ const getInitials = (name) => {
                         <!-- Form Keputusan Verifikasi Dokumen -->
                         <form
                             @submit.prevent="submitVerification"
-                            class="border-t border-border/60 pt-4 space-y-4"
+                            class="border-border/60 space-y-4 border-t pt-4"
                         >
                             <div class="space-y-1.5">
                                 <label class="text-foreground block text-xs font-bold">
                                     Keputusan Verifikasi KTP
                                     <span class="text-destructive">*</span>
                                 </label>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup" aria-label="Keputusan Verifikasi Dokumen">
+                                <div
+                                    class="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                                    role="radiogroup"
+                                    aria-label="Keputusan Verifikasi Dokumen"
+                                >
                                     <button
                                         type="button"
                                         role="radio"
                                         :aria-checked="verifyForm.status === 'approved'"
                                         @click="verifyForm.status = 'approved'"
                                         :class="[
-                                            'flex items-center gap-2.5 rounded-xl border p-3 text-xs font-semibold transition-colors text-left focus:outline-none focus:ring-2 focus:ring-primary-500/30',
+                                            'focus:ring-primary-500/30 flex items-center gap-2.5 rounded-xl border p-3 text-left text-xs font-semibold transition-colors focus:ring-2 focus:outline-none',
                                             verifyForm.status === 'approved'
-                                                ? 'border-emerald-500 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 ring-1 ring-emerald-500/20'
+                                                ? 'border-emerald-500 bg-emerald-500/10 text-emerald-800 ring-1 ring-emerald-500/20 dark:text-emerald-300'
                                                 : 'border-border bg-card hover:bg-muted/40 text-foreground',
                                         ]"
                                     >
@@ -808,25 +694,22 @@ const getInitials = (name) => {
                                         :aria-checked="verifyForm.status === 'revision_needed'"
                                         @click="verifyForm.status = 'revision_needed'"
                                         :class="[
-                                            'flex items-center gap-2.5 rounded-xl border p-3 text-xs font-semibold transition-colors text-left focus:outline-none focus:ring-2 focus:ring-primary-500/30',
+                                            'focus:ring-primary-500/30 flex items-center gap-2.5 rounded-xl border p-3 text-left text-xs font-semibold transition-colors focus:ring-2 focus:outline-none',
                                             verifyForm.status === 'revision_needed'
-                                                ? 'border-amber-500 bg-amber-500/10 text-amber-800 dark:text-amber-300 ring-1 ring-amber-500/20'
+                                                ? 'border-amber-500 bg-amber-500/10 text-amber-800 ring-1 ring-amber-500/20 dark:text-amber-300'
                                                 : 'border-border bg-card hover:bg-muted/40 text-foreground',
                                         ]"
                                     >
                                         <AlertTriangle
                                             class="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
                                         />
-                                        <span>Minta Revisi Dokumen</span>
+                                        <span>Minta Revisi</span>
                                     </button>
                                 </div>
                             </div>
 
                             <!-- Catatan Instruksi Revisi (Wajib jika minta revisi) -->
-                            <div
-                                v-if="verifyForm.status === 'revision_needed'"
-                                class="space-y-1.5"
-                            >
+                            <div v-if="verifyForm.status === 'revision_needed'" class="space-y-1.5">
                                 <label
                                     for="catatan_admin"
                                     class="text-foreground block text-xs font-semibold"
