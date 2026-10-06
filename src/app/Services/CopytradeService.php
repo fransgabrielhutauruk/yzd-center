@@ -36,6 +36,11 @@ class CopytradeService
                 default  => 'standard',
             };
 
+            $existingAkun = AkunCopytrade::where('user_id', $user->id)
+                ->whereNotNull('nama_bank')
+                ->latest('id')
+                ->first();
+
             $akunData = [
                 'user_id'            => $user->id,
                 'tier'               => $tier,
@@ -44,9 +49,9 @@ class CopytradeService
                 'nomor_akun_trading' => $data['nomor_akun_trading'],
                 'modal_riil'         => $data['modal_riil'],
                 'tanggal_mulai'      => $data['tanggal_mulai_trading'] ?? $data['tanggal_mulai'] ?? now()->toDateString(),
-                'nama_bank'          => $data['nama_bank'],
-                'nomor_rekening'     => $data['nomor_rekening'],
-                'atas_nama_rekening' => $data['atas_nama_rekening'],
+                'nama_bank'          => !empty($data['nama_bank']) ? $data['nama_bank'] : ($existingAkun?->nama_bank ?? '-'),
+                'nomor_rekening'     => !empty($data['nomor_rekening']) ? $data['nomor_rekening'] : ($existingAkun?->nomor_rekening ?? '-'),
+                'atas_nama_rekening' => !empty($data['atas_nama_rekening']) ? $data['atas_nama_rekening'] : ($existingAkun?->atas_nama_rekening ?? $user->name),
                 'status'             => 'pending',
                 'url_mql5'           => $data['url_mql5'] ?? null,
             ];
@@ -62,7 +67,7 @@ class CopytradeService
                 $akunData['investor_password'] = $data['investor_password'];
             }
 
-            // Simpan Surat Perjanjian jika dilampirkan
+            // Simpan Surat Perjanjian jika dilampirkan, atau gunakan dari akun terdahulu
             if ($suratPerjanjian) {
                 $storedPath = $suratPerjanjian->store("copytrade_agreements/{$user->id}", 'local');
                 $akunData['surat_perjanjian_path'] = $storedPath;
@@ -84,6 +89,8 @@ class CopytradeService
                         'verified_by'        => null,
                     ]
                 );
+            } elseif ($existingAkun?->surat_perjanjian_path) {
+                $akunData['surat_perjanjian_path'] = $existingAkun->surat_perjanjian_path;
             }
 
             $akun = AkunCopytrade::create($akunData);
@@ -219,12 +226,42 @@ class CopytradeService
             ($user->tanggal_lahir ? (function_exists('tanggal_indo') ? tanggal_indo($user->tanggal_lahir) : $user->tanggal_lahir) : '')
         );
 
+        $existingAkun = AkunCopytrade::where('user_id', $user->id)->latest()->first();
+
+        $namaBank = !empty($formData['nama_bank'])
+            ? $formData['nama_bank']
+            : ($existingAkun?->nama_bank ?? null);
+
+        $nomorRekening = !empty($formData['nomor_rekening'])
+            ? $formData['nomor_rekening']
+            : ($existingAkun?->nomor_rekening ?? null);
+
+        $atasNamaRekening = !empty($formData['atas_nama_rekening'])
+            ? $formData['atas_nama_rekening']
+            : ($existingAkun?->atas_nama_rekening ?? null);
+
         $rekeningParts = array_filter([
-            $formData['nama_bank'] ?? null,
-            $formData['nomor_rekening'] ?? null,
-            !empty($formData['atas_nama_rekening']) ? 'a.n ' . $formData['atas_nama_rekening'] : null,
+            $namaBank,
+            $nomorRekening,
+            !empty($atasNamaRekening) ? 'a.n ' . $atasNamaRekening : null,
         ]);
         $rekening = !empty($rekeningParts) ? implode(' - ', $rekeningParts) : '-';
+
+        $serverBroker = !empty($formData['server_broker'])
+            ? $formData['server_broker']
+            : ($existingAkun?->server_broker ?? '-');
+
+        $masterPassword = !empty($formData['master_password'])
+            ? $formData['master_password']
+            : ($existingAkun?->master_password ?? '-');
+
+        $investorPassword = !empty($formData['investor_password'])
+            ? $formData['investor_password']
+            : ($existingAkun?->investor_password ?? '-');
+
+        $nomorAkunTrading = !empty($formData['nomor_akun_trading'])
+            ? $formData['nomor_akun_trading']
+            : ($existingAkun?->nomor_akun_trading ?? '-');
 
         $modalRiilFormatted = !empty($formData['modal_riil'])
             ? '$' . number_format((float) $formData['modal_riil'], 2, '.', ',')
@@ -241,10 +278,10 @@ class CopytradeService
             '${PEKERJAAN}'            => htmlspecialchars($user->pekerjaan ?? '-', ENT_XML1),
             '${TANGGAL_MULAI}'        => htmlspecialchars($tanggalMulaiFormatted, ENT_XML1),
             '${TANGGAL_SELESAI}'      => htmlspecialchars($tanggalSelesaiFormatted, ENT_XML1),
-            '${NOMOR_AKUN_TRADING}'   => htmlspecialchars($formData['nomor_akun_trading'] ?? '-', ENT_XML1),
-            '${SERVER_BROKER}'        => htmlspecialchars($formData['server_broker'] ?? '-', ENT_XML1),
-            '${MASTER_PASSWORD}'      => htmlspecialchars($formData['master_password'] ?? '-', ENT_XML1),
-            '${INVESTOR_PASSWORD}'    => htmlspecialchars($formData['investor_password'] ?? '-', ENT_XML1),
+            '${NOMOR_AKUN_TRADING}'   => htmlspecialchars($nomorAkunTrading, ENT_XML1),
+            '${SERVER_BROKER}'        => htmlspecialchars($serverBroker, ENT_XML1),
+            '${MASTER_PASSWORD}'      => htmlspecialchars($masterPassword, ENT_XML1),
+            '${INVESTOR_PASSWORD}'    => htmlspecialchars($investorPassword, ENT_XML1),
             '${ESTIMASI_MODAL}'       => htmlspecialchars($modalRiilFormatted, ENT_XML1),
             '${REKENING_PENCAIRAN}'   => htmlspecialchars($rekening, ENT_XML1),
             '${AHLI_WARIS_NAMA}'      => htmlspecialchars($user->ahliWaris?->nama ?? '-', ENT_XML1),

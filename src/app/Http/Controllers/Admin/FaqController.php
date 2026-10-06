@@ -63,6 +63,21 @@ class FaqController extends Controller
             ->with('success', 'Pertanyaan FAQ berhasil dihapus.');
     }
 
+    public function batchDestroy(Request $request): RedirectResponse
+    {
+        $ids = $request->input('ids', []);
+
+        if (empty($ids)) {
+            return redirect()->route('admin.education.faq.index', ['tab' => 'faqs'])
+                ->with('error', 'Tidak ada FAQ yang dipilih untuk dihapus.');
+        }
+
+        EdukasiFaq::whereIn('id', $ids)->delete();
+
+        return redirect()->route('admin.education.faq.index', ['tab' => 'faqs'])
+            ->with('success', count($ids) . ' pertanyaan FAQ berhasil dihapus.');
+    }
+
     public function storeTopic(FaqTopikRequest $request): RedirectResponse
     {
         $this->educationService->manageFaqTopic($request->validated());

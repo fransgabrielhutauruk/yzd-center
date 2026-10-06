@@ -195,14 +195,40 @@ const handleDeleteFaq = () => {
     });
 };
 
+// -----------------------------------------------------------------------------
+// Batch Delete FAQ
+// -----------------------------------------------------------------------------
+const selectedFaqs = ref([]);
+const isBatchDeleteOpen = ref(false);
+const isBatchDeleting = ref(false);
+
+const handleBatchDelete = () => {
+    if (selectedFaqs.value.length === 0) return;
+    isBatchDeleting.value = true;
+    router.delete('/admin/education/faq', {
+        data: { ids: selectedFaqs.value },
+        preserveScroll: true,
+        onSuccess: () => {
+            selectedFaqs.value = [];
+            isBatchDeleteOpen.value = false;
+        },
+        onFinish: () => {
+            isBatchDeleting.value = false;
+        },
+    });
+};
+
+// -----------------------------------------------------------------------------
+// Kolom Tabel FAQ (hapus kolom Urutan)
+// -----------------------------------------------------------------------------
 const faqColumns = [
     { key: 'pertanyaan', label: 'Pertanyaan & Jawaban', sortable: false },
-    { key: 'topik', label: 'Topik', sortable: false },
-    { key: 'urutan', label: 'Urutan', sortable: false, align: 'center' },
+    { key: 'topik', label: 'Kategori Topik', sortable: false },
     { key: 'is_active', label: 'Status', sortable: false, align: 'center' },
-    { key: 'actions', label: 'Aksi', sortable: false, align: 'right' },
+    { key: 'actions', label: 'Aksi', sortable: false, align: 'center' },
 ];
 </script>
+
 
 <template>
     <AdminLayout
@@ -281,6 +307,8 @@ const faqColumns = [
                         fetch-url="/admin/education/faq"
                         search-placeholder="Cari pertanyaan atau teks jawaban FAQ..."
                         empty-message="Belum ada pertanyaan FAQ yang terdaftar."
+                        :enable-batch="true"
+                        v-model:selected="selectedFaqs"
                     >
                         <!-- Filter Topik Dropdown -->
                         <template #filters="{ applyFilters }">
@@ -298,8 +326,20 @@ const faqColumns = [
                             </div>
                         </template>
 
+                        <!-- Batch Actions -->
+                        <template #batch-actions="{ selected }">
+                            <button
+                                type="button"
+                                @click="isBatchDeleteOpen = true"
+                                class="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-rose-700 transition-colors cursor-pointer"
+                            >
+                                <Trash2 class="h-3.5 w-3.5" />
+                                Hapus {{ selected.length }} FAQ
+                            </button>
+                        </template>
+
                         <!-- Kolom Pertanyaan & Cuplikan Jawaban -->
-                        <template #cell-pertanyaan="{ item }">
+                        <template #column-pertanyaan="{ item }">
                             <div class="max-w-md py-1">
                                 <p class="text-sm font-semibold text-slate-900 dark:text-white">
                                     {{ item.pertanyaan }}
@@ -311,22 +351,14 @@ const faqColumns = [
                         </template>
 
                         <!-- Kolom Topik -->
-                        <template #cell-topik="{ item }">
+                        <template #column-topik="{ item }">
                             <span class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
-                                <Layers class="h-3 w-3" />
                                 {{ item.topik?.nama || '-' }}
                             </span>
                         </template>
 
-                        <!-- Kolom Urutan -->
-                        <template #cell-urutan="{ item }">
-                            <span class="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                                #{{ item.urutan }}
-                            </span>
-                        </template>
-
                         <!-- Kolom Status -->
-                        <template #cell-is_active="{ item }">
+                        <template #column-is_active="{ item }">
                             <span
                                 v-if="item.is_active"
                                 class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
@@ -342,7 +374,7 @@ const faqColumns = [
                         </template>
 
                         <!-- Kolom Aksi -->
-                        <template #cell-actions="{ item }">
+                        <template #column-actions="{ item }">
                             <div class="flex items-center justify-end gap-1">
                                 <button
                                     type="button"
@@ -378,7 +410,7 @@ const faqColumns = [
                                     <th scope="col" class="px-4 py-3 text-center">Urutan</th>
                                     <th scope="col" class="px-4 py-3 text-center">Jumlah FAQ</th>
                                     <th scope="col" class="px-4 py-3 text-center">Status</th>
-                                    <th scope="col" class="px-4 py-3 text-right">Aksi</th>
+                                    <th scope="col" class="px-4 py-3 text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
@@ -389,9 +421,7 @@ const faqColumns = [
                                 >
                                     <td class="px-4 py-3">
                                         <div class="flex items-center gap-2">
-                                            <div class="rounded-lg bg-primary/10 p-2 text-primary">
-                                                <Layers class="h-4 w-4" />
-                                            </div>
+
                                             <div class="font-medium text-slate-900 dark:text-white">
                                                 {{ topic.nama }}
                                             </div>
@@ -554,39 +584,24 @@ const faqColumns = [
             @close="isFaqModalOpen = false"
         >
             <form @submit.prevent="submitFaqForm" class="space-y-4">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <!-- Topik -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                            Topik FAQ <span class="text-red-500">*</span>
-                        </label>
-                        <select
-                            v-model="faqForm.topik_id"
-                            required
-                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                        >
-                            <option value="" disabled>Pilih Topik FAQ</option>
-                            <option v-for="t in topics" :key="t.id" :value="t.id">
-                                {{ t.nama }}
-                            </option>
-                        </select>
-                        <p v-if="faqForm.errors.topik_id" class="mt-1 text-xs text-red-600">
-                            {{ faqForm.errors.topik_id }}
-                        </p>
-                    </div>
-
-                    <!-- Urutan -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                            Urutan Tampil
-                        </label>
-                        <input
-                            v-model.number="faqForm.urutan"
-                            type="number"
-                            min="0"
-                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                        />
-                    </div>
+                <!-- Topik -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Topik FAQ <span class="text-red-500">*</span>
+                    </label>
+                    <select
+                        v-model="faqForm.topik_id"
+                        required
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    >
+                        <option value="" disabled>Pilih Topik FAQ</option>
+                        <option v-for="t in topics" :key="t.id" :value="t.id">
+                            {{ t.nama }}
+                        </option>
+                    </select>
+                    <p v-if="faqForm.errors.topik_id" class="mt-1 text-xs text-red-600">
+                        {{ faqForm.errors.topik_id }}
+                    </p>
                 </div>
 
                 <!-- Pertanyaan -->
@@ -677,6 +692,19 @@ const faqColumns = [
             :loading="isDeletingFaq"
             @confirm="handleDeleteFaq"
             @cancel="isDeleteFaqModalOpen = false"
+        />
+
+        <!-- Dialog Batch Hapus FAQ -->
+        <AppConfirmDialog
+            :show="isBatchDeleteOpen"
+            title="Hapus Pertanyaan FAQ Terpilih"
+            :message="`Apakah Anda yakin ingin menghapus ${selectedFaqs.length} pertanyaan FAQ yang dipilih? Tindakan ini tidak dapat dibatalkan.`"
+            confirm-text="Ya, Hapus Semua"
+            cancel-text="Batal"
+            type="danger"
+            :loading="isBatchDeleting"
+            @confirm="handleBatchDelete"
+            @cancel="isBatchDeleteOpen = false"
         />
     </AdminLayout>
 </template>

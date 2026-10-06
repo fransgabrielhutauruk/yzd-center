@@ -79,6 +79,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    only: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const selected = defineModel('selected', {
@@ -134,7 +138,28 @@ const sortDirection = ref(props.filters[sortDirectionKey.value] || props.filters
 const perPage = ref(props.filters[perPageKey.value] || props.filters.per_page || props.data?.per_page || 10);
 const isLoading = ref(false);
 
+const isSearchFocused = ref(false);
+const searchInputRef = ref(null);
+const lastSentSearch = ref(search.value);
+
 let debounceTimeout = null;
+
+const clearSearch = () => {
+    search.value = '';
+    lastSentSearch.value = '';
+    if (debounceTimeout) {
+        clearTimeout(debounceTimeout);
+    }
+    applyFilters({ [pageKey.value]: 1 });
+    searchInputRef.value?.focus();
+};
+
+const handleSearchEnter = () => {
+    if (debounceTimeout) {
+        clearTimeout(debounceTimeout);
+    }
+    applyFilters({ [pageKey.value]: 1 });
+};
 
 const resetCustomFilters = () => {
     if (!props.filters || typeof props.filters !== 'object') return;
@@ -169,6 +194,7 @@ const resetCustomFilters = () => {
 
 const applyFilters = (customParams = {}) => {
     isLoading.value = true;
+    lastSentSearch.value = search.value;
 
     // Normalisasi parameter jika customParams menyertakan 'page' generik saat paramPrefix aktif
     const normalizedCustom = { ...customParams };
@@ -203,20 +229,29 @@ const applyFilters = (customParams = {}) => {
         }
     });
 
-    router.get(props.fetchUrl, queryParams, {
+    const visitOptions = {
         preserveState: true,
         preserveScroll: true,
+        replace: true,
         onFinish: () => {
             isLoading.value = false;
         },
-    });
+    };
+
+    if (Array.isArray(props.only) && props.only.length > 0) {
+        visitOptions.only = props.only;
+    }
+
+    router.get(props.fetchUrl, queryParams, visitOptions);
 };
 
 // Debounce search input
-watch(search, () => {
+watch(search, (newVal) => {
     clearTimeout(debounceTimeout);
     debounceTimeout = setTimeout(() => {
-        applyFilters({ [pageKey.value]: 1 });
+        if (newVal !== lastSentSearch.value) {
+            applyFilters({ [pageKey.value]: 1 });
+        }
     }, 350);
 });
 
@@ -225,7 +260,16 @@ watch(
     () => props.filters,
     (newFilters) => {
         if (newFilters) {
-            search.value = newFilters[searchKey.value] ?? newFilters.search ?? '';
+            const serverSearch = newFilters[searchKey.value] ?? newFilters.search ?? '';
+
+            // HANYA sinkronkan search lokal jika input tidak sedang difokuskan user
+            // DAN nilai dari server berbeda dari apa yang terakhir dikirim
+            // (mencegah respons lama dari server menimpa apa yang sedang diketik user)
+            if (!isSearchFocused.value && serverSearch !== lastSentSearch.value) {
+                search.value = serverSearch;
+                lastSentSearch.value = serverSearch;
+            }
+
             sortBy.value = newFilters[sortByKey.value] ?? newFilters.sort_by ?? '';
             sortDirection.value = newFilters[sortDirectionKey.value] ?? newFilters.sort_direction ?? 'desc';
             perPage.value = newFilters[perPageKey.value] ?? newFilters.per_page ?? props.data?.per_page ?? 10;
@@ -262,13 +306,19 @@ const handleSort = (column) => {
 const goToPage = (url) => {
     if (!url || isLoading.value) return;
     isLoading.value = true;
-    router.visit(url, {
+    const visitOptions = {
         preserveState: true,
         preserveScroll: true,
         onFinish: () => {
             isLoading.value = false;
         },
-    });
+    };
+
+    if (Array.isArray(props.only) && props.only.length > 0) {
+        visitOptions.only = props.only;
+    }
+
+    router.visit(url, visitOptions);
 };
 
 const getAlignmentClass = (align) => {
@@ -358,6 +408,8 @@ const clearSelection = () => {
 
 defineExpose({
     clearSelection,
+    clearSearch,
+    searchInputRef,
     selected,
     selectedIds: selected,
     isFilterOpen,
@@ -373,15 +425,31 @@ defineExpose({
                 <!-- Search Input -->
                 <div v-if="showSearch" class="relative w-full sm:max-w-xs md:max-w-sm">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
-                        <Loader2 v-if="isLoading" class="w-4 h-4 animate-spin text-primary-600" />
-                        <Search v-else class="w-4 h-4" />
+                        <Search class="w-4 h-4" />
                     </div>
                     <input
+                        ref="searchInputRef"
                         v-model="search"
                         type="text"
                         :placeholder="searchPlaceholder"
-                        class="w-full pl-9 pr-3 py-1.5 text-xs bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all placeholder:text-muted-foreground"
+                        @focus="isSearchFocused = true"
+                        @blur="isSearchFocused = false"
+                        @keydown.enter.prevent="handleSearchEnter"
+                        class="w-full pl-9 pr-9 py-1.5 text-xs bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all placeholder:text-muted-foreground"
                     />
+                    <div class="absolute inset-y-0 right-0 pr-2.5 flex items-center gap-1.5">
+                        <Loader2 v-if="isLoading" class="w-3.5 h-3.5 animate-spin text-primary-600 pointer-events-none" />
+                        <button
+                            v-if="search"
+                            type="button"
+                            @click="clearSearch"
+                            class="p-0.5 text-muted-foreground hover:text-foreground rounded transition-colors cursor-pointer"
+                            title="Hapus pencarian"
+                            aria-label="Hapus pencarian"
+                        >
+                            <X class="w-3.5 h-3.5" />
+                        </button>
+                    </div>
                 </div>
                 <div v-else class="hidden sm:block flex-1" />
 
@@ -518,16 +586,33 @@ defineExpose({
 
         <!-- Table Container -->
         <div class="bg-card rounded-xl border border-border shadow-xs overflow-hidden relative">
-            <!-- Loading Overlay Indicator -->
+            <!-- Subtle Top Loading Bar -->
             <div
                 v-if="isLoading"
-                class="absolute inset-0 bg-background/50 backdrop-blur-2xs flex items-center justify-center z-10"
+                class="absolute top-0 left-0 right-0 h-0.5 bg-primary-100 dark:bg-primary-950 overflow-hidden z-20 pointer-events-none"
             >
-                <div class="flex items-center gap-2 px-4 py-2 bg-card rounded-xl border border-border shadow-md text-xs font-semibold text-foreground">
-                    <Loader2 class="w-4 h-4 animate-spin text-primary-600" />
-                    <span>Memperbarui data...</span>
-                </div>
+                <div class="h-full bg-primary-600 animate-pulse w-full"></div>
             </div>
+
+            <!-- Loading Overlay Indicator -->
+            <transition
+                enter-active-class="transition-opacity duration-150 ease-out"
+                enter-from-class="opacity-0"
+                enter-to-class="opacity-100"
+                leave-active-class="transition-opacity duration-100 ease-in"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+            >
+                <div
+                    v-if="isLoading"
+                    class="absolute inset-0 bg-background/40 flex items-center justify-center z-10 pointer-events-none"
+                >
+                    <div class="flex items-center gap-2 px-3.5 py-1.5 bg-card/95 rounded-xl border border-border shadow-xs text-xs font-semibold text-foreground">
+                        <Loader2 class="w-3.5 h-3.5 animate-spin text-primary-600" />
+                        <span>Memperbarui data...</span>
+                    </div>
+                </div>
+            </transition>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">

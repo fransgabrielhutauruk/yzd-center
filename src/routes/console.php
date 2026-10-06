@@ -11,3 +11,7 @@ Artisan::command('inspire', function () {
 Schedule::command('app:update-usd-exchange-rate')
     ->dailyAt('06:00')
     ->timezone('Asia/Jakarta');
+
+Schedule::command('app:send-balance-recap-reminder')
+    ->monthlyOn(1, '07:00')
+    ->timezone('Asia/Jakarta');

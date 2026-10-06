@@ -41,15 +41,6 @@ const formatUSD = (val) => {
     }).format(val || 0);
 };
 
-const formatIDR = (val) => {
-    return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-    }).format(val || 0);
-};
-
 const copyReferralCode = async () => {
     if (!props.user.referral_code) return;
     try {
@@ -168,8 +159,10 @@ const copyReferralCode = async () => {
                 :bep-data="bep_summary"
                 :title="bep_summary.has_active_copytrade ? 'Progress Balik Modal (BEP) Portofolio Anda' : 'Simulasi Kuota Balik Modal (BEP)'"
                 :subtitle="bep_summary.has_active_copytrade
-                    ? `Dihitung dari rata-rata profit ${bep_summary.monthly_profit_rate}%/bln sejak Anda mulai aktif pada ${bep_summary.join_date_formatted}, termasuk akumulasi yang sudah di-WD.`
-                    : 'Dihitung dari rata-rata profit bulanan konservatif 5% sejak awal join hingga 100% modal kembali (mencakup yang sudah di-WD).'"
+                    ? `Akumulasi profit riil sejak Anda mulai aktif pada ${bep_summary.join_date_formatted || 'Bulan ini'} menuju 100% modal kembali.`
+                    : 'Dihitung dari rata-rata profit bulanan konservatif 5% sejak awal join hingga 100% modal kembali.'"
+                :show-estimation="!bep_summary.has_active_copytrade"
+                calculator-link-text="Buka Kalkulator Simulasi"
             />
 
             <!-- Metric Summary Grid -->
@@ -178,13 +171,13 @@ const copyReferralCode = async () => {
                 <div class="bg-card rounded-2xl border border-border p-5 shadow-xs flex items-center justify-between">
                     <div class="space-y-1">
                         <p class="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Estimasi Ekuitas
+                            Total Ekuitas Portofolio
                         </p>
                         <p class="text-2xl font-black text-foreground font-mono">
-                            {{ formatIDR(bep_summary?.current_equity_idr || 0) }}
+                            {{ formatUSD(bep_summary?.current_equity || 0) }}
                         </p>
                         <p class="text-[11px] text-muted-foreground font-medium">
-                            {{ bep_summary?.has_active_copytrade ? `${formatUSD(bep_summary.current_equity)} (${bep_summary.active_accounts_count} akun riil)` : 'Belum ada akun trading riil' }}
+                            {{ bep_summary?.has_active_copytrade ? `${bep_summary.active_accounts_count} Akun Trading Aktif` : 'Belum ada akun trading riil' }}
                         </p>
                     </div>
                     <div class="w-12 h-12 rounded-xl bg-primary-500/10 text-primary-600 dark:text-primary-400 flex items-center justify-center">
@@ -196,16 +189,16 @@ const copyReferralCode = async () => {
                 <div class="bg-card rounded-2xl border border-border p-5 shadow-xs flex items-center justify-between">
                     <div class="space-y-1">
                         <p class="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Status Copy Trade
+                            Status Investasi
                         </p>
                         <p class="text-base font-bold text-foreground">
                             {{ bep_summary?.has_active_copytrade ? `Aktif (${bep_summary.active_accounts_count} Akun)` : (user.is_active ? 'Siap Hubungkan Akun' : 'Menunggu Verifikasi Pendaftaran') }}
                         </p>
                         <Link
-                            :href="bep_summary?.has_active_copytrade ? '/investor/copytrade' : (user.is_active ? '/investor/copytrade' : '/investor/account')"
+                            :href="bep_summary?.has_active_copytrade ? '/investor/investments' : (user.is_active ? '/investor/investments' : '/investor/account')"
                             class="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline cursor-pointer"
                         >
-                            {{ bep_summary?.has_active_copytrade ? 'Kelola Akun Copytrade' : (user.is_active ? 'Daftarkan Akun Trading' : 'Lihat Informasi Akun') }} <ArrowRight class="w-3 h-3" />
+                            {{ bep_summary?.has_active_copytrade ? 'Kelola Portofolio Investasi' : (user.is_active ? 'Daftarkan Akun Investasi' : 'Lihat Informasi Akun') }} <ArrowRight class="w-3 h-3" />
                         </Link>
                     </div>
                     <div class="w-12 h-12 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
@@ -223,7 +216,11 @@ const copyReferralCode = async () => {
                             {{ (bep_summary?.bep_progress_pct || 0).toFixed(1) }}%
                         </p>
                         <p class="text-[11px] text-muted-foreground font-medium">
-                            {{ bep_summary?.is_bep_achieved ? '100% BEP Tercapai (Murni Profit)' : `Est. ${bep_summary?.remaining_months_to_bep || 0} bln lagi menuju 100% BEP` }}
+                            {{ bep_summary?.is_bep_achieved
+                                ? '100% BEP Tercapai (Murni Profit)'
+                                : (bep_summary?.has_active_copytrade
+                                    ? `Sisa ${formatUSD(bep_summary?.remaining_capital_to_bep)} lagi menuju 100% BEP`
+                                    : `Est. ${bep_summary?.remaining_months_to_bep || 0} bln lagi menuju 100% BEP`) }}
                         </p>
                     </div>
                     <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
@@ -247,10 +244,10 @@ const copyReferralCode = async () => {
                 </div>
 
                 <Link
-                    href="/investor/copytrade/balance"
+                    href="/investor/investments"
                     class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold transition-colors shadow-xs cursor-pointer shrink-0 min-h-[38px]"
                 >
-                    <span>Input & Rekap Saldo</span>
+                    <span>Portofolio & Input Saldo</span>
                     <ArrowRight class="w-3.5 h-3.5" />
                 </Link>
             </div>

@@ -15,9 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('link_referral_broker')->nullable();
             $table->string('link_master_akun')->nullable(); // MQL5 or direct link
-            $table->decimal('tier_1_min', 15, 2)->default(100);
-            $table->decimal('tier_2_min', 15, 2)->default(500);
-            $table->decimal('tier_3_min', 15, 2)->default(1000);
+            $table->decimal('tier_1_min', 15, 2)->default(0);
+            $table->decimal('tier_2_min', 15, 2)->default(5000);
+            $table->decimal('tier_3_min', 15, 2)->default(300000);
             $table->text('tier_1_desc')->nullable();
             $table->text('tier_2_desc')->nullable();
             $table->text('tier_3_desc')->nullable();

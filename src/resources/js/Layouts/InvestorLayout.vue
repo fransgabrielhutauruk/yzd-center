@@ -24,6 +24,7 @@ import {
     Network,
     SquarePlay,
     KeyRound,
+    Layers,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
@@ -98,18 +99,11 @@ const navSections = computed(() => {
                     requiresActive: true,
                 },
                 {
-                    label: 'Manajemen Copytrade',
-                    href: '/investor/copytrade',
-                    icon: TrendingUp,
+                    label: 'Portofolio Investasi',
+                    href: '/investor/investments',
+                    icon: Layers,
                     requiresActive: false,
-                    routeName: 'investor.copytrade.index',
-                },
-                {
-                    label: 'Kinerja & Saldo MT4',
-                    href: '/investor/copytrade/balance',
-                    icon: LineChart,
-                    requiresActive: false,
-                    routeName: 'investor.copytrade.balance.index',
+                    routeName: 'investor.investments.index',
                 },
                 {
                     label: 'Kalkulator Proyeksi',
@@ -240,13 +234,13 @@ const logout = () => {
                     <span v-if="!isCollapsed" class="text-primary-600 dark:text-primary-400 font-bold text-xl tracking-tight shrink-0">Center</span>
                     <span
                         v-if="!isCollapsed && isAffiliator"
-                        class="ml-1.5 text-[10px] font-bold bg-primary-600 text-white px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0"
+                        class="ml-1.5 text-[9px] font-bold bg-primary-600 text-white px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0"
                     >
                         AFFILIATOR
                     </span>
                     <span
                         v-else-if="!isCollapsed"
-                        class="ml-1.5 text-[10px] font-bold bg-primary-600 text-white px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0"
+                        class="ml-1.5 text-[9px] font-bold bg-primary-600 text-white px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0"
                     >
                         INVESTOR
                     </span>

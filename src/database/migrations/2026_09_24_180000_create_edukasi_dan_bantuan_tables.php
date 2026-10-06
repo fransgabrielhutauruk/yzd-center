@@ -45,13 +45,12 @@ return new class extends Migration
             $table->text('ringkasan')->nullable();
             $table->text('konten'); // format panduan bertahap / markdown
             $table->string('video_url', 255)->nullable(); // YouTube video URL / ID
-            $table->integer('urutan')->default(0);
             $table->boolean('is_published')->default(true);
             $table->unsignedInteger('views_count')->default(0);
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
-            $table->index(['kategori_id', 'is_published', 'urutan']);
+            $table->index(['kategori_id', 'is_published']);
             $table->index('slug');
         });
 

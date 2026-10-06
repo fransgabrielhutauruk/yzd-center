@@ -6,8 +6,6 @@ import {
     Plus,
     Edit2,
     Trash2,
-    Search,
-    Filter,
     Loader2,
 } from 'lucide-vue-next';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
@@ -27,6 +25,9 @@ const props = defineProps({
     },
 });
 
+// -----------------------------------------------------------------------------
+// State & Form Modal
+// -----------------------------------------------------------------------------
 const isFormModalOpen = ref(false);
 const isEditing = ref(false);
 const editingId = ref(null);
@@ -98,6 +99,29 @@ const handleDelete = () => {
         },
     });
 };
+
+// -----------------------------------------------------------------------------
+// Batch Delete
+// -----------------------------------------------------------------------------
+const selectedItems = ref([]);
+const isBatchDeleteOpen = ref(false);
+const isBatchDeleting = ref(false);
+
+const handleBatchDelete = () => {
+    if (selectedItems.value.length === 0) return;
+    isBatchDeleting.value = true;
+    router.delete('/admin/education/glossary', {
+        data: { ids: selectedItems.value },
+        preserveScroll: true,
+        onSuccess: () => {
+            selectedItems.value = [];
+            isBatchDeleteOpen.value = false;
+        },
+        onFinish: () => {
+            isBatchDeleting.value = false;
+        },
+    });
+};
 </script>
 
 <template>
@@ -116,9 +140,10 @@ const handleDelete = () => {
             </Button>
         </template>
 
-        <div class="space-y-6">
+        <Head title="Glosarium Istilah Forex - Admin" />
 
-            <!-- Tabel Glosarium (AppDataTable) -->
+        <div class="space-y-6">
+            <!-- Tabel Glosarium -->
             <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <AppDataTable
                     :data="glossary"
@@ -127,48 +152,61 @@ const handleDelete = () => {
                     fetch-url="/admin/education/glossary"
                     search-placeholder="Cari nama istilah forex..."
                     empty-message="Belum ada istilah glosarium yang terdaftar."
+                    :enable-batch="true"
+                    v-model:selected="selectedItems"
                 >
-                    <!-- Slot Kolom Istilah -->
+                    <!-- Batch Actions -->
+                    <template #batch-actions="{ selected }">
+                        <button
+                            type="button"
+                            @click="isBatchDeleteOpen = true"
+                            class="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-rose-700 transition-colors cursor-pointer"
+                        >
+                            <Trash2 class="h-3.5 w-3.5" />
+                            Hapus {{ selected.length }} Istilah
+                        </button>
+                    </template>
+
+                    <!-- Kolom Istilah -->
                     <template #column-istilah="{ item }">
                         <span class="font-semibold text-slate-900 dark:text-white">
                             {{ item.istilah }}
                         </span>
                     </template>
 
-                    <!-- Slot Kolom Definisi -->
+                    <!-- Kolom Definisi -->
                     <template #column-definisi="{ item }">
                         <p class="max-w-lg text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
                             {{ item.definisi }}
                         </p>
                     </template>
 
-                    <!-- Slot Kolom Aksi -->
+                    <!-- Kolom Aksi — icon-only tanpa label -->
                     <template #column-actions="{ item }">
-                        <div class="flex items-center justify-end gap-1.5">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                class="h-8 px-2 text-slate-600 hover:text-slate-900 dark:text-slate-300"
+                        <div class="flex items-center justify-end gap-1">
+                            <button
+                                type="button"
                                 @click="openEditModal(item)"
+                                class="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white transition-colors"
+                                title="Edit Istilah"
                             >
-                                <Edit2 class="h-3.5 w-3.5 mr-1" />
-                                Edit
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                class="h-8 px-2 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950/40"
+                                <Edit2 class="h-4 w-4" />
+                            </button>
+                            <button
+                                type="button"
                                 @click="confirmDelete(item)"
+                                class="rounded p-1.5 text-red-500 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/50 transition-colors"
+                                title="Hapus Istilah"
                             >
-                                <Trash2 class="h-3.5 w-3.5" />
-                            </Button>
+                                <Trash2 class="h-4 w-4" />
+                            </button>
                         </div>
                     </template>
                 </AppDataTable>
             </div>
         </div>
 
-        <!-- Modal Form Tambah / Edit Istilah (AppModal) -->
+        <!-- Modal Form Tambah / Edit Istilah -->
         <AppModal
             :show="isFormModalOpen"
             :title="isEditing ? 'Edit Istilah Glosarium' : 'Tambah Istilah Glosarium Baru'"
@@ -210,7 +248,7 @@ const handleDelete = () => {
                     </p>
                 </div>
 
-                <!-- Aksi Form Modal -->
+                <!-- Aksi Form -->
                 <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
                     <Button
                         type="button"
@@ -232,7 +270,7 @@ const handleDelete = () => {
             </form>
         </AppModal>
 
-        <!-- Dialog Konfirmasi Hapus (AppConfirmDialog) -->
+        <!-- Dialog Konfirmasi Hapus -->
         <AppConfirmDialog
             :show="isDeleteModalOpen"
             title="Hapus Istilah Glosarium"
@@ -243,6 +281,19 @@ const handleDelete = () => {
             :loading="isDeleting"
             @confirm="handleDelete"
             @cancel="isDeleteModalOpen = false"
+        />
+
+        <!-- Dialog Batch Hapus -->
+        <AppConfirmDialog
+            :show="isBatchDeleteOpen"
+            title="Hapus Istilah Terpilih"
+            :message="`Apakah Anda yakin ingin menghapus ${selectedItems.length} istilah glosarium yang dipilih? Tindakan ini tidak dapat dibatalkan.`"
+            confirm-text="Ya, Hapus Semua"
+            cancel-text="Batal"
+            type="danger"
+            :loading="isBatchDeleting"
+            @confirm="handleBatchDelete"
+            @cancel="isBatchDeleteOpen = false"
         />
     </AdminLayout>
 </template>

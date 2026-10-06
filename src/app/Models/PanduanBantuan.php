@@ -20,7 +20,6 @@ class PanduanBantuan extends Model
         'ringkasan',
         'konten',
         'video_url',
-        'urutan',
         'is_published',
         'views_count',
         'created_by',
@@ -29,7 +28,6 @@ class PanduanBantuan extends Model
     protected function casts(): array
     {
         return [
-            'urutan'       => 'integer',
             'is_published' => 'boolean',
             'views_count'  => 'integer',
         ];

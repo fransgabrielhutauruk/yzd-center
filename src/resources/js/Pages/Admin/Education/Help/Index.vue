@@ -1,12 +1,11 @@
 <script setup>
-import { ref, computed } from 'vue';
-import { Head, useForm, router } from '@inertiajs/vue3';
+import { ref, computed, watch } from 'vue';
+import { Head, useForm, router, Link } from '@inertiajs/vue3';
 import {
     HelpCircle,
     Plus,
     Edit2,
     Trash2,
-    Video,
     FileText,
     FolderKanban,
     Eye,
@@ -14,6 +13,8 @@ import {
     XCircle,
     Loader2,
     ExternalLink,
+    Search,
+    X,
 } from 'lucide-vue-next';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
@@ -34,6 +35,17 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+});
+
+const categorySearch = ref('');
+const filteredCategories = computed(() => {
+    if (!categorySearch.value) return props.categories;
+    const q = categorySearch.value.toLowerCase().trim();
+    return props.categories.filter((cat) =>
+        cat.nama?.toLowerCase().includes(q) ||
+        (cat.slug && cat.slug.toLowerCase().includes(q)) ||
+        (cat.deskripsi && cat.deskripsi.toLowerCase().includes(q))
+    );
 });
 
 const activeTab = ref(props.filters.tab || 'articles');
@@ -58,17 +70,35 @@ const categoryForm = useForm({
     nama: '',
     slug: '',
     deskripsi: '',
-    icon: 'HelpCircle',
     urutan: 0,
     is_active: true,
 });
+
+// Auto-slug otomatis di belakang layar
+const generateSlug = (text) => {
+    return text
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/&/g, '-dan-')
+        .replace(/[\s\W-]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+};
+
+watch(
+    () => categoryForm.nama,
+    (val) => {
+        if (!isEditingCategory.value && val) {
+            categoryForm.slug = generateSlug(val);
+        }
+    }
+);
 
 const openCreateCategoryModal = () => {
     isEditingCategory.value = false;
     editingCategoryId.value = null;
     categoryForm.reset();
     categoryForm.clearErrors();
-    categoryForm.icon = 'HelpCircle';
     categoryForm.is_active = true;
     categoryForm.urutan = props.categories.length + 1;
     isCategoryModalOpen.value = true;
@@ -81,7 +111,6 @@ const openEditCategoryModal = (cat) => {
     categoryForm.nama = cat.nama;
     categoryForm.slug = cat.slug;
     categoryForm.deskripsi = cat.deskripsi || '';
-    categoryForm.icon = cat.icon || 'HelpCircle';
     categoryForm.urutan = cat.urutan;
     categoryForm.is_active = Boolean(cat.is_active);
     isCategoryModalOpen.value = true;
@@ -127,69 +156,6 @@ const handleDeleteCategory = () => {
     });
 };
 
-// -----------------------------------------------------------------------------
-// State & Form Modal Artikel Panduan
-// -----------------------------------------------------------------------------
-const isArticleModalOpen = ref(false);
-const isEditingArticle = ref(false);
-const editingArticleId = ref(null);
-
-const articleForm = useForm({
-    kategori_id: '',
-    judul: '',
-    slug: '',
-    ringkasan: '',
-    konten: '',
-    video_url: '',
-    urutan: 0,
-    is_published: true,
-});
-
-const openCreateArticleModal = () => {
-    isEditingArticle.value = false;
-    editingArticleId.value = null;
-    articleForm.reset();
-    articleForm.clearErrors();
-    if (props.categories.length > 0) {
-        articleForm.kategori_id = props.categories[0].id;
-    }
-    articleForm.is_published = true;
-    articleForm.urutan = 0;
-    isArticleModalOpen.value = true;
-};
-
-const openEditArticleModal = (art) => {
-    isEditingArticle.value = true;
-    editingArticleId.value = art.id;
-    articleForm.clearErrors();
-    articleForm.kategori_id = art.kategori_id;
-    articleForm.judul = art.judul;
-    articleForm.slug = art.slug;
-    articleForm.ringkasan = art.ringkasan || '';
-    articleForm.konten = art.konten;
-    articleForm.video_url = art.video_url || '';
-    articleForm.urutan = art.urutan;
-    articleForm.is_published = Boolean(art.is_published);
-    isArticleModalOpen.value = true;
-};
-
-const submitArticleForm = () => {
-    if (isEditingArticle.value) {
-        articleForm.put(`/admin/education/help/articles/${editingArticleId.value}`, {
-            preserveScroll: true,
-            onSuccess: () => {
-                isArticleModalOpen.value = false;
-            },
-        });
-    } else {
-        articleForm.post('/admin/education/help/articles', {
-            preserveScroll: true,
-            onSuccess: () => {
-                isArticleModalOpen.value = false;
-            },
-        });
-    }
-};
 
 const isDeleteArticleModalOpen = ref(false);
 const deletingArticle = ref(null);
@@ -215,39 +181,40 @@ const handleDeleteArticle = () => {
 
 const articleColumns = [
     { key: 'judul', label: 'Judul Panduan', sortable: false },
-    { key: 'kategori', label: 'Topik Kategori', sortable: false },
-    { key: 'media', label: 'Media', sortable: false, align: 'center' },
+    { key: 'kategori', label: 'Kategori Topik', sortable: false },
     { key: 'views_count', label: 'Dilihat', sortable: false, align: 'center' },
     { key: 'is_published', label: 'Status', sortable: false, align: 'center' },
-    { key: 'actions', label: 'Aksi', sortable: false, align: 'right' },
+    { key: 'actions', label: 'Aksi', sortable: false, align: 'center' },
 ];
 </script>
 
 <template>
     <AdminLayout
-        title="Pusat Bantuan & Tutorial Video"
-        subtitle="Kelola topik kategori, artikel panduan bertahap, dan tautan video edukasi untuk investor."
+        title="Pusat Bantuan"
+        subtitle="Kelola kategori topik dan artikel panduan untuk investor."
         :breadcrumbs="[
-            { label: 'Edukasi & Bantuan' },
-            { label: 'Pusat Bantuan & Video' }
+            { label: 'Bantuan & Informasi' },
+            { label: 'Pusat Bantuan' }
         ]"
     >
         <template #header-actions>
             <Button
                 v-if="activeTab === 'categories'"
                 @click="openCreateCategoryModal"
-                class="gap-1.5 cursor-pointer"
+                class="gap-1.5 cursor-pointer text-xs h-9"
             >
                 <Plus class="h-4 w-4" />
                 Tambah Kategori Topik
             </Button>
             <Button
                 v-else
-                @click="openCreateArticleModal"
-                class="gap-1.5 cursor-pointer"
+                as-child
+                class="gap-1.5 cursor-pointer text-xs h-9"
             >
-                <Plus class="h-4 w-4" />
-                Tambah Artikel Panduan
+                <Link href="/admin/education/help/articles/create">
+                    <Plus class="h-4 w-4" />
+                    <span>Tambah Artikel Panduan</span>
+                </Link>
             </Button>
         </template>
 
@@ -305,7 +272,7 @@ const articleColumns = [
                                 <select
                                     :value="filters.kategori_id || ''"
                                     @change="(e) => applyFilters({ kategori_id: e.target.value || undefined, page: 1 })"
-                                    class="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                                    class="bg-background border border-input focus:border-primary w-full rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-primary"
                                 >
                                     <option value="">Semua Kategori Topik</option>
                                     <option v-for="cat in categories" :key="cat.id" :value="cat.id">
@@ -331,23 +298,6 @@ const articleColumns = [
                         <template #column-kategori="{ item }">
                             <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                                 {{ item.kategori_nama }}
-                            </span>
-                        </template>
-
-                        <!-- Slot Media Video -->
-                        <template #column-media="{ item }">
-                            <a
-                                v-if="item.video_url"
-                                :href="item.video_url"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-400"
-                            >
-                                <Video class="h-3.5 w-3.5" />
-                                Video
-                            </a>
-                            <span v-else class="text-xs text-slate-400 dark:text-slate-500">
-                                Teks Saja
                             </span>
                         </template>
 
@@ -382,11 +332,13 @@ const articleColumns = [
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    class="h-8 px-2 text-slate-600 hover:text-slate-900 dark:text-slate-300"
-                                    @click="openEditArticleModal(item)"
+                                    as-child
+                                    class="h-8 px-2.5 text-slate-600 hover:text-slate-900 dark:text-slate-300 cursor-pointer"
                                 >
-                                    <Edit2 class="h-3.5 w-3.5 mr-1" />
-                                    Edit
+                                    <Link :href="`/admin/education/help/articles/${item.id}/edit`">
+                                        <Edit2 class="h-3.5 w-3.5 mr-1" />
+                                        <span>Edit</span>
+                                    </Link>
                                 </Button>
                                 <Button
                                     variant="outline"
@@ -404,62 +356,156 @@ const articleColumns = [
 
             <!-- TAB 2: KATEGORI TOPIK -->
             <div v-else-if="activeTab === 'categories'" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div
-                        v-for="cat in categories"
-                        :key="cat.id"
-                        class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-primary/40 dark:border-slate-800 dark:bg-slate-900"
-                    >
-                        <div class="flex items-start justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary dark:bg-primary/20">
-                                    <FolderKanban class="h-5 w-5" />
-                                </div>
-                                <div>
-                                    <h3 class="font-semibold text-slate-900 dark:text-white">
-                                        {{ cat.nama }}
-                                    </h3>
-                                    <p class="text-xs font-mono text-slate-400">
-                                        slug: {{ cat.slug }}
-                                    </p>
-                                </div>
-                            </div>
-                            <span
-                                v-if="cat.is_active"
-                                class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
-                            >
-                                Aktif
-                            </span>
+                <!-- Toolbar Pencarian Kategori & Total Counter -->
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card p-3 sm:p-4 rounded-xl border border-border shadow-xs">
+                    <div class="relative w-full sm:max-w-xs md:max-w-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
+                            <Search class="w-4 h-4" />
                         </div>
+                        <input
+                            v-model="categorySearch"
+                            type="text"
+                            placeholder="Cari nama kategori topik..."
+                            class="w-full pl-9 pr-8 py-1.5 text-xs bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all placeholder:text-muted-foreground"
+                        />
+                        <button
+                            v-if="categorySearch"
+                            type="button"
+                            @click="categorySearch = ''"
+                            class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-muted-foreground hover:text-foreground cursor-pointer"
+                            aria-label="Bersihkan pencarian kategori"
+                        >
+                            <X class="w-3.5 h-3.5" />
+                        </button>
+                    </div>
 
-                        <p class="mt-3 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
-                            {{ cat.deskripsi || 'Tidak ada deskripsi kategori.' }}
-                        </p>
+                    <div class="text-xs text-muted-foreground font-medium text-right sm:text-left">
+                        Total <strong class="font-semibold text-foreground">{{ filteredCategories.length }}</strong> kategori topik
+                    </div>
+                </div>
 
-                        <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
-                            <span class="text-xs text-slate-500 font-medium">
-                                {{ cat.articles_count }} artikel dimuat
-                            </span>
-                            <div class="flex items-center gap-1.5">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    class="h-7 px-2 text-xs"
-                                    @click="openEditCategoryModal(cat)"
-                                >
-                                    <Edit2 class="h-3 w-3 mr-1" />
-                                    Edit
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    class="h-7 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400"
-                                    @click="confirmDeleteCategory(cat)"
-                                >
-                                    <Trash2 class="h-3 w-3" />
-                                </Button>
-                            </div>
-                        </div>
+                <!-- Tabel Kategori Topik -->
+                <div class="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="border-b border-border bg-muted/50 text-muted-foreground font-semibold uppercase tracking-wider">
+                                <tr>
+                                    <th scope="col" class="py-3 px-4">Kategori Topik</th>
+                                    <th scope="col" class="py-3 px-4">Deskripsi</th>
+                                    <th scope="col" class="py-3 px-4 text-center">Urutan</th>
+                                    <th scope="col" class="py-3 px-4 text-center">Jumlah Panduan</th>
+                                    <th scope="col" class="py-3 px-4 text-center">Status</th>
+                                    <th scope="col" class="py-3 px-4 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-border">
+                                <template v-if="filteredCategories.length > 0">
+                                    <tr
+                                        v-for="cat in filteredCategories"
+                                        :key="cat.id"
+                                        class="hover:bg-muted/30 transition-colors"
+                                    >
+                                        <!-- Nama Kategori -->
+                                        <td class="py-3 px-4">
+                                            <div class="flex items-center gap-2.5">
+                                                <span class="font-semibold text-foreground text-sm">
+                                                    {{ cat.nama }}
+                                                </span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Deskripsi -->
+                                        <td class="py-3 px-4 max-w-xs md:max-w-sm">
+                                            <p class="text-xs text-muted-foreground line-clamp-2">
+                                                {{ cat.deskripsi || '-' }}
+                                            </p>
+                                        </td>
+
+                                        <!-- Urutan -->
+                                        <td class="py-3 px-4 text-center">
+                                            <span class="rounded bg-muted px-2 py-0.5 text-xs font-mono font-medium text-muted-foreground border border-border">
+                                                #{{ cat.urutan }}
+                                            </span>
+                                        </td>
+
+                                        <!-- Jumlah Panduan -->
+                                        <td class="py-3 px-4 text-center">
+                                            <span class="inline-flex items-center rounded-full bg-primary-50 dark:bg-primary-950/50 px-2.5 py-0.5 text-xs font-semibold text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800/60">
+                                                {{ cat.articles_count ?? 0 }} Panduan
+                                            </span>
+                                        </td>
+
+                                        <!-- Status -->
+                                        <td class="py-3 px-4 text-center">
+                                            <span
+                                                v-if="cat.is_active"
+                                                class="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60"
+                                            >
+                                                <CheckCircle2 class="h-3 w-3" />
+                                                Aktif
+                                            </span>
+                                            <span
+                                                v-else
+                                                class="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+                                            >
+                                                <XCircle class="h-3 w-3" />
+                                                Nonaktif
+                                            </span>
+                                        </td>
+
+                                        <!-- Aksi -->
+                                        <td class="py-3 px-4 text-right">
+                                            <div class="flex items-center justify-end gap-1.5">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    class="h-7 px-2.5 text-xs cursor-pointer"
+                                                    @click="openEditCategoryModal(cat)"
+                                                >
+                                                    <Edit2 class="h-3 w-3 mr-1" />
+                                                    Edit
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    class="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                                                    @click="confirmDeleteCategory(cat)"
+                                                    title="Hapus Kategori"
+                                                >
+                                                    <Trash2 class="h-3 w-3" />
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+
+                                <!-- Empty State -->
+                                <tr v-else>
+                                    <td colspan="6" class="py-12 text-center text-muted-foreground">
+                                        <div class="max-w-xs mx-auto space-y-3">
+                                            <div class="w-12 h-12 rounded-2xl bg-muted/80 flex items-center justify-center mx-auto text-muted-foreground border border-border">
+                                                <FolderKanban class="w-6 h-6" />
+                                            </div>
+                                            <p class="font-bold text-sm text-foreground">
+                                                Tidak Ada Kategori Ditemukan
+                                            </p>
+                                            <p class="text-xs leading-relaxed">
+                                                {{ categorySearch ? 'Tidak ada kategori yang cocok dengan kriteria pencarian Anda.' : 'Belum ada kategori topik panduan yang terdaftar.' }}
+                                            </p>
+                                            <Button
+                                                v-if="!categorySearch"
+                                                size="sm"
+                                                @click="openCreateCategoryModal"
+                                                class="gap-1.5 cursor-pointer mt-2"
+                                            >
+                                                <Plus class="h-3.5 w-3.5" />
+                                                Tambah Kategori Topik
+                                            </Button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -491,21 +537,6 @@ const articleColumns = [
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Slug URL (Opsional)
-                    </label>
-                    <input
-                        v-model="categoryForm.slug"
-                        type="text"
-                        placeholder="Otomatis dari nama (misal: panduan-deposit)"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white font-mono text-xs"
-                    />
-                    <p v-if="categoryForm.errors.slug" class="mt-1 text-xs text-red-600">
-                        {{ categoryForm.errors.slug }}
-                    </p>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Deskripsi Singkat Topik
                     </label>
                     <textarea
@@ -516,33 +547,16 @@ const articleColumns = [
                     ></textarea>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                            Urutan Tampil
-                        </label>
-                        <input
-                            v-model.number="categoryForm.urutan"
-                            type="number"
-                            min="0"
-                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                        />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                            Ikon Lucide
-                        </label>
-                        <select
-                            v-model="categoryForm.icon"
-                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                        >
-                            <option value="Wallet">Wallet (Keuangan)</option>
-                            <option value="UserCheck">UserCheck (KYC)</option>
-                            <option value="TrendingUp">TrendingUp (Trading)</option>
-                            <option value="Users">Users (Afiliasi)</option>
-                            <option value="HelpCircle">HelpCircle (Umum)</option>
-                        </select>
-                    </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Urutan Tampil
+                    </label>
+                    <input
+                        v-model.number="categoryForm.urutan"
+                        type="number"
+                        min="0"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    />
                 </div>
 
                 <div class="flex items-center gap-2 pt-2">
@@ -566,7 +580,7 @@ const articleColumns = [
                     >
                         Batal
                     </Button>
-                    <Button type="submit" :disabled="categoryForm.processing" class="gap-1.5">
+                    <Button type="submit" @click="submitCategoryForm" :disabled="categoryForm.processing" class="gap-1.5 cursor-pointer">
                         <Loader2 v-if="categoryForm.processing" class="h-4 w-4 animate-spin" />
                         {{ isEditingCategory ? 'Simpan Perubahan' : 'Tambah Kategori' }}
                     </Button>
@@ -574,144 +588,6 @@ const articleColumns = [
             </form>
         </AppModal>
 
-        <!-- Modal Tambah / Edit Artikel Panduan -->
-        <AppModal
-            :show="isArticleModalOpen"
-            :title="isEditingArticle ? 'Edit Artikel Panduan' : 'Tambah Artikel Panduan Baru'"
-            max-width="2xl"
-            @close="isArticleModalOpen = false"
-        >
-            <form @submit.prevent="submitArticleForm" class="space-y-4">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <!-- Kategori -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                            Topik Kategori <span class="text-red-500">*</span>
-                        </label>
-                        <select
-                            v-model="articleForm.kategori_id"
-                            required
-                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                        >
-                            <option value="" disabled>Pilih Topik Kategori</option>
-                            <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                                {{ cat.nama }}
-                            </option>
-                        </select>
-                        <p v-if="articleForm.errors.kategori_id" class="mt-1 text-xs text-red-600">
-                            {{ articleForm.errors.kategori_id }}
-                        </p>
-                    </div>
-
-                    <!-- Urutan -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                            Urutan Tampil
-                        </label>
-                        <input
-                            v-model.number="articleForm.urutan"
-                            type="number"
-                            min="0"
-                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                        />
-                    </div>
-                </div>
-
-                <!-- Judul -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Judul Artikel Panduan <span class="text-red-500">*</span>
-                    </label>
-                    <input
-                        v-model="articleForm.judul"
-                        type="text"
-                        required
-                        placeholder="Contoh: Cara Membuka Akun MT4 & Melakukan Deposit di Broker HFM"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                    />
-                    <p v-if="articleForm.errors.judul" class="mt-1 text-xs text-red-600">
-                        {{ articleForm.errors.judul }}
-                    </p>
-                </div>
-
-                <!-- Video URL YouTube -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Link URL Video YouTube (Opsional)
-                    </label>
-                    <input
-                        v-model="articleForm.video_url"
-                        type="url"
-                        placeholder="https://www.youtube.com/watch?v=..."
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                    />
-                    <p class="text-xs text-slate-400 mt-1">
-                        Jika diisi, video tutorial akan otomatis diputar di halaman artikel dalam format 16:9.
-                    </p>
-                    <p v-if="articleForm.errors.video_url" class="mt-1 text-xs text-red-600">
-                        {{ articleForm.errors.video_url }}
-                    </p>
-                </div>
-
-                <!-- Ringkasan Singkat -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Ringkasan Singkat (Muncul di kartu daftar)
-                    </label>
-                    <textarea
-                        v-model="articleForm.ringkasan"
-                        rows="2"
-                        placeholder="Ringkasan 1-2 kalimat mengenai topik panduan ini..."
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                    ></textarea>
-                </div>
-
-                <!-- Konten Panduan Lengkap -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Konten Langkah Panduan Lengkap <span class="text-red-500">*</span>
-                    </label>
-                    <textarea
-                        v-model="articleForm.konten"
-                        rows="6"
-                        required
-                        placeholder="Tuliskan petunjuk bertahap (mendukung format paragraf atau poin 1, 2, 3)..."
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                    ></textarea>
-                    <p v-if="articleForm.errors.konten" class="mt-1 text-xs text-red-600">
-                        {{ articleForm.errors.konten }}
-                    </p>
-                </div>
-
-                <!-- Status Publikasi -->
-                <div class="flex items-center gap-2 pt-2">
-                    <input
-                        id="art_published"
-                        v-model="articleForm.is_published"
-                        type="checkbox"
-                        class="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
-                    />
-                    <label for="art_published" class="text-sm font-medium text-slate-700 dark:text-slate-300">
-                        Terbitkan artikel (Dapat dibaca oleh investor)
-                    </label>
-                </div>
-
-                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        @click="isArticleModalOpen = false"
-                        :disabled="articleForm.processing"
-                    >
-                        Batal
-                    </Button>
-                    <Button type="submit" :disabled="articleForm.processing" class="gap-1.5">
-                        <Loader2 v-if="articleForm.processing" class="h-4 w-4 animate-spin" />
-                        {{ isEditingArticle ? 'Simpan Perubahan' : 'Terbitkan Panduan' }}
-                    </Button>
-                </div>
-            </form>
-        </AppModal>
 
         <!-- Dialog Hapus Kategori -->
         <AppConfirmDialog

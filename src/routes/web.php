@@ -21,10 +21,10 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DocumentStreamController;
 use App\Http\Controllers\Investor\AccountController;
 use App\Http\Controllers\Investor\AffiliateNetworkController;
-use App\Http\Controllers\Investor\BalanceHistoryController;
 use App\Http\Controllers\Investor\CommissionClaimController as InvestorCommissionClaimController;
 use App\Http\Controllers\Investor\CopytradeController as InvestorCopytradeController;
 use App\Http\Controllers\Investor\EducationController as InvestorEducationController;
+use App\Http\Controllers\Investor\InvestmentPortfolioController;
 use App\Http\Controllers\Investor\InvestorDashboardController;
 use App\Http\Controllers\Investor\PasswordController as InvestorPasswordController;
 use App\Http\Controllers\Investor\PromotionMaterialController;
@@ -159,8 +159,12 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::post('/education/glossary', [EducationGlossaryController::class, 'store'])->name('education.glossary.store');
     Route::put('/education/glossary/{id}', [EducationGlossaryController::class, 'update'])->name('education.glossary.update');
     Route::delete('/education/glossary/{id}', [EducationGlossaryController::class, 'destroy'])->name('education.glossary.destroy');
+    Route::delete('/education/glossary', [EducationGlossaryController::class, 'batchDestroy'])->name('education.glossary.batch-destroy');
 
     Route::get('/education/help', [HelpCenterController::class, 'index'])->name('education.help.index');
+    Route::get('/education/help/articles/create', [HelpCenterController::class, 'createArticle'])->name('education.help.articles.create');
+    Route::get('/education/help/articles/{id}/edit', [HelpCenterController::class, 'editArticle'])->name('education.help.articles.edit');
+    Route::post('/education/help/upload-media', [HelpCenterController::class, 'uploadMedia'])->name('education.help.upload-media');
     Route::post('/education/help/categories', [HelpCenterController::class, 'storeCategory'])->name('education.help.categories.store');
     Route::put('/education/help/categories/{id}', [HelpCenterController::class, 'updateCategory'])->name('education.help.categories.update');
     Route::delete('/education/help/categories/{id}', [HelpCenterController::class, 'destroyCategory'])->name('education.help.categories.destroy');
@@ -174,6 +178,7 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::post('/education/faq', [FaqController::class, 'store'])->name('education.faq.store');
     Route::put('/education/faq/{id}', [FaqController::class, 'update'])->name('education.faq.update');
     Route::delete('/education/faq/{id}', [FaqController::class, 'destroy'])->name('education.faq.destroy');
+    Route::delete('/education/faq', [FaqController::class, 'batchDestroy'])->name('education.faq.batch-destroy');
 
     Route::post('/education/faq/topics', [FaqController::class, 'storeTopic'])->name('education.faq.topics.store');
     Route::put('/education/faq/topics/{id}', [FaqController::class, 'updateTopic'])->name('education.faq.topics.update');
@@ -211,16 +216,21 @@ Route::middleware(['auth', 'role:investor,affiliator'])->prefix('investor')->nam
     // Ganti Password Investor/Affiliator
     Route::get('/account/password', [InvestorPasswordController::class, 'index'])->name('account.password');
 
-    // Manajemen Akun Copytrade & Input Saldo Tanggal 1
-    Route::get('/copytrade', [InvestorCopytradeController::class, 'index'])->name('copytrade.index');
-    Route::post('/copytrade', [InvestorCopytradeController::class, 'store'])->name('copytrade.store');
-    Route::match(['get', 'post'], '/copytrade/template-perjanjian/{tier}', [InvestorCopytradeController::class, 'downloadTemplate'])->name('copytrade.template');
-    Route::get('/copytrade/panduan-pdf/{tier}', [InvestorCopytradeController::class, 'downloadGuidePdf'])->name('copytrade.guide_pdf');
+    // Portofolio Investasi (Terpadu: Akun Trading Tier 1/2/3, Kinerja Saldo & BEP)
+    Route::get('/investments', [InvestmentPortfolioController::class, 'index'])->name('investments.index');
+    Route::post('/investments', [InvestmentPortfolioController::class, 'storeAccount'])->name('investments.store');
+    Route::post('/investments/balance', [InvestmentPortfolioController::class, 'storeBalance'])->name('investments.balance.store');
+    Route::delete('/investments/balance/{id}', [InvestmentPortfolioController::class, 'destroyBalance'])->name('investments.balance.destroy');
+    Route::match(['get', 'post'], '/investments/template-perjanjian/{tier}', [InvestmentPortfolioController::class, 'downloadTemplate'])->name('investments.template');
 
-    // Fitur Input Saldo Tanggal 1 & Kinerja Periode Bebas
-    Route::get('/copytrade/balance', [BalanceHistoryController::class, 'index'])->name('copytrade.balance.index');
-    Route::post('/copytrade/balance', [BalanceHistoryController::class, 'store'])->name('copytrade.balance.store');
-    Route::delete('/copytrade/balance/{id}', [BalanceHistoryController::class, 'destroy'])->name('copytrade.balance.destroy');
+    // Backward compatibility redirects & route aliases
+    Route::get('/copytrade', fn () => redirect()->route('investor.investments.index'))->name('copytrade.index');
+    Route::get('/copytrade/balance', fn () => redirect()->route('investor.investments.index'))->name('copytrade.balance.index');
+    Route::post('/copytrade', [InvestmentPortfolioController::class, 'storeAccount'])->name('copytrade.store');
+    Route::post('/copytrade/balance', [InvestmentPortfolioController::class, 'storeBalance'])->name('copytrade.balance.store');
+    Route::delete('/copytrade/balance/{id}', [InvestmentPortfolioController::class, 'destroyBalance'])->name('copytrade.balance.destroy');
+    Route::match(['get', 'post'], '/copytrade/template-perjanjian/{tier}', [InvestmentPortfolioController::class, 'downloadTemplate'])->name('copytrade.template');
+    Route::get('/copytrade/panduan-pdf/{tier}', [InvestorCopytradeController::class, 'downloadGuidePdf'])->name('copytrade.guide_pdf');
 
     // Materi Promosi & Laporan Keuntungan (Khusus Affiliator)
     Route::get('/promotions', [PromotionMaterialController::class, 'index'])->name('promotions.index');

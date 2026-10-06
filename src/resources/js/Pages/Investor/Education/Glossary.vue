@@ -60,7 +60,7 @@ const resetFilter = () => {
 <template>
     <InvestorLayout
         title="Kamus & Glosarium Forex"
-        subtitle="Pahami istilah-istilah penting dalam dunia trading dan copytrade dengan bahasa yang lugas, transparan, dan ramah bagi pemula."
+        subtitle="Pahami istilah-istilah penting dalam dunia trading dan copytrade dengan bahasa yang ramah bagi pemula."
         :breadcrumbs="[
             { label: 'Bantuan & Edukasi' },
             { label: 'Glosarium Forex' }
@@ -74,7 +74,7 @@ const resetFilter = () => {
                     <input
                         v-model="searchQuery"
                         type="text"
-                        placeholder="Cari nama istilah forex (misal: Margin, Drawdown, Lot)..."
+                        placeholder="Cari nama istilah..."
                         class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2.5 pl-10 pr-10 text-sm text-foreground shadow-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                     <button

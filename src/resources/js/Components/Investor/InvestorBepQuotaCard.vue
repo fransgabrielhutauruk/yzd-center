@@ -23,13 +23,21 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    showEstimation: {
+        type: Boolean,
+        default: false,
+    },
+    calculatorLinkText: {
+        type: String,
+        default: 'Kalkulator Simulasi',
+    },
     title: {
         type: String,
         default: 'Progress Balik Modal (BEP)',
     },
     subtitle: {
         type: String,
-        default: 'Dihitung dari rata² profit bulanan sejak awal join hingga 100% modal kembali (termasuk yang sudah di-WD)',
+        default: 'Akumulasi profit bersih riil seluruh akun menuju 100% modal awal',
     },
 });
 
@@ -40,15 +48,6 @@ const formatUSD = (val) => {
         currency: 'USD',
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-    }).format(val || 0);
-};
-
-const formatIDR = (val) => {
-    return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
     }).format(val || 0);
 };
 
@@ -96,6 +95,7 @@ const strokeDashoffset = computed(() => {
                             <Activity class="h-3.5 w-3.5 text-sky-600 animate-pulse" />
                             Paket Kuota Balik Modal
                         </span>
+                        <!-- Status 100% BEP Tercapai (Real & Simulasi) -->
                         <span
                             v-if="bepData.is_bep_achieved"
                             class="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
@@ -103,12 +103,21 @@ const strokeDashoffset = computed(() => {
                             <CheckCircle2 class="h-3 w-3" />
                             100% BEP Tercapai (Murni Profit)
                         </span>
+                        <!-- Status Mode Simulasi / Estimasi -->
                         <span
-                            v-else
+                            v-else-if="showEstimation"
                             class="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300"
                         >
                             <Clock class="h-3 w-3" />
                             Est. BEP: Bulan ke-{{ bepData.months_to_bep || 23 }}
+                        </span>
+                        <!-- Status Mode Riil: Sisa $X Menuju BEP -->
+                        <span
+                            v-else
+                            class="inline-flex items-center gap-1.5 rounded-full bg-sky-500/10 px-2.5 py-0.5 text-xs font-semibold text-sky-700 dark:text-sky-300 border border-sky-500/20"
+                        >
+                            <TrendingUp class="h-3 w-3" />
+                            Sisa {{ formatUSD(bepData.remaining_capital_to_bep) }} Menuju BEP
                         </span>
                     </div>
 
@@ -125,7 +134,7 @@ const strokeDashoffset = computed(() => {
                         href="/investor/education/calculator"
                         class="inline-flex items-center gap-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold px-3.5 py-2 transition-colors shadow-xs cursor-pointer min-h-[38px]"
                     >
-                        <span>Simulasi 20 Tahun</span>
+                        <span>{{ calculatorLinkText }}</span>
                         <ArrowUpRight class="h-3.5 w-3.5" />
                     </Link>
                 </div>
@@ -251,28 +260,40 @@ const strokeDashoffset = computed(() => {
                         <div class="bg-slate-50 dark:bg-slate-900/60 rounded-lg p-2.5">
                             <span class="text-[10px] text-muted-foreground block font-medium">Modal Awal</span>
                             <span class="font-bold text-foreground font-mono">{{ formatUSD(bepData.initial_capital) }}</span>
-                            <span class="text-[9px] text-muted-foreground block truncate">{{ formatIDR(bepData.initial_capital_idr) }}</span>
+                            <span class="text-[9px] text-muted-foreground block truncate">Deposit Pertama</span>
                         </div>
 
                         <div class="bg-slate-50 dark:bg-slate-900/60 rounded-lg p-2.5">
                             <span class="text-[10px] text-muted-foreground block font-medium">Keuntungan Bersih</span>
                             <span class="font-bold text-emerald-600 dark:text-emerald-400 font-mono">{{ formatUSD(bepData.total_profit_accumulated) }}</span>
-                            <span class="text-[9px] text-emerald-600/80 block truncate">{{ formatIDR(bepData.total_profit_idr) }}</span>
+                            <span class="text-[9px] text-emerald-600/80 block truncate">Akumulasi Realisasi</span>
                         </div>
 
                         <div class="bg-slate-50 dark:bg-slate-900/60 rounded-lg p-2.5">
-                            <span class="text-[10px] text-muted-foreground block font-medium">Bulan Sejak Join</span>
+                            <span class="text-[10px] text-muted-foreground block font-medium">Durasi Portofolio</span>
                             <span class="font-bold text-foreground font-mono">Bulan ke-{{ bepData.months_active || 1 }}</span>
-                            <span class="text-[9px] text-muted-foreground block">Mulai: {{ bepData.join_date_formatted || 'Bulan ini' }}</span>
+                            <span class="text-[9px] text-muted-foreground block truncate">Mulai: {{ bepData.join_date_formatted || 'Bulan ini' }}</span>
                         </div>
 
-                        <div class="bg-slate-50 dark:bg-slate-900/60 rounded-lg p-2.5">
+                        <!-- Card 4 (Mode Simulasi): Sisa Waktu Estimasi -->
+                        <div v-if="showEstimation" class="bg-slate-50 dark:bg-slate-900/60 rounded-lg p-2.5">
                             <span class="text-[10px] text-muted-foreground block font-medium">Sisa Waktu BEP</span>
-                            <span class="font-bold font-mono" :class="bepData.is_bep_achieved ? 'text-emerald-600' : 'text-sky-600 dark:text-sky-400'">
+                            <span class="font-bold font-mono" :class="bepData.is_bep_achieved ? 'text-emerald-600 dark:text-emerald-400' : 'text-sky-600 dark:text-sky-400'">
                                 {{ bepData.is_bep_achieved ? 'Lunas (BEP)' : `${bepData.remaining_months_to_bep || 0} Bln Lagi` }}
                             </span>
-                            <span class="text-[9px] text-muted-foreground block">
+                            <span class="text-[9px] text-muted-foreground block truncate">
                                 {{ bepData.is_bep_achieved ? '100% Bebas Risiko' : `Target: Bln ke-${bepData.months_to_bep || 23}` }}
+                            </span>
+                        </div>
+
+                        <!-- Card 4 (Mode Riil): Sisa Modal Riil Menuju BEP ($ USD) -->
+                        <div v-else class="bg-slate-50 dark:bg-slate-900/60 rounded-lg p-2.5">
+                            <span class="text-[10px] text-muted-foreground block font-medium">Sisa Modal BEP</span>
+                            <span class="font-bold font-mono" :class="bepData.is_bep_achieved ? 'text-emerald-600 dark:text-emerald-400' : 'text-sky-600 dark:text-sky-400'">
+                                {{ bepData.is_bep_achieved ? 'Lunas (100%)' : formatUSD(bepData.remaining_capital_to_bep) }}
+                            </span>
+                            <span class="text-[9px] text-muted-foreground block truncate">
+                                {{ bepData.is_bep_achieved ? '100% Bebas Risiko' : 'Menuju Balik Modal' }}
                             </span>
                         </div>
                     </div>
@@ -283,7 +304,7 @@ const strokeDashoffset = computed(() => {
             <div class="flex items-start gap-2 text-[11px] text-slate-500 dark:text-slate-400 bg-sky-50/50 dark:bg-sky-950/30 p-2.5 rounded-lg border border-sky-200/50 dark:border-sky-900/40">
                 <Info class="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" />
                 <p class="leading-relaxed">
-                    <strong>Pemberitahuan Transparansi:</strong> Perhitungan BEP mencakup seluruh uang yang ditarik tunai (WD) ditambah pertumbuhan modal riil dari compounding. Setelah BEP 100% tercapai, seluruh modal awal Anda telah kembali sepenuhnya ke kantong Anda dan portofolio trading berjalan 100% dari keuntungan murni.
+                    <strong>Pemberitahuan Transparansi:</strong> Perhitungan BEP mencakup seluruh akumulasi keuntungan riil dan pertumbuhan modal hingga 100% modal awal Anda kembali sepenuhnya. Setelah BEP tercapai, portofolio trading berjalan 100% dari keuntungan murni (bebas risiko modal awal).
                 </p>
             </div>
         </div>

@@ -19,6 +19,11 @@ const props = defineProps({
         required: true,
     },
 });
+
+const isHtmlContent = (content) => {
+    if (!content) return false;
+    return /<[a-z][\s\S]*>/i.test(content);
+};
 </script>
 
 <template>
@@ -99,8 +104,16 @@ const props = defineProps({
                 </div>
 
                 <!-- Isi Konten Langkah Panduan -->
-                <div class="mt-6 prose prose-slate max-w-none text-slate-700 dark:text-slate-300 dark:prose-invert">
-                    <div class="whitespace-pre-line text-sm sm:text-base leading-relaxed space-y-4">
+                <div class="mt-6 prose prose-slate max-w-none text-slate-700 dark:text-slate-300 dark:prose-invert [&_img]:rounded-xl [&_img]:max-w-full [&_img]:my-4 [&_img]:border [&_img]:border-slate-200 dark:[&_img]:border-slate-800 [&_iframe]:rounded-xl [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:my-4 [&_a]:text-primary-600 dark:[&_a]:text-primary-400 [&_a]:underline">
+                    <div
+                        v-if="isHtmlContent(article.konten)"
+                        v-html="article.konten"
+                        class="text-sm sm:text-base leading-relaxed"
+                    />
+                    <div
+                        v-else
+                        class="whitespace-pre-line text-sm sm:text-base leading-relaxed space-y-4"
+                    >
                         {{ article.konten }}
                     </div>
                 </div>

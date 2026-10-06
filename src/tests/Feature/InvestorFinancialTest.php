@@ -208,16 +208,21 @@ class InvestorFinancialTest extends TestCase
             'copy_started_at'    => '2026-01-01',
         ]);
 
-        // Akses halaman dengan filter periode bebas: 6 bulan terakhir
+        // Verifikasi rute legasi copytrade.balance.index mengarah ke investments
+        $legacyResponse = $this->actingAs($this->investor)
+            ->get(route('investor.copytrade.balance.index'));
+        $legacyResponse->assertRedirect(route('investor.investments.index'));
+
+        // Akses halaman terpadu dengan filter periode bebas: 6 bulan terakhir
         $response = $this->actingAs($this->investor)
-            ->get(route('investor.copytrade.balance.index', [
+            ->get(route('investor.investments.index', [
                 'account_id' => $akun->id,
                 'period'     => '6m',
             ]));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Copytrade/Balance')
+            ->component('Investor/Investments/Index')
             ->has('accounts', 1)
             ->where('selected_account_id', $akun->id)
             ->has('summary')
@@ -230,7 +235,7 @@ class InvestorFinancialTest extends TestCase
         // Akses dengan filter periode 1, 2, 3, 4 tahun
         foreach (['1y' => '1 Tahun Terakhir', '2y' => '2 Tahun Terakhir', '3y' => '3 Tahun Terakhir', '4y' => '4 Tahun Terakhir'] as $period => $label) {
             $resp = $this->actingAs($this->investor)
-                ->get(route('investor.copytrade.balance.index', [
+                ->get(route('investor.investments.index', [
                     'account_id' => $akun->id,
                     'period'     => $period,
                 ]));

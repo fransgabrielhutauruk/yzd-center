@@ -26,7 +26,7 @@ class EdukasiDanBantuanSeeder extends Seeder
         $glosariumData = [
             [
                 'istilah'  => 'Copytrade (Penyalinan Transaksi)',
-                'definisi' => 'Teknologi otomasi di mana setiap open order, modifikasi stop loss/take profit, dan close order pada akun Master Trader Pak Abi direplikasi secara instan dan proporsional ke akun investor.',
+                'definisi' => 'Teknologi otomasi di mana setiap open order, modifikasi stop loss/take profit, dan close order pada akun Master Trader direplikasi secara instan dan proporsional ke akun investor.',
             ],
             [
                 'istilah'  => 'Expert Advisor',
@@ -538,7 +538,6 @@ class EdukasiDanBantuanSeeder extends Seeder
                 'ringkasan'     => 'Panduan bertahap registrasi akun MT4 di broker HFM melalui link referral resmi Master Trader dan verifikasi deposit minimum.',
                 'konten'        => "### Langkah-langkah Membuka Akun di Broker HFM:\n\n1. **Gunakan Link Referral Resmi:** Buka link referral yang tertera pada dasbor copytrade YZD Center untuk memastikan akun terdaftar di bawah jaringan Master Trader Pak Abi.\n2. **Registrasi Akun:** Isi formulir identitas sesuai data KTP Anda.\n3. **Pilih Tipe Akun:** Pilih akun berjenis MT4 Pro / Premium sesuai rekomendasi tier Anda.\n4. **Verifikasi Identitas:** Unggah dokumen KTP dan bukti domisili pada portal HFM.\n5. **Lakukan Deposit Modal:** Lakukan deposit minimum sesuai tier yang dipilih (Tier 1 min. $100). Simpan bukti transfer atau screenshot saldo MT4 Anda.",
                 'video_url'     => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-                'urutan'        => 1,
             ],
             [
                 'kategori_slug' => 'pendaftaran-kyc',
@@ -547,7 +546,6 @@ class EdukasiDanBantuanSeeder extends Seeder
                 'ringkasan'     => 'Kriteria foto KTP yang tajam, pencahayaan cukup, dan data teks terbaca jelas oleh tim verifikasi kepatuhan hukum.',
                 'konten'        => "### Ketentuan Foto KTP yang Sah:\n\n- **Foto Asli Fisik KTP:** Jangan menggunakan foto fotokopi atau hasil scan buram.\n- **Pencahayaan Terang:** Pastikan tidak ada pantulan kilau lampu (glare) yang menutupi NIK atau nama lengkap.\n- **Semua Sudut Masuk Frame:** 4 sudut fisik KTP harus berada utuh di dalam bingkai foto.\n- **Kesesuaian Data:** Nama lengkap dan NIK yang diinput saat pendaftaran wajib persis sama dengan yang tertera di fisik KTP.",
                 'video_url'     => null,
-                'urutan'        => 1,
             ],
             [
                 'kategori_slug' => 'copytrade-mt4',
@@ -556,7 +554,6 @@ class EdukasiDanBantuanSeeder extends Seeder
                 'ringkasan'     => 'Cara memanfaatkan autofill otomatis template surat perjanjian bermaterai dan verifikasinya sebelum copytrade aktif.',
                 'konten'        => "### Alur Legalitas Surat Perjanjian:\n\n1. **Buka Menu Copytrade:** Klik tombol 'Tambah Akun Copytrade' di portal investor.\n2. **Unduh Template:** Klik tombol 'Unduh Template Surat Perjanjian'. Data diri Anda dan nomor akun MT4 akan terisi secara otomatis (*autofill*).\n3. **Cetak & Tanda Tangan:** Cetak dokumen, tempelkan meterai Rp 10.000 pada kolom tanda tangan pihak kedua (investor), lalu bubuhkan tanda tangan fisik Anda.\n4. **Unggah Berkas:** Foto dokumen yang sudah bertandatangan secara jelas (format PDF/JPG/PNG) dan unggah ke sistem. Sistem kami akan melakukan kompresi otomatis secara senyap.",
                 'video_url'     => null,
-                'urutan'        => 1,
             ],
             [
                 'kategori_slug' => 'kemitraan-komisi',
@@ -565,7 +562,6 @@ class EdukasiDanBantuanSeeder extends Seeder
                 'ringkasan'     => 'Pelajari cara kerja perhitungan komisi 20% hingga 50% dari bagian profit Master Trader berdasarkan modal downline binaan Anda.',
                 'konten'        => "### Pembagian Tier Komisi Afiliator:\n\n- **Tier 1 (Modal > $10.000 / > Rp 10 M):** Hak komisi **50%** dari bagian profit Master.\n- **Tier 2 (Modal $1.000 - $10.000 / Rp 1 M - 10 M):** Hak komisi **40%** dari bagian profit Master.\n- **Tier 3 (Modal $100 - $1.000 / Rp 100 Jt - 1 M):** Hak komisi **30%** dari bagian profit Master.\n- **Tier 4 (Modal < $100 / < Rp 100 Jt):** Hak komisi **20%** dari bagian profit Master.\n\n### Syarat Pengajuan Klaim:\nAkun copytrade downline harus berstatus aktif selama minimal **90 hari (3 bulan)** sejak mulai menyalin (*copy_started_at*). Jika akun mengalami kerugian (drawdown), perlindungan Drawdown Guard memastikan tidak ada potongan komisi.",
                 'video_url'     => null,
-                'urutan'        => 1,
             ],
         ];
 
@@ -583,7 +579,6 @@ class EdukasiDanBantuanSeeder extends Seeder
                     'ringkasan'    => $art['ringkasan'],
                     'konten'       => $art['konten'],
                     'video_url'    => $art['video_url'],
-                    'urutan'       => $art['urutan'],
                     'is_published' => true,
                     'views_count'  => 0,
                     'created_by'   => $adminId,

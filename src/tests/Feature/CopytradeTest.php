@@ -48,15 +48,16 @@ class CopytradeTest extends TestCase
 
     public function test_investor_can_view_copytrade_page(): void
     {
-        $response = $this->actingAs($this->investor)->get('/investor/copytrade');
+        $redirectResponse = $this->actingAs($this->investor)->get('/investor/copytrade');
+        $redirectResponse->assertRedirect(route('investor.investments.index'));
 
+        $response = $this->actingAs($this->investor)->get(route('investor.investments.index'));
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Copytrade/Index')
-            ->has('copytrades')
+            ->component('Investor/Investments/Index')
+            ->has('consolidated')
+            ->has('accounts')
             ->has('pengaturan')
-            ->has('hasExisting')
-            ->has('filters')
         );
     }
 
@@ -97,7 +98,7 @@ class CopytradeTest extends TestCase
 
         $response = $this->actingAs($this->investor)->post('/investor/copytrade', $payload);
 
-        $response->assertRedirect(route('investor.copytrade.index'));
+        $response->assertRedirect(route('investor.investments.index'));
         $this->assertDatabaseHas('akun_copytrade', [
             'user_id'            => $this->investor->id,
             'tier'               => 'tier_1',
@@ -146,7 +147,7 @@ class CopytradeTest extends TestCase
 
         $response = $this->actingAs($this->investor)->post('/investor/copytrade', $payload);
 
-        $response->assertRedirect(route('investor.copytrade.index'));
+        $response->assertRedirect(route('investor.investments.index'));
         $this->assertDatabaseHas('akun_copytrade', [
             'user_id'            => $this->investor->id,
             'tier'               => 'tier_2',
@@ -210,7 +211,7 @@ class CopytradeTest extends TestCase
 
         $response = $this->actingAs($this->investor)->post('/investor/copytrade', $payload);
 
-        $response->assertRedirect(route('investor.copytrade.index'));
+        $response->assertRedirect(route('investor.investments.index'));
 
         $akun = AkunCopytrade::where('nomor_akun_trading', '99887766')->first();
         $this->assertNotNull($akun);

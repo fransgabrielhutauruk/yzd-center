@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AkunCopytrade;
 use App\Models\RiwayatBalanceCopytrade;
 use App\Models\User;
+use App\Notifications\MonthlyBalanceRecapReminderNotification;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -19,6 +20,12 @@ class BalanceService
      */
     public function recordBalance(AkunCopytrade $akun, array $data, User $user): RiwayatBalanceCopytrade
     {
+        if ($akun->status !== 'active') {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'akun_copytrade_id' => 'Catatan saldo hanya dapat diinput untuk akun trading yang telah diverifikasi dan aktif.',
+            ]);
+        }
+
         return DB::transaction(function () use ($akun, $data, $user) {
             $tanggal = Carbon::parse($data['tanggal_pencatatan'])->toDateString();
             $balance = (float) $data['balance'];
@@ -129,61 +136,70 @@ class BalanceService
         $kurs = (float) ($kursData['rate'] ?? 16796.0);
         $modalAwal = (float) $akun->modal_riil;
 
+        $allRecords = RiwayatBalanceCopytrade::query()
+            ->where('akun_copytrade_id', $akun->id)
+            ->orderBy('tanggal_pencatatan', 'asc')
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $latestRecord = $allRecords->last();
+        $currentBalance = $latestRecord ? (float) $latestRecord->balance : $modalAwal;
+
+        $latestDateCarbon = $latestRecord ? Carbon::parse($latestRecord->tanggal_pencatatan) : now();
+        $anchorDate = $latestDateCarbon->gt(now()) ? $latestDateCarbon->copy() : now();
+
         $startDate = null;
-        $endDate = now()->toDateString();
+        $endDate = null;
         $labelPeriode = 'Semua Periode';
 
         switch ($period) {
             case '1m':
-                $startDate = now()->subMonth()->toDateString();
+                $startDate = $anchorDate->copy()->subMonth()->toDateString();
                 $labelPeriode = '1 Bulan Terakhir';
                 break;
             case '3m':
-                $startDate = now()->subMonths(3)->toDateString();
+                $startDate = $anchorDate->copy()->subMonths(3)->toDateString();
                 $labelPeriode = '3 Bulan Terakhir';
                 break;
             case '6m':
-                $startDate = now()->subMonths(6)->toDateString();
+                $startDate = $anchorDate->copy()->subMonths(6)->toDateString();
                 $labelPeriode = '6 Bulan Terakhir';
                 break;
             case '1y':
-                $startDate = now()->subYear()->toDateString();
+                $startDate = $anchorDate->copy()->subYear()->toDateString();
                 $labelPeriode = '1 Tahun Terakhir';
                 break;
             case '2y':
-                $startDate = now()->subYears(2)->toDateString();
+                $startDate = $anchorDate->copy()->subYears(2)->toDateString();
                 $labelPeriode = '2 Tahun Terakhir';
                 break;
             case '3y':
-                $startDate = now()->subYears(3)->toDateString();
+                $startDate = $anchorDate->copy()->subYears(3)->toDateString();
                 $labelPeriode = '3 Tahun Terakhir';
                 break;
             case '4y':
-                $startDate = now()->subYears(4)->toDateString();
+                $startDate = $anchorDate->copy()->subYears(4)->toDateString();
                 $labelPeriode = '4 Tahun Terakhir';
                 break;
             case 'custom':
                 if ($customStart) {
-                    $startDate = Carbon::parse($customStart)->toDateString();
+                    $startDate = Carbon::parse($customStart)->startOfMonth()->toDateString();
                 }
                 if ($customEnd) {
-                    $endDate = Carbon::parse($customEnd)->toDateString();
+                    $endDate = Carbon::parse($customEnd)->endOfMonth()->toDateString();
                 }
-                $labelPeriode = ($customStart ? Carbon::parse($customStart)->format('d M Y') : 'Awal') . ' s/d ' . ($customEnd ? Carbon::parse($customEnd)->format('d M Y') : 'Hari ini');
+                $startLabel = $customStart ? Carbon::parse($customStart)->locale('id')->translatedFormat('F Y') : 'Awal';
+                $endLabel = $customEnd ? Carbon::parse($customEnd)->locale('id')->translatedFormat('F Y') : 'Sekarang';
+                $labelPeriode = ($startLabel === $endLabel) ? $startLabel : "{$startLabel} s/d {$endLabel}";
                 break;
             case 'all':
             default:
                 $period = 'all';
                 $startDate = null;
+                $endDate = null;
                 $labelPeriode = 'Semua Periode (Sejak Awal Join)';
                 break;
         }
-
-        // Query seluruh data riwayat akun
-        $allRecords = RiwayatBalanceCopytrade::query()
-            ->where('akun_copytrade_id', $akun->id)
-            ->orderBy('tanggal_pencatatan', 'asc')
-            ->get();
 
         // Query data yang masuk dalam filter periode
         $filteredRecords = $allRecords->filter(function ($rec) use ($startDate, $endDate) {
@@ -196,10 +212,6 @@ class BalanceService
             }
             return true;
         })->values();
-
-        // Saldo Terakhir Akun (Latest)
-        $latestRecord = $allRecords->last();
-        $currentBalance = $latestRecord ? (float) $latestRecord->balance : $modalAwal;
 
         // Saldo Awal Periode & Saldo Akhir Periode
         if ($filteredRecords->isNotEmpty()) {
@@ -228,7 +240,7 @@ class BalanceService
         // Rata-rata Keuntungan Bulanan Periode
         $monthsCount = 1;
         if ($startDate) {
-            $diff = Carbon::parse($startDate)->diffInMonths(Carbon::parse($endDate));
+            $diff = Carbon::parse($startDate)->diffInMonths(Carbon::parse($endDate ?? $anchorDate));
             $monthsCount = max(1, (int) $diff);
         } elseif ($filteredRecords->count() > 1) {
             $diff = $filteredRecords->first()->tanggal_pencatatan->diffInMonths($filteredRecords->last()->tanggal_pencatatan);
@@ -255,6 +267,13 @@ class BalanceService
             ];
         })->toArray();
 
+        // Hitung durasi aktif akun dalam satuan bulan
+        $earliestRecordDate = $allRecords->first()?->tanggal_pencatatan;
+        $effectiveStartDate = $earliestRecordDate ?? $akun->copy_started_at ?? $akun->tanggal_mulai ?? $akun->created_at;
+        $diffMonths = $effectiveStartDate ? max(0, (int) Carbon::parse($effectiveStartDate)->diffInMonths(now())) : 0;
+        $recordsCount = $allRecords->count();
+        $monthsActive = max($diffMonths, $recordsCount > 1 ? $recordsCount - 1 : 0);
+
         return [
             'account' => [
                 'id'                 => $akun->id,
@@ -265,8 +284,10 @@ class BalanceService
                 'modal_riil_idr'     => round($modalAwal * $kurs, 0),
                 'tanggal_mulai'      => $akun->tanggal_mulai?->format('Y-m-d'),
                 'tanggal_mulai_indo' => function_exists('tanggal_indo') ? tanggal_indo($akun->tanggal_mulai) : $akun->tanggal_mulai?->format('d M Y'),
+                'months_active'      => $monthsActive,
                 'status'             => $akun->status,
             ],
+            'months_active'               => $monthsActive,
             'period'                      => $period,
             'period_label'                => $labelPeriode,
             'start_date'                  => $startDate,
@@ -288,5 +309,208 @@ class BalanceService
             'total_records_count'         => $allRecords->count(),
             'exchange_rate'               => $kurs,
         ];
+    }
+
+    /**
+     * Menghitung ringkasan konsolidasi portofolio seluruh akun investasi milik investor.
+     * Mengagregasi modal awal, saldo terkini, keuntungan all-time, dan estimasi BEP kuota riil.
+     */
+    public function getPortfolioConsolidatedSummary(User $user): array
+    {
+        $accounts = AkunCopytrade::query()
+            ->where('user_id', $user->id)
+            ->whereIn('status', ['pending', 'active'])
+            ->with(['riwayatBalance' => function ($q) {
+                $q->orderBy('tanggal_pencatatan', 'desc')->orderBy('id', 'desc');
+            }])
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $kursData = $this->exchangeRateService->getUsdToIdrRate();
+        $kurs = (float) ($kursData['rate'] ?? 16796.0);
+
+        $activeAccounts = $accounts->where('status', 'active');
+        $pendingAccounts = $accounts->where('status', 'pending');
+        $activeCount = $activeAccounts->count();
+        $pendingCount = $pendingAccounts->count();
+
+        // Jika tidak ada akun aktif sama sekali (hanya ada pending atau tidak ada akun),
+        // seluruh statistik dinonaktifkan (bernilai 0) sampai akun diverifikasi.
+        if ($activeAccounts->isEmpty()) {
+            return [
+                'total_accounts'            => $accounts->count(),
+                'active_accounts_count'     => 0,
+                'pending_accounts_count'    => $pendingCount,
+                'has_active_accounts'       => false,
+                'total_initial_capital'     => 0.0,
+                'total_initial_capital_idr' => 0,
+                'total_current_balance'     => 0.0,
+                'total_current_balance_idr' => 0,
+                'total_all_time_profit'     => 0.0,
+                'total_all_time_profit_idr' => 0,
+                'total_all_time_growth_pct' => 0.0,
+                'has_balance_history'       => false,
+                'bep_summary'               => [
+                    'bep_progress_pct'         => 0.0,
+                    'initial_capital'          => 0.0,
+                    'initial_capital_idr'      => 0,
+                    'total_withdrawn'          => 0.0,
+                    'total_withdrawn_idr'      => 0,
+                    'total_compounded'         => 0.0,
+                    'total_compounded_idr'     => 0,
+                    'remaining_capital_to_bep' => 0.0,
+                    'remaining_capital_idr'    => 0,
+                    'remaining_to_bep'         => 0.0,
+                    'remaining_to_bep_idr'     => 0,
+                    'is_bep_achieved'          => false,
+                    'months_to_bep'            => 23,
+                    'estimated_months_to_bep'  => 23,
+                    'remaining_months_to_bep'  => 23,
+                    'avg_monthly_profit_pct'   => 0.0,
+                    'months_active'            => 1,
+                    'joined_months_count'      => 1,
+                    'join_date_formatted'      => null,
+                    'total_profit_accumulated' => 0.0,
+                    'total_profit_idr'         => 0,
+                ],
+            ];
+        }
+
+        $totalInitialCapital = 0.0;
+        $totalCurrentBalance = 0.0;
+        $hasAnyBalanceRecord = false;
+
+        foreach ($activeAccounts as $acc) {
+            $modalAwal = (float) $acc->modal_riil;
+            $totalInitialCapital += $modalAwal;
+
+            $latestRecord = $acc->riwayatBalance->sortByDesc('id')->sortByDesc('tanggal_pencatatan')->first();
+            if ($latestRecord) {
+                $hasAnyBalanceRecord = true;
+                $totalCurrentBalance += (float) $latestRecord->balance;
+            } else {
+                $totalCurrentBalance += $modalAwal;
+            }
+        }
+
+        $totalAllTimeProfit = $totalCurrentBalance - $totalInitialCapital;
+        $totalAllTimeGrowthPct = $totalInitialCapital > 0
+            ? round(($totalAllTimeProfit / $totalInitialCapital) * 100.0, 2)
+            : 0.0;
+
+        $bepProgressPct = $totalInitialCapital > 0
+            ? min(100.0, max(0.0, round(($totalAllTimeProfit / $totalInitialCapital) * 100.0, 1)))
+            : 0.0;
+
+        $remainingToBep = max(0.0, $totalInitialCapital - max(0.0, $totalAllTimeProfit));
+        $isBepAchieved = $totalAllTimeProfit >= $totalInitialCapital && $totalInitialCapital > 0;
+
+        $earliestActiveAccount = $activeAccounts->sortBy('created_at')->first();
+        $joinDate = $earliestActiveAccount?->copy_started_at ?? $earliestActiveAccount?->tanggal_mulai ?? $earliestActiveAccount?->created_at;
+        $startCarbon = $joinDate ? Carbon::parse($joinDate) : now();
+        $diffMonths = (int) $startCarbon->diffInMonths(now());
+        $monthsActive = max(1, $diffMonths > 0 ? $diffMonths : 1);
+
+        $avgMonthlyProfitPct = $monthsActive > 0 ? round($totalAllTimeGrowthPct / $monthsActive, 2) : 0.0;
+        if ($avgMonthlyProfitPct <= 0 && $hasAnyBalanceRecord) {
+            $estimatedMonthsToBep = null;
+        } else {
+            $effectiveMonthlyRate = $avgMonthlyProfitPct > 0 ? ($avgMonthlyProfitPct / 100.0) : 0.035;
+            $estimatedMonthsToBep = ($totalInitialCapital > 0 && $effectiveMonthlyRate > 0)
+                ? (int) ceil(log(2) / log(1 + $effectiveMonthlyRate))
+                : 21;
+        }
+
+        $remainingMonthsToBep = $isBepAchieved ? 0 : max(0, ($estimatedMonthsToBep ?: 23) - $monthsActive);
+
+        return [
+            'total_accounts'            => $accounts->count(),
+            'active_accounts_count'     => $activeCount,
+            'pending_accounts_count'    => $pendingCount,
+            'has_active_accounts'       => true,
+            'total_initial_capital'     => round($totalInitialCapital, 2),
+            'total_initial_capital_idr' => round($totalInitialCapital * $kurs, 0),
+            'total_current_balance'     => round($totalCurrentBalance, 2),
+            'total_current_balance_idr' => round($totalCurrentBalance * $kurs, 0),
+            'total_all_time_profit'     => round($totalAllTimeProfit, 2),
+            'total_all_time_profit_idr' => round($totalAllTimeProfit * $kurs, 0),
+            'total_all_time_growth_pct' => $totalAllTimeGrowthPct,
+            'has_balance_history'       => $hasAnyBalanceRecord,
+            'bep_summary'               => [
+                'bep_progress_pct'         => $bepProgressPct,
+                'initial_capital'          => round($totalInitialCapital, 2),
+                'initial_capital_idr'      => round($totalInitialCapital * $kurs, 0),
+                'total_withdrawn'          => 0.0,
+                'total_withdrawn_idr'      => 0,
+                'total_compounded'         => max(0.0, round($totalAllTimeProfit, 2)),
+                'total_compounded_idr'     => max(0, round($totalAllTimeProfit * $kurs, 0)),
+                'remaining_capital_to_bep' => round($remainingToBep, 2),
+                'remaining_capital_idr'    => round($remainingToBep * $kurs, 0),
+                'remaining_to_bep'         => round($remainingToBep, 2),
+                'remaining_to_bep_idr'     => round($remainingToBep * $kurs, 0),
+                'is_bep_achieved'          => $isBepAchieved,
+                'months_to_bep'            => $estimatedMonthsToBep,
+                'estimated_months_to_bep'  => $estimatedMonthsToBep,
+                'remaining_months_to_bep'  => $remainingMonthsToBep,
+                'avg_monthly_profit_pct'   => $avgMonthlyProfitPct,
+                'months_active'            => $monthsActive,
+                'joined_months_count'      => $monthsActive,
+                'join_date_formatted'      => $earliestActiveAccount ? ($earliestActiveAccount->created_at ? (function_exists('tanggal_indo') ? tanggal_indo($earliestActiveAccount->created_at) : Carbon::parse($earliestActiveAccount->created_at)->format('d M Y')) : null) : null,
+                'total_profit_accumulated' => max(0.0, round($totalAllTimeProfit, 2)),
+                'total_profit_idr'         => max(0, round($totalAllTimeProfit * $kurs, 0)),
+            ],
+        ];
+    }
+
+    /**
+     * Kirim notifikasi pengingat in-app rekapitulasi saldo bulanan jika memenuhi kriteria:
+     * 1. Berada dalam rentang waktu rekapitulasi (tanggal 1-5 setiap bulan).
+     * 2. Pengguna memiliki minimal 1 akun investasi aktif.
+     * 3. Pengguna belum menginput saldo untuk tanggal 1 bulan berjalan pada setidaknya 1 akun aktifnya.
+     * 4. Notifikasi untuk bulan & tahun ini belum pernah dikirimkan sebelumnya (mencegah duplikasi).
+     */
+    public function sendMonthlyBalanceReminderIfNeeded(User $user): bool
+    {
+        $now = Carbon::now();
+        if ($now->day > 5) {
+            return false;
+        }
+
+        $activeAccounts = AkunCopytrade::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->get();
+
+        if ($activeAccounts->isEmpty()) {
+            return false;
+        }
+
+        $firstDayOfMonth = $now->copy()->startOfMonth()->toDateString();
+
+        // Cek apakah seluruh akun aktif sudah tercatat untuk tanggal 1 bulan ini
+        $activeAccountIds = $activeAccounts->pluck('id');
+        $recordedCount = RiwayatBalanceCopytrade::query()
+            ->whereIn('akun_copytrade_id', $activeAccountIds)
+            ->where('tanggal_pencatatan', $firstDayOfMonth)
+            ->count();
+
+        if ($recordedCount >= $activeAccounts->count()) {
+            return false;
+        }
+
+        // Cek apakah notifikasi pengingat untuk bulan & tahun ini sudah pernah dikirim
+        $alreadySent = $user->notifications()
+            ->where('data->type', 'balance_recap_reminder')
+            ->where('data->month', $now->month)
+            ->where('data->year', $now->year)
+            ->exists();
+
+        if ($alreadySent) {
+            return false;
+        }
+
+        $user->notify(new MonthlyBalanceRecapReminderNotification($now->month, $now->year));
+
+        return true;
     }
 }

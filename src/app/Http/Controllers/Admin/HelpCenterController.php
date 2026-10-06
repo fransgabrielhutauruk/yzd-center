@@ -8,8 +8,10 @@ use App\Http\Requests\Admin\PanduanKategoriRequest;
 use App\Models\PanduanBantuan;
 use App\Models\PanduanKategori;
 use App\Services\EducationService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -34,6 +36,67 @@ class HelpCenterController extends Controller
             'articles'   => $articles,
             'categories' => $categories,
             'filters'    => $filters,
+        ]);
+    }
+
+    /**
+     * Tampilkan formulir pembuatan artikel panduan baru (full page).
+     */
+    public function createArticle(): Response
+    {
+        $categories = $this->educationService->getAdminCategories();
+
+        return Inertia::render('Admin/Education/Help/ArticleForm', [
+            'article'    => null,
+            'categories' => $categories,
+        ]);
+    }
+
+    /**
+     * Tampilkan formulir edit artikel panduan (full page).
+     */
+    public function editArticle(int $id): Response
+    {
+        $article = PanduanBantuan::with('kategori')->findOrFail($id);
+        $categories = $this->educationService->getAdminCategories();
+
+        return Inertia::render('Admin/Education/Help/ArticleForm', [
+            'article' => [
+                'id'           => $article->id,
+                'kategori_id'  => $article->kategori_id,
+                'judul'        => $article->judul,
+                'slug'         => $article->slug,
+                'ringkasan'    => $article->ringkasan,
+                'konten'       => $article->konten,
+                'video_url'    => $article->video_url,
+                'is_published' => (bool) $article->is_published,
+                'views_count'  => $article->views_count,
+                'updated_at'   => tanggal_waktu_indo($article->updated_at),
+                'kategori'     => $article->kategori ? [
+                    'id'   => $article->kategori->id,
+                    'nama' => $article->kategori->nama,
+                ] : null,
+            ],
+            'categories' => $categories,
+        ]);
+    }
+
+    /**
+     * Unggah media/gambar dari editor Tiptap.
+     */
+    public function uploadMedia(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => ['required', 'image', 'mimes:jpeg,png,jpg,webp,gif', 'max:2048'],
+        ]);
+
+        $file = $request->file('image');
+        $filename = 'help_' . time() . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
+        $path = $file->storeAs('education/articles', $filename, 'public');
+
+        return response()->json([
+            'url'      => asset('storage/' . $path),
+            'filename' => $filename,
         ]);
     }
 

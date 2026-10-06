@@ -157,7 +157,6 @@ class EducationService
                     });
                 }
             })
-            ->orderBy('urutan')
             ->orderBy('judul');
 
         $articles = $articlesQuery->get()->map(function ($art) {
@@ -205,7 +204,7 @@ class EducationService
             ->published()
             ->where('kategori_id', $article->kategori_id)
             ->where('id', '!=', $article->id)
-            ->orderBy('urutan')
+            ->latest('id')
             ->limit(4)
             ->get(['id', 'judul', 'slug', 'ringkasan'])
             ->toArray();
@@ -242,8 +241,7 @@ class EducationService
             ->with('kategori')
             ->when($search, fn ($q) => $q->search($search))
             ->when($kategoriId, fn ($q) => $q->where('kategori_id', $kategoriId))
-            ->orderBy('urutan')
-            ->orderBy('judul')
+            ->latest('id')
             ->paginate($perPage)
             ->withQueryString();
 
@@ -257,7 +255,6 @@ class EducationService
                 'ringkasan'     => $item->ringkasan,
                 'konten'        => $item->konten,
                 'video_url'     => $item->video_url,
-                'urutan'        => $item->urutan,
                 'is_published'  => (bool) $item->is_published,
                 'views_count'   => $item->views_count,
                 'updated_at'    => $item->updated_at?->format('d/m/Y H:i'),
@@ -296,11 +293,21 @@ class EducationService
         return DB::transaction(function () use ($data, $category) {
             $slug = !empty($data['slug']) ? Str::slug($data['slug']) : Str::slug($data['nama']);
 
+            // Pastikan slug unik jika kategori baru
+            if (!$category) {
+                $baseSlug = $slug;
+                $counter = 1;
+                while (PanduanKategori::where('slug', $slug)->exists()) {
+                    $slug = "{$baseSlug}-{$counter}";
+                    $counter++;
+                }
+            }
+
             $payload = [
                 'nama'      => trim($data['nama']),
                 'slug'      => $slug,
                 'deskripsi' => !empty($data['deskripsi']) ? trim($data['deskripsi']) : null,
-                'icon'      => !empty($data['icon']) ? trim($data['icon']) : 'HelpCircle',
+                'icon'      => !empty($data['icon']) ? trim($data['icon']) : ($category?->icon ?? 'HelpCircle'),
                 'urutan'    => (int) ($data['urutan'] ?? 0),
                 'is_active' => isset($data['is_active']) ? (bool) $data['is_active'] : true,
             ];
@@ -342,7 +349,6 @@ class EducationService
                 'ringkasan'    => !empty($data['ringkasan']) ? trim($data['ringkasan']) : null,
                 'konten'       => trim($data['konten']),
                 'video_url'    => !empty($data['video_url']) ? trim($data['video_url']) : null,
-                'urutan'       => (int) ($data['urutan'] ?? 0),
                 'is_published' => isset($data['is_published']) ? (bool) $data['is_published'] : true,
             ];
 
@@ -535,8 +541,15 @@ class EducationService
         // Ambil semua topik aktif untuk pills / tab filter
         $availableTopics = EdukasiFaqTopik::query()
             ->active()
+            ->withCount('activeFaqs')
             ->orderBy('urutan')
-            ->get(['id', 'nama', 'deskripsi'])
+            ->get()
+            ->map(fn ($t) => [
+                'id'        => $t->id,
+                'nama'      => $t->nama,
+                'deskripsi' => $t->deskripsi,
+                'faq_count' => $t->active_faqs_count,
+            ])
             ->toArray();
 
         // Format data respons

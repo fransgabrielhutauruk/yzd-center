@@ -6,8 +6,10 @@ use App\Models\AkunCopytrade;
 use App\Models\User;
 use App\Models\UserDokumen;
 use App\Notifications\KycDocumentStatusChangedNotification;
+use App\Services\BalanceService;
 use App\Services\CopytradeService;
 use App\Services\KycService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -231,7 +233,7 @@ class InAppNotificationTest extends TestCase
         $this->assertEquals(1, $this->investor->unreadNotifications()->count());
         $notification = $this->investor->unreadNotifications()->first();
         $this->assertEquals('Akun Copy Trade Valid & Aktif', $notification->data['title']);
-        $this->assertEquals('/investor/copytrade', $notification->data['url']);
+        $this->assertEquals('/investor/investments', $notification->data['url']);
         $this->assertEquals('check-circle', $notification->data['icon']);
         $this->assertEquals('active', $notification->data['status']);
     }
@@ -263,9 +265,75 @@ class InAppNotificationTest extends TestCase
         $this->assertEquals(1, $this->investor->unreadNotifications()->count());
         $notification = $this->investor->unreadNotifications()->first();
         $this->assertEquals('Akun Copy Trade Ditolak', $notification->data['title']);
-        $this->assertEquals('/investor/copytrade', $notification->data['url']);
+        $this->assertEquals('/investor/investments', $notification->data['url']);
         $this->assertEquals('x-circle', $notification->data['icon']);
         $this->assertEquals('rejected', $notification->data['status']);
         $this->assertStringContainsString('Nomor akun MT4 salah.', $notification->data['message']);
+    }
+
+    public function test_investor_receives_monthly_balance_recap_reminder_notification_during_recap_period(): void
+    {
+        Carbon::setTestNow('2026-10-02 10:00:00');
+
+        $akun = AkunCopytrade::create([
+            'user_id'            => $this->investor->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'HFM',
+            'tipe_akun'          => 'cent',
+            'nomor_akun_trading' => '11223344',
+            'modal_riil'         => 1000,
+            'tanggal_mulai'      => '2026-09-01',
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => 'Investor Tester',
+            'status'             => 'active',
+        ]);
+
+        $balanceService = app(BalanceService::class);
+        $result = $balanceService->sendMonthlyBalanceReminderIfNeeded($this->investor);
+
+        $this->assertTrue($result);
+        $this->assertEquals(1, $this->investor->unreadNotifications()->count());
+
+        $notification = $this->investor->unreadNotifications()->first();
+        $this->assertEquals('balance_recap_reminder', $notification->data['type']);
+        $this->assertEquals('Waktunya Rekapitulasi Saldo Tanggal 1!', $notification->data['title']);
+        $this->assertEquals('/investor/investments#kinerja-dan-riwayat-akun', $notification->data['url']);
+        $this->assertEquals('calendar', $notification->data['icon']);
+
+        // Pastikan tidak dikirim berulang (idempotent / tidak duplikat)
+        $secondResult = $balanceService->sendMonthlyBalanceReminderIfNeeded($this->investor);
+        $this->assertFalse($secondResult);
+        $this->assertEquals(1, $this->investor->unreadNotifications()->count());
+
+        Carbon::setTestNow();
+    }
+
+    public function test_send_monthly_balance_recap_reminder_artisan_command(): void
+    {
+        Carbon::setTestNow('2026-10-01 07:00:00');
+
+        $this->investor->update(['status' => 'active']);
+
+        AkunCopytrade::create([
+            'user_id'            => $this->investor->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'HFM',
+            'tipe_akun'          => 'cent',
+            'nomor_akun_trading' => '55667788',
+            'modal_riil'         => 2000,
+            'tanggal_mulai'      => '2026-09-01',
+            'nama_bank'          => 'Mandiri',
+            'nomor_rekening'     => '987654321',
+            'atas_nama_rekening' => 'Investor Tester',
+            'status'             => 'active',
+        ]);
+
+        $this->artisan('app:send-balance-recap-reminder')
+            ->assertSuccessful();
+
+        $this->assertEquals(1, $this->investor->unreadNotifications()->count());
+
+        Carbon::setTestNow();
     }
 }

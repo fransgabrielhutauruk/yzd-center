@@ -56,4 +56,19 @@ class EducationGlossaryController extends Controller
         return redirect()->route('admin.education.glossary.index')
             ->with('success', 'Istilah glosarium berhasil dihapus.');
     }
+
+    public function batchDestroy(Request $request): RedirectResponse
+    {
+        $ids = $request->input('ids', []);
+
+        if (empty($ids)) {
+            return redirect()->route('admin.education.glossary.index')
+                ->with('error', 'Tidak ada istilah yang dipilih untuk dihapus.');
+        }
+
+        EdukasiGlosarium::whereIn('id', $ids)->delete();
+
+        return redirect()->route('admin.education.glossary.index')
+            ->with('success', count($ids) . ' istilah glosarium berhasil dihapus.');
+    }
 }

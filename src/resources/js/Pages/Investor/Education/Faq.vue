@@ -1,8 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import {
-    MessageCircleQuestion,
     Search,
     ChevronDown,
     X,
@@ -51,6 +50,20 @@ const totalFaqsCount = computed(() => {
     return props.faq.topics.reduce((acc, topic) => acc + (topic.faqs?.length || 0), 0);
 });
 
+// Total count statis untuk "Semua Topik" (dari available_topics tanpa filter)
+const totalStaticCount = computed(() =>
+    props.faq.available_topics?.reduce((acc, t) => acc + (t.faq_count ?? 0), 0) ?? 0
+);
+
+// Map topik id → count statis untuk badge per pill
+const faqCountByTopicId = computed(() => {
+    const map = {};
+    props.faq.available_topics?.forEach((t) => {
+        map[t.id] = t.faq_count ?? 0;
+    });
+    return map;
+});
+
 const toggleAll = () => {
     if (openFaqIds.value.size === totalFaqsCount.value) {
         openFaqIds.value.clear();
@@ -63,20 +76,24 @@ const toggleAll = () => {
     }
 };
 
-const handleSearch = () => {
-    router.get(
-        '/investor/education/faq',
-        {
-            search: searchQuery.value || undefined,
-            topik_id: activeTopikId.value || undefined,
-        },
-        { preserveState: true, preserveScroll: true }
-    );
-};
+// --- Live Search: debounce 400ms ---
+let searchTimer = null;
+watch(searchQuery, (val) => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+        router.get(
+            '/investor/education/faq',
+            {
+                search: val || undefined,
+                topik_id: activeTopikId.value || undefined,
+            },
+            { preserveState: true, preserveScroll: true }
+        );
+    }, 400);
+});
 
 const clearSearch = () => {
     searchQuery.value = '';
-    handleSearch();
 };
 
 const selectTopic = (topicId) => {
@@ -101,7 +118,7 @@ const resetAllFilters = () => {
 <template>
     <InvestorLayout
         title="Pertanyaan yang Sering Diajukan (FAQ)"
-        subtitle="Temukan jawaban instan seputar legalitas, skema copytrade non-custodial, tata cara deposit, dan transparansi bagi hasil."
+        subtitle="Temukan jawaban seputar legalitas, skema copytrade, dan lainnya."
         :breadcrumbs="[
             { label: 'Bantuan & Edukasi' },
             { label: 'Tanya Jawab (FAQ)' }
@@ -109,7 +126,7 @@ const resetAllFilters = () => {
     >
         <Head title="Tanya Jawab (FAQ) - YZD Center" />
 
-        <div class="space-y-6 max-w-5xl mx-auto">
+        <div class="space-y-6">
             <!-- Kotak Pencarian -->
             <div class="max-w-xl">
                 <div class="relative">
@@ -117,58 +134,76 @@ const resetAllFilters = () => {
                     <input
                         v-model="searchQuery"
                         type="text"
-                        placeholder="Ketik kata kunci (misal: penarikan modal, margin call, komisi)..."
-                        @keyup.enter="handleSearch"
-                        class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2.5 pl-10 pr-24 text-sm text-foreground shadow-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        placeholder="Ketik kata kunci..."
+                        class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2.5 pl-10 pr-10 text-sm text-foreground shadow-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                     <button
                         v-if="searchQuery"
                         type="button"
                         @click="clearSearch"
-                        class="absolute right-20 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
                         title="Bersihkan pencarian"
                     >
                         <X class="h-4 w-4" />
-                    </button>
-                    <button
-                        type="button"
-                        @click="handleSearch"
-                        class="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-primary-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-primary-700 transition-colors cursor-pointer"
-                    >
-                        Cari
                     </button>
                 </div>
             </div>
 
             <!-- Filter Topik Pills -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div class="flex flex-wrap items-center gap-2">
-                    <button
-                        type="button"
-                        @click="selectTopic(null)"
-                        :class="[
-                            'rounded-full px-4 py-2 text-xs font-medium transition-all shadow-sm',
-                            activeTopikId === null
-                                ? 'bg-primary text-white shadow-primary/20'
-                                : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800',
-                        ]"
-                    >
-                        Semua Topik
-                    </button>
-                    <button
-                        v-for="topic in faq.available_topics"
-                        :key="topic.id"
-                        type="button"
-                        @click="selectTopic(topic.id)"
-                        :class="[
-                            'rounded-full px-4 py-2 text-xs font-medium transition-all shadow-sm',
-                            activeTopikId === topic.id
-                                ? 'bg-primary text-white shadow-primary/20'
-                                : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800',
-                        ]"
-                    >
-                        {{ topic.nama }}
-                    </button>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <!-- Pills dengan scroll-x -->
+                <div class="overflow-x-auto scrollbar-hide -mx-1 px-1">
+                    <div class="flex items-center gap-2 w-max">
+                        <!-- Pill: Semua Topik -->
+                        <button
+                            type="button"
+                            @click="selectTopic(null)"
+                            :class="[
+                                'relative flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all shadow-sm whitespace-nowrap shrink-0',
+                                activeTopikId === null
+                                    ? 'bg-primary text-white shadow-primary/20'
+                                    : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800',
+                            ]"
+                        >
+                            Semua Topik
+                            <span
+                                :class="[
+                                    'inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none min-w-[18px]',
+                                    activeTopikId === null
+                                        ? 'bg-white/25 text-white'
+                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300',
+                                ]"
+                            >
+                                {{ totalStaticCount }}
+                            </span>
+                        </button>
+
+                        <!-- Pills per Topik -->
+                        <button
+                            v-for="topic in faq.available_topics"
+                            :key="topic.id"
+                            type="button"
+                            @click="selectTopic(topic.id)"
+                            :class="[
+                                'relative flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all shadow-sm whitespace-nowrap shrink-0',
+                                activeTopikId === topic.id
+                                    ? 'bg-primary text-white shadow-primary/20'
+                                    : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800',
+                            ]"
+                        >
+                            {{ topic.nama }}
+                            <span
+                                :class="[
+                                    'inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none min-w-[18px]',
+                                    activeTopikId === topic.id
+                                        ? 'bg-white/25 text-white'
+                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300',
+                                ]"
+                            >
+                                {{ faqCountByTopicId[topic.id] ?? 0 }}
+                            </span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Tombol Buka/Tutup Semua -->
@@ -176,7 +211,7 @@ const resetAllFilters = () => {
                     v-if="totalFaqsCount > 0"
                     type="button"
                     @click="toggleAll"
-                    class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors self-end sm:self-auto"
+                    class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors self-end sm:self-auto shrink-0"
                 >
                     <ChevronsUpDown class="h-3.5 w-3.5" />
                     {{ openFaqIds.size === totalFaqsCount ? 'Tutup Semua' : 'Buka Semua' }}
@@ -192,9 +227,6 @@ const resetAllFilters = () => {
                 >
                     <!-- Header Topik -->
                     <div class="flex items-center gap-2.5 pb-2 border-b border-slate-200 dark:border-slate-800">
-                        <div class="rounded-lg bg-primary/10 p-1.5 text-primary">
-                            <Layers class="h-4 w-4" />
-                        </div>
                         <div>
                             <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
                                 {{ topic.nama }}
@@ -271,7 +303,7 @@ const resetAllFilters = () => {
             <div class="rounded-2xl border border-blue-100 bg-blue-50/60 p-6 sm:p-8 dark:border-blue-900/40 dark:bg-blue-950/20">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div class="flex items-start gap-3.5">
-                        <div class="rounded-xl bg-blue-600 p-2.5 text-white shadow-md shadow-blue-500/20">
+                        <div class="rounded-xl bg-emerald-600  p-2.5 text-white shadow-md shadow-emerald-500/20">
                             <MessageCircle class="h-6 w-6" />
                         </div>
                         <div>
@@ -284,7 +316,7 @@ const resetAllFilters = () => {
                         </div>
                     </div>
                     <a
-                        href="https://wa.me/6282388986189?text=Halo%20Pak%20Yazid%2C%20saya%20ingin%20bertanya%20seputar%20FAQ%20dan%20sistem%20copytrade%20YZD%20Center."
+                        href="https://wa.me/#?text=Halo%20Pak%20Yazid%2C%20saya%20ingin%20bertanya%20seputar%20FAQ%20dan%20sistem%20copytrade%20YZD%20Center."
                         target="_blank"
                         rel="noopener noreferrer"
                         class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 transition-colors shrink-0"

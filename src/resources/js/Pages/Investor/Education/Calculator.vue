@@ -1,28 +1,22 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import {
     Calculator,
     TrendingUp,
-    Save,
     RotateCcw,
     MessageCircle,
     Info,
-    Calendar,
-    ArrowUpRight,
-    DollarSign,
-    Coins,
-    Sparkles,
-    CheckCircle2,
-    Sliders,
     Wallet,
-    Layers,
     Scale,
-    Percent,
-    ArrowRight,
+    ShieldAlert,
+    ChevronDown,
+    ChevronUp,
+    Sliders,
+    Coins,
+    ArrowUpRight,
 } from 'lucide-vue-next';
 import InvestorLayout from '@/Layouts/InvestorLayout.vue';
-import InvestorBepQuotaCard from '@/Components/Investor/InvestorBepQuotaCard.vue';
 import { Button } from '@/Components/ui/button';
 import { toast } from 'vue-sonner';
 
@@ -36,21 +30,22 @@ const props = defineProps({
 // -----------------------------------------------------------------------------
 // Variabel Input Utama & Opsi Penarikan
 // -----------------------------------------------------------------------------
-const initialCapital = ref(props.presets.default_initial_capital ?? 100);
-const monthlyProfitRate = ref(props.presets.default_monthly_profit_rate ?? 5.0);
-const durationYears = ref(props.presets.default_duration_years ?? 5);
-const exchangeRate = ref(props.presets.default_exchange_rate ?? 16796);
+const initialCapital = ref(Number(props.presets.default_initial_capital ?? 100));
+const monthlyProfitRate = ref(Number(props.presets.default_monthly_profit_rate ?? 5.0));
+const durationYears = ref(Number(props.presets.default_duration_years ?? 5));
+const exchangeRate = ref(Number(props.presets.default_exchange_rate ?? 16796));
 
-// Opsi Penarikan: 'with_wd' (Dengan WD Rutin) vs 'without_wd' (Tanpa WD)
+// Opsi Penarikan: 'with_wd' (Tarik Rutin) vs 'without_wd' (Reinvest Penuh)
 const withdrawalMode = ref('with_wd');
 
-// Tampilan Tab: 'yearly' (Tinjauan Tahunan) vs 'monthly' (Rincian Bulanan)
-const activeViewTab = ref('yearly');
-
-// Filter Tahun pada Rincian Bulanan (misal: 'all', '1', '2', ...)
+// State UI
+const showAdvancedSettings = ref(false);
+const showMonthlyTable = ref(false);
 const selectedYearFilter = ref('all');
 
-// Helper format angka
+// -----------------------------------------------------------------------------
+// Helper Format Angka & Waktu
+// -----------------------------------------------------------------------------
 const formatUSD = (val) => {
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -67,6 +62,16 @@ const formatIDR = (val) => {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
     }).format(val || 0);
+};
+
+const formatCompactUSD = (val) => {
+    if (val >= 1000000) {
+        return `$${(val / 1000000).toFixed(1)}M`;
+    }
+    if (val >= 1000) {
+        return `$${(val / 1000).toFixed(val >= 10000 ? 0 : 1)}K`;
+    }
+    return `$${Math.round(val)}`;
 };
 
 const formattedRateUpdate = computed(() => {
@@ -96,67 +101,18 @@ const applyLiveRate = () => {
     });
 };
 
-// -----------------------------------------------------------------------------
-// Persistensi Preferensi Variabel di LocalStorage
-// -----------------------------------------------------------------------------
-const STORAGE_KEY = 'yzd_projection_calculator_vars_v2';
-
-onMounted(() => {
-    try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            if (parsed.initialCapital !== undefined) initialCapital.value = Number(parsed.initialCapital);
-            if (parsed.monthlyProfitRate !== undefined) monthlyProfitRate.value = Number(parsed.monthlyProfitRate);
-            if (parsed.durationYears !== undefined) durationYears.value = Number(parsed.durationYears);
-            if (parsed.withdrawalMode !== undefined) withdrawalMode.value = parsed.withdrawalMode;
-            if (parsed.hasCustomExchangeRate && parsed.exchangeRate !== undefined) {
-                exchangeRate.value = Number(parsed.exchangeRate);
-            }
-        }
-    } catch {
-        // Fallback default
-    }
-});
-
-const saveVariables = () => {
-    try {
-        const isCustomRate = exchangeRate.value !== props.presets.default_exchange_rate;
-        localStorage.setItem(
-            STORAGE_KEY,
-            JSON.stringify({
-                initialCapital: initialCapital.value,
-                monthlyProfitRate: monthlyProfitRate.value,
-                durationYears: durationYears.value,
-                withdrawalMode: withdrawalMode.value,
-                exchangeRate: exchangeRate.value,
-                hasCustomExchangeRate: isCustomRate,
-            })
-        );
-        toast.success('Variabel Proyeksi Berhasil Disimpan', {
-            description: `Modal: ${formatUSD(initialCapital.value)} | Profit: ${monthlyProfitRate.value}%/bln | ${durationYears.value} Tahun | Opsi: ${withdrawalMode.value === 'with_wd' ? 'Dengan WD' : 'Tanpa WD'}`,
-        });
-    } catch {
-        toast.error('Gagal menyimpan variabel pada peramban.');
-    }
-};
-
 const resetToDefaults = () => {
-    initialCapital.value = props.presets.default_initial_capital ?? 100;
-    monthlyProfitRate.value = props.presets.default_monthly_profit_rate ?? 5.0;
-    durationYears.value = props.presets.default_duration_years ?? 5;
+    initialCapital.value = Number(props.presets.default_initial_capital ?? 100);
+    monthlyProfitRate.value = Number(props.presets.default_monthly_profit_rate ?? 5.0);
+    durationYears.value = Number(props.presets.default_duration_years ?? 5);
     withdrawalMode.value = 'with_wd';
     exchangeRate.value = Number(props.presets.default_exchange_rate ?? 16796);
-    try {
-        localStorage.removeItem(STORAGE_KEY);
-    } catch {
-        // Ignore
-    }
-    toast.info('Variabel dikembalikan ke standar awal ($100, 5%, 5 Tahun, Dengan WD).');
+    selectedYearFilter.value = 'all';
+    toast.info('Kalkulator dikembalikan ke nilai acuan standar ($100, 5%, 5 Tahun, Tarik Rutin).');
 };
 
 // -----------------------------------------------------------------------------
-// ENGINE SIMULASI MATEMATIS FINANSIAL
+// Engine Simulasi Matematis Finansial
 // -----------------------------------------------------------------------------
 const runSimulation = (mode, initModal, rate, totalMonths, kurs) => {
     let currentModal = initModal;
@@ -167,7 +123,9 @@ const runSimulation = (mode, initModal, rate, totalMonths, kurs) => {
 
     const monthlyList = [];
     const yearlyMap = {};
-    let bepMonth = 0;
+
+    let firstMonthWD = 0;
+    let lastMonthWD = 0;
 
     for (let m = 1; m <= totalMonths; m++) {
         const yearNumber = Math.floor((m - 1) / 12) + 1;
@@ -182,28 +140,23 @@ const runSimulation = (mode, initModal, rate, totalMonths, kurs) => {
         let compoundingUSD = 0;
 
         if (mode === 'with_wd') {
-            takenUSD = profit * 0.30;       // 30% Hak Investor ditarik (WD)
-            compoundingUSD = profit * 0.40; // 40% Compounding ke Modal
+            takenUSD = profit * 0.30;       // 30% Hak Investor ditarik (WD rutin bulanan)
+            compoundingUSD = profit * 0.40; // 40% Compounding ke modal
         } else {
             takenUSD = 0;                   // Tanpa WD (0% ditarik)
-            compoundingUSD = profit * 0.70; // 70% Reinvest / Compounding Penuh Hak Investor
+            compoundingUSD = profit * 0.70; // 70% Reinvest penuh ke modal
         }
 
         const takenIDR = takenUSD * kurs;
         const endModal = startModal + compoundingUSD;
 
+        if (m === 1) firstMonthWD = takenUSD;
+        if (m === totalMonths) lastMonthWD = takenUSD;
+
         totalGrossProfit += profit;
         totalTakenUSD += takenUSD;
         totalMasterFeeUSD += masterFeeUSD;
         totalCompoundedUSD += compoundingUSD;
-
-        // Akumulasi keuntungan bersih investor (WD yang sudah diterima + peningkatan modal)
-        const netProfitAccumulated = totalTakenUSD + (endModal - initModal);
-        if (netProfitAccumulated >= initModal && bepMonth === 0) {
-            bepMonth = m;
-        }
-
-        const bepProgressPct = Math.min(100, (netProfitAccumulated / initModal) * 100);
 
         monthlyList.push({
             month: m,
@@ -213,11 +166,7 @@ const runSimulation = (mode, initModal, rate, totalMonths, kurs) => {
             profit,
             takenUSD,
             takenIDR,
-            masterFeeUSD,
-            compoundingUSD,
             endModal,
-            netProfitAccumulated,
-            bepProgressPct,
         });
 
         // Agregasi Tahunan
@@ -225,27 +174,16 @@ const runSimulation = (mode, initModal, rate, totalMonths, kurs) => {
             yearlyMap[yearNumber] = {
                 year: yearNumber,
                 startModal,
-                totalProfit: 0,
-                totalTakenUSD: 0,
-                totalTakenIDR: 0,
-                totalMasterFeeUSD: 0,
-                totalCompoundingUSD: 0,
                 endModal: 0,
-                netProfitAccumulated: 0,
+                accumulatedWD: 0,
             };
         }
-        yearlyMap[yearNumber].totalProfit += profit;
-        yearlyMap[yearNumber].totalTakenUSD += takenUSD;
-        yearlyMap[yearNumber].totalTakenIDR += takenIDR;
-        yearlyMap[yearNumber].totalMasterFeeUSD += masterFeeUSD;
-        yearlyMap[yearNumber].totalCompoundingUSD += compoundingUSD;
         yearlyMap[yearNumber].endModal = endModal;
-        yearlyMap[yearNumber].netProfitAccumulated = netProfitAccumulated;
+        yearlyMap[yearNumber].accumulatedWD = totalTakenUSD;
 
         currentModal = endModal;
     }
 
-    const yearlyList = Object.values(yearlyMap);
     const totalNetFinancialValue = currentModal + totalTakenUSD;
     const multiplier = totalNetFinancialValue / initModal;
 
@@ -261,16 +199,15 @@ const runSimulation = (mode, initModal, rate, totalMonths, kurs) => {
         totalNetFinancialValue,
         multiplier,
         overallGrowthPct: ((currentModal - initModal) / initModal) * 100,
-        totalNetGrowthPct: ((totalNetFinancialValue - initModal) / initModal) * 100,
-        bepMonth: bepMonth || Math.ceil(totalMonths),
-        isBepAchieved: (totalTakenUSD + (currentModal - initModal)) >= initModal,
         monthlyList,
-        yearlyList,
+        yearlyList: Object.values(yearlyMap),
         totalMonths,
+        firstMonthWD,
+        lastMonthWD,
     };
 };
 
-// Kalkulasi Proyeksi Utama & Komparasi Skenario
+// Kalkulasi Simulasi Aktif & Komparasi Skenario
 const simulationData = computed(() => {
     const initModal = Math.max(1, Number(initialCapital.value) || 100);
     const rate = Math.max(0.1, Number(monthlyProfitRate.value) || 5.0) / 100;
@@ -281,7 +218,7 @@ const simulationData = computed(() => {
     // Skenario Aktif
     const active = runSimulation(withdrawalMode.value, initModal, rate, totalMonths, kurs);
 
-    // Skenario Kedua untuk Komparasi Akhir Siklus
+    // Komparasi Alternatif
     const withWd = runSimulation('with_wd', initModal, rate, totalMonths, kurs);
     const withoutWd = runSimulation('without_wd', initModal, rate, totalMonths, kurs);
 
@@ -292,38 +229,11 @@ const simulationData = computed(() => {
             withoutWd,
             capitalDifference: withoutWd.endModal - withWd.endModal,
             wdDifference: withWd.totalTakenUSD - withoutWd.totalTakenUSD,
-            netDifference: withoutWd.totalNetFinancialValue - withWd.totalNetFinancialValue,
         },
     };
 });
 
-// Data Kuota Internet BEP untuk Komponen Visual
-const bepCardData = computed(() => {
-    const sim = simulationData.value;
-    const kurs = Number(exchangeRate.value) || 16796;
-    const init = sim.initialCapital;
-    const totalProfit = sim.totalTakenUSD + (sim.endModal - init);
-    const bepPct = Math.min(100, Math.max(0, (totalProfit / init) * 100));
-
-    return {
-        has_active_copytrade: true,
-        initial_capital: init,
-        initial_capital_idr: init * kurs,
-        total_withdrawn: sim.totalTakenUSD,
-        total_compounded: sim.totalCompoundedUSD,
-        total_profit_accumulated: totalProfit,
-        total_profit_idr: totalProfit * kurs,
-        bep_progress_pct: bepPct,
-        remaining_capital_to_bep: Math.max(0, init - totalProfit),
-        months_to_bep: sim.bepMonth,
-        remaining_months_to_bep: Math.max(0, sim.bepMonth - 1),
-        months_active: 1,
-        join_date_formatted: 'Simulasi Awal Join',
-        is_bep_achieved: sim.isBepAchieved,
-    };
-});
-
-// Filter Bulanan Sesuai Pilihan Tab Tahun
+// Filter Bulanan Sesuai Pilihan Dropdown Tahun
 const filteredMonthlyList = computed(() => {
     if (selectedYearFilter.value === 'all') {
         return simulationData.value.monthlyList;
@@ -332,138 +242,272 @@ const filteredMonthlyList = computed(() => {
     return simulationData.value.monthlyList.filter((m) => m.yearNumber === yNum);
 });
 
+// -----------------------------------------------------------------------------
+// Generator Data Grafik Garis SVG
+// -----------------------------------------------------------------------------
+const chartData = computed(() => {
+    const sim = simulationData.value;
+    const totalMonths = sim.totalMonths;
+
+    // Tentukan nilai maksimum untuk skala vertikal
+    const maxVal = Math.max(
+        sim.endModal,
+        sim.totalNetFinancialValue,
+        sim.initialCapital,
+        1
+    ) * 1.08;
+
+    const width = 800;
+    const height = 260;
+    const padding = { top: 20, right: 35, bottom: 35, left: 65 };
+    const chartW = width - padding.left - padding.right;
+    const chartH = height - padding.top - padding.bottom;
+
+    // Sampling titik grafik agar mulus dan ringan
+    // Jika <= 36 bulan: ambil per bulan. Jika > 36 bulan: ambil per 3-6 bulan + titik akhir tiap tahun
+    const points = [];
+    points.push({
+        month: 0,
+        label: 'Awal',
+        modal: sim.initialCapital,
+        wdAccum: 0,
+        x: padding.left,
+        yModal: padding.top + chartH - (sim.initialCapital / maxVal) * chartH,
+        yWd: padding.top + chartH,
+    });
+
+    let runningAccumWd = 0;
+    const step = totalMonths <= 36 ? 1 : Math.ceil(totalMonths / 40);
+
+    for (let i = 0; i < sim.monthlyList.length; i++) {
+        const item = sim.monthlyList[i];
+        runningAccumWd += item.takenUSD;
+
+        const isLastMonth = i === sim.monthlyList.length - 1;
+        const isYearEnd = item.month % 12 === 0;
+        const isSampled = item.month % step === 0;
+
+        if (isSampled || isYearEnd || isLastMonth) {
+            const x = padding.left + (item.month / totalMonths) * chartW;
+            const yModal = padding.top + chartH - (item.endModal / maxVal) * chartH;
+            const yWd = padding.top + chartH - (runningAccumWd / maxVal) * chartH;
+
+            points.push({
+                month: item.month,
+                label: `Bln ${item.month}`,
+                modal: item.endModal,
+                wdAccum: runningAccumWd,
+                x,
+                yModal,
+                yWd,
+            });
+        }
+    }
+
+    // Path SVG untuk Modal di Broker
+    const modalPath = points.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.yModal.toFixed(1)}`).join(' ');
+    // Area fill di bawah garis Modal
+    const lastP = points[points.length - 1];
+    const modalAreaPath = `${modalPath} L ${lastP.x.toFixed(1)} ${(padding.top + chartH).toFixed(1)} L ${padding.left.toFixed(1)} ${(padding.top + chartH).toFixed(1)} Z`;
+
+    // Path SVG untuk Akumulasi WD (jika with_wd)
+    const wdPath = points.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.yWd.toFixed(1)}`).join(' ');
+    const wdAreaPath = `${wdPath} L ${lastP.x.toFixed(1)} ${(padding.top + chartH).toFixed(1)} L ${padding.left.toFixed(1)} ${(padding.top + chartH).toFixed(1)} Z`;
+
+    // Sumbu horizontal grid
+    const yGridTicks = [0, 0.25, 0.5, 0.75, 1].map((pct) => {
+        const val = maxVal * pct;
+        const y = padding.top + chartH - pct * chartH;
+        return {
+            y,
+            val,
+            label: formatCompactUSD(val),
+        };
+    });
+
+    // Milestone waktu sumbu X
+    const years = durationYears.value;
+    const xTimeTicks = [];
+    xTimeTicks.push({
+        x: padding.left,
+        label: 'Awal',
+    });
+
+    const yearInterval = years <= 5 ? 1 : years <= 15 ? 2 : 5;
+    for (let y = yearInterval; y <= years; y += yearInterval) {
+        const monthIndex = y * 12;
+        const x = padding.left + (monthIndex / totalMonths) * chartW;
+        xTimeTicks.push({
+            x,
+            label: `Thn ${y}`,
+        });
+    }
+
+    // Milestone cards ringkas untuk mobile
+    const midYear = Math.max(1, Math.floor(years / 2));
+    const year1Data = sim.yearlyList[0];
+    const midYearData = sim.yearlyList[midYear - 1] || sim.yearlyList[0];
+    const endYearData = sim.yearlyList[sim.yearlyList.length - 1];
+
+    return {
+        width,
+        height,
+        padding,
+        chartW,
+        chartH,
+        maxVal,
+        points,
+        modalPath,
+        modalAreaPath,
+        wdPath,
+        wdAreaPath,
+        yGridTicks,
+        xTimeTicks,
+        lastPoint: lastP,
+        milestones: [
+            {
+                title: 'Tahun ke-1',
+                modal: year1Data?.endModal ?? 0,
+                wdAccum: year1Data?.accumulatedWD ?? 0,
+            },
+            ...(years > 2 ? [{
+                title: `Tahun ke-${midYear}`,
+                modal: midYearData?.endModal ?? 0,
+                wdAccum: midYearData?.accumulatedWD ?? 0,
+            }] : []),
+            {
+                title: `Tahun ke-${years} (Akhir)`,
+                modal: endYearData?.endModal ?? 0,
+                wdAccum: endYearData?.accumulatedWD ?? 0,
+            },
+        ],
+    };
+});
+
 // Tautan Konsultasi WhatsApp Resmi
 const whatsappConsultUrl = computed(() => {
     const init = formatUSD(initialCapital.value);
     const end = formatUSD(simulationData.value.endModal);
     const rate = monthlyProfitRate.value;
     const dur = durationYears.value;
-    const modeText = withdrawalMode.value === 'with_wd' ? 'Dengan WD Rutin' : 'Tanpa WD (Reinvest)';
-    const msg = `Halo Pak Yazid, saya telah mencoba simulasi kalkulator proyeksi YZD Center dengan modal awal ${init} (${modeText}) dan target profit ${rate}%/bulan selama ${dur} tahun (estimasi akhir ${end}). Saya ingin konsultasi lebih lanjut.`;
+    const modeText = withdrawalMode.value === 'with_wd' ? 'Tarik Rutin Tiap Bulan' : 'Reinvest Penuh (Tanpa WD)';
+    const msg = `Halo Pak Yazid, saya telah mencoba simulasi kalkulator proyeksi YZD Center dengan modal awal ${init} (${modeText}) dan target profit ${rate}%/bulan selama ${dur} tahun (estimasi modal akhir ${end}). Saya ingin konsultasi lebih lanjut mengenai registrasi akun dan alokasi copytrade.`;
     return `https://wa.me/6282388986189?text=${encodeURIComponent(msg)}`;
 });
 </script>
 
 <template>
     <InvestorLayout
-        title="Kalkulator Proyeksi Capital Gain & Balik Modal (BEP)"
-        subtitle="Hitung pertumbuhan portofolio modal, pantau estimasi waktu Balik Modal (BEP 100%), serta bandingkan skenario Dengan WD Rutin vs Tanpa WD."
+        title="Kalkulator Proyeksi Pertumbuhan Modal"
+        subtitle="Simulasikan estimasi pertumbuhan modal di broker dan arus kas penarikan bulanan secara transparan."
         :breadcrumbs="[
             { label: 'Menu Utama' },
             { label: 'Kalkulator Proyeksi' }
         ]"
     >
         <template #header-actions>
-            <div class="flex items-center gap-2 self-start sm:self-center">
-                <Button
-                    variant="outline"
-                    size="sm"
-                    class="gap-1.5 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 min-h-[36px] cursor-pointer"
-                    @click="resetToDefaults"
-                >
-                    <RotateCcw class="h-4 w-4" />
-                    Reset
-                </Button>
-                <Button
-                    variant="default"
-                    size="sm"
-                    class="gap-1.5 bg-primary-600 hover:bg-primary-700 text-white shadow-xs min-h-[36px] cursor-pointer"
-                    @click="saveVariables"
-                >
-                    <Save class="h-4 w-4" />
-                    Simpan Variabel
-                </Button>
-            </div>
+            <Button
+                variant="outline"
+                size="sm"
+                class="gap-1.5 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 min-h-[36px] cursor-pointer"
+                @click="resetToDefaults"
+            >
+                <RotateCcw class="h-4 w-4" />
+                Reset Nilai Acuan
+            </Button>
         </template>
 
         <div class="space-y-6">
 
-            <!-- 1. WIDGET KUOTA BALIK MODAL (BEP) ALA KUOTA INTERNET -->
-            <InvestorBepQuotaCard
-                :bep-data="bepCardData"
-                :show-calculator-link="false"
-                title="Progress Balik Modal (BEP) — Tampilan Kuota Internet"
-                :subtitle="`Dihitung dari rata-rata profit ${monthlyProfitRate}%/bulan sejak awal join, hingga 100% modal kembali (mencakup akumulasi profit yang sudah di-WD + penambahan compounding modal).`"
-            />
-
-            <!-- 2. PANEL PENGATURAN VARIABEL PROYEKSI & OPSI PENARIKAN (CAPITAL GAIN) -->
+            <!-- 1. PANEL INPUT RINGKAS (MODAL, PROFIT, DURASI & TOGGLE STRATEGI) -->
             <div class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-5">
-                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <Sliders class="h-4 w-4 text-primary" />
-                        Pengaturan Variabel Simulasi & Opsi Penarikan
-                    </h3>
-                    <span class="text-xs text-muted-foreground font-medium">
-                        Model: {{ withdrawalMode === 'with_wd' ? 'Dengan WD Rutin (30%)' : 'Tanpa WD (100% Reinvest)' }}
-                    </span>
-                </div>
-
-                <!-- Opsi Penarikan (Capital Gain): Dengan WD vs Tanpa WD -->
+                
+                <!-- Toggle Mode: Tarik Rutin vs Reinvest -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
-                        Opsi Penarikan Profit Bulanan (Capital Gain Strategy):
-                    </label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <!-- Opsi 1: Dengan WD Rutin -->
-                        <div
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="text-xs font-bold text-slate-700 dark:text-slate-300">
+                            Pilihan Strategi Arus Kas:
+                        </label>
+                        <span class="text-[11px] text-muted-foreground font-medium">
+                            {{ withdrawalMode === 'with_wd' ? '30% WD Rutin • 40% Compounding' : '0% WD • 70% Reinvest Penuh' }}
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <button
+                            type="button"
                             @click="withdrawalMode = 'with_wd'"
                             :class="[
-                                'relative rounded-xl border-2 p-4 cursor-pointer transition-all flex items-start gap-3.5',
+                                'flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all cursor-pointer min-h-[44px]',
                                 withdrawalMode === 'with_wd'
                                     ? 'border-sky-500 bg-sky-50/60 dark:border-sky-500 dark:bg-sky-950/30'
-                                    : 'border-slate-200 hover:border-slate-300 bg-white dark:border-slate-800 dark:bg-slate-800/50',
+                                    : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-800/40',
                             ]"
                         >
-                            <div class="mt-0.5 rounded-lg p-2 bg-sky-500/10 text-sky-600 dark:text-sky-400">
-                                <Wallet class="w-5 h-5" />
+                            <div
+                                :class="[
+                                    'rounded-lg p-2 shrink-0',
+                                    withdrawalMode === 'with_wd'
+                                        ? 'bg-sky-500 text-white'
+                                        : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                                ]"
+                            >
+                                <Wallet class="w-4 h-4" />
                             </div>
-                            <div class="space-y-1">
-                                <div class="flex items-center gap-2">
-                                    <h4 class="text-sm font-bold text-slate-900 dark:text-white">
-                                        Dengan WD Rutin (30%/bln)
-                                    </h4>
-                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-700 dark:text-sky-300">
-                                        Rekomendasi Cash Flow
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                                        Tarik Rutin Tiap Bulan
+                                    </span>
+                                    <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-sky-500/15 text-sky-700 dark:text-sky-300">
+                                        Cash Flow
                                     </span>
                                 </div>
-                                <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                                    Investor menarik profit rutin 30% tiap bulan ke rekening, 40% compounding memperkuat modal, dan 30% master fee.
+                                <p class="text-[11px] text-muted-foreground truncate">
+                                    30% profit ditarik ke rekening, 40% compounding ke modal
                                 </p>
                             </div>
-                        </div>
+                        </button>
 
-                        <!-- Opsi 2: Tanpa WD -->
-                        <div
+                        <button
+                            type="button"
                             @click="withdrawalMode = 'without_wd'"
                             :class="[
-                                'relative rounded-xl border-2 p-4 cursor-pointer transition-all flex items-start gap-3.5',
+                                'flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all cursor-pointer min-h-[44px]',
                                 withdrawalMode === 'without_wd'
                                     ? 'border-purple-500 bg-purple-50/60 dark:border-purple-500 dark:bg-purple-950/30'
-                                    : 'border-slate-200 hover:border-slate-300 bg-white dark:border-slate-800 dark:bg-slate-800/50',
+                                    : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-800/40',
                             ]"
                         >
-                            <div class="mt-0.5 rounded-lg p-2 bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                                <TrendingUp class="w-5 h-5" />
+                            <div
+                                :class="[
+                                    'rounded-lg p-2 shrink-0',
+                                    withdrawalMode === 'without_wd'
+                                        ? 'bg-purple-500 text-white'
+                                        : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                                ]"
+                            >
+                                <TrendingUp class="w-4 h-4" />
                             </div>
-                            <div class="space-y-1">
-                                <div class="flex items-center gap-2">
-                                    <h4 class="text-sm font-bold text-slate-900 dark:text-white">
-                                        Tanpa WD (100% Compounding)
-                                    </h4>
-                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300">
-                                        Maksimum Capital Gain
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                                        Reinvest Penuh (Tanpa WD)
+                                    </span>
+                                    <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-700 dark:text-purple-300">
+                                        Maksimal
                                     </span>
                                 </div>
-                                <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                                    0% penarikan. Seluruh 70% hak profit investor di-reinvest bergulir ke modal untuk akselerasi bola salju maksimal.
+                                <p class="text-[11px] text-muted-foreground truncate">
+                                    100% hak investor digulung kembali ke modal
                                 </p>
                             </div>
-                        </div>
+                        </button>
                     </div>
                 </div>
 
-                <!-- Baris Input Parameter -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                <!-- Grid Input: Modal Awal, Profit Bulanan, Durasi -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
                     <!-- 1. Modal Awal -->
                     <div>
                         <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -486,7 +530,7 @@ const whatsappConsultUrl = computed(() => {
                                 type="button"
                                 @click="initialCapital = preset"
                                 :class="[
-                                    'rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-colors cursor-pointer',
+                                    'rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-colors cursor-pointer min-h-[26px]',
                                     initialCapital === preset
                                         ? 'bg-primary text-primary-foreground font-bold'
                                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
@@ -497,10 +541,10 @@ const whatsappConsultUrl = computed(() => {
                         </div>
                     </div>
 
-                    <!-- 2. Rata-Rata Profit Bulanan (%) -->
+                    <!-- 2. Target Profit Bulanan (%) -->
                     <div>
                         <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                            Rata-Rata Profit Bulanan (%)
+                            Asumsi Profit Bulanan (%)
                         </label>
                         <div class="relative">
                             <input
@@ -520,7 +564,7 @@ const whatsappConsultUrl = computed(() => {
                                 type="button"
                                 @click="monthlyProfitRate = r"
                                 :class="[
-                                    'rounded-md px-2 py-0.5 text-[10px] font-medium transition-colors cursor-pointer',
+                                    'rounded-md px-2 py-0.5 text-[10px] font-medium transition-colors cursor-pointer min-h-[26px]',
                                     monthlyProfitRate === r
                                         ? 'bg-primary text-primary-foreground font-bold'
                                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
@@ -531,7 +575,7 @@ const whatsappConsultUrl = computed(() => {
                         </div>
                     </div>
 
-                    <!-- 3. Durasi Proyeksi (Tahun) - Bebas hingga 30 Tahun (contoh 20 tahun) -->
+                    <!-- 3. Durasi Proyeksi (Tahun) -->
                     <div>
                         <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                             Durasi Proyeksi (Tahun)
@@ -549,499 +593,506 @@ const whatsappConsultUrl = computed(() => {
                         </div>
                         <div class="mt-2 flex flex-wrap gap-1">
                             <button
-                                v-for="y in [3, 5, 10, 20, 30]"
+                                v-for="y in [1, 3, 5, 10, 20, 30]"
                                 :key="y"
                                 type="button"
                                 @click="durationYears = y"
                                 :class="[
-                                    'rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-colors cursor-pointer',
+                                    'rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-colors cursor-pointer min-h-[26px]',
                                     durationYears === y
                                         ? 'bg-primary text-primary-foreground font-bold'
                                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
                                 ]"
                             >
-                                {{ y }} Thn {{ y === 20 ? '(Contoh)' : '' }}
+                                {{ y }} Thn
                             </button>
                         </div>
                     </div>
+                </div>
 
-                    <!-- 4. Kurs Acuan Rupiah -->
-                    <div>
-                        <div class="flex items-center justify-between mb-1">
-                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                                Kurs Acuan (Rp / USD)
-                            </label>
-                            <button
-                                v-if="Number(exchangeRate) !== Number(presets.default_exchange_rate)"
-                                type="button"
-                                @click="applyLiveRate"
-                                class="text-[10px] text-primary hover:underline font-semibold cursor-pointer"
-                            >
-                                Reset Kurs
-                            </button>
+                <!-- Pengaturan Lanjutan (Kurs Rp / USD - Collapsible) -->
+                <div class="pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                        type="button"
+                        @click="showAdvancedSettings = !showAdvancedSettings"
+                        class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer min-h-[36px]"
+                    >
+                        <Sliders class="w-3.5 h-3.5" />
+                        <span>Pengaturan Lanjutan: Kurs Acuan Rupiah (Rp / USD)</span>
+                        <ChevronDown v-if="!showAdvancedSettings" class="w-3.5 h-3.5 ml-0.5" />
+                        <ChevronUp v-else class="w-3.5 h-3.5 ml-0.5" />
+                    </button>
+
+                    <div v-show="showAdvancedSettings" class="mt-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 space-y-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="max-w-xs">
+                                <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                    Kurs Acuan (Rp per 1 USD)
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rp</span>
+                                    <input
+                                        v-model.number="exchangeRate"
+                                        type="number"
+                                        min="10000"
+                                        step="50"
+                                        class="w-full rounded-lg border border-slate-300 py-1.5 pl-8 pr-3 text-xs font-bold text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white font-mono"
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <Button
+                                    v-if="Number(exchangeRate) !== Number(presets.default_exchange_rate)"
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    @click="applyLiveRate"
+                                    class="text-xs min-h-[32px] cursor-pointer"
+                                >
+                                    Gunakan Kurs Pasar Terkini
+                                </Button>
+                            </div>
                         </div>
-                        <div class="relative">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rp</span>
-                            <input
-                                v-model.number="exchangeRate"
-                                type="number"
-                                min="10000"
-                                step="50"
-                                class="w-full rounded-xl border border-slate-300 py-2.5 pl-8 pr-3 text-sm font-bold text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white font-mono"
-                            />
-                        </div>
-                        <div class="mt-2 flex items-center gap-1.5 text-[10px]">
+
+                        <div class="flex items-center gap-2 text-[11px] text-muted-foreground">
                             <span
                                 :class="[
                                     'inline-block h-2 w-2 rounded-full shrink-0',
-                                    presets.exchange_rate_meta?.is_live ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+                                    presets.exchange_rate_meta?.is_live ? 'bg-emerald-500' : 'bg-amber-500'
                                 ]"
                             ></span>
-                            <span class="text-slate-500 dark:text-slate-400 leading-tight">
-                                {{ presets.exchange_rate_meta?.is_live ? 'Live Pasar Tengah (Frankfurter API)' : 'Kurs Cadangan' }}
-                                • {{ formattedRateUpdate }}
+                            <span>
+                                {{ presets.exchange_rate_meta?.is_live ? 'Pasar Tengah (Frankfurter API)' : 'Kurs Cadangan' }}
+                                • Pembaruan: {{ formattedRateUpdate }}
                             </span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 3. KARTU RINGKASAN PROYEKSI EKSEKUTIF (SUMMARY CARDS) -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- 1. Modal Awal -->
-                <div class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-                    <span class="text-xs font-medium text-muted-foreground block">
-                        Modal Awal Pokok
-                    </span>
-                    <p class="mt-1 text-lg sm:text-2xl font-black text-foreground font-mono">
-                        {{ formatUSD(simulationData.initialCapital) }}
-                    </p>
-                    <span class="text-[11px] text-muted-foreground block mt-0.5">
-                        {{ formatIDR(simulationData.initialCapital * exchangeRate) }}
-                    </span>
-                </div>
-
-                <!-- 2. Modal Akhir (Capital di Akhir Siklus) -->
-                <div class="rounded-2xl border border-blue-200 bg-blue-50/50 p-4 sm:p-5 shadow-xs dark:border-blue-900/50 dark:bg-blue-950/30">
-                    <span class="text-xs font-bold text-blue-800 dark:text-blue-300 block">
-                        Capital di Akhir Siklus (Thn ke-{{ durationYears }})
-                    </span>
-                    <p class="mt-1 text-lg sm:text-2xl font-black text-blue-700 dark:text-blue-400 font-mono">
-                        {{ formatUSD(simulationData.endModal) }}
-                    </p>
-                    <span class="text-[11px] text-blue-600/90 dark:text-blue-400/90 block mt-0.5 font-medium">
-                        Tumbuh +{{ simulationData.overallGrowthPct.toLocaleString('id-ID', { maximumFractionDigits: 1 }) }}%
-                    </span>
-                </div>
-
-                <!-- 3. Total Hak Investor (WD Masuk Rekening) -->
-                <div class="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 sm:p-5 shadow-xs dark:border-emerald-900/50 dark:bg-emerald-950/30">
-                    <span class="text-xs font-bold text-emerald-800 dark:text-emerald-300 block">
-                        {{ withdrawalMode === 'with_wd' ? 'Total Cash WD Masuk Rekening' : 'Penarikan Tunai (Tanpa WD)' }}
-                    </span>
-                    <p class="mt-1 text-lg sm:text-2xl font-black text-emerald-700 dark:text-emerald-400 font-mono">
-                        {{ formatUSD(simulationData.totalTakenUSD) }}
-                    </p>
-                    <span class="text-[11px] text-emerald-600/90 dark:text-emerald-400/90 block mt-0.5 font-medium">
-                        {{ withdrawalMode === 'with_wd' ? formatIDR(simulationData.totalTakenIDR) : '100% dialokasikan compounding' }}
-                    </span>
-                </div>
-
-                <!-- 4. Total Nilai Kekayaan Finansial Akhir -->
-                <div class="rounded-2xl border border-purple-200 bg-purple-50/50 p-4 sm:p-5 shadow-xs dark:border-purple-900/50 dark:bg-purple-950/30">
-                    <span class="text-xs font-bold text-purple-800 dark:text-purple-300 block">
-                        Total Nilai Kekayaan (Capital + WD)
-                    </span>
-                    <p class="mt-1 text-lg sm:text-2xl font-black text-purple-700 dark:text-purple-400 font-mono">
-                        {{ formatUSD(simulationData.totalNetFinancialValue) }}
-                    </p>
-                    <span class="text-[11px] text-purple-600/90 dark:text-purple-400/90 block mt-0.5 font-medium">
-                        Kelipatan: {{ simulationData.multiplier.toFixed(1) }}x lipat modal awal
-                    </span>
-                </div>
-            </div>
-
-            <!-- 4. PROYEKSI KEUNTUNGAN / CAPITAL DI AKHIR SIKLUS (KOMPARASI DENGAN WD VS TANPA WD) -->
-            <div class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-5">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-                    <div class="space-y-1">
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                            <Scale class="w-3.5 h-3.5" />
-                            Komparasi Akhir Siklus (Tahun ke-{{ durationYears }})
+            <!-- 2. KARTU HASIL (HERO METRICS: 4 METRIK UTAMA) -->
+            <div class="space-y-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                    
+                    <!-- 1. Modal Akhir di Broker -->
+                    <div class="rounded-2xl border border-blue-200 bg-blue-50/40 p-4 sm:p-5 shadow-xs dark:border-blue-900/50 dark:bg-blue-950/25">
+                        <span class="text-xs font-bold text-blue-800 dark:text-blue-300 block">
+                            Modal Akhir di Broker (Thn ke-{{ durationYears }})
                         </span>
-                        <h3 class="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                            Proyeksi Keuntungan & Capital di Akhir Siklus
-                        </h3>
-                        <p class="text-xs text-muted-foreground leading-relaxed">
-                            Bandingkan hasil akumulasi modal dan arus kas jika Anda melakukan penarikan rutin tiap bulan vs tanpa penarikan (reinvest penuh).
+                        <p class="mt-1 text-xl sm:text-2xl font-black text-blue-700 dark:text-blue-400 font-mono">
+                            {{ formatUSD(simulationData.endModal) }}
                         </p>
+                        <span class="text-xs text-blue-600/90 dark:text-blue-400/90 block mt-0.5 font-medium">
+                            {{ formatIDR(simulationData.endModal * exchangeRate) }}
+                        </span>
+                        <div class="mt-2 pt-2 border-t border-blue-200/60 dark:border-blue-900/40 text-[11px] font-semibold text-blue-800 dark:text-blue-300">
+                            Peningkatan Capital: +{{ simulationData.overallGrowthPct.toLocaleString('id-ID', { maximumFractionDigits: 1 }) }}%
+                        </div>
                     </div>
 
-                    <div class="text-right">
-                        <span class="text-xs text-muted-foreground block">Durasi Siklus:</span>
-                        <span class="text-base font-black text-foreground font-mono">{{ durationYears }} Tahun ({{ durationYears * 12 }} Bulan)</span>
-                    </div>
-                </div>
-
-                <!-- Grid Komparasi Side-by-Side -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <!-- Skenario A: Dengan WD Rutin Sebagian Tiap Bulan -->
-                    <div
-                        :class="[
-                            'rounded-xl border-2 p-5 space-y-4 transition-all',
-                            withdrawalMode === 'with_wd'
-                                ? 'border-sky-500 bg-sky-50/40 dark:border-sky-500 dark:bg-sky-950/20 shadow-xs'
-                                : 'border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/30',
-                        ]"
-                    >
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2">
-                                <div class="rounded-lg p-2 bg-sky-500/10 text-sky-600 dark:text-sky-400">
-                                    <Wallet class="w-4 h-4" />
-                                </div>
-                                <div>
-                                    <h4 class="text-sm font-bold text-slate-900 dark:text-white">
-                                        Skenario A: Dengan WD Rutin
-                                    </h4>
-                                    <span class="text-[10px] text-muted-foreground">30% WD • 40% Compounding • 30% Master Fee</span>
-                                </div>
-                            </div>
-                            <span
-                                v-if="withdrawalMode === 'with_wd'"
-                                class="inline-flex items-center gap-1 text-[11px] font-bold text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-900/60 px-2 py-0.5 rounded-full"
-                            >
-                                <CheckCircle2 class="w-3 h-3" /> Pilihan Aktif
+                    <!-- 2. Cash WD per Bulan (Arus Kas Masuk Rekening) -->
+                    <div class="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4 sm:p-5 shadow-xs dark:border-emerald-900/50 dark:bg-emerald-950/25">
+                        <span class="text-xs font-bold text-emerald-800 dark:text-emerald-300 block">
+                            {{ withdrawalMode === 'with_wd' ? 'Estimasi Cash WD per Bulan' : 'Penarikan Tunai Rutin' }}
+                        </span>
+                        <template v-if="withdrawalMode === 'with_wd'">
+                            <p class="mt-1 text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-400 font-mono">
+                                {{ formatUSD(simulationData.firstMonthWD) }}
+                                <span class="text-xs font-medium text-emerald-600/80 dark:text-emerald-400/80">/ bln</span>
+                            </p>
+                            <span class="text-xs text-emerald-600/90 dark:text-emerald-400/90 block mt-0.5 font-medium">
+                                {{ formatIDR(simulationData.firstMonthWD * exchangeRate) }} / bln di awal
                             </span>
-                        </div>
-
-                        <div class="space-y-3 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 text-xs">
-                            <div class="flex justify-between items-center">
-                                <span class="text-muted-foreground">Modal Akhir di Broker:</span>
-                                <span class="font-bold text-foreground font-mono text-sm">
-                                    {{ formatUSD(simulationData.comparison.withWd.endModal) }}
-                                </span>
+                            <div class="mt-2 pt-2 border-t border-emerald-200/60 dark:border-emerald-900/40 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+                                Total Masuk Rekening: {{ formatUSD(simulationData.totalTakenUSD) }}
                             </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-muted-foreground">Total Cash Masuk Rekening (WD):</span>
-                                <span class="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-sm">
-                                    {{ formatUSD(simulationData.comparison.withWd.totalTakenUSD) }}
-                                </span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-muted-foreground">Total Nilai Finansial (Modal + WD):</span>
-                                <span class="font-black text-purple-700 dark:text-purple-400 font-mono text-sm">
-                                    {{ formatUSD(simulationData.comparison.withWd.totalNetFinancialValue) }}
-                                </span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-muted-foreground">Waktu Balik Modal (BEP 100%):</span>
-                                <span class="font-bold text-sky-700 dark:text-sky-400 font-mono">
-                                    Bulan ke-{{ simulationData.comparison.withWd.bepMonth }} (~{{ (simulationData.comparison.withWd.bepMonth / 12).toFixed(1) }} Tahun)
-                                </span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-muted-foreground">Kelipatan Modal Awal:</span>
-                                <span class="font-extrabold text-foreground font-mono">
-                                    {{ simulationData.comparison.withWd.multiplier.toFixed(1) }}x lipat
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="p-3 rounded-lg bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400">
-                            <strong>Kelebihan Skenario A:</strong> Menyediakan pendapatan pasif rutin bulanan ke rekening bank untuk kebutuhan hidup, sementara modal tetap berkembang aman.
-                        </div>
-                    </div>
-
-                    <!-- Skenario B: Tanpa WD (Full Compounding / Reinvest) -->
-                    <div
-                        :class="[
-                            'rounded-xl border-2 p-5 space-y-4 transition-all',
-                            withdrawalMode === 'without_wd'
-                                ? 'border-purple-500 bg-purple-50/40 dark:border-purple-500 dark:bg-purple-950/20 shadow-xs'
-                                : 'border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/30',
-                        ]"
-                    >
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2">
-                                <div class="rounded-lg p-2 bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                                    <TrendingUp class="w-4 h-4" />
-                                </div>
-                                <div>
-                                    <h4 class="text-sm font-bold text-slate-900 dark:text-white">
-                                        Skenario B: Tanpa WD (Reinvest)
-                                    </h4>
-                                    <span class="text-[10px] text-muted-foreground">0% WD • 70% Compounding • 30% Master Fee</span>
-                                </div>
-                            </div>
-                            <span
-                                v-if="withdrawalMode === 'without_wd'"
-                                class="inline-flex items-center gap-1 text-[11px] font-bold text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/60 px-2 py-0.5 rounded-full"
-                            >
-                                <CheckCircle2 class="w-3 h-3" /> Pilihan Aktif
+                        </template>
+                        <template v-else>
+                            <p class="mt-1 text-xl sm:text-2xl font-black text-slate-500 dark:text-slate-400 font-mono">
+                                $0.00
+                            </p>
+                            <span class="text-xs text-muted-foreground block mt-0.5 font-medium">
+                                Tidak ada penarikan rutin
                             </span>
-                        </div>
+                            <div class="mt-2 pt-2 border-t border-emerald-200/60 dark:border-emerald-900/40 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+                                100% Hak profit investor digulung ke modal
+                            </div>
+                        </template>
+                    </div>
 
-                        <div class="space-y-3 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 text-xs">
-                            <div class="flex justify-between items-center">
-                                <span class="text-muted-foreground">Modal Akhir di Broker:</span>
-                                <span class="font-bold text-foreground font-mono text-sm">
-                                    {{ formatUSD(simulationData.comparison.withoutWd.endModal) }}
-                                </span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-muted-foreground">Total Cash Masuk Rekening (WD):</span>
-                                <span class="font-bold text-slate-400 font-mono text-sm">
-                                    $0.00 (Tidak ditarik)
-                                </span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-muted-foreground">Total Nilai Finansial (Modal + WD):</span>
-                                <span class="font-black text-purple-700 dark:text-purple-400 font-mono text-sm">
-                                    {{ formatUSD(simulationData.comparison.withoutWd.totalNetFinancialValue) }}
-                                </span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-muted-foreground">Waktu Balik Modal (BEP 100%):</span>
-                                <span class="font-bold text-purple-700 dark:text-purple-400 font-mono">
-                                    Bulan ke-{{ simulationData.comparison.withoutWd.bepMonth }} (~{{ (simulationData.comparison.withoutWd.bepMonth / 12).toFixed(1) }} Tahun)
-                                </span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-muted-foreground">Kelipatan Modal Awal:</span>
-                                <span class="font-extrabold text-foreground font-mono">
-                                    {{ simulationData.comparison.withoutWd.multiplier.toFixed(1) }}x lipat
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="p-3 rounded-lg bg-white dark:bg-slate-900 border border-purple-100 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400">
-                            <strong>Kelebihan Skenario B:</strong> Sangat ideal untuk dana pensiun jangka panjang (10-20 tahun), di mana bunga majemuk melipatgandakan modal hingga berlipat ganda maksimal.
+                    <!-- 3. Total Nilai Finansial (Modal + Seluruh WD) -->
+                    <div class="rounded-2xl border border-purple-200 bg-purple-50/40 p-4 sm:p-5 shadow-xs dark:border-purple-900/50 dark:bg-purple-950/25">
+                        <span class="text-xs font-bold text-purple-800 dark:text-purple-300 block">
+                            Total Nilai Finansial (Capital + WD)
+                        </span>
+                        <p class="mt-1 text-xl sm:text-2xl font-black text-purple-700 dark:text-purple-400 font-mono">
+                            {{ formatUSD(simulationData.totalNetFinancialValue) }}
+                        </p>
+                        <span class="text-xs text-purple-600/90 dark:text-purple-400/90 block mt-0.5 font-medium">
+                            {{ formatIDR(simulationData.totalNetFinancialValue * exchangeRate) }}
+                        </span>
+                        <div class="mt-2 pt-2 border-t border-purple-200/60 dark:border-purple-900/40 text-[11px] font-semibold text-purple-800 dark:text-purple-300">
+                            Modal akhir ditambah seluruh akumulasi WD
                         </div>
                     </div>
+
+                    <!-- 4. Kelipatan Modal Awal -->
+                    <div class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                            Kelipatan Portofolio
+                        </span>
+                        <p class="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
+                            {{ simulationData.multiplier.toFixed(1) }}x
+                            <span class="text-xs font-medium text-muted-foreground">lipat modal</span>
+                        </p>
+                        <span class="text-xs text-muted-foreground block mt-0.5 font-medium">
+                            Dari modal awal {{ formatUSD(simulationData.initialCapital) }}
+                        </span>
+                        <div class="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                            Periode simulasi {{ durationYears }} tahun ({{ durationYears * 12 }} bulan)
+                        </div>
+                    </div>
+
                 </div>
 
-                <!-- Selisih Pertumbuhan Finansial -->
-                <div class="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-4 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                    <div class="space-y-0.5">
-                        <span class="font-bold text-foreground">Selisih Modal Akhir di Broker (Tanpa WD vs Dengan WD):</span>
-                        <p class="text-muted-foreground">
-                            Tanpa WD menghasilkan modal akhir lebih besar sebesar <strong class="text-purple-600 dark:text-purple-400 font-mono">{{ formatUSD(simulationData.comparison.capitalDifference) }}</strong>.
-                        </p>
-                    </div>
-                    <div class="space-y-0.5 text-right sm:text-right">
-                        <span class="font-bold text-foreground">Total Cash Ditarik pada Opsi WD:</span>
-                        <p class="text-emerald-600 dark:text-emerald-400 font-bold font-mono">
-                            +{{ formatUSD(simulationData.comparison.wdDifference) }} telah dinikmati
-                        </p>
-                    </div>
-                </div>
+                <!-- Disclaimer 1 Baris Dekat Hasil -->
+                <p class="text-xs text-muted-foreground flex items-center gap-1.5 px-1 pt-1">
+                    <Info class="h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-slate-500" />
+                    <span>Simulasi matematis dengan asumsi profit {{ monthlyProfitRate }}%/bulan. Hasil transaksi riil berfluktuasi mengikuti pasar.</span>
+                </p>
             </div>
 
-            <!-- 5. NAVIGASI TAMPILAN TABEL: TAHUNAN VS BULANAN -->
-            <div class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-4">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4 dark:border-slate-800">
-                    <div class="flex items-center gap-2">
-                        <button
-                            type="button"
-                            @click="activeViewTab = 'yearly'"
-                            :class="[
-                                'rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer min-h-[36px]',
-                                activeViewTab === 'yearly'
-                                    ? 'bg-primary text-primary-foreground shadow-xs'
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
-                            ]"
-                        >
-                            Tinjauan Tahunan (1 - {{ durationYears }} Tahun)
-                        </button>
-                        <button
-                            type="button"
-                            @click="activeViewTab = 'monthly'"
-                            :class="[
-                                'rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer min-h-[36px]',
-                                activeViewTab === 'monthly'
-                                    ? 'bg-primary text-primary-foreground shadow-xs'
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
-                            ]"
-                        >
-                            Rincian Per Bulan (Bulan 1 s/d {{ simulationData.totalMonths }})
-                        </button>
+            <!-- 3. BARIS SELISIH RINGKAS: TARIK RUTIN VS REINVEST -->
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div class="flex items-start sm:items-center gap-2.5">
+                    <div class="rounded-lg p-2 bg-slate-200/80 text-slate-700 dark:bg-slate-700 dark:text-slate-200 shrink-0">
+                        <Scale class="w-4 h-4" />
                     </div>
-
-                    <!-- Filter Tahun (Jika di Tab Bulanan) -->
-                    <div v-if="activeViewTab === 'monthly'" class="flex items-center gap-1.5 text-xs">
-                        <span class="text-muted-foreground font-medium">Filter Tahun:</span>
-                        <select
-                            v-model="selectedYearFilter"
-                            class="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                        >
-                            <option value="all">Semua Bulan (1 - {{ simulationData.totalMonths }})</option>
-                            <option
-                                v-for="y in simulationData.yearlyList"
-                                :key="y.year"
-                                :value="String(y.year)"
-                            >
-                                Tahun ke-{{ y.year }} (Bulan {{ (y.year - 1) * 12 + 1 }} - {{ y.year * 12 }})
-                            </option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- TAB 1: TINJAUAN PER TAHUN -->
-                <div v-if="activeViewTab === 'yearly'" class="overflow-x-auto">
-                    <table class="w-full text-left text-xs">
-                        <thead>
-                            <tr class="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/50">
-                                <th class="py-3 px-3 font-semibold text-slate-700 dark:text-slate-200">Periode</th>
-                                <th class="py-3 px-3 font-semibold text-slate-700 dark:text-slate-200">Modal Awal</th>
-                                <th class="py-3 px-3 font-semibold text-slate-700 dark:text-slate-200">Total Profit ({{ monthlyProfitRate }}%/bln)</th>
-                                <th class="py-3 px-3 font-semibold text-slate-700 dark:text-slate-200">
-                                    {{ withdrawalMode === 'with_wd' ? 'Investor WD (30%)' : 'Investor WD (0%)' }}
-                                </th>
-                                <th class="py-3 px-3 font-semibold text-slate-700 dark:text-slate-200">Investor (IDR)</th>
-                                <th class="py-3 px-3 font-semibold text-slate-700 dark:text-slate-200">Master Fee (30%)</th>
-                                <th class="py-3 px-3 font-semibold text-slate-700 dark:text-slate-200">
-                                    {{ withdrawalMode === 'with_wd' ? 'Compounding (40%)' : 'Compounding (70%)' }}
-                                </th>
-                                <th class="py-3 px-3 font-semibold text-slate-700 dark:text-slate-200">Modal Akhir</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                            <tr
-                                v-for="row in simulationData.yearlyList"
-                                :key="row.year"
-                                class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
-                            >
-                                <td class="py-3 px-3 font-bold text-slate-900 dark:text-white">
-                                    Tahun ke-{{ row.year }}
-                                </td>
-                                <td class="py-3 px-3 font-mono font-medium">
-                                    {{ formatUSD(row.startModal) }}
-                                </td>
-                                <td class="py-3 px-3 font-mono text-slate-600 dark:text-slate-300">
-                                    {{ formatUSD(row.totalProfit) }}
-                                </td>
-                                <td class="py-3 px-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                                    {{ formatUSD(row.totalTakenUSD) }}
-                                </td>
-                                <td class="py-3 px-3 font-mono text-emerald-700 dark:text-emerald-300 font-semibold">
-                                    {{ formatIDR(row.totalTakenIDR) }}
-                                </td>
-                                <td class="py-3 px-3 font-mono text-amber-600 dark:text-amber-400">
-                                    {{ formatUSD(row.totalMasterFeeUSD) }}
-                                </td>
-                                <td class="py-3 px-3 font-mono text-purple-600 dark:text-purple-400">
-                                    {{ formatUSD(row.totalCompoundingUSD) }}
-                                </td>
-                                <td class="py-3 px-3 font-mono font-bold text-blue-700 dark:text-blue-400">
-                                    {{ formatUSD(row.endModal) }}
-                                </td>
-                            </tr>
-                        </tbody>
-                        <tfoot>
-                            <tr class="border-t-2 border-slate-300 bg-slate-50 font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
-                                <td class="py-3 px-3">Total Akumulasi</td>
-                                <td class="py-3 px-3 font-mono">{{ formatUSD(simulationData.initialCapital) }}</td>
-                                <td class="py-3 px-3 font-mono">{{ formatUSD(simulationData.totalGrossProfit) }}</td>
-                                <td class="py-3 px-3 font-mono text-emerald-600 dark:text-emerald-400">
-                                    {{ formatUSD(simulationData.totalTakenUSD) }}
-                                </td>
-                                <td class="py-3 px-3 font-mono text-emerald-700 dark:text-emerald-300">
-                                    {{ formatIDR(simulationData.totalTakenIDR) }}
-                                </td>
-                                <td class="py-3 px-3 font-mono text-amber-600 dark:text-amber-400">
-                                    {{ formatUSD(simulationData.totalMasterFeeUSD) }}
-                                </td>
-                                <td class="py-3 px-3 font-mono text-purple-600 dark:text-purple-400">
-                                    {{ formatUSD(simulationData.totalCompoundedUSD) }}
-                                </td>
-                                <td class="py-3 px-3 font-mono text-blue-700 dark:text-blue-400">
-                                    {{ formatUSD(simulationData.endModal) }}
-                                </td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-
-                <!-- TAB 2: RINCIAN PER BULAN -->
-                <div v-else class="overflow-x-auto max-h-[500px] overflow-y-auto">
-                    <table class="w-full text-left text-xs">
-                        <thead class="sticky top-0 z-10">
-                            <tr class="border-b border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-800">
-                                <th class="py-2.5 px-3 font-semibold text-slate-700 dark:text-slate-200">Bulan</th>
-                                <th class="py-2.5 px-3 font-semibold text-slate-700 dark:text-slate-200">Tahun</th>
-                                <th class="py-2.5 px-3 font-semibold text-slate-700 dark:text-slate-200">Modal</th>
-                                <th class="py-2.5 px-3 font-semibold text-slate-700 dark:text-slate-200">Profit {{ monthlyProfitRate }}%</th>
-                                <th class="py-2.5 px-3 font-semibold text-slate-700 dark:text-slate-200">
-                                    {{ withdrawalMode === 'with_wd' ? 'Investor WD (30%)' : 'Investor WD (0%)' }}
-                                </th>
-                                <th class="py-2.5 px-3 font-semibold text-slate-700 dark:text-slate-200">Dalam Rupiah</th>
-                                <th class="py-2.5 px-3 font-semibold text-slate-700 dark:text-slate-200">Master Fee (30%)</th>
-                                <th class="py-2.5 px-3 font-semibold text-slate-700 dark:text-slate-200">
-                                    {{ withdrawalMode === 'with_wd' ? 'Compounding 40%' : 'Compounding 70%' }}
-                                </th>
-                                <th class="py-2.5 px-3 font-semibold text-slate-700 dark:text-slate-200">Modal Akhir</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                            <tr
-                                v-for="m in filteredMonthlyList"
-                                :key="m.month"
-                                class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
-                            >
-                                <td class="py-2 px-3 font-semibold text-slate-900 dark:text-white">
-                                    {{ m.month }}
-                                </td>
-                                <td class="py-2 px-3 font-mono text-slate-500">
-                                    {{ m.yearDecimal }}
-                                </td>
-                                <td class="py-2 px-3 font-mono">
-                                    {{ formatUSD(m.startModal) }}
-                                </td>
-                                <td class="py-2 px-3 font-mono text-slate-600 dark:text-slate-300">
-                                    {{ formatUSD(m.profit) }}
-                                </td>
-                                <td class="py-2 px-3 font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                                    {{ formatUSD(m.takenUSD) }}
-                                </td>
-                                <td class="py-2 px-3 font-mono text-emerald-700 dark:text-emerald-300">
-                                    {{ formatIDR(m.takenIDR) }}
-                                </td>
-                                <td class="py-2 px-3 font-mono text-amber-600 dark:text-amber-400">
-                                    {{ formatUSD(m.masterFeeUSD) }}
-                                </td>
-                                <td class="py-2 px-3 font-mono text-purple-600 dark:text-purple-400">
-                                    {{ formatUSD(m.compoundingUSD) }}
-                                </td>
-                                <td class="py-2 px-3 font-mono font-bold text-slate-900 dark:text-white">
-                                    {{ formatUSD(m.endModal) }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- CTA WhatsApp Konsultasi Resmi -->
-                <div class="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 p-4 dark:from-emerald-950/40 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-800/60">
                     <div>
-                        <h4 class="text-xs sm:text-sm font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
-                            <MessageCircle class="h-4 w-4 text-emerald-600" />
-                            Ingin Memulai Portofolio Copytrade Berdasarkan Simulasi Ini?
-                        </h4>
-                        <p class="text-xs text-emerald-700/90 dark:text-emerald-300/80 mt-0.5">
-                            Konsultasikan alokasi modal dan tahapan registrasi akun MT4 resmi langsung dengan Pak Yazid.
+                        <template v-if="withdrawalMode === 'with_wd'">
+                            <span class="font-bold text-slate-900 dark:text-white">
+                                Perbandingan dengan Mode Reinvest Penuh:
+                            </span>
+                            <p class="text-slate-600 dark:text-slate-400 mt-0.5">
+                                Jika memilih <strong>Reinvest (Tanpa WD)</strong>, modal akhir Anda menjadi <strong class="text-purple-600 dark:text-purple-400 font-mono">{{ formatUSD(simulationData.comparison.withoutWd.endModal) }}</strong> (+{{ formatUSD(simulationData.comparison.capitalDifference) }} lebih tinggi), namun tanpa penerimaan cash flow bulanan.
+                            </p>
+                        </template>
+                        <template v-else>
+                            <span class="font-bold text-slate-900 dark:text-white">
+                                Perbandingan dengan Mode Tarik Rutin:
+                            </span>
+                            <p class="text-slate-600 dark:text-slate-400 mt-0.5">
+                                Jika memilih <strong>Tarik Rutin</strong>, Anda menikmati cash flow dengan total <strong class="text-emerald-600 dark:text-emerald-400 font-mono">{{ formatUSD(simulationData.comparison.withWd.totalTakenUSD) }}</strong> masuk rekening, dengan modal akhir tetap bertumbuh menjadi <strong class="text-blue-600 dark:text-blue-400 font-mono">{{ formatUSD(simulationData.comparison.withWd.endModal) }}</strong>.
+                            </p>
+                        </template>
+                    </div>
+                </div>
+
+                <Button
+                    variant="outline"
+                    size="sm"
+                    @click="withdrawalMode = withdrawalMode === 'with_wd' ? 'without_wd' : 'with_wd'"
+                    class="shrink-0 text-xs font-semibold min-h-[36px] cursor-pointer"
+                >
+                    Lihat Mode {{ withdrawalMode === 'with_wd' ? 'Reinvest Penuh' : 'Tarik Rutin' }}
+                </Button>
+            </div>
+
+            <!-- 4. GRAFIK PERTUMBUHAN MODAL (SVG RINGAN & RESPONSIF) -->
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <TrendingUp class="w-4 h-4 text-primary" />
+                            Kurva Pertumbuhan Portofolio ({{ durationYears }} Tahun)
+                        </h3>
+                        <p class="text-xs text-muted-foreground mt-0.5">
+                            Visualisasi akumulasi modal di broker {{ withdrawalMode === 'with_wd' ? 'dan penerimaan cash flow WD' : 'secara bunga majemuk' }}.
                         </p>
                     </div>
-                    <a
-                        :href="whatsappConsultUrl"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-500 transition-colors cursor-pointer min-h-[38px]"
+
+                    <!-- Legend Indikator -->
+                    <div class="flex items-center gap-4 text-xs font-medium">
+                        <div class="flex items-center gap-1.5">
+                            <span class="h-2.5 w-2.5 rounded-full bg-blue-500"></span>
+                            <span class="text-slate-700 dark:text-slate-300">Modal di Broker</span>
+                        </div>
+                        <div v-if="withdrawalMode === 'with_wd'" class="flex items-center gap-1.5">
+                            <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                            <span class="text-slate-700 dark:text-slate-300">Akumulasi Cash WD</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Area Grafik SVG Responsif -->
+                <div class="w-full overflow-hidden">
+                    <svg
+                        :viewBox="`0 0 ${chartData.width} ${chartData.height}`"
+                        class="w-full h-48 sm:h-64 select-none"
                     >
-                        <MessageCircle class="h-4 w-4" />
-                        Konsultasi via WhatsApp ({{ presets.contact.phone }})
-                    </a>
+                        <defs>
+                            <!-- Linear Gradient Modal -->
+                            <linearGradient id="modalGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.22" />
+                                <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.01" />
+                            </linearGradient>
+
+                            <!-- Linear Gradient WD -->
+                            <linearGradient id="wdGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#10b981" stop-opacity="0.18" />
+                                <stop offset="100%" stop-color="#10b981" stop-opacity="0.01" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Garis Grid Horizontal & Label Sumbu Y -->
+                        <g class="grid-lines">
+                            <g v-for="tick in chartData.yGridTicks" :key="tick.y">
+                                <line
+                                    :x1="chartData.padding.left"
+                                    :y1="tick.y"
+                                    :x2="chartData.width - chartData.padding.right"
+                                    :y2="tick.y"
+                                    stroke="currentColor"
+                                    class="text-slate-100 dark:text-slate-800"
+                                    stroke-dasharray="4 4"
+                                    stroke-width="1"
+                                />
+                                <text
+                                    :x="chartData.padding.left - 8"
+                                    :y="tick.y + 4"
+                                    text-anchor="end"
+                                    class="fill-slate-400 dark:fill-slate-500 text-[10px] font-mono"
+                                >
+                                    {{ tick.label }}
+                                </text>
+                            </g>
+                        </g>
+
+                        <!-- Area Fill Modal -->
+                        <path :d="chartData.modalAreaPath" fill="url(#modalGradient)" />
+
+                        <!-- Area Fill WD (Jika With WD) -->
+                        <path
+                            v-if="withdrawalMode === 'with_wd'"
+                            :d="chartData.wdAreaPath"
+                            fill="url(#wdGradient)"
+                        />
+
+                        <!-- Garis Garis WD (Hijau) -->
+                        <path
+                            v-if="withdrawalMode === 'with_wd'"
+                            :d="chartData.wdPath"
+                            fill="none"
+                            stroke="#10b981"
+                            stroke-width="2.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+
+                        <!-- Garis Garis Modal (Biru) -->
+                        <path
+                            :d="chartData.modalPath"
+                            fill="none"
+                            stroke="#3b82f6"
+                            stroke-width="2.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+
+                        <!-- Titik Akhir Modal -->
+                        <circle
+                            :cx="chartData.lastPoint.x"
+                            :cy="chartData.lastPoint.yModal"
+                            r="4.5"
+                            fill="#3b82f6"
+                            stroke="#ffffff"
+                            stroke-width="2"
+                        />
+
+                        <!-- Titik Akhir WD (Jika With WD) -->
+                        <circle
+                            v-if="withdrawalMode === 'with_wd'"
+                            :cx="chartData.lastPoint.x"
+                            :cy="chartData.lastPoint.yWd"
+                            r="4"
+                            fill="#10b981"
+                            stroke="#ffffff"
+                            stroke-width="2"
+                        />
+
+                        <!-- Label Sumbu X (Milestone Waktu) -->
+                        <g class="x-ticks">
+                            <text
+                                v-for="xt in chartData.xTimeTicks"
+                                :key="xt.label"
+                                :x="xt.x"
+                                :y="chartData.height - 10"
+                                text-anchor="middle"
+                                class="fill-slate-500 dark:fill-slate-400 text-[10px] font-medium"
+                            >
+                                {{ xt.label }}
+                            </text>
+                        </g>
+                    </svg>
+                </div>
+
+                <!-- Milestone Cards (Bantu Baca di Smartphone) -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                    <div
+                        v-for="ms in chartData.milestones"
+                        :key="ms.title"
+                        class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800"
+                    >
+                        <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">
+                            {{ ms.title }}
+                        </span>
+                        <div class="mt-1 flex items-baseline justify-between gap-1">
+                            <span class="text-xs sm:text-sm font-extrabold text-blue-600 dark:text-blue-400 font-mono">
+                                {{ formatUSD(ms.modal) }}
+                            </span>
+                            <span v-if="withdrawalMode === 'with_wd'" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-medium">
+                                +{{ formatUSD(ms.wdAccum) }} WD
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <!-- 5. TABEL RINCIAN PER BULAN (COLLAPSIBLE + FILTER TAHUN) -->
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
+                <!-- Header Collapsible Toggle -->
+                <button
+                    type="button"
+                    @click="showMonthlyTable = !showMonthlyTable"
+                    class="w-full flex items-center justify-between p-5 text-left hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer min-h-[48px]"
+                >
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-white">
+                                Rincian Simulasi Per Bulan (Bulan 1 s/d {{ simulationData.totalMonths }})
+                            </h3>
+                            <span class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">
+                                {{ simulationData.totalMonths }} Bulan
+                            </span>
+                        </div>
+                        <p class="text-xs text-muted-foreground mt-0.5">
+                            {{ showMonthlyTable ? 'Klik untuk menutup rincian angka tabel bulanan' : 'Klik untuk melihat angka modal, profit, dan penarikan per bulan' }}
+                        </p>
+                    </div>
+
+                    <div class="flex items-center gap-1.5 text-xs font-semibold text-primary">
+                        <span>{{ showMonthlyTable ? 'Tutup Tabel' : 'Buka Tabel' }}</span>
+                        <ChevronDown v-if="!showMonthlyTable" class="w-4 h-4" />
+                        <ChevronUp v-else class="w-4 h-4" />
+                    </div>
+                </button>
+
+                <!-- Isi Tabel Bulanan Jika Dibuka -->
+                <div v-show="showMonthlyTable" class="p-5 pt-0 space-y-4 border-t border-slate-100 dark:border-slate-800">
+                    
+                    <!-- Filter Tahun -->
+                    <div class="flex items-center justify-between gap-3 pt-4">
+                        <span class="text-xs text-muted-foreground font-medium">
+                            Menampilkan {{ filteredMonthlyList.length }} data bulan:
+                        </span>
+
+                        <div class="flex items-center gap-2 text-xs">
+                            <label class="text-muted-foreground font-medium">Filter Tahun:</label>
+                            <select
+                                v-model="selectedYearFilter"
+                                class="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                            >
+                                <option value="all">Semua Bulan (1 - {{ simulationData.totalMonths }})</option>
+                                <option
+                                    v-for="y in simulationData.yearlyList"
+                                    :key="y.year"
+                                    :value="String(y.year)"
+                                >
+                                    Tahun ke-{{ y.year }} (Bln {{ (y.year - 1) * 12 + 1 }} - {{ y.year * 12 }})
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Tabel 5 Kolom (atau 3 kolom jika mode reinvest) -->
+                    <div class="overflow-x-auto max-h-[460px] overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                        <table class="w-full text-left text-xs">
+                            <thead class="sticky top-0 z-10">
+                                <tr class="border-b border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-800 font-semibold text-slate-700 dark:text-slate-200">
+                                    <th class="py-2.5 px-3">Bulan</th>
+                                    <th class="py-2.5 px-3">Modal Awal</th>
+                                    <th class="py-2.5 px-3">Profit ({{ monthlyProfitRate }}%)</th>
+                                    <th v-if="withdrawalMode === 'with_wd'" class="py-2.5 px-3 text-emerald-700 dark:text-emerald-400">
+                                        WD (USD)
+                                    </th>
+                                    <th v-if="withdrawalMode === 'with_wd'" class="py-2.5 px-3 text-emerald-700 dark:text-emerald-400">
+                                        WD (IDR)
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                                <tr
+                                    v-for="m in filteredMonthlyList"
+                                    :key="m.month"
+                                    class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                                >
+                                    <td class="py-2 px-3 font-semibold text-slate-900 dark:text-white">
+                                        Bulan {{ m.month }}
+                                    </td>
+                                    <td class="py-2 px-3 font-mono">
+                                        {{ formatUSD(m.startModal) }}
+                                    </td>
+                                    <td class="py-2 px-3 font-mono text-slate-600 dark:text-slate-300">
+                                        {{ formatUSD(m.profit) }}
+                                    </td>
+                                    <td v-if="withdrawalMode === 'with_wd'" class="py-2 px-3 font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                                        {{ formatUSD(m.takenUSD) }}
+                                    </td>
+                                    <td v-if="withdrawalMode === 'with_wd'" class="py-2 px-3 font-mono text-emerald-700 dark:text-emerald-300 font-medium">
+                                        {{ formatIDR(m.takenIDR) }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. DISCLAIMER RISIKO LENGKAP -->
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-800/40 space-y-2">
+                <div class="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-xs sm:text-sm">
+                    <ShieldAlert class="w-4 h-4 text-amber-500 shrink-0" />
+                    <span>Disclaimer Risiko Investasi & Simulasi Finansial</span>
+                </div>
+                <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                    Perdagangan valuta asing (forex/copytrade) mengandung risiko pasar dan tidak menjamin imbal hasil pasti. Hasil masa lalu bukan jaminan kinerja masa depan. Kalkulator ini disajikan sebagai alat bantu edukasi matematis berbasis target profit rata-rata dan pembagian hasil (30% fee pengelola, 70% hak investor), bukan merupakan jaminan pendapatan tetap (fixed return) atau penawaran investasi tanpa risiko.
+                </p>
+            </div>
+
+            <!-- 7. CTA WHATSAPP KONSULTASI RESMI (FLAT STYLE) -->
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <MessageCircle class="h-4 w-4 text-emerald-600 shrink-0" />
+                        Tertarik Memulai Portofolio Berdasarkan Simulasi Ini?
+                    </h4>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 max-w-xl">
+                        Konsultasikan alokasi modal dan tahapan registrasi akun copytrade resmi langsung dengan Pak Yazid via WhatsApp resmi YZD Center.
+                    </p>
+                </div>
+
+                <a
+                    :href="whatsappConsultUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-colors cursor-pointer min-h-[40px]"
+                >
+                    <MessageCircle class="h-4 w-4" />
+                    Konsultasi WhatsApp ({{ presets.contact.phone }})
+                </a>
+            </div>
+
         </div>
     </InvestorLayout>
 </template>

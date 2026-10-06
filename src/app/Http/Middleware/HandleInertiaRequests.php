@@ -50,10 +50,12 @@ class HandleInertiaRequests extends Middleware
                     'username'  => $request->user()->username,
                 ] : null,
             ],
-            'flash' => [
-                'success'              => session('success'),
-                'error'                => session('error'),
-                'registration_success' => session('registration_success'),
+            'flash' => fn () => [
+                'success'              => $request->session()->get('success'),
+                'error'                => $request->session()->get('error'),
+                'warning'              => $request->session()->get('warning'),
+                'info'                 => $request->session()->get('info'),
+                'registration_success' => $request->session()->get('registration_success'),
             ],
             'ziggy' => fn () => [
                 ...(new Ziggy)->toArray(),

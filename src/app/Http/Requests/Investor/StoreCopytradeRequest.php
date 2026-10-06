@@ -28,11 +28,11 @@ class StoreCopytradeRequest extends FormRequest
         $rules = [
             'tier_investasi'        => ['required', 'string', 'in:tier_1,tier_2,tier_3'],
             'nomor_akun_trading'    => ['required', 'string', 'max:50'],
-            'modal_riil'            => ['required', 'numeric', 'min:0'],
+            'modal_riil'            => ['required', 'numeric', 'gt:0'],
             'tanggal_mulai_trading' => ['required', 'date'],
-            'nama_bank'             => ['required', 'string', 'max:50'],
-            'nomor_rekening'        => ['required', 'string', 'max:50'],
-            'atas_nama_rekening'    => ['required', 'string', 'max:100'],
+            'nama_bank'             => [$hasAnyCopytrade ? 'nullable' : 'required', 'string', 'max:50'],
+            'nomor_rekening'        => [$hasAnyCopytrade ? 'nullable' : 'required', 'string', 'max:50'],
+            'atas_nama_rekening'    => [$hasAnyCopytrade ? 'nullable' : 'required', 'string', 'max:100'],
             'server_broker'         => ['required_if:tier_investasi,tier_3', 'nullable', 'string', 'max:50'],
             'master_password'       => ['required_if:tier_investasi,tier_3', 'nullable', 'string', 'max:100'],
             'investor_password'     => ['required_if:tier_investasi,tier_3', 'nullable', 'string', 'max:100'],
@@ -49,7 +49,7 @@ class StoreCopytradeRequest extends FormRequest
     }
 
     /**
-     * Konfigurasi validator instance tambahan untuk memeriksa batas minimal modal.
+     * Konfigurasi validator instance tambahan untuk memeriksa batas range modal setiap tier.
      */
     public function withValidator($validator): void
     {
@@ -62,24 +62,37 @@ class StoreCopytradeRequest extends FormRequest
             }
 
             $settings = PengaturanMaster::getSettings();
-            $minModal = match ($tier) {
-                'tier_1' => (float) $settings->tier_1_min,
-                'tier_2' => (float) $settings->tier_2_min,
-                'tier_3' => (float) $settings->tier_3_min,
-                default  => 0,
-            };
+            $tier2Min = (float) ($settings->tier_2_min ?? 5000);
+            $tier3Min = (float) ($settings->tier_3_min ?? 300000);
 
-            if ($modal < $minModal) {
-                $tierNama = match ($tier) {
-                    'tier_1' => 'Tier 1',
-                    'tier_2' => 'Tier 2',
-                    'tier_3' => 'Tier 3',
-                    default  => $tier,
-                };
-                $validator->errors()->add(
-                    'modal_riil',
-                    "Modal riil untuk {$tierNama} minimal sebesar \${$minModal}."
-                );
+            if ($tier === 'tier_1') {
+                if ($modal <= 0) {
+                    $validator->errors()->add('modal_riil', 'Modal riil untuk Tier 1 harus lebih besar dari $0.');
+                } elseif ($modal >= $tier2Min) {
+                    $validator->errors()->add(
+                        'modal_riil',
+                        'Modal riil untuk Tier 1 harus di bawah $' . number_format($tier2Min) . '. Untuk modal $' . number_format($tier2Min) . ' ke atas, silakan pilih Tier 2 atau Tier 3.'
+                    );
+                }
+            } elseif ($tier === 'tier_2') {
+                if ($modal < $tier2Min) {
+                    $validator->errors()->add(
+                        'modal_riil',
+                        'Modal riil untuk Tier 2 minimal sebesar $' . number_format($tier2Min) . '. Untuk modal di bawah $' . number_format($tier2Min) . ', silakan pilih Tier 1.'
+                    );
+                } elseif ($modal > $tier3Min) {
+                    $validator->errors()->add(
+                        'modal_riil',
+                        'Modal riil untuk Tier 2 maksimal sebesar $' . number_format($tier3Min) . '. Untuk modal di atas $' . number_format($tier3Min) . ', silakan pilih Tier 3.'
+                    );
+                }
+            } elseif ($tier === 'tier_3') {
+                if ($modal < $tier3Min) {
+                    $validator->errors()->add(
+                        'modal_riil',
+                        'Modal riil untuk Tier 3 minimal sebesar $' . number_format($tier3Min) . '.'
+                    );
+                }
             }
         });
     }
@@ -94,11 +107,12 @@ class StoreCopytradeRequest extends FormRequest
         return [
             'tier_investasi.required'        => 'Tier investasi wajib dipilih.',
             'tier_investasi.in'              => 'Pilihan tier investasi tidak valid.',
-            'nomor_akun_trading.required'    => 'Nomor akun trading MT4 wajib diisi.',
-            'modal_riil.required'            => 'Modal riil investasi wajib diisi.',
+            'nomor_akun_trading.required'    => 'Nomor akun trading / investor (copier) wajib diisi.',
+            'modal_riil.required'            => 'Modal deposit (usd) investasi wajib diisi.',
             'modal_riil.numeric'             => 'Modal riil harus berupa nominal angka.',
-            'modal_riil.min'                 => 'Modal riil tidak boleh bernilai negatif.',
-            'tanggal_mulai_trading.required' => 'Tanggal mulai trading wajib ditentukan.',
+            'modal_riil.gt'                  => 'Modal riil harus lebih besar dari $0.',
+            'modal_riil.min'                 => 'Modal riil harus lebih besar dari $0.',
+            'tanggal_mulai_trading.required' => 'Tanggal mulai investasi/copytrade wajib ditentukan.',
             'nama_bank.required'             => 'Nama bank untuk penarikan dana wajib diisi.',
             'nomor_rekening.required'        => 'Nomor rekening bank penarikan dana wajib diisi.',
             'atas_nama_rekening.required'    => 'Nama pemilik rekening bank wajib diisi.',
@@ -106,7 +120,7 @@ class StoreCopytradeRequest extends FormRequest
             'master_password.required_if'    => 'Master password MT4 wajib diisi untuk pendaftaran Tier 3.',
             'investor_password.required_if'  => 'Investor password MT4 wajib diisi untuk pendaftaran Tier 3.',
             'url_mql5.url'                   => 'Format URL sinyal MQL5 tidak valid.',
-            'dokumen_perjanjian.required'    => 'Surat perjanjian kemitraan bermaterai wajib diunggah pada pendaftaran copytrade pertama.',
+            'dokumen_perjanjian.required'    => 'Surat perjanjian kemitraan bermaterai wajib diunggah pada investasi/copytrade pertama.',
             'dokumen_perjanjian.mimes'       => 'Berkas perjanjian harus berupa file gambar (JPG, JPEG, PNG) atau PDF.',
             'dokumen_perjanjian.max'         => 'Ukuran berkas surat perjanjian maksimal 10 MB.',
         ];

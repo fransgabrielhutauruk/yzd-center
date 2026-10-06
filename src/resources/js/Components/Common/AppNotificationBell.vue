@@ -13,6 +13,7 @@ import {
     Info,
     ArrowRight,
     RefreshCw,
+    Calendar,
 } from 'lucide-vue-next';
 
 const page = usePage();
@@ -64,6 +65,8 @@ const getIcon = (iconName) => {
             return XCircle;
         case 'refresh-cw':
             return RefreshCw;
+        case 'calendar':
+            return Calendar;
         default:
             return Info;
     }
@@ -80,11 +83,31 @@ const getIconColor = (iconName) => {
             return 'text-rose-800 bg-rose-100 dark:text-rose-200 dark:bg-rose-950/80 border-rose-300 dark:border-rose-800';
         case 'user-plus':
             return 'text-sky-800 bg-sky-100 dark:text-sky-200 dark:bg-sky-950/80 border-sky-300 dark:border-sky-800';
+        case 'calendar':
+            return 'text-sky-700 bg-sky-100 dark:text-sky-300 dark:bg-sky-950/80 border-sky-300 dark:border-sky-800';
         case 'refresh-cw':
             return 'text-indigo-800 bg-indigo-100 dark:text-indigo-200 dark:bg-indigo-950/80 border-indigo-300 dark:border-indigo-800';
         default:
             return 'text-slate-800 bg-slate-100 dark:text-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-700';
     }
+};
+
+const navigateToUrl = (targetUrl) => {
+    if (!targetUrl) return;
+
+    if (targetUrl.includes('#')) {
+        const [path, hash] = targetUrl.split('#');
+        if (window.location.pathname === path) {
+            const el = document.getElementById(hash);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                window.history.pushState(null, '', targetUrl);
+                return;
+            }
+        }
+    }
+
+    router.visit(targetUrl);
 };
 
 const handleItemClick = (item) => {
@@ -95,13 +118,11 @@ const handleItemClick = (item) => {
             preserveScroll: true,
             preserveState: true,
             onFinish: () => {
-                if (item.url) {
-                    router.visit(item.url);
-                }
+                navigateToUrl(item.url);
             },
         });
-    } else if (item.url) {
-        router.visit(item.url);
+    } else {
+        navigateToUrl(item.url);
     }
 };
 

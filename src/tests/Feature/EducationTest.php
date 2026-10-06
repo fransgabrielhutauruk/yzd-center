@@ -11,8 +11,10 @@ use App\Models\PengaturanMaster;
 use App\Models\User;
 use App\Services\ExchangeRateService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class EducationTest extends TestCase
@@ -135,7 +137,6 @@ class EducationTest extends TestCase
             'ringkasan'    => 'Ringkasan deposit.',
             'konten'       => 'Langkah 1, 2, 3.',
             'video_url'    => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-            'urutan'       => 1,
             'is_published' => true,
         ]);
 
@@ -145,7 +146,6 @@ class EducationTest extends TestCase
             'slug'         => 'panduan-ktp',
             'ringkasan'    => 'Ringkasan KTP.',
             'konten'       => 'Langkah KTP.',
-            'urutan'       => 1,
             'is_published' => true,
         ]);
 
@@ -392,11 +392,9 @@ class EducationTest extends TestCase
             ->post(route('admin.education.help.articles.store'), [
                 'kategori_id'  => $category->id,
                 'judul'        => 'Cara Registrasi Cepat',
-                'slug'         => 'cara-registrasi-cepat',
                 'ringkasan'    => 'Ringkasan singkat.',
                 'konten'       => 'Konten langkah lengkap bertahap.',
-                'video_url'    => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-                'urutan'       => 1,
+                'video_url'    => null,
                 'is_published' => true,
             ]);
 
@@ -413,7 +411,6 @@ class EducationTest extends TestCase
                 'ringkasan'    => 'Ringkasan baru.',
                 'konten'       => 'Konten baru bertahap.',
                 'video_url'    => null,
-                'urutan'       => 2,
                 'is_published' => true,
             ]);
 
@@ -425,6 +422,63 @@ class EducationTest extends TestCase
 
         $deleteResponse->assertRedirect(route('admin.education.help.index', ['tab' => 'articles']));
         $this->assertDatabaseMissing('panduan_bantuan', ['id' => $article->id]);
+    }
+
+    public function test_admin_can_access_create_and_edit_article_pages(): void
+    {
+        $category = PanduanKategori::create([
+            'nama'      => 'Kategori Testing',
+            'slug'      => 'kategori-testing',
+            'is_active' => true,
+        ]);
+
+        $article = PanduanBantuan::create([
+            'kategori_id'  => $category->id,
+            'judul'        => 'Artikel Untuk Diedit',
+            'slug'         => 'artikel-untuk-diedit',
+            'konten'       => '<p>Isi HTML Tiptap</p>',
+            'is_published' => true,
+        ]);
+
+        // Cek halaman Create
+        $createResponse = $this->actingAs($this->admin)
+            ->get(route('admin.education.help.articles.create'));
+
+        $createResponse->assertStatus(200);
+        $createResponse->assertInertia(fn ($page) => $page
+            ->component('Admin/Education/Help/ArticleForm')
+            ->where('article', null)
+            ->has('categories')
+        );
+
+        // Cek halaman Edit
+        $editResponse = $this->actingAs($this->admin)
+            ->get(route('admin.education.help.articles.edit', $article->id));
+
+        $editResponse->assertStatus(200);
+        $editResponse->assertInertia(fn ($page) => $page
+            ->component('Admin/Education/Help/ArticleForm')
+            ->where('article.id', $article->id)
+            ->where('article.judul', 'Artikel Untuk Diedit')
+        );
+    }
+
+    public function test_admin_can_upload_article_media(): void
+    {
+        Storage::fake('public');
+
+        $file = UploadedFile::fake()->image('panduan_screenshot.png', 600, 400);
+
+        $response = $this->actingAs($this->admin)
+            ->postJson(route('admin.education.help.upload-media'), [
+                'image' => $file,
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonStructure(['url', 'filename']);
+
+        $filename = $response->json('filename');
+        Storage::disk('public')->assertExists('education/articles/' . $filename);
     }
 
     public function test_non_admin_cannot_access_admin_education_management(): void

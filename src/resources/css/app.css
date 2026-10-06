@@ -205,3 +205,10 @@
         @apply min-h-full min-h-screen min-h-dvh flex flex-col flex-1;
     }
 }
+
+@utility scrollbar-hide {
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}

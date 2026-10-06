@@ -23,7 +23,6 @@ class PanduanBantuanRequest extends FormRequest
             'ringkasan'    => ['nullable', 'string', 'max:1000'],
             'konten'       => ['required', 'string', 'max:20000'],
             'video_url'    => ['nullable', 'url', 'max:255'],
-            'urutan'       => ['nullable', 'integer', 'min:0'],
             'is_published' => ['nullable', 'boolean'],
         ];
     }
