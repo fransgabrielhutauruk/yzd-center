@@ -30,7 +30,7 @@ const props = defineProps({
 // -----------------------------------------------------------------------------
 // Variabel Input Utama & Opsi Penarikan
 // -----------------------------------------------------------------------------
-const initialCapital = ref(Number(props.presets.default_initial_capital ?? 100));
+const initialCapital = ref(Number(props.presets.default_initial_capital ?? 500));
 const monthlyProfitRate = ref(Number(props.presets.default_monthly_profit_rate ?? 5.0));
 const durationYears = ref(Number(props.presets.default_duration_years ?? 5));
 const exchangeRate = ref(Number(props.presets.default_exchange_rate ?? 16796));
@@ -88,7 +88,7 @@ const formattedRateUpdate = computed(() => {
             hour: '2-digit',
             minute: '2-digit',
             timeZone: 'Asia/Jakarta',
-        }).format(d) + ' WIB';
+        }).format(d);
     } catch {
         return meta.date || '06:00 WIB';
     }
@@ -108,7 +108,7 @@ const resetToDefaults = () => {
     withdrawalMode.value = 'with_wd';
     exchangeRate.value = Number(props.presets.default_exchange_rate ?? 16796);
     selectedYearFilter.value = 'all';
-    toast.info('Kalkulator dikembalikan ke nilai acuan standar ($100, 5%, 5 Tahun, Tarik Rutin).');
+    toast.info('Kalkulator dikembalikan ke nilai acuan standar ($500, 5%, 5 Tahun, Tarik Rutin).');
 };
 
 // -----------------------------------------------------------------------------
@@ -240,6 +240,31 @@ const filteredMonthlyList = computed(() => {
     }
     const yNum = Number(selectedYearFilter.value);
     return simulationData.value.monthlyList.filter((m) => m.yearNumber === yNum);
+});
+
+// Agregasi Ringkasan Baris Terakhir (Summary) untuk Tabel Bulanan
+const filteredMonthlySummary = computed(() => {
+    const list = filteredMonthlyList.value;
+    if (!list || list.length === 0) {
+        return {
+            endModal: 0,
+            totalProfit: 0,
+            totalTakenUSD: 0,
+            totalTakenIDR: 0,
+        };
+    }
+
+    const totalProfit = list.reduce((sum, item) => sum + (Number(item.profit) || 0), 0);
+    const totalTakenUSD = list.reduce((sum, item) => sum + (Number(item.takenUSD) || 0), 0);
+    const totalTakenIDR = list.reduce((sum, item) => sum + (Number(item.takenIDR) || 0), 0);
+    const endModal = list[list.length - 1].endModal || 0;
+
+    return {
+        endModal,
+        totalProfit,
+        totalTakenUSD,
+        totalTakenIDR,
+    };
 });
 
 // -----------------------------------------------------------------------------
@@ -399,7 +424,7 @@ const whatsappConsultUrl = computed(() => {
 <template>
     <InvestorLayout
         title="Kalkulator Proyeksi Pertumbuhan Modal"
-        subtitle="Simulasikan estimasi pertumbuhan modal di broker dan arus kas penarikan bulanan secara transparan."
+        subtitle="Simulasikan estimasi pertumbuhan modal dan arus kas penarikan bulanan."
         :breadcrumbs="[
             { label: 'Menu Utama' },
             { label: 'Kalkulator Proyeksi' }
@@ -409,7 +434,7 @@ const whatsappConsultUrl = computed(() => {
             <Button
                 variant="outline"
                 size="sm"
-                class="gap-1.5 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 min-h-[36px] cursor-pointer"
+                class="gap-1.5 border-slate-200 dark:border-slate-700 dark:hover:bg-white min-h-[36px] cursor-pointer"
                 @click="resetToDefaults"
             >
                 <RotateCcw class="h-4 w-4" />
@@ -523,22 +548,6 @@ const whatsappConsultUrl = computed(() => {
                                 class="w-full rounded-xl border border-slate-300 py-2.5 pl-7 pr-3 text-sm font-bold text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white font-mono"
                             />
                         </div>
-                        <div class="mt-2 flex flex-wrap gap-1">
-                            <button
-                                v-for="preset in [100, 500, 1000, 5000, 10000]"
-                                :key="preset"
-                                type="button"
-                                @click="initialCapital = preset"
-                                :class="[
-                                    'rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-colors cursor-pointer min-h-[26px]',
-                                    initialCapital === preset
-                                        ? 'bg-primary text-primary-foreground font-bold'
-                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
-                                ]"
-                            >
-                                ${{ preset.toLocaleString() }}
-                            </button>
-                        </div>
                     </div>
 
                     <!-- 2. Target Profit Bulanan (%) -->
@@ -552,26 +561,10 @@ const whatsappConsultUrl = computed(() => {
                                 type="number"
                                 min="0.1"
                                 max="50"
-                                step="0.5"
+                                step="0.1"
                                 class="w-full rounded-xl border border-slate-300 py-2.5 pl-3 pr-8 text-sm font-bold text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white font-mono"
                             />
                             <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">%</span>
-                        </div>
-                        <div class="mt-2 flex flex-wrap gap-1">
-                            <button
-                                v-for="r in [3, 5, 8, 10]"
-                                :key="r"
-                                type="button"
-                                @click="monthlyProfitRate = r"
-                                :class="[
-                                    'rounded-md px-2 py-0.5 text-[10px] font-medium transition-colors cursor-pointer min-h-[26px]',
-                                    monthlyProfitRate === r
-                                        ? 'bg-primary text-primary-foreground font-bold'
-                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
-                                ]"
-                            >
-                                {{ r }}% {{ r === 5 ? '(Baku)' : '' }}
-                            </button>
                         </div>
                     </div>
 
@@ -590,22 +583,6 @@ const whatsappConsultUrl = computed(() => {
                                 class="w-full rounded-xl border border-slate-300 py-2.5 pl-3 pr-14 text-sm font-bold text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white font-mono"
                             />
                             <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Tahun</span>
-                        </div>
-                        <div class="mt-2 flex flex-wrap gap-1">
-                            <button
-                                v-for="y in [1, 3, 5, 10, 20, 30]"
-                                :key="y"
-                                type="button"
-                                @click="durationYears = y"
-                                :class="[
-                                    'rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-colors cursor-pointer min-h-[26px]',
-                                    durationYears === y
-                                        ? 'bg-primary text-primary-foreground font-bold'
-                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
-                                ]"
-                            >
-                                {{ y }} Thn
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -656,14 +633,9 @@ const whatsappConsultUrl = computed(() => {
                         </div>
 
                         <div class="flex items-center gap-2 text-[11px] text-muted-foreground">
-                            <span
-                                :class="[
-                                    'inline-block h-2 w-2 rounded-full shrink-0',
-                                    presets.exchange_rate_meta?.is_live ? 'bg-emerald-500' : 'bg-amber-500'
-                                ]"
-                            ></span>
+
                             <span>
-                                {{ presets.exchange_rate_meta?.is_live ? 'Pasar Tengah (Frankfurter API)' : 'Kurs Cadangan' }}
+                                {{ presets.exchange_rate_meta?.is_live ? 'Default dari Frankfurter API' : 'Kurs Cadangan' }}
                                 • Pembaruan: {{ formattedRateUpdate }}
                             </span>
                         </div>
@@ -676,63 +648,63 @@ const whatsappConsultUrl = computed(() => {
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                     
                     <!-- 1. Modal Akhir di Broker -->
-                    <div class="rounded-2xl border border-blue-200 bg-blue-50/40 p-4 sm:p-5 shadow-xs dark:border-blue-900/50 dark:bg-blue-950/25">
-                        <span class="text-xs font-bold text-blue-800 dark:text-blue-300 block">
+                    <div class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300 block">
                             Modal Akhir di Broker (Thn ke-{{ durationYears }})
                         </span>
-                        <p class="mt-1 text-xl sm:text-2xl font-black text-blue-700 dark:text-blue-400 font-mono">
+                        <p class="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
                             {{ formatUSD(simulationData.endModal) }}
                         </p>
-                        <span class="text-xs text-blue-600/90 dark:text-blue-400/90 block mt-0.5 font-medium">
+                        <span class="text-xs text-muted-foreground block mt-0.5 font-medium">
                             {{ formatIDR(simulationData.endModal * exchangeRate) }}
                         </span>
-                        <div class="mt-2 pt-2 border-t border-blue-200/60 dark:border-blue-900/40 text-[11px] font-semibold text-blue-800 dark:text-blue-300">
-                            Peningkatan Capital: +{{ simulationData.overallGrowthPct.toLocaleString('id-ID', { maximumFractionDigits: 1 }) }}%
+                        <div class="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                            Peningkatan Modal: +{{ simulationData.overallGrowthPct.toLocaleString('id-ID', { maximumFractionDigits: 1 }) }}%
                         </div>
                     </div>
 
                     <!-- 2. Cash WD per Bulan (Arus Kas Masuk Rekening) -->
-                    <div class="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4 sm:p-5 shadow-xs dark:border-emerald-900/50 dark:bg-emerald-950/25">
-                        <span class="text-xs font-bold text-emerald-800 dark:text-emerald-300 block">
+                    <div class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300 block">
                             {{ withdrawalMode === 'with_wd' ? 'Estimasi Cash WD per Bulan' : 'Penarikan Tunai Rutin' }}
                         </span>
                         <template v-if="withdrawalMode === 'with_wd'">
-                            <p class="mt-1 text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-400 font-mono">
+                            <p class="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
                                 {{ formatUSD(simulationData.firstMonthWD) }}
-                                <span class="text-xs font-medium text-emerald-600/80 dark:text-emerald-400/80">/ bln</span>
+                                <span class="text-xs font-medium text-muted-foreground">/ bln</span>
                             </p>
-                            <span class="text-xs text-emerald-600/90 dark:text-emerald-400/90 block mt-0.5 font-medium">
-                                {{ formatIDR(simulationData.firstMonthWD * exchangeRate) }} / bln di awal
+                            <span class="text-xs text-muted-foreground block mt-0.5 font-medium">
+                                {{ formatIDR(simulationData.firstMonthWD * exchangeRate) }} / bln
                             </span>
-                            <div class="mt-2 pt-2 border-t border-emerald-200/60 dark:border-emerald-900/40 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+                            <div class="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                                 Total Masuk Rekening: {{ formatUSD(simulationData.totalTakenUSD) }}
                             </div>
                         </template>
                         <template v-else>
-                            <p class="mt-1 text-xl sm:text-2xl font-black text-slate-500 dark:text-slate-400 font-mono">
+                            <p class="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
                                 $0.00
                             </p>
                             <span class="text-xs text-muted-foreground block mt-0.5 font-medium">
                                 Tidak ada penarikan rutin
                             </span>
-                            <div class="mt-2 pt-2 border-t border-emerald-200/60 dark:border-emerald-900/40 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+                            <div class="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                                 100% Hak profit investor digulung ke modal
                             </div>
                         </template>
                     </div>
 
                     <!-- 3. Total Nilai Finansial (Modal + Seluruh WD) -->
-                    <div class="rounded-2xl border border-purple-200 bg-purple-50/40 p-4 sm:p-5 shadow-xs dark:border-purple-900/50 dark:bg-purple-950/25">
-                        <span class="text-xs font-bold text-purple-800 dark:text-purple-300 block">
+                    <div class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300 block">
                             Total Nilai Finansial (Capital + WD)
                         </span>
-                        <p class="mt-1 text-xl sm:text-2xl font-black text-purple-700 dark:text-purple-400 font-mono">
+                        <p class="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
                             {{ formatUSD(simulationData.totalNetFinancialValue) }}
                         </p>
-                        <span class="text-xs text-purple-600/90 dark:text-purple-400/90 block mt-0.5 font-medium">
+                        <span class="text-xs text-muted-foreground block mt-0.5 font-medium">
                             {{ formatIDR(simulationData.totalNetFinancialValue * exchangeRate) }}
                         </span>
-                        <div class="mt-2 pt-2 border-t border-purple-200/60 dark:border-purple-900/40 text-[11px] font-semibold text-purple-800 dark:text-purple-300">
+                        <div class="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                             Modal akhir ditambah seluruh akumulasi WD
                         </div>
                     </div>
@@ -759,7 +731,7 @@ const whatsappConsultUrl = computed(() => {
                 <!-- Disclaimer 1 Baris Dekat Hasil -->
                 <p class="text-xs text-muted-foreground flex items-center gap-1.5 px-1 pt-1">
                     <Info class="h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-slate-500" />
-                    <span>Simulasi matematis dengan asumsi profit {{ monthlyProfitRate }}%/bulan. Hasil transaksi riil berfluktuasi mengikuti pasar.</span>
+                    <span>Simulasi matematis dengan asumsi profit {{ monthlyProfitRate }}%/bulan. Hasil transaksi riil berfluktuasi.</span>
                 </p>
             </div>
 
@@ -808,7 +780,7 @@ const whatsappConsultUrl = computed(() => {
                             Kurva Pertumbuhan Portofolio ({{ durationYears }} Tahun)
                         </h3>
                         <p class="text-xs text-muted-foreground mt-0.5">
-                            Visualisasi akumulasi modal di broker {{ withdrawalMode === 'with_wd' ? 'dan penerimaan cash flow WD' : 'secara bunga majemuk' }}.
+                            Visualisasi akumulasi modal {{ withdrawalMode === 'with_wd' ? 'dan penerimaan cash flow WD' : 'secara bunga majemuk' }}.
                         </p>
                     </div>
 
@@ -816,7 +788,7 @@ const whatsappConsultUrl = computed(() => {
                     <div class="flex items-center gap-4 text-xs font-medium">
                         <div class="flex items-center gap-1.5">
                             <span class="h-2.5 w-2.5 rounded-full bg-blue-500"></span>
-                            <span class="text-slate-700 dark:text-slate-300">Modal di Broker</span>
+                            <span class="text-slate-700 dark:text-slate-300">Modal</span>
                         </div>
                         <div v-if="withdrawalMode === 'with_wd'" class="flex items-center gap-1.5">
                             <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
@@ -1021,7 +993,7 @@ const whatsappConsultUrl = computed(() => {
                             <thead class="sticky top-0 z-10">
                                 <tr class="border-b border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-800 font-semibold text-slate-700 dark:text-slate-200">
                                     <th class="py-2.5 px-3">Bulan</th>
-                                    <th class="py-2.5 px-3">Modal Awal</th>
+                                    <th class="py-2.5 px-3">Modal</th>
                                     <th class="py-2.5 px-3">Profit ({{ monthlyProfitRate }}%)</th>
                                     <th v-if="withdrawalMode === 'with_wd'" class="py-2.5 px-3 text-emerald-700 dark:text-emerald-400">
                                         WD (USD)
@@ -1054,6 +1026,25 @@ const whatsappConsultUrl = computed(() => {
                                     </td>
                                 </tr>
                             </tbody>
+                            <tfoot>
+                                <tr class="border-t-2 border-slate-300 bg-slate-50 font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                                    <td class="py-2.5 px-3">
+                                        Total Akumulasi
+                                    </td>
+                                    <td class="py-2.5 px-3 font-mono font-black text-slate-900 dark:text-white">
+                                        {{ formatUSD(filteredMonthlySummary.endModal) }}
+                                    </td>
+                                    <td class="py-2.5 px-3 font-mono font-bold text-slate-900 dark:text-white">
+                                        {{ formatUSD(filteredMonthlySummary.totalProfit) }}
+                                    </td>
+                                    <td v-if="withdrawalMode === 'with_wd'" class="py-2.5 px-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                        {{ formatUSD(filteredMonthlySummary.totalTakenUSD) }}
+                                    </td>
+                                    <td v-if="withdrawalMode === 'with_wd'" class="py-2.5 px-3 font-mono font-bold text-emerald-700 dark:text-emerald-300">
+                                        {{ formatIDR(filteredMonthlySummary.totalTakenIDR) }}
+                                    </td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
                 </div>
@@ -1066,7 +1057,7 @@ const whatsappConsultUrl = computed(() => {
                     <span>Disclaimer Risiko Investasi & Simulasi Finansial</span>
                 </div>
                 <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                    Perdagangan valuta asing (forex/copytrade) mengandung risiko pasar dan tidak menjamin imbal hasil pasti. Hasil masa lalu bukan jaminan kinerja masa depan. Kalkulator ini disajikan sebagai alat bantu edukasi matematis berbasis target profit rata-rata dan pembagian hasil (30% fee pengelola, 70% hak investor), bukan merupakan jaminan pendapatan tetap (fixed return) atau penawaran investasi tanpa risiko.
+                    Perdagangan valuta asing (forex) mengandung risiko pasar dan tidak menjamin imbal hasil pasti. Hasil masa lalu bukan jaminan kinerja masa depan. Kalkulator ini disajikan sebagai alat bantu edukasi matematis berbasis target profit rata-rata dan pembagian hasil (30% fee pengelola, 70% hak investor), bukan merupakan jaminan pendapatan tetap (fixed return) atau penawaran investasi tanpa risiko.
                 </p>
             </div>
 
@@ -1078,7 +1069,7 @@ const whatsappConsultUrl = computed(() => {
                         Tertarik Memulai Portofolio Berdasarkan Simulasi Ini?
                     </h4>
                     <p class="text-xs text-slate-600 dark:text-slate-400 max-w-xl">
-                        Konsultasikan alokasi modal dan tahapan registrasi akun copytrade resmi langsung dengan Pak Yazid via WhatsApp resmi YZD Center.
+                        Konsultasikan alokasi modal dan tahapan registrasi akun copytrade resmi langsung via WhatsApp resmi YZD Center.
                     </p>
                 </div>
 

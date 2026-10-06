@@ -125,7 +125,7 @@ class InvestorFinancialTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Investor/Education/Calculator')
             ->has('presets')
-            ->where('presets.default_initial_capital', 100)
+            ->where('presets.default_initial_capital', 500)
             ->where('presets.default_monthly_profit_rate', 5)
         );
     }

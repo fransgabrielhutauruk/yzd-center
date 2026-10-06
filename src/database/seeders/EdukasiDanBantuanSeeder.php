@@ -496,10 +496,10 @@ class EdukasiDanBantuanSeeder extends Seeder
                 'urutan'    => 1,
             ],
             [
-                'nama'      => 'Pendaftaran & Verifikasi KYC',
-                'slug'      => 'pendaftaran-kyc',
-                'deskripsi' => 'Panduan pengisian profil investor, pengunggahan foto KTP yang sah, dan penunjukan data ahli waris.',
-                'icon'      => 'UserCheck',
+                'nama'      => 'Panduan Investasi Tier 1, 2, & 3',
+                'slug'      => 'investasi-tiering',
+                'deskripsi' => 'Karakteristik alokasi modal, spesifikasi jenis akun broker, leverage, dan alur aktivasi portofolio copytrade untuk Tier 1, 2, dan 3.',
+                'icon'      => 'TrendingUp',
                 'urutan'    => 2,
             ],
             [
@@ -510,11 +510,18 @@ class EdukasiDanBantuanSeeder extends Seeder
                 'urutan'    => 3,
             ],
             [
+                'nama'      => 'Pendaftaran & Verifikasi KYC',
+                'slug'      => 'pendaftaran-kyc',
+                'deskripsi' => 'Panduan pengisian profil investor, pengunggahan foto KTP yang sah, dan penunjukan data ahli waris.',
+                'icon'      => 'UserCheck',
+                'urutan'    => 4,
+            ],
+            [
                 'nama'      => 'Kemitraan & Komisi Afiliasi',
                 'slug'      => 'kemitraan-komisi',
                 'deskripsi' => 'Informasi pembagian kode referral, skema 4-Tier komisi affiliator, dan pengajuan klaim bagi hasil.',
                 'icon'      => 'Users',
-                'urutan'    => 4,
+                'urutan'    => 5,
             ],
         ];
 
@@ -528,7 +535,7 @@ class EdukasiDanBantuanSeeder extends Seeder
         }
 
         // ---------------------------------------------------------------------
-        // 3. Data Artikel Panduan & Video Bantuan
+        // 3. Data Artikel Panduan & Video Bantuan (Format TipTap Rich HTML)
         // ---------------------------------------------------------------------
         $artikelData = [
             [
@@ -536,15 +543,39 @@ class EdukasiDanBantuanSeeder extends Seeder
                 'judul'         => 'Cara Membuka Akun MT4 & Melakukan Deposit di Broker HFM (Tier 1)',
                 'slug'          => 'cara-buka-akun-deposit-hfm',
                 'ringkasan'     => 'Panduan bertahap registrasi akun MT4 di broker HFM melalui link referral resmi Master Trader dan verifikasi deposit minimum.',
-                'konten'        => "### Langkah-langkah Membuka Akun di Broker HFM:\n\n1. **Gunakan Link Referral Resmi:** Buka link referral yang tertera pada dasbor copytrade YZD Center untuk memastikan akun terdaftar di bawah jaringan Master Trader Pak Abi.\n2. **Registrasi Akun:** Isi formulir identitas sesuai data KTP Anda.\n3. **Pilih Tipe Akun:** Pilih akun berjenis MT4 Pro / Premium sesuai rekomendasi tier Anda.\n4. **Verifikasi Identitas:** Unggah dokumen KTP dan bukti domisili pada portal HFM.\n5. **Lakukan Deposit Modal:** Lakukan deposit minimum sesuai tier yang dipilih (Tier 1 min. $100). Simpan bukti transfer atau screenshot saldo MT4 Anda.",
+                'konten'        => '<h2>Langkah-langkah Membuka Akun di Broker HFM</h2><p>Berikut adalah petunjuk resmi pembukaan akun trading MT4 di broker mitra HFM yang terhubung langsung dengan sistem copytrade YZD Center:</p><ol><li><p><strong>Gunakan Link Referral Resmi:</strong> Buka tautan referral resmi Master Trader yang tertera pada dasbor portofolio YZD Center untuk memastikan akun berada dalam jaringan resmi Pak Abi.</p></li><li><p><strong>Registrasi Akun myHF:</strong> Isi formulir identitas diri pada portal HFM sesuai dengan data KTP Anda untuk mempermudah verifikasi.</p></li><li><p><strong>Pilih Tipe Akun MT4:</strong> Untuk portofolio Tier 1, pilih tipe akun <strong>Cent</strong> dengan mata uang USD dan leverage rekomendasi 1:500 hingga 1:1000.</p></li><li><p><strong>Verifikasi Identitas:</strong> Unggah foto KTP dan bukti alamat tempat tinggal Anda di portal area klien HFM.</p></li><li><p><strong>Lakukan Deposit Modal:</strong> Lakukan deposit dana riil sesuai alokasi modal yang Anda rencanakan. Simpan bukti transfer atau tangkapan layar saldo akun MT4 Anda.</p></li></ol><blockquote><p><strong>Catatan Penting:</strong> Pastikan Anda mencatat Nomor Akun MT4 dan Server Broker dengan cermat untuk didaftarkan pada formulir portofolio copytrade YZD Center.</p></blockquote><div class="relative w-full aspect-video rounded-xl overflow-hidden my-4 border border-border shadow-xs bg-slate-950" data-video-embed="" data-video-src="https://www.youtube.com/embed/dQw4w9WgXcQ" data-provider="YouTube"><iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" class="absolute inset-0 w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen="true"></iframe></div>',
                 'video_url'     => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            ],
+            [
+                'kategori_slug' => 'investasi-tiering',
+                'judul'         => 'Panduan Investasi Tier 1: Alokasi Modal Bebas & Akun Cent HFM',
+                'slug'          => 'panduan-investasi-tier-1',
+                'ringkasan'     => 'Karakteristik Tier 1 dengan alokasi modal di bawah $5.000 tanpa batas minimal nominal, penggunaan akun Cent HFM, dan rekomendasi leverage.',
+                'konten'        => '<h2>Mengenal Portofolio Investasi Tier 1</h2><p>Portofolio <strong>Tier 1</strong> dirancang khusus bagi investor pemula maupun investor yang ingin memulai dengan alokasi modal fleksibel di bawah <strong>$5.000</strong> (sekitar Rp 80.000.000). Tier ini memberikan kemudahan karena bebas batas minimal deposit.</p><h3>Spesifikasi Teknis Akun Tier 1:</h3><ul><li><p><strong>Batas Modal:</strong> Di bawah $5.000 USD (bebas nominal modal).</p></li><li><p><strong>Broker Mitra Resmi:</strong> HFM (HotForex).</p></li><li><p><strong>Tipe Akun Trading:</strong> Akun Cent MT4 (memungkinkan transaksi lot mikro presisi tinggi).</p></li><li><p><strong>Leverage Rekomendasi:</strong> 1:500 hingga 1:1000.</p></li><li><p><strong>Karakteristik Strategi:</strong> Manajemen risiko konservatif dengan ketahanan margin maksimal terhadap fluktuasi pasar.</p></li></ul><h3>Tahapan Aktivasi Akun Tier 1:</h3><ol><li><p><strong>Buka Akun Cent di HFM:</strong> Pastikan mendaftar melalui tautan referral resmi YZD Center.</p></li><li><p><strong>Deposit Modal:</strong> Lakukan deposit ke akun Cent Anda sesuai kesiapan modal.</p></li><li><p><strong>Daftarkan ke Sistem YZD Center:</strong> Buka menu <em>Portofolio Investasi</em> &gt; <em>Tambah Akun Investasi</em>, lalu pilih <strong>Tier 1</strong>.</p></li><li><p><strong>Unduh &amp; Tanda Tangani Perjanjian:</strong> Unduh template surat perjanjian bermaterai Rp 10.000, bubuhkan tanda tangan fisik, dan unggah kembali ke sistem.</p></li></ol><blockquote><p><strong>Keuntungan Akun Cent:</strong> Modal $100 akan terbaca sebagai 10.000 USC (United States Cent) pada platform MT4, memberikan ruang ketahanan drawdown yang jauh lebih aman saat eksekusi copytrade berjalan.</p></blockquote>',
+                'video_url'     => null,
+            ],
+            [
+                'kategori_slug' => 'investasi-tiering',
+                'judul'         => 'Panduan Investasi Tier 2: Akun Standard ($5.000 - $300.000) & Likuiditas Langsung',
+                'slug'          => 'panduan-investasi-tier-2',
+                'ringkasan'     => 'Karakteristik Tier 2 untuk modal menengah $5.000 s/d $300.000, penggunaan broker mitra resmi XM/HFM akun Standard, dan eksekusi order likuiditas.',
+                'konten'        => '<h2>Mengenal Portofolio Investasi Tier 2</h2><p>Portofolio <strong>Tier 2</strong> ditujukan bagi investor modal menengah dengan rentang alokasi <strong>$5.000 s/d $300.000 USD</strong>. Pada tingkatan ini, transaksi dieksekusi menggunakan akun Standard yang terhubung langsung ke penyedia likuiditas internasional (*liquidity provider*).</p><h3>Spesifikasi Teknis Akun Tier 2:</h3><ul><li><p><strong>Batas Alokasi Modal:</strong> $5.000 USD s/d $300.000 USD.</p></li><li><p><strong>Broker Mitra Resmi:</strong> XM atau HFM.</p></li><li><p><strong>Tipe Akun Trading:</strong> Akun MT4 Standard / Pro.</p></li><li><p><strong>Kecepatan Eksekusi:</strong> Direct Market Execution dengan spread kompetitif.</p></li><li><p><strong>Leverage Rekomendasi:</strong> 1:200 hingga 1:500.</p></li></ul><h3>Tahapan Aktivasi Akun Tier 2:</h3><ol><li><p><strong>Pilih Broker Mitra:</strong> Anda dapat memilih broker XM atau HFM sesuai preferensi metode perbankan lokal yang Anda gunakan.</p></li><li><p><strong>Buka Akun Standard MT4:</strong> Daftarkan akun tipe Standard dengan mata uang USD.</p></li><li><p><strong>Lakukan Verifikasi KYC Broker &amp; Deposit:</strong> Pastikan akun broker sudah terverifikasi penuh sebelum mentransfer modal.</p></li><li><p><strong>Registrasi Akun di YZD Center:</strong> Masukkan nomor akun MT4, pilih <strong>Tier 2</strong>, dan lengkapi data rekening bank untuk verifikasi penarikan hasil bagi keuntungan.</p></li><li><p><strong>Finalisasi Surat Kontrak:</strong> Unggah lembar surat perjanjian bermaterai yang telah ditandatangani.</p></li></ol><blockquote><p><strong>Manajemen Portofolio Khusus:</strong> Akun Tier 2 mendapatkan pemantauan berkala dari tim teknis YZD Center guna memastikan keselarasan lot trading dan eksekusi sinyal real-time.</p></blockquote>',
+                'video_url'     => null,
+            ],
+            [
+                'kategori_slug' => 'investasi-tiering',
+                'judul'         => 'Panduan Investasi Tier 3: Akun VIP Dedicated VPS ($300.000+) & Server Privat',
+                'slug'          => 'panduan-investasi-tier-3',
+                'ringkasan'     => 'Karakteristik Tier 3 untuk portofolio modal besar minimal $300.000 dengan penyiapan dedicated server VPS berkecepatan tinggi dan enkripsi penuh.',
+                'konten'        => '<h2>Mengenal Portofolio Investasi Tier 3 (VIP High Net-Worth)</h2><p>Portofolio <strong>Tier 3</strong> adalah program investasi premium bagi institusi atau investor individual dengan alokasi modal besar minimal <strong>$300.000 USD</strong> ke atas. Portofolio Tier 3 mendapatkan fasilitas infrastruktur server dedicated mandiri (*Dedicated VPS*) dengan latensi sangat rendah (*ultra-low latency*).</p><h3>Keistimewaan &amp; Fasilitas Tier 3:</h3><ul><li><p><strong>Dedicated Virtual Private Server (VPS):</strong> Server privat berkecepatan tinggi yang disiapkan khusus dan dikelola langsung oleh tim teknis YZD Center.</p></li><li><p><strong>Enkripsi Kredensial Penuh:</strong> Master Password dan Investor Password MT4 dienkripsi secara aman dengan standar keamanan tingkat tinggi di database.</p></li><li><p><strong>Akses Pemantauan Privat:</strong> Dapatkan akses pemantauan portofolio privat eksklusif dan sinyal analitik mendalam.</p></li><li><p><strong>Prioritas Eksekusi &amp; Support Khusus:</strong> Jalur konsultasi langsung dengan Master Trader Pak Abi dan pemeliharaan teknis 24/7.</p></li></ul><h3>Tahapan Aktivasi Akun Tier 3:</h3><ol><li><p><strong>Konsultasi Awal:</strong> Tim YZD Center akan mendampingi proses penyiapan rekening institusional/pribadi pada broker mitra resmi.</p></li><li><p><strong>Alokasi Modal Riil:</strong> Lakukan penyetoran modal minimal $300.000 USD.</p></li><li><p><strong>Pendaftaran Tier 3 di Portal:</strong> Pilih <strong>Tier 3</strong> pada formulir penambahan akun dan lengkapi data kredensial MT4 yang akan dienkripsi oleh sistem.</p></li><li><p><strong>Setup Dedicated VPS:</strong> Tim teknis YZD Center akan mengonfigurasi dedicated VPS dalam waktu 1x24 jam kerja.</p></li><li><p><strong>Penandatanganan Perjanjian Eksklusif:</strong> Legalitas kontrak kerja sama eksklusif bermaterai disahkan.</p></li></ol><blockquote><p><strong>Keamanan Dana Mutlak:</strong> Seluruh modal tetap berada di akun broker atas nama pribadi/institusi investor sendiri tanpa hak penarikan oleh pihak mana pun (Non-Custodial).</p></blockquote>',
+                'video_url'     => null,
             ],
             [
                 'kategori_slug' => 'pendaftaran-kyc',
                 'judul'         => 'Tips Agar Verifikasi Foto KTP dan Dokumen Cepat Disetujui',
                 'slug'          => 'tips-verifikasi-ktp-cepat-disetujui',
                 'ringkasan'     => 'Kriteria foto KTP yang tajam, pencahayaan cukup, dan data teks terbaca jelas oleh tim verifikasi kepatuhan hukum.',
-                'konten'        => "### Ketentuan Foto KTP yang Sah:\n\n- **Foto Asli Fisik KTP:** Jangan menggunakan foto fotokopi atau hasil scan buram.\n- **Pencahayaan Terang:** Pastikan tidak ada pantulan kilau lampu (glare) yang menutupi NIK atau nama lengkap.\n- **Semua Sudut Masuk Frame:** 4 sudut fisik KTP harus berada utuh di dalam bingkai foto.\n- **Kesesuaian Data:** Nama lengkap dan NIK yang diinput saat pendaftaran wajib persis sama dengan yang tertera di fisik KTP.",
+                'konten'        => '<h2>Ketentuan Foto KTP dan Dokumen yang Sah</h2><p>Untuk memastikan proses verifikasi pendaftaran akun investor dan affiliator berjalan lancar tanpa penolakan, mohon perhatikan ketentuan berikut:</p><ul><li><p><strong>Foto Asli Fisik KTP:</strong> Gunakan foto langsung dari fisik KTP asli Anda. Jangan menggunakan foto fotokopi, tangkapan layar (screenshot), atau hasil scan buram.</p></li><li><p><strong>Pencahayaan Terang &amp; Bebas Pantulan:</strong> Pastikan ruangan cukup terang dan tidak ada pantulan kilau lampu (glare) yang menutupi NIK, nama lengkap, atau pasfoto.</p></li><li><p><strong>Semua Sudut Masuk Bingkai:</strong> Pastikan keempat sudut fisik kartu KTP berada utuh di dalam bingkai foto tanpa terpotong.</p></li><li><p><strong>Kesesuaian Data:</strong> NIK, nama lengkap, tempat tanggal lahir, dan alamat pada form pendaftaran wajib persis sama dengan yang tertera di fisik KTP.</p></li></ul><blockquote><p><strong>Kompresi Otomatis:</strong> Sistem YZD Center secara otomatis mengompresi ukuran foto dokumen di latar belakang sehingga pengunggahan tetap cepat tanpa mengurangi ketajaman teks.</p></blockquote>',
                 'video_url'     => null,
             ],
             [
@@ -552,7 +583,7 @@ class EdukasiDanBantuanSeeder extends Seeder
                 'judul'         => 'Panduan Mengunduh Template & Mengunggah Surat Perjanjian Copytrade',
                 'slug'          => 'panduan-surat-perjanjian-copytrade',
                 'ringkasan'     => 'Cara memanfaatkan autofill otomatis template surat perjanjian bermaterai dan verifikasinya sebelum copytrade aktif.',
-                'konten'        => "### Alur Legalitas Surat Perjanjian:\n\n1. **Buka Menu Copytrade:** Klik tombol 'Tambah Akun Copytrade' di portal investor.\n2. **Unduh Template:** Klik tombol 'Unduh Template Surat Perjanjian'. Data diri Anda dan nomor akun MT4 akan terisi secara otomatis (*autofill*).\n3. **Cetak & Tanda Tangan:** Cetak dokumen, tempelkan meterai Rp 10.000 pada kolom tanda tangan pihak kedua (investor), lalu bubuhkan tanda tangan fisik Anda.\n4. **Unggah Berkas:** Foto dokumen yang sudah bertandatangan secara jelas (format PDF/JPG/PNG) dan unggah ke sistem. Sistem kami akan melakukan kompresi otomatis secara senyap.",
+                'konten'        => '<h2>Alur Legalitas Surat Perjanjian Copytrade</h2><p>Sistem copytrade YZD Center mewajibkan surat perjanjian bertandatangan fisik bermaterai demi perlindungan hak dan kewajiban hukum antara Investor dan Master Trader:</p><ol><li><p><strong>Buka Menu Portofolio Investasi:</strong> Klik tombol <em>Tambah Akun Investasi</em> di portal investor.</p></li><li><p><strong>Unduh Template Surat Perjanjian:</strong> Klik tombol <em>Unduh Template Perjanjian</em> sesuai tier Anda. Data diri Anda dan nomor akun MT4 akan terisi secara otomatis (*autofill*).</p></li><li><p><strong>Cetak Dokumen &amp; Tempel Materai:</strong> Cetak lembar perjanjian pada kertas A4, tempelkan meterai Rp 10.000 pada kolom tanda tangan pihak kedua (investor), lalu bubuhkan tanda tangan fisik Anda mengenai meterai.</p></li><li><p><strong>Unggah Berkas ke Sistem:</strong> Foto lembar surat perjanjian yang telah ditandatangani secara jelas dan unggah kembali ke sistem untuk diverifikasi oleh admin.</p></li></ol><blockquote><p><strong>Verifikasi Cepat:</strong> Setelah diunggah, tim admin akan memverifikasi keabsahan dokumen dalam waktu 1x24 jam kerja sebelum proses penyalinan transaksi diaktifkan.</p></blockquote>',
                 'video_url'     => null,
             ],
             [
@@ -560,7 +591,7 @@ class EdukasiDanBantuanSeeder extends Seeder
                 'judul'         => 'Penjelasan Skema 4-Tier Komisi Afiliasi dari Profit Master Trader',
                 'slug'          => 'skema-4-tier-komisi-afiliasi',
                 'ringkasan'     => 'Pelajari cara kerja perhitungan komisi 20% hingga 50% dari bagian profit Master Trader berdasarkan modal downline binaan Anda.',
-                'konten'        => "### Pembagian Tier Komisi Afiliator:\n\n- **Tier 1 (Modal > $10.000 / > Rp 10 M):** Hak komisi **50%** dari bagian profit Master.\n- **Tier 2 (Modal $1.000 - $10.000 / Rp 1 M - 10 M):** Hak komisi **40%** dari bagian profit Master.\n- **Tier 3 (Modal $100 - $1.000 / Rp 100 Jt - 1 M):** Hak komisi **30%** dari bagian profit Master.\n- **Tier 4 (Modal < $100 / < Rp 100 Jt):** Hak komisi **20%** dari bagian profit Master.\n\n### Syarat Pengajuan Klaim:\nAkun copytrade downline harus berstatus aktif selama minimal **90 hari (3 bulan)** sejak mulai menyalin (*copy_started_at*). Jika akun mengalami kerugian (drawdown), perlindungan Drawdown Guard memastikan tidak ada potongan komisi.",
+                'konten'        => '<h2>Pembagian Tier Komisi Afiliator</h2><p>Setiap mitra affiliator berhak atas komisi bagi hasil yang dihitung secara transparan dari bagian keuntungan (*profit share*) Master Trader berdasarkan modal downline:</p><ul><li><p><strong>Tier 1 (Modal &gt; $10.000 / &gt; Rp 160 Juta):</strong> Hak komisi <strong>50%</strong> dari bagian profit Master Trader.</p></li><li><p><strong>Tier 2 (Modal $1.000 - $10.000 / Rp 16 Juta - Rp 160 Juta):</strong> Hak komisi <strong>40%</strong> dari bagian profit Master Trader.</p></li><li><p><strong>Tier 3 (Modal $100 - $1.000 / Rp 1,6 Juta - Rp 16 Juta):</strong> Hak komisi <strong>30%</strong> dari bagian profit Master Trader.</p></li><li><p><strong>Tier 4 (Modal &lt; $100 / &lt; Rp 1,6 Juta):</strong> Hak komisi <strong>20%</strong> dari bagian profit Master Trader.</p></li></ul><h3>Syarat &amp; Ketentuan Pengajuan Klaim:</h3><ol><li><p><strong>Masa Aktif Akun:</strong> Akun copytrade downline harus berstatus aktif selama minimal <strong>90 hari (3 bulan)</strong> sejak mulai menyalin (<em>copy_started_at</em>).</p></li><li><p><strong>Drawdown Guard:</strong> Jika akun downline sedang mengalami penurunan ekuitas sementara (drawdown), fitur Drawdown Guard melindungi hak komisi affiliator agar tidak terjadi pemotongan saldo.</p></li></ol><div class="relative w-full aspect-video rounded-xl overflow-hidden my-4 border border-border shadow-xs bg-slate-950" data-video-embed="" data-video-src="https://www.youtube.com/embed/dBG3JQYxqzs" data-provider="YouTube"><iframe src="https://www.youtube.com/embed/dBG3JQYxqzs" class="absolute inset-0 w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen="true"></iframe></div>',
                 'video_url'     => null,
             ],
         ];

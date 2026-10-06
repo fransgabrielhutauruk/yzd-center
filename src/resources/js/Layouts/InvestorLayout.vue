@@ -148,7 +148,7 @@ const navSections = computed(() => {
         title: 'Bantuan & Edukasi',
         items: [
             {
-                label: 'Pusat Bantuan & Video',
+                label: 'Pusat Bantuan',
                 href: '/investor/education/help',
                 icon: SquarePlay,
                 requiresActive: false,

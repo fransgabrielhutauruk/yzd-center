@@ -333,7 +333,7 @@ const articleColumns = [
                                     variant="outline"
                                     size="sm"
                                     as-child
-                                    class="h-8 px-2.5 text-slate-600 hover:text-slate-900 dark:text-slate-300 cursor-pointer"
+                                    class="h-8 px-2.5 text-slate-600 dark:text-slate-300 cursor-pointer"
                                 >
                                     <Link :href="`/admin/education/help/articles/${item.id}/edit`">
                                         <Edit2 class="h-3.5 w-3.5 mr-1" />

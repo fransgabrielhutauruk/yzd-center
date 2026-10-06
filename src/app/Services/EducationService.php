@@ -138,24 +138,20 @@ class EducationService
                 ];
             });
 
-        // Tentukan kategori aktif (default: kategori pertama jika tidak ditentukan)
-        $activeSlug = $kategoriSlug;
-        if (!$activeSlug && $categories->isNotEmpty()) {
-            $activeSlug = $categories->first()['slug'];
-        }
+        // Tentukan kategori aktif (default: 'all' untuk menampilkan seluruh panduan)
+        $activeSlug = $kategoriSlug ?: 'all';
 
-        // 2. Ambil artikel sesuai kategori aktif atau hasil pencarian global
+        // 2. Ambil artikel sesuai kategori aktif dan/atau hasil pencarian
         $articlesQuery = PanduanBantuan::query()
             ->published()
             ->with('kategori')
+            ->when($activeSlug && $activeSlug !== 'all', function ($q) use ($activeSlug) {
+                $q->whereHas('kategori', function ($catQ) use ($activeSlug) {
+                    $catQ->where('slug', $activeSlug);
+                });
+            })
             ->when($search, function ($q) use ($search) {
                 $q->search($search);
-            }, function ($q) use ($activeSlug) {
-                if ($activeSlug && $activeSlug !== 'all') {
-                    $q->whereHas('kategori', function ($catQ) use ($activeSlug) {
-                        $catQ->where('slug', $activeSlug);
-                    });
-                }
             })
             ->orderBy('judul');
 
@@ -174,10 +170,11 @@ class EducationService
         });
 
         return [
-            'categories'  => $categories,
-            'active_slug' => $activeSlug,
-            'articles'    => $articles,
-            'search'      => $search,
+            'categories'           => $categories,
+            'active_slug'          => $activeSlug,
+            'total_articles_count' => (int) $categories->sum('articles_count'),
+            'articles'             => $articles,
+            'search'               => $search,
         ];
     }
 
@@ -218,7 +215,7 @@ class EducationService
             'video_url'   => $article->video_url,
             'youtube_id'  => $this->extractYoutubeId($article->video_url),
             'views_count' => $article->views_count,
-            'updated_at'  => $article->updated_at?->format('d M Y'),
+            'updated_at'  => tanggal_singkat($article->updated_at),
             'kategori'    => [
                 'id'   => $article->kategori?->id,
                 'nama' => $article->kategori?->nama,
@@ -381,7 +378,7 @@ class EducationService
         $rateData = app(ExchangeRateService::class)->getUsdToIdrRate();
 
         return [
-            'default_initial_capital'     => 100.0,
+            'default_initial_capital'     => 500.0,
             'default_monthly_profit_rate' => 5.0,
             'default_duration_years'      => 5,
             'default_exchange_rate'       => (float) ($rateData['rate'] ?? 16796.0),

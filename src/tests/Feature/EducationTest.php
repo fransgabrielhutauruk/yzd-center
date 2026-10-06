@@ -163,6 +163,46 @@ class EducationTest extends TestCase
         );
     }
 
+    public function test_investor_help_center_defaults_to_all_categories_and_returns_all_articles(): void
+    {
+        $kategori1 = PanduanKategori::create([
+            'nama'      => 'Kategori Satu',
+            'slug'      => 'kategori-satu',
+            'is_active' => true,
+        ]);
+        $kategori2 = PanduanKategori::create([
+            'nama'      => 'Kategori Dua',
+            'slug'      => 'kategori-dua',
+            'is_active' => true,
+        ]);
+
+        PanduanBantuan::create([
+            'kategori_id'  => $kategori1->id,
+            'judul'        => 'Artikel Satu',
+            'slug'         => 'artikel-satu',
+            'konten'       => 'Konten 1',
+            'is_published' => true,
+        ]);
+        PanduanBantuan::create([
+            'kategori_id'  => $kategori2->id,
+            'judul'        => 'Artikel Dua',
+            'slug'         => 'artikel-dua',
+            'konten'       => 'Konten 2',
+            'is_published' => true,
+        ]);
+
+        $response = $this->actingAs($this->investor)
+            ->get(route('investor.education.help'));
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Investor/Education/HelpCenter')
+            ->where('help.active_slug', 'all')
+            ->where('help.total_articles_count', 2)
+            ->has('help.articles', 2)
+        );
+    }
+
     public function test_investor_can_view_single_article_and_increment_views(): void
     {
         $kategori = PanduanKategori::create([
@@ -216,7 +256,7 @@ class EducationTest extends TestCase
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
             ->component('Investor/Education/Calculator')
-            ->where('presets.default_initial_capital', 100)
+            ->where('presets.default_initial_capital', 500)
             ->where('presets.default_monthly_profit_rate', 5)
             ->where('presets.default_duration_years', 5)
             ->where('presets.profit_taken_pct', 30)

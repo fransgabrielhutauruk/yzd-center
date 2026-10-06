@@ -673,7 +673,7 @@ onMounted(() => {
         <template #header-actions>
             <div class="flex shrink-0 flex-wrap items-center gap-2">
                 <Link
-                    href="/investor/education/help?kategori=copytrade-mt4"
+                    href="/investor/education/help?kategori=investasi-tiering"
                     target="_blank"
                     class="border-border bg-card hover:bg-muted text-foreground inline-flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold shadow-xs transition-colors"
                 >
