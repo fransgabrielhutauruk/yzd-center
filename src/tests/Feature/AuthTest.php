@@ -473,7 +473,7 @@ class AuthTest extends TestCase
         $response = $this->actingAs($investor)->get('/investor/dashboard');
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page->component('Investor/Dashboard'));
+        $response->assertInertia(fn ($page) => $page->component('Investor/InvestorDashboard'));
     }
 
     public function test_guest_cannot_view_investor_dashboard(): void

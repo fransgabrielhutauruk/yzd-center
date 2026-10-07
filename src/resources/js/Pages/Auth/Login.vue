@@ -257,16 +257,7 @@ const submit = () => {
                         </template>
                     </Button>
                 </form>
-
-                <!-- Closed Registration Notice -->
-                <div
-                    class="flex items-start gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200"
-                >
-                    <Info class="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-700 dark:text-amber-400" />
-                    <p class="leading-relaxed">
-                        Pendaftaran saat ini hanya dapat dilakukan melalui tautan undangan resmi dari tim YZD Center.
-                    </p>
-                </div>
+                
             </div>
 
             <!-- Kolom Kanan: Gambar Ilustrasi (Hanya Tampil di Desktop, Hidden di HP) -->

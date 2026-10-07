@@ -25,6 +25,7 @@ import {
     SquarePlay,
     KeyRound,
     Layers,
+    Newspaper,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import AppToaster from '@/Components/Common/AppToaster.vue';
@@ -93,7 +94,7 @@ const navSections = computed(() => {
             title: 'Menu Utama',
             items: [
                 {
-                    label: 'Dasbor Portofolio',
+                    label: 'Dashboard',
                     href: '/investor/dashboard',
                     icon: LayoutDashboard,
                     requiresActive: true,
@@ -134,7 +135,7 @@ const navSections = computed(() => {
                     requiresActive: true,
                 },
                 {
-                    label: 'Klaim Komisi (PB 3)',
+                    label: 'Klaim Komisi',
                     href: '/investor/commissions',
                     icon: Banknote,
                     requiresActive: true,
@@ -150,7 +151,7 @@ const navSections = computed(() => {
             {
                 label: 'Pusat Bantuan',
                 href: '/investor/education/help',
-                icon: SquarePlay,
+                icon: Newspaper,
                 requiresActive: false,
                 routeName: 'investor.education.help',
             },

@@ -463,6 +463,131 @@ class BalanceService
     }
 
     /**
+     * Ringkasan dasbor investor: tahap perjalanan, angka riil, tren 6 bulan, status pencatatan saldo.
+     * Seluruh angka bersumber dari riwayat_balance_copytrade (bukan simulasi).
+     */
+    public function getDashboardSummary(User $user): array
+    {
+        $consolidated = $this->getPortfolioConsolidatedSummary($user);
+
+        $accounts = AkunCopytrade::query()
+            ->where('user_id', $user->id)
+            ->whereIn('status', ['pending', 'active'])
+            ->with(['riwayatBalance' => fn ($q) => $q->orderBy('tanggal_pencatatan')->orderBy('id')])
+            ->orderBy('id')
+            ->get();
+
+        $active = $accounts->where('status', 'active')->values();
+
+        $stage = $active->isNotEmpty()
+            ? 'running'
+            : ($accounts->isNotEmpty() ? 'pending_account' : 'no_account');
+
+        // Saldo terakhir akun pada/ sebelum tanggal tertentu (null jika belum ada catatan).
+        $balanceAt = function (AkunCopytrade $akun, Carbon $cutoff): ?float {
+            $record = $akun->riwayatBalance
+                ->filter(fn ($r) => $r->tanggal_pencatatan->lte($cutoff))
+                ->last();
+
+            return $record ? (float) $record->balance : null;
+        };
+
+        // Tren 6 bulan terakhir (konsolidasi akun aktif). Titik dimasukkan jika ada catatan pada bulan tersebut.
+        $trend = [];
+        if ($stage === 'running') {
+            for ($i = 5; $i >= 0; $i--) {
+                $monthStart = now()->startOfMonth()->subMonths($i);
+                $monthEnd = $monthStart->copy()->endOfMonth();
+                $cutoff = $monthEnd->gt(now()) ? now() : $monthEnd;
+
+                $sum = 0.0;
+                $hasRecordInMonth = false;
+                foreach ($active as $akun) {
+                    $dates = array_filter([
+                        $akun->riwayatBalance->first()?->tanggal_pencatatan,
+                        $akun->tanggal_mulai,
+                        $akun->copy_started_at,
+                        $akun->created_at,
+                    ]);
+                    $startedAt = !empty($dates) ? collect($dates)->min() : null;
+
+                    if ($startedAt && $startedAt->gt($cutoff)) {
+                        continue;
+                    }
+                    if ($akun->riwayatBalance->contains(fn ($r) => $r->tanggal_pencatatan->between($monthStart, $monthEnd))) {
+                        $hasRecordInMonth = true;
+                    }
+                    $balance = $balanceAt($akun, $cutoff);
+                    $sum += $balance ?? (float) $akun->modal_riil;
+                }
+
+                if ($hasRecordInMonth) {
+                    $trend[] = ['month' => $monthStart->format('Y-m'), 'value' => round($sum, 2)];
+                }
+            }
+        }
+
+        // Selisih vs bulan lalu: hanya jika dua titik terakhir berurutan (bulan ini dan bulan lalu).
+        $momChange = null;
+        $momChangePct = null;
+        if (count($trend) >= 2) {
+            $last = $trend[count($trend) - 1];
+            $prev = $trend[count($trend) - 2];
+            $expectedPrev = Carbon::createFromFormat('Y-m-d', $last['month'] . '-01')->subMonth()->format('Y-m');
+            if ($last['month'] === now()->format('Y-m') && $prev['month'] === $expectedPrev) {
+                $momChange = round($last['value'] - $prev['value'], 2);
+                $momChangePct = $prev['value'] > 0 ? round(($momChange / $prev['value']) * 100.0, 1) : null;
+            }
+        }
+
+        // Status pencatatan bulan ini: setiap akun aktif punya >= 1 catatan pada bulan berjalan.
+        $monthStartNow = now()->startOfMonth();
+        $monthEndNow = now()->endOfMonth();
+        $unrecorded = $active->filter(function (AkunCopytrade $akun) use ($monthStartNow, $monthEndNow) {
+            return !$akun->riwayatBalance->contains(
+                fn ($r) => $r->tanggal_pencatatan->between($monthStartNow, $monthEndNow)
+            );
+        })->count();
+
+        $bep = $consolidated['bep_summary'];
+
+        return [
+            'stage'     => $stage,
+            'portfolio' => [
+                'active_accounts_count'     => $consolidated['active_accounts_count'],
+                'pending_accounts_count'    => $consolidated['pending_accounts_count'],
+                'has_balance_history'       => $consolidated['has_balance_history'],
+                'total_initial_capital'     => $consolidated['total_initial_capital'],
+                'total_current_balance'     => $consolidated['total_current_balance'],
+                'total_all_time_profit'     => $consolidated['total_all_time_profit'],
+                'total_all_time_growth_pct' => $consolidated['total_all_time_growth_pct'],
+                'bep_progress_pct'          => (float) $bep['bep_progress_pct'],
+                'bep_remaining'             => (float) $bep['remaining_to_bep'],
+                'bep_achieved'              => (bool) $bep['is_bep_achieved'],
+            ],
+            'mom_change'                  => $momChange,
+            'mom_change_pct'              => $momChangePct,
+            'balance_recorded_this_month' => $stage === 'running' && $unrecorded === 0,
+            'unrecorded_accounts_count'   => $unrecorded,
+            'trend'                       => $trend,
+            'accounts'                    => $accounts->map(function (AkunCopytrade $akun) {
+                $latest = $akun->riwayatBalance->last();
+                $isActive = $akun->status === 'active';
+
+                return [
+                    'id'                 => $akun->id,
+                    'tier'               => $akun->tier,
+                    'nomor_akun_trading' => $akun->nomor_akun_trading,
+                    'status'             => $akun->status,
+                    'modal_riil'         => (float) $akun->modal_riil,
+                    'current_balance'    => $isActive ? (float) ($latest?->balance ?? $akun->modal_riil) : null,
+                    'last_recorded_at'   => $latest?->tanggal_pencatatan?->toDateString(),
+                ];
+            })->values()->all(),
+        ];
+    }
+
+    /**
      * Kirim notifikasi pengingat in-app rekapitulasi saldo bulanan jika memenuhi kriteria:
      * 1. Berada dalam rentang waktu rekapitulasi (tanggal 1-5 setiap bulan).
      * 2. Pengguna memiliki minimal 1 akun investasi aktif.

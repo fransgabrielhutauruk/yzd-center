@@ -37,55 +37,6 @@ class InvestorFinancialTest extends TestCase
         ]);
     }
 
-    public function test_investor_dashboard_includes_bep_summary_for_new_investor(): void
-    {
-        $response = $this->actingAs($this->investor)
-            ->get(route('investor.dashboard'));
-
-        $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Dashboard')
-            ->has('bep_summary')
-            ->where('bep_summary.has_active_copytrade', false)
-            ->where('bep_summary.initial_capital', 100)
-            ->has('bep_summary.bep_progress_pct')
-            ->has('bep_summary.months_to_bep')
-        );
-    }
-
-    public function test_investor_dashboard_calculates_bep_summary_with_active_copytrade(): void
-    {
-        // Buat akun copytrade aktif dengan modal $1,000 sejak 6 bulan lalu
-        AkunCopytrade::create([
-            'user_id'            => $this->investor->id,
-            'tier'               => 'tier_1',
-            'broker'             => 'HFM',
-            'tipe_akun'          => 'cent',
-            'nomor_akun_trading' => 'MT4-100234',
-            'modal_riil'         => 1000.00,
-            'tanggal_mulai'      => now()->subMonths(6)->toDateString(),
-            'nama_bank'          => 'BCA',
-            'nomor_rekening'     => '1234567890',
-            'atas_nama_rekening' => 'Investor Test',
-            'status'             => 'active',
-            'copy_started_at'    => now()->subMonths(6),
-        ]);
-
-        $response = $this->actingAs($this->investor)
-            ->get(route('investor.dashboard'));
-
-        $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Dashboard')
-            ->has('bep_summary')
-            ->where('bep_summary.has_active_copytrade', true)
-            ->where('bep_summary.initial_capital', 1000)
-            ->where('bep_summary.active_accounts_count', 1)
-            ->where('bep_summary.months_active', 6)
-            ->where('bep_summary.is_bep_achieved', false)
-        );
-    }
-
     public function test_education_service_bep_calculation_accurately_tracks_profit_and_wd(): void
     {
         AkunCopytrade::create([
