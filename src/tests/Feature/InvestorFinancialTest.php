@@ -51,7 +51,6 @@ class InvestorFinancialTest extends TestCase
             'nomor_rekening'     => '987654321',
             'atas_nama_rekening' => 'Investor Test',
             'status'             => 'active',
-            'copy_started_at'    => now()->subMonths(3),
         ]);
 
         $service = app(EducationService::class);
@@ -95,7 +94,6 @@ class InvestorFinancialTest extends TestCase
             'nomor_rekening'     => '11223344',
             'atas_nama_rekening' => 'Investor Test',
             'status'             => 'active',
-            'copy_started_at'    => '2026-01-01',
         ]);
 
         // Input 1: Tanggal 1 Februari 2026 -> Saldo $105 (keuntungan dari modal awal $100 adalah $5 / 5%)
@@ -156,7 +154,6 @@ class InvestorFinancialTest extends TestCase
             'nomor_rekening'     => '55443322',
             'atas_nama_rekening' => 'Investor Test',
             'status'             => 'active',
-            'copy_started_at'    => '2026-01-01',
         ]);
 
         // Verifikasi rute legasi copytrade.balance.index mengarah ke investments
@@ -213,7 +210,6 @@ class InvestorFinancialTest extends TestCase
             'nomor_rekening'     => '99887766',
             'atas_nama_rekening' => 'Investor Test',
             'status'             => 'active',
-            'copy_started_at'    => '2026-01-01',
         ]);
 
         $this->actingAs($this->investor)

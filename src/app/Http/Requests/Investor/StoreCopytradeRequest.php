@@ -23,7 +23,9 @@ class StoreCopytradeRequest extends FormRequest
      */
     public function rules(): array
     {
-        $hasAnyCopytrade = AkunCopytrade::where('user_id', $this->user()->id)->exists();
+        $hasAnyCopytrade = AkunCopytrade::where('user_id', $this->user()->id)
+            ->whereIn('status', ['pending', 'active'])
+            ->exists();
 
         $rules = [
             'tier_investasi'        => ['required', 'string', 'in:tier_1,tier_2,tier_3'],
@@ -36,7 +38,6 @@ class StoreCopytradeRequest extends FormRequest
             'server_broker'         => ['required_if:tier_investasi,tier_3', 'nullable', 'string', 'max:50'],
             'master_password'       => ['required_if:tier_investasi,tier_3', 'nullable', 'string', 'max:100'],
             'investor_password'     => ['required_if:tier_investasi,tier_3', 'nullable', 'string', 'max:100'],
-            'url_mql5'              => ['nullable', 'url', 'max:255'],
         ];
 
         if (!$hasAnyCopytrade) {
@@ -119,7 +120,6 @@ class StoreCopytradeRequest extends FormRequest
             'server_broker.required_if'      => 'Server broker wajib diisi untuk pendaftaran Tier 3.',
             'master_password.required_if'    => 'Master password MT4 wajib diisi untuk pendaftaran Tier 3.',
             'investor_password.required_if'  => 'Investor password MT4 wajib diisi untuk pendaftaran Tier 3.',
-            'url_mql5.url'                   => 'Format URL sinyal MQL5 tidak valid.',
             'dokumen_perjanjian.required'    => 'Surat perjanjian kemitraan bermaterai wajib diunggah pada investasi/copytrade pertama.',
             'dokumen_perjanjian.mimes'       => 'Berkas perjanjian harus berupa file gambar (JPG, JPEG, PNG) atau PDF.',
             'dokumen_perjanjian.max'         => 'Ukuran berkas surat perjanjian maksimal 10 MB.',

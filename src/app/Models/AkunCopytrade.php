@@ -20,7 +20,6 @@ class AkunCopytrade extends Model
         'investor_password',
         'modal_riil',
         'surat_perjanjian_path',
-        'url_mql5',
         'tanggal_mulai',
         'tanggal_selesai',
         'nama_bank',
@@ -30,7 +29,6 @@ class AkunCopytrade extends Model
         'catatan_admin',
         'verified_by',
         'verified_at',
-        'copy_started_at',
     ];
 
     protected $hidden = [
@@ -52,7 +50,6 @@ class AkunCopytrade extends Model
             'master_password'   => 'encrypted',
             'investor_password' => 'encrypted',
             'verified_at'       => 'datetime',
-            'copy_started_at'   => 'datetime',
         ];
     }
 

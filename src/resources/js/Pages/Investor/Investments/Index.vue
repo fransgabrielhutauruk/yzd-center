@@ -374,6 +374,8 @@ const openEditBalanceModal = (record) => {
 
 const closeBalanceModal = () => {
     isBalanceModalOpen.value = false;
+    isEditingBalance.value = false;
+    editingRecordId.value = null;
     balanceForm.reset();
     balanceForm.clearErrors();
 };
@@ -383,7 +385,13 @@ const liveBaseBalance = computed(() => {
     if (!props.summary) return 0;
     const formDate = balanceForm.tanggal_pencatatan;
     const history = props.summary.history || [];
-    const prev = history.filter((h) => h.tanggal_pencatatan < formDate).slice(-1)[0];
+    const prev = history
+        .filter(
+            (h) =>
+                (!editingRecordId.value || h.id !== editingRecordId.value) &&
+                h.tanggal_pencatatan < formDate
+        )
+        .slice(-1)[0];
 
     return prev ? prev.balance : props.summary.account?.modal_riil || 0;
 });
@@ -399,12 +407,21 @@ const liveProfitPct = computed(() => {
 });
 
 const submitBalance = () => {
-    balanceForm.post(route('investor.investments.balance.store'), {
-        preserveScroll: true,
-        onSuccess: () => {
-            closeBalanceModal();
-        },
-    });
+    if (isEditingBalance.value && editingRecordId.value) {
+        balanceForm.put(route('investor.investments.balance.update', editingRecordId.value), {
+            preserveScroll: true,
+            onSuccess: () => {
+                closeBalanceModal();
+            },
+        });
+    } else {
+        balanceForm.post(route('investor.investments.balance.store'), {
+            preserveScroll: true,
+            onSuccess: () => {
+                closeBalanceModal();
+            },
+        });
+    }
 };
 
 // -----------------------------------------------------------------------------
@@ -687,7 +704,7 @@ onMounted(() => {
             <!-- ================================================================= -->
             <!-- 1. RINGKASAN KONSOLIDASI TOTAL PORTOFOLIO (Semua Akun / Tier)    -->
             <!-- ================================================================= -->
-            <div class="space-y-4">
+            <div v-if="hasActiveAccounts || pendingAccounts.length > 0" class="space-y-4">
                 <!-- KONDISI A: Ada Akun Aktif (3 Kartu Ringkasan Portofolio) -->
                 <div
                     v-if="hasActiveAccounts"
@@ -934,7 +951,10 @@ onMounted(() => {
                 </div>
 
                 <!-- Grid Kartu Akun -->
-                <div class="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
+                <div
+                    v-if="accounts.length > 0"
+                    class="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3"
+                >
                     <!-- Kartu per Akun (Compact) -->
                     <div
                         v-for="acc in accounts"
@@ -1064,6 +1084,45 @@ onMounted(() => {
                                 </p>
                                 <p v-else class="text-muted-foreground mt-0.5 text-[10px]">-</p>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KONDISI EMPTY STATE: Belum Ada Akun Investasi Sama Sekali -->
+                <div
+                    v-else
+                    class="border-border bg-card rounded-2xl border p-6 shadow-xs sm:p-8"
+                >
+                    <div class="mx-auto max-w-2xl text-center">
+                        <div
+                            class="bg-primary/10 text-primary mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl"
+                        >
+                            <Layers class="h-7 w-7" />
+                        </div>
+                        <h3 class="text-foreground text-base font-bold tracking-tight sm:text-lg">
+                            Belum Ada Pengajuan Akun Investasi
+                        </h3>
+                        <p class="text-muted-foreground mt-2 text-xs leading-relaxed sm:text-sm">
+                            Anda belum mendaftarkan akun trading untuk dikelola dalam sistem copytrade YZD. Daftarkan akun investasi Anda sekarang untuk mulai menikmati otomatisasi copytrade, pemantauan portofolio, dan kalkulasi balik modal (BEP).
+                        </p>
+
+                        <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
+                            <Button
+                                type="button"
+                                @click="openAddModal()"
+                                class="bg-primary hover:bg-primary/90 text-primary-foreground min-h-[40px] cursor-pointer gap-2 rounded-xl px-4 text-xs font-semibold shadow-xs"
+                            >
+                                <PlusCircle class="h-4 w-4" />
+                                <span>Ajukan Akun Investasi Baru</span>
+                            </Button>
+                            <Link
+                                href="/investor/education/help?kategori=investasi-tiering"
+                                target="_blank"
+                                class="border-border bg-background hover:bg-muted text-foreground inline-flex min-h-[40px] cursor-pointer items-center gap-2 rounded-xl border px-4 text-xs font-semibold shadow-xs transition-colors"
+                            >
+                                <HelpCircle class="h-4 w-4 text-sky-600 dark:text-sky-400" />
+                                <span>Panduan Pendaftaran &amp; Tiering</span>
+                            </Link>
                         </div>
                     </div>
                 </div>

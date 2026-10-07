@@ -75,6 +75,28 @@ class BalanceService
     }
 
     /**
+     * Memperbarui catatan balance yang sudah ada dan merekalibrasi seluruh riwayat.
+     */
+    public function updateBalance(RiwayatBalanceCopytrade $record, array $data): RiwayatBalanceCopytrade
+    {
+        return DB::transaction(function () use ($record, $data): RiwayatBalanceCopytrade {
+            $akun = $record->akunCopytrade;
+            $tanggal = Carbon::parse($data['tanggal_pencatatan'])->toDateString();
+            $balance = (float) $data['balance'];
+
+            $record->update([
+                'tanggal_pencatatan' => $tanggal,
+                'balance'            => $balance,
+                'catatan'            => !empty($data['catatan']) ? trim($data['catatan']) : null,
+            ]);
+
+            $this->recalculateAccountBalances($akun);
+
+            return $record->fresh();
+        });
+    }
+
+    /**
      * Menghapus catatan balance tertentu dan merekalibrasi data berurutan.
      */
     public function deleteBalance(RiwayatBalanceCopytrade $record): void
@@ -269,7 +291,7 @@ class BalanceService
 
         // Hitung durasi aktif akun dalam satuan bulan
         $earliestRecordDate = $allRecords->first()?->tanggal_pencatatan;
-        $effectiveStartDate = $earliestRecordDate ?? $akun->copy_started_at ?? $akun->tanggal_mulai ?? $akun->created_at;
+        $effectiveStartDate = $earliestRecordDate ?? $akun->tanggal_mulai ?? $akun->created_at;
         $diffMonths = $effectiveStartDate ? max(0, (int) Carbon::parse($effectiveStartDate)->diffInMonths(now())) : 0;
         $recordsCount = $allRecords->count();
         $monthsActive = max($diffMonths, $recordsCount > 1 ? $recordsCount - 1 : 0);
@@ -406,7 +428,7 @@ class BalanceService
         $isBepAchieved = $totalAllTimeProfit >= $totalInitialCapital && $totalInitialCapital > 0;
 
         $earliestActiveAccount = $activeAccounts->sortBy('created_at')->first();
-        $joinDate = $earliestActiveAccount?->copy_started_at ?? $earliestActiveAccount?->tanggal_mulai ?? $earliestActiveAccount?->created_at;
+        $joinDate = $earliestActiveAccount?->tanggal_mulai ?? $earliestActiveAccount?->created_at;
         $startCarbon = $joinDate ? Carbon::parse($joinDate) : now();
         $diffMonths = (int) $startCarbon->diffInMonths(now());
         $monthsActive = max(1, $diffMonths > 0 ? $diffMonths : 1);
@@ -506,7 +528,6 @@ class BalanceService
                     $dates = array_filter([
                         $akun->riwayatBalance->first()?->tanggal_pencatatan,
                         $akun->tanggal_mulai,
-                        $akun->copy_started_at,
                         $akun->created_at,
                     ]);
                     $startedAt = !empty($dates) ? collect($dates)->min() : null;

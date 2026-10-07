@@ -8,6 +8,7 @@ use App\Models\UserDokumen;
 use App\Notifications\CopytradeAccountStatusChangedNotification;
 use App\Notifications\NewCopytradeSubmittedNotification;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
@@ -36,7 +37,12 @@ class CopytradeService
                 default  => 'standard',
             };
 
-            $existingAkun = AkunCopytrade::where('user_id', $user->id)
+            $existingValidAkun = AkunCopytrade::where('user_id', $user->id)
+                ->whereIn('status', ['pending', 'active'])
+                ->latest('id')
+                ->first();
+
+            $existingBankAkun = AkunCopytrade::where('user_id', $user->id)
                 ->whereNotNull('nama_bank')
                 ->latest('id')
                 ->first();
@@ -49,11 +55,10 @@ class CopytradeService
                 'nomor_akun_trading' => $data['nomor_akun_trading'],
                 'modal_riil'         => $data['modal_riil'],
                 'tanggal_mulai'      => $data['tanggal_mulai_trading'] ?? $data['tanggal_mulai'] ?? now()->toDateString(),
-                'nama_bank'          => !empty($data['nama_bank']) ? $data['nama_bank'] : ($existingAkun?->nama_bank ?? '-'),
-                'nomor_rekening'     => !empty($data['nomor_rekening']) ? $data['nomor_rekening'] : ($existingAkun?->nomor_rekening ?? '-'),
-                'atas_nama_rekening' => !empty($data['atas_nama_rekening']) ? $data['atas_nama_rekening'] : ($existingAkun?->atas_nama_rekening ?? $user->name),
+                'nama_bank'          => !empty($data['nama_bank']) ? $data['nama_bank'] : ($existingBankAkun?->nama_bank ?? '-'),
+                'nomor_rekening'     => !empty($data['nomor_rekening']) ? $data['nomor_rekening'] : ($existingBankAkun?->nomor_rekening ?? '-'),
+                'atas_nama_rekening' => !empty($data['atas_nama_rekening']) ? $data['atas_nama_rekening'] : ($existingBankAkun?->atas_nama_rekening ?? $user->name),
                 'status'             => 'pending',
-                'url_mql5'           => $data['url_mql5'] ?? null,
             ];
 
             // Kredensial khusus Tier 3 (Private VPS)
@@ -67,7 +72,7 @@ class CopytradeService
                 $akunData['investor_password'] = $data['investor_password'];
             }
 
-            // Simpan Surat Perjanjian jika dilampirkan, atau gunakan dari akun terdahulu
+            // Simpan Surat Perjanjian jika dilampirkan, atau gunakan dari akun terdahulu yang sah
             if ($suratPerjanjian) {
                 $storedPath = $suratPerjanjian->store("copytrade_agreements/{$user->id}", 'local');
                 $akunData['surat_perjanjian_path'] = $storedPath;
@@ -89,8 +94,8 @@ class CopytradeService
                         'verified_by'        => null,
                     ]
                 );
-            } elseif ($existingAkun?->surat_perjanjian_path) {
-                $akunData['surat_perjanjian_path'] = $existingAkun->surat_perjanjian_path;
+            } elseif ($existingValidAkun?->surat_perjanjian_path) {
+                $akunData['surat_perjanjian_path'] = $existingValidAkun->surat_perjanjian_path;
             }
 
             $akun = AkunCopytrade::create($akunData);
@@ -124,11 +129,10 @@ class CopytradeService
 
         return DB::transaction(function () use ($akun, $status, $catatanAdmin, $verifier): AkunCopytrade {
             $akun->update([
-                'status'          => $status,
-                'catatan_admin'   => $status === 'active' ? ($catatanAdmin ?: null) : $catatanAdmin,
-                'verified_by'     => $verifier->id,
-                'verified_at'     => now(),
-                'copy_started_at' => $status === 'active' ? now() : null,
+                'status'        => $status,
+                'catatan_admin' => $status === 'active' ? ($catatanAdmin ?: null) : $catatanAdmin,
+                'verified_by'   => $verifier->id,
+                'verified_at'   => now(),
             ]);
 
             if ($status === 'active') {
@@ -146,6 +150,274 @@ class CopytradeService
 
             return $akun;
         });
+    }
+
+    private const VERIFY_SORTS = ['created_at', 'nomor_akun_trading', 'tier', 'modal_riil', 'status'];
+
+    private const ACTIVE_SORTS = ['created_at', 'nomor_akun_trading', 'tier', 'modal_riil', 'tanggal_mulai'];
+
+    private const TIERS = ['tier_1', 'tier_2', 'tier_3'];
+
+    /**
+     * Jumlah akun per status untuk badge tab halaman Kelola Copytrade.
+     */
+    public function getAdminCounts(): array
+    {
+        $rows = AkunCopytrade::query()
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        return [
+            'pending'  => (int) ($rows['pending'] ?? 0),
+            'rejected' => (int) ($rows['rejected'] ?? 0),
+            'active'   => (int) ($rows['active'] ?? 0),
+        ];
+    }
+
+    /**
+     * Antrean verifikasi (pending/rejected). Default hanya pending, urutan default terbaru dulu (created_at desc).
+     *
+     * @param array{search:string,sort_by:string,sort_direction:string,per_page:int,page_name:string,status:string,tier:string} $f
+     */
+    public function paginateVerificationQueue(array $f): LengthAwarePaginator
+    {
+        $status = in_array($f['status'], ['pending', 'rejected', 'all'], true) ? $f['status'] : 'pending';
+        $sort = in_array($f['sort_by'], self::VERIFY_SORTS, true) ? $f['sort_by'] : 'created_at';
+        $dir = strtolower($f['sort_direction']) === 'asc' ? 'asc' : 'desc';
+
+        $query = AkunCopytrade::query()
+            ->with(['user', 'verifier'])
+            ->whereIn('status', $status === 'all' ? ['pending', 'rejected'] : [$status]);
+
+        $this->applyAdminSearch($query, $f['search']);
+
+        if (in_array($f['tier'], self::TIERS, true)) {
+            $query->where('tier', $f['tier']);
+        }
+
+        return $query->orderBy($sort, $dir)
+            ->orderBy('id', $dir)
+            ->paginate($f['per_page'], ['*'], $f['page_name'])
+            ->withQueryString()
+            ->through(fn (AkunCopytrade $akun) => $this->mapBaseRow($akun));
+    }
+
+    /**
+     * Pemantauan akun aktif: saldo terakhir, profit riil, dan status pencatatan bulan ini.
+     *
+     * @param array{search:string,sort_by:string,sort_direction:string,per_page:int,page_name:string,tier:string,catatan:string} $f
+     */
+    public function paginateActiveAccounts(array $f): LengthAwarePaginator
+    {
+        $sort = in_array($f['sort_by'], self::ACTIVE_SORTS, true) ? $f['sort_by'] : 'tanggal_mulai';
+        $dir = strtolower($f['sort_direction']) === 'asc' ? 'asc' : 'desc';
+
+        $monthStart = now()->startOfMonth()->toDateString();
+        $monthEnd = now()->endOfMonth()->toDateString();
+        $inThisMonth = fn ($q) => $q->whereBetween('tanggal_pencatatan', [$monthStart, $monthEnd]);
+
+        $query = AkunCopytrade::query()
+            ->with(['user', 'verifier', 'latestRiwayatBalance'])
+            ->withExists(['riwayatBalance as recorded_this_month' => $inThisMonth])
+            ->where('status', 'active');
+
+        $this->applyAdminSearch($query, $f['search']);
+
+        if (in_array($f['tier'], self::TIERS, true)) {
+            $query->where('tier', $f['tier']);
+        }
+
+        if ($f['catatan'] === 'belum') {
+            $query->whereDoesntHave('riwayatBalance', $inThisMonth);
+        }
+
+        return $query->orderBy($sort, $dir)
+            ->orderBy('id', $dir)
+            ->paginate($f['per_page'], ['*'], $f['page_name'])
+            ->withQueryString()
+            ->through(function (AkunCopytrade $akun) {
+                $latest = $akun->latestRiwayatBalance;
+                $modal = (float) $akun->modal_riil;
+                $balance = $latest ? (float) $latest->balance : null;
+                $profit = $balance !== null ? $balance - $modal : null;
+
+                return $this->mapBaseRow($akun) + [
+                    'current_balance'           => $balance,
+                    'current_balance_formatted' => $balance !== null ? '$' . number_format($balance, 2, '.', ',') : null,
+                    'profit'                    => $profit !== null ? round($profit, 2) : null,
+                    'profit_formatted'          => $profit !== null ? $this->signedUsd($profit) : null,
+                    'profit_pct'                => ($profit !== null && $modal > 0) ? round(($profit / $modal) * 100.0, 2) : null,
+                    'last_recorded_at'          => $latest?->tanggal_pencatatan ? tanggal_indo($latest->tanggal_pencatatan) : null,
+                    'recorded_this_month'       => (bool) $akun->recorded_this_month,
+                    'active_duration'           => $this->formatActiveDuration($akun->tanggal_mulai),
+                ];
+            });
+    }
+
+    /**
+     * Detail akun untuk modal admin: kredensial (hanya tier 3) dan riwayat saldo (hanya akun aktif).
+     */
+    public function getAccountDetail(AkunCopytrade $akun): array
+    {
+        $credentials = $akun->tier === 'tier_3'
+            ? [
+                'server_broker'     => $akun->server_broker,
+                'master_password'   => $akun->master_password,
+                'investor_password' => $akun->investor_password,
+            ]
+            : null;
+
+        $history = [];
+        if ($akun->status === 'active') {
+            $history = $akun->riwayatBalance()
+                ->orderByDesc('tanggal_pencatatan')
+                ->orderByDesc('id')
+                ->limit(24)
+                ->get()
+                ->map(fn ($r) => [
+                    'id'                           => $r->id,
+                    'tanggal'                      => $r->tanggal_pencatatan->toDateString(),
+                    'tanggal_formatted'            => tanggal_indo($r->tanggal_pencatatan),
+                    'balance'                      => (float) $r->balance,
+                    'balance_formatted'            => '$' . number_format((float) $r->balance, 2, '.', ','),
+                    'keuntungan_nominal'           => (float) $r->keuntungan_nominal,
+                    'keuntungan_nominal_formatted' => $this->signedUsd((float) $r->keuntungan_nominal),
+                    'keuntungan_persen'            => (float) $r->keuntungan_persen,
+                ])
+                ->all();
+        }
+
+        return ['credentials' => $credentials, 'history' => $history];
+    }
+
+    private function applyAdminSearch($query, string $search): void
+    {
+        if ($search === '') {
+            return;
+        }
+
+        $query->where(function ($q) use ($search) {
+            $q->where('nomor_akun_trading', 'like', "%{$search}%")
+                ->orWhereHas('user', function ($uq) use ($search) {
+                    $uq->where('name', 'like', "%{$search}%")
+                        ->orWhere('username', 'like', "%{$search}%");
+                });
+        });
+    }
+
+    private function signedUsd(float $value): string
+    {
+        return ($value >= 0 ? '+' : '-') . '$' . number_format(abs($value), 2, '.', ',');
+    }
+
+    private function formatActiveDuration($startedAt): string
+    {
+        if (!$startedAt) {
+            return '-';
+        }
+
+        $startDate = $startedAt instanceof \Carbon\CarbonInterface ? $startedAt : \Carbon\Carbon::parse($startedAt);
+        $months = (int) $startDate->diffInMonths(now());
+        if ($months < 1) {
+            return '< 1 bln';
+        }
+
+        $years = intdiv($months, 12);
+        $rest = $months % 12;
+
+        return $years > 0
+            ? $years . ' thn' . ($rest > 0 ? " {$rest} bln" : '')
+            : "{$rest} bln";
+    }
+
+    /**
+     * Hitung urutan pengajuan investor ke-berapa (1-based).
+     * Pendaftaran yang pernah ditolak (status = 'rejected') tidak dihitung.
+     * Jika pendaftaran ini sendiri berstatus 'rejected', kembalikan null.
+     */
+    public function calculateSubmissionSequence(AkunCopytrade $akun): ?int
+    {
+        if ($akun->status === 'rejected') {
+            return null;
+        }
+
+        return AkunCopytrade::query()
+            ->where('user_id', $akun->user_id)
+            ->where('status', '!=', 'rejected')
+            ->where(function ($q) use ($akun) {
+                if ($akun->created_at) {
+                    $q->where('created_at', '<', $akun->created_at)
+                        ->orWhere(function ($q2) use ($akun) {
+                            $q2->where('created_at', '=', $akun->created_at)
+                                ->where('id', '<=', $akun->id);
+                        });
+                } else {
+                    $q->where('id', '<=', $akun->id);
+                }
+            })
+            ->count();
+    }
+
+    /**
+     * Periksa apakah investor memiliki setidaknya satu pengajuan akun copytrade yang telah disetujui (status = 'active').
+     */
+    public function hasApprovedAccount(?int $userId): bool
+    {
+        if (!$userId) {
+            return false;
+        }
+
+        return AkunCopytrade::query()
+            ->where('user_id', $userId)
+            ->where('status', 'active')
+            ->exists();
+    }
+
+    /**
+     * Baris dasar daftar admin. SENGAJA tanpa master_password / investor_password.
+     */
+    private function mapBaseRow(AkunCopytrade $akun): array
+    {
+        $pengajuanKe = $this->calculateSubmissionSequence($akun);
+        $hasApprovedAccount = $this->hasApprovedAccount($akun->user_id);
+        $showPerjanjian = !($pengajuanKe !== null && $pengajuanKe >= 2 && $hasApprovedAccount);
+
+        return [
+            'id'   => $akun->id,
+            'user' => [
+                'id'       => $akun->user?->id,
+                'name'     => $akun->user?->name ?? 'Investor',
+                'username' => $akun->user?->username ?? '',
+            ],
+            'pengajuan_ke'         => $pengajuanKe,
+            'has_approved_account' => $hasApprovedAccount,
+            'show_perjanjian'      => $showPerjanjian,
+            'tier'                 => $akun->tier,
+            'tier_label'           => match ($akun->tier) {
+                'tier_1' => 'Tier 1',
+                'tier_2' => 'Tier 2',
+                'tier_3' => 'Tier 3',
+                default  => $akun->tier,
+            },
+            'broker'               => $akun->broker,
+            'tipe_akun'            => $akun->tipe_akun,
+            'nomor_akun_trading'   => $akun->nomor_akun_trading,
+            'modal_riil'           => (float) $akun->modal_riil,
+            'modal_riil_formatted' => '$' . number_format((float) $akun->modal_riil, 2, '.', ','),
+            'tanggal_mulai'        => tanggal_indo($akun->tanggal_mulai),
+            'nama_bank'            => $akun->nama_bank,
+            'nomor_rekening'       => $akun->nomor_rekening,
+            'atas_nama_rekening'   => $akun->atas_nama_rekening,
+            'status'               => $akun->status,
+            'catatan_admin'        => $akun->catatan_admin,
+            'server_broker'        => $akun->server_broker,
+            'has_surat_perjanjian' => !empty($akun->surat_perjanjian_path),
+            'surat_perjanjian_url' => $akun->surat_perjanjian_path ? route('documents.copytrade', $akun->id) : null,
+            'created_at'           => tanggal_waktu_indo($akun->created_at),
+            'verified_at'          => tanggal_waktu_indo($akun->verified_at),
+            'verifier_name'        => $akun->verifier?->name,
+        ];
     }
 
     /**
@@ -205,25 +477,18 @@ class CopytradeService
             ? $formData['tanggal_mulai_trading']
             : now()->toDateString();
 
-        $tanggalMulaiFormatted = function_exists('tanggal_indo')
-            ? tanggal_indo($tanggalMulaiInput)
-            : $tanggalMulaiInput;
+        $tanggalMulaiFormatted = tanggal_indo($tanggalMulaiInput);
 
         try {
-            $tanggalSelesaiFormatted = function_exists('tanggal_indo')
-                ? tanggal_indo(\Carbon\Carbon::parse($tanggalMulaiInput)->addYears(5))
-                : \Carbon\Carbon::parse($tanggalMulaiInput)->addYears(5)->format('d F Y');
+            $tanggalSelesaiFormatted = tanggal_indo(\Carbon\Carbon::parse($tanggalMulaiInput)->addYears(5));
         } catch (\Throwable) {
             $tanggalSelesaiFormatted = '-';
         }
 
-        $tanggalSuratFormatted = function_exists('tanggal_indo')
-            ? tanggal_indo(now())
-            : now()->format('d F Y');
-
+        $tanggalSuratFormatted = tanggal_indo(now());
         $ttl = trim(
             ($user->tempat_lahir ? $user->tempat_lahir . ', ' : '') .
-            ($user->tanggal_lahir ? (function_exists('tanggal_indo') ? tanggal_indo($user->tanggal_lahir) : $user->tanggal_lahir) : '')
+            ($user->tanggal_lahir ? tanggal_indo($user->tanggal_lahir) : '')
         );
 
         $existingAkun = AkunCopytrade::where('user_id', $user->id)->latest()->first();

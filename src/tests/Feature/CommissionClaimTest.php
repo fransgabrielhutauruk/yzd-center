@@ -85,7 +85,6 @@ class CommissionClaimTest extends TestCase
             'nomor_rekening'     => '1234567890',
             'atas_nama_rekening' => $this->downline->name,
             'status'             => 'active',
-            'copy_started_at'    => now()->subDays(45),
         ]);
 
         $response = $this->actingAs($this->affiliator)->get('/investor/commissions');
@@ -112,7 +111,6 @@ class CommissionClaimTest extends TestCase
             'nomor_rekening'     => '9876543210',
             'atas_nama_rekening' => $this->downline->name,
             'status'             => 'active',
-            'copy_started_at'    => now()->subDays(95),
         ]);
 
         $response = $this->actingAs($this->affiliator)->get('/investor/commissions');
@@ -141,7 +139,6 @@ class CommissionClaimTest extends TestCase
             'nomor_rekening'     => '1234567890',
             'atas_nama_rekening' => $this->downline->name,
             'status'             => 'active',
-            'copy_started_at'    => now()->subDays(100),
         ]);
 
         // Akun 2: mulai 80 hari lalu (20 hari setelah Akun 1), modal 70 Juta
@@ -157,7 +154,6 @@ class CommissionClaimTest extends TestCase
             'nomor_rekening'     => '1234567890',
             'atas_nama_rekening' => $this->downline->name,
             'status'             => 'active',
-            'copy_started_at'    => now()->subDays(80),
         ]);
 
         $response = $this->actingAs($this->affiliator)->get('/investor/commissions');
@@ -220,7 +216,6 @@ class CommissionClaimTest extends TestCase
             'nomor_rekening'     => '1234567890',
             'atas_nama_rekening' => $this->downline->name,
             'status'             => 'active',
-            'copy_started_at'    => now()->subDays(100),
         ]);
         AkunCopytrade::create([
             'user_id'            => $this->downline->id,
@@ -234,7 +229,6 @@ class CommissionClaimTest extends TestCase
             'nomor_rekening'     => '1234567890',
             'atas_nama_rekening' => $this->downline->name,
             'status'             => 'active',
-            'copy_started_at'    => now()->subDays(70),
         ]);
 
         // Downline 2 (aktif 95 hari, memiliki 1 akun)
@@ -261,7 +255,6 @@ class CommissionClaimTest extends TestCase
             'nomor_rekening'     => '1122334455',
             'atas_nama_rekening' => $downline2->name,
             'status'             => 'active',
-            'copy_started_at'    => now()->subDays(95),
         ]);
 
         $response = $this->actingAs($this->affiliator)->post('/investor/commissions', [
@@ -321,7 +314,6 @@ class CommissionClaimTest extends TestCase
             'nomor_rekening'     => '1234567890',
             'atas_nama_rekening' => $this->downline->name,
             'status'             => 'active',
-            'copy_started_at'    => now()->subDays(100),
         ]);
 
         $claim = KlaimKomisi::create([

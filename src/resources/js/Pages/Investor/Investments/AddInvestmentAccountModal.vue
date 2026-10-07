@@ -56,7 +56,6 @@ const form = useForm({
     server_broker: '',
     master_password: '',
     investor_password: '',
-    url_mql5: '',
     dokumen_perjanjian: null,
 });
 

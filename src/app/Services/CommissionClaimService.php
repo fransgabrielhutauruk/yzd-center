@@ -136,7 +136,7 @@ class CommissionClaimService
     {
         $relations = RelasiReferral::where('affiliator_id', $affiliator->id)
             ->with(['downline.akunCopytrades' => function ($q) {
-                $q->where('status', 'active')->orderBy('copy_started_at', 'asc');
+                $q->where('status', 'active')->orderBy('tanggal_mulai', 'asc');
             }])
             ->get();
 
@@ -156,7 +156,7 @@ class CommissionClaimService
 
             $activeAccounts = $downline->akunCopytrades
                 ->where('status', 'active')
-                ->sortBy(fn ($a) => $a->copy_started_at ?: $a->tanggal_mulai)
+                ->sortBy(fn ($a) => $a->tanggal_mulai)
                 ->values();
 
             $accountCount = $activeAccounts->count();
@@ -186,7 +186,7 @@ class CommissionClaimService
             $accountsDetail = [];
 
             if ($accountCount > 0) {
-                $firstStartedAt = $activeAccounts->min('copy_started_at') ?: $activeAccounts->min('tanggal_mulai');
+                $firstStartedAt = $activeAccounts->min('tanggal_mulai');
                 if ($firstStartedAt) {
                     $periodStartDate = Carbon::parse($firstStartedAt)->startOfDay();
                     $activeDays = (int) $periodStartDate->diffInDays(now()->startOfDay());
@@ -197,7 +197,7 @@ class CommissionClaimService
                 $tierInfo = KlaimKomisiItem::determineTier($totalModalRiil);
 
                 foreach ($activeAccounts as $index => $acc) {
-                    $accStart = Carbon::parse($acc->copy_started_at ?: $acc->tanggal_mulai)->startOfDay();
+                    $accStart = Carbon::parse($acc->tanggal_mulai)->startOfDay();
                     $selisihHari = (int) $periodStartDate->diffInDays($accStart);
                     // Hari yang kehitung di dalam periode 90 hari pertama
                     $hariKehitung = max(0, 90 - $selisihHari);
@@ -315,12 +315,12 @@ class CommissionClaimService
 
                 // 2. Ambil seluruh akun copytrade aktif downline
                 $downline = User::with(['akunCopytrades' => function ($q) {
-                    $q->where('status', 'active')->orderBy('copy_started_at', 'asc');
+                    $q->where('status', 'active')->orderBy('tanggal_mulai', 'asc');
                 }])->findOrFail($downlineId);
 
                 $activeAccounts = $downline->akunCopytrades
                     ->where('status', 'active')
-                    ->sortBy(fn ($a) => $a->copy_started_at ?: $a->tanggal_mulai)
+                    ->sortBy(fn ($a) => $a->tanggal_mulai)
                     ->values();
 
                 if ($activeAccounts->isEmpty()) {
@@ -330,7 +330,7 @@ class CommissionClaimService
                 }
 
                 // 3. Waktu pertama kali start copytrade & masa aktif
-                $firstStartedAt = $activeAccounts->min('copy_started_at') ?: $activeAccounts->min('tanggal_mulai');
+                $firstStartedAt = $activeAccounts->min('tanggal_mulai');
                 if (!$firstStartedAt) {
                     throw ValidationException::withMessages([
                         'downline_ids' => "Tanggal mulai copytrade untuk investor {$downline->name} belum terkonfirmasi.",
@@ -365,7 +365,7 @@ class CommissionClaimService
 
                 // 6. Siapkan record item per akun copytrade
                 foreach ($activeAccounts as $index => $acc) {
-                    $accStart = Carbon::parse($acc->copy_started_at ?: $acc->tanggal_mulai)->startOfDay();
+                    $accStart = Carbon::parse($acc->tanggal_mulai)->startOfDay();
                     $selisihHari = (int) $periodStartDate->diffInDays($accStart);
                     $hariKehitung = max(0, 90 - $selisihHari);
                     $isFirst = ($index === 0);

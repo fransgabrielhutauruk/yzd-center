@@ -26,11 +26,11 @@ defineProps({
 
 <template>
     <AdminLayout
-        title="Dasbor Administrator"
+        title="Dashboard Administrator"
         subtitle="Sistem manajemen trading terintegrasi YZD Center. Pantau keanggotaan investor, mitra affiliator, dan kelola tautan pendaftaran eksklusif."
         :breadcrumbs="[
             { label: 'Menu Utama' },
-            { label: 'Dasbor Admin' }
+            { label: 'Dashboard' }
         ]"
     >
         <div class="space-y-6">

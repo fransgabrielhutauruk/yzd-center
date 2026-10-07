@@ -409,7 +409,7 @@ class EducationService
     {
         $activeAccounts = $user->akunCopytrade()
             ->where('status', 'active')
-            ->orderBy('copy_started_at')
+            ->orderBy('tanggal_mulai')
             ->get();
 
         $hasActiveCopytrade = $activeAccounts->isNotEmpty();
@@ -419,7 +419,7 @@ class EducationService
         if ($hasActiveCopytrade) {
             $totalModalRiil = (float) $activeAccounts->sum('modal_riil');
             $earliestAccount = $activeAccounts->first();
-            $joinDate = $earliestAccount->copy_started_at ?? $earliestAccount->tanggal_mulai;
+            $joinDate = $earliestAccount->tanggal_mulai;
             $startCarbon = $joinDate ? Carbon::parse($joinDate) : now();
             // Menghitung bulan aktif berjalan sejak join (minimal 1 bulan)
             $diffMonths = (int) $startCarbon->diffInMonths(now());

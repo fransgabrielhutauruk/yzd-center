@@ -95,7 +95,6 @@ class InvestmentPortfolioTest extends TestCase
             'nomor_rekening'     => '12345',
             'atas_nama_rekening' => 'Investor Test',
             'status'             => 'active',
-            'copy_started_at'    => '2026-01-01',
         ]);
 
         $response = $this->actingAs($this->investor)
@@ -131,7 +130,6 @@ class InvestmentPortfolioTest extends TestCase
             'nomor_rekening'     => '11111',
             'atas_nama_rekening' => 'Investor Test',
             'status'             => 'active',
-            'copy_started_at'    => '2026-01-01',
         ]);
         RiwayatBalanceCopytrade::create([
             'akun_copytrade_id'            => $akun1->id,
@@ -157,7 +155,6 @@ class InvestmentPortfolioTest extends TestCase
             'nomor_rekening'     => '22222',
             'atas_nama_rekening' => 'Investor Test',
             'status'             => 'active',
-            'copy_started_at'    => '2026-01-01',
         ]);
         RiwayatBalanceCopytrade::create([
             'akun_copytrade_id'            => $akun2->id,
@@ -597,5 +594,245 @@ class InvestmentPortfolioTest extends TestCase
             ->has('summary.history', 2)
             ->where('summary.months_active', fn ($m) => $m >= 1)
         );
+    }
+
+    public function test_rejected_account_disappears_from_list_and_resubmission_requires_agreement(): void
+    {
+        // 1. Akun pertama ditolak
+        $rej = AkunCopytrade::create([
+            'user_id'            => $this->investor->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'HFM',
+            'tipe_akun'          => 'cent',
+            'nomor_akun_trading' => 'REJ-111',
+            'modal_riil'         => 100.00,
+            'tanggal_mulai'      => '2026-01-01',
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '12345',
+            'atas_nama_rekening' => 'Investor Test',
+            'status'             => 'rejected',
+        ]);
+
+        // Halaman portofolio: akun ditolak hilang dari list (accounts kosong) & has_existing = false
+        $response = $this->actingAs($this->investor)->get(route('investor.investments.index'));
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->has('accounts', 0)
+            ->where('has_existing', false)
+        );
+
+        // Pengajuan ulang tanpa dokumen perjanjian HARUS gagal validasi
+        $payloadWithoutDoc = [
+            'tier_investasi'        => 'tier_1',
+            'nomor_akun_trading'    => 'NEW-222',
+            'modal_riil'            => 150.00,
+            'tanggal_mulai_trading' => '2026-02-01',
+            'nama_bank'             => 'BCA',
+            'nomor_rekening'        => '12345',
+            'atas_nama_rekening'    => 'Investor Test',
+        ];
+
+        $this->actingAs($this->investor)
+            ->post(route('investor.investments.store'), $payloadWithoutDoc)
+            ->assertSessionHasErrors('dokumen_perjanjian');
+
+        // Pengajuan ulang dengan dokumen perjanjian berhasil
+        $file = UploadedFile::fake()->create('surat_perjanjian_baru.pdf', 500, 'application/pdf');
+        $payloadWithDoc = array_merge($payloadWithoutDoc, ['dokumen_perjanjian' => $file]);
+
+        $this->actingAs($this->investor)
+            ->post(route('investor.investments.store'), $payloadWithDoc)
+            ->assertRedirect(route('investor.investments.index'));
+
+        $this->assertDatabaseHas('akun_copytrade', [
+            'user_id'            => $this->investor->id,
+            'nomor_akun_trading' => 'NEW-222',
+            'status'             => 'pending',
+        ]);
+    }
+
+    public function test_second_submission_while_first_pending_does_not_require_agreement(): void
+    {
+        // 1. Akun pertama pending
+        $file = UploadedFile::fake()->create('surat_perjanjian.pdf', 500, 'application/pdf');
+        $this->actingAs($this->investor)
+            ->post(route('investor.investments.store'), [
+                'tier_investasi'        => 'tier_1',
+                'nomor_akun_trading'    => 'PENDING-1',
+                'modal_riil'            => 100.00,
+                'tanggal_mulai_trading' => '2026-02-01',
+                'nama_bank'             => 'BCA',
+                'nomor_rekening'        => '12345',
+                'atas_nama_rekening'    => 'Investor Test',
+                'dokumen_perjanjian'    => $file,
+            ])
+            ->assertRedirect(route('investor.investments.index'));
+
+        // Portofolio sekarang memiliki 1 akun pending, has_existing = true
+        $response = $this->actingAs($this->investor)->get(route('investor.investments.index'));
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->has('accounts', 1)
+            ->where('has_existing', true)
+        );
+
+        // Pengajuan akun kedua sekaligus tanpa dokumen perjanjian HARUS BERHASIL
+        $this->actingAs($this->investor)
+            ->post(route('investor.investments.store'), [
+                'tier_investasi'        => 'tier_2',
+                'nomor_akun_trading'    => 'PENDING-2',
+                'modal_riil'            => 5000.00,
+                'tanggal_mulai_trading' => '2026-02-01',
+                'nama_bank'             => 'BCA',
+                'nomor_rekening'        => '12345',
+                'atas_nama_rekening'    => 'Investor Test',
+            ])
+            ->assertRedirect(route('investor.investments.index'));
+
+        $this->assertDatabaseHas('akun_copytrade', [
+            'user_id'            => $this->investor->id,
+            'nomor_akun_trading' => 'PENDING-2',
+            'status'             => 'pending',
+        ]);
+    }
+
+    public function test_investor_can_update_balance_record_including_changing_date_without_creating_new_row(): void
+    {
+        $akun = AkunCopytrade::create([
+            'user_id'            => $this->investor->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'HFM',
+            'tipe_akun'          => 'cent',
+            'nomor_akun_trading' => 'MT4-UPDATE-1',
+            'modal_riil'         => 100.00,
+            'tanggal_mulai'      => '2026-01-01',
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '12345',
+            'atas_nama_rekening' => 'Investor Test',
+            'status'             => 'active',
+        ]);
+
+        $record = RiwayatBalanceCopytrade::create([
+            'akun_copytrade_id'            => $akun->id,
+            'user_id'                      => $this->investor->id,
+            'tanggal_pencatatan'           => '2026-02-01',
+            'balance'                      => 110.00,
+            'keuntungan_nominal'           => 10.00,
+            'keuntungan_persen'            => 10.00,
+            'keuntungan_kumulatif'         => 10.00,
+            'pertumbuhan_kumulatif_persen' => 10.00,
+            'catatan'                      => 'Catatan lama',
+        ]);
+
+        $this->assertEquals(1, RiwayatBalanceCopytrade::where('akun_copytrade_id', $akun->id)->count());
+
+        // Update tanggal menjadi 2026-02-15 dan saldo 115.00
+        $response = $this->actingAs($this->investor)
+            ->put(route('investor.investments.balance.update', $record->id), [
+                'akun_copytrade_id'  => $akun->id,
+                'tanggal_pencatatan' => '2026-02-15',
+                'balance'            => 115.00,
+                'catatan'            => 'Catatan diperbarui',
+            ]);
+
+        $response->assertRedirect(route('investor.investments.index', ['account_id' => $akun->id]));
+        $response->assertSessionHas('success');
+
+        // Pastikan TIDAK membuat baris baru (tetap tepat 1 record)
+        $this->assertEquals(1, RiwayatBalanceCopytrade::where('akun_copytrade_id', $akun->id)->count());
+
+        $record->refresh();
+        $this->assertEquals('2026-02-15', $record->tanggal_pencatatan->format('Y-m-d'));
+        $this->assertEquals(115.00, (float) $record->balance);
+        $this->assertEquals(15.00, (float) $record->keuntungan_nominal);
+        $this->assertEquals(15.00, (float) $record->keuntungan_persen);
+        $this->assertEquals('Catatan diperbarui', $record->catatan);
+    }
+
+    public function test_updating_balance_date_to_an_existing_date_fails_validation(): void
+    {
+        $akun = AkunCopytrade::create([
+            'user_id'            => $this->investor->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'HFM',
+            'tipe_akun'          => 'cent',
+            'nomor_akun_trading' => 'MT4-COLLISION',
+            'modal_riil'         => 100.00,
+            'tanggal_mulai'      => '2026-01-01',
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '12345',
+            'atas_nama_rekening' => 'Investor Test',
+            'status'             => 'active',
+        ]);
+
+        $record1 = RiwayatBalanceCopytrade::create([
+            'akun_copytrade_id'            => $akun->id,
+            'user_id'                      => $this->investor->id,
+            'tanggal_pencatatan'           => '2026-02-01',
+            'balance'                      => 110.00,
+            'keuntungan_nominal'           => 10.00,
+            'keuntungan_persen'            => 10.00,
+            'keuntungan_kumulatif'         => 10.00,
+            'pertumbuhan_kumulatif_persen' => 10.00,
+        ]);
+
+        RiwayatBalanceCopytrade::create([
+            'akun_copytrade_id'            => $akun->id,
+            'user_id'                      => $this->investor->id,
+            'tanggal_pencatatan'           => '2026-03-01',
+            'balance'                      => 120.00,
+            'keuntungan_nominal'           => 10.00,
+            'keuntungan_persen'            => 9.09,
+            'keuntungan_kumulatif'         => 20.00,
+            'pertumbuhan_kumulatif_persen' => 20.00,
+        ]);
+
+        // Coba ubah record1 ke tanggal record2 (2026-03-01)
+        $response = $this->actingAs($this->investor)
+            ->put(route('investor.investments.balance.update', $record1->id), [
+                'akun_copytrade_id'  => $akun->id,
+                'tanggal_pencatatan' => '2026-03-01',
+                'balance'            => 112.00,
+            ]);
+
+        $response->assertSessionHasErrors('tanggal_pencatatan');
+    }
+
+    public function test_investor_cannot_update_other_investor_balance_record(): void
+    {
+        $otherUser = \App\Models\User::factory()->create(['role' => 'investor', 'status' => 'active']);
+        $otherAkun = AkunCopytrade::create([
+            'user_id'            => $otherUser->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'HFM',
+            'tipe_akun'          => 'cent',
+            'nomor_akun_trading' => 'MT4-OTHER',
+            'modal_riil'         => 100.00,
+            'tanggal_mulai'      => '2026-01-01',
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '12345',
+            'atas_nama_rekening' => 'Other Investor',
+            'status'             => 'active',
+        ]);
+
+        $otherRecord = RiwayatBalanceCopytrade::create([
+            'akun_copytrade_id'            => $otherAkun->id,
+            'user_id'                      => $otherUser->id,
+            'tanggal_pencatatan'           => '2026-02-01',
+            'balance'                      => 110.00,
+            'keuntungan_nominal'           => 10.00,
+            'keuntungan_persen'            => 10.00,
+            'keuntungan_kumulatif'         => 10.00,
+            'pertumbuhan_kumulatif_persen' => 10.00,
+        ]);
+
+        $response = $this->actingAs($this->investor)
+            ->put(route('investor.investments.balance.update', $otherRecord->id), [
+                'akun_copytrade_id'  => $otherAkun->id,
+                'tanggal_pencatatan' => '2026-02-15',
+                'balance'            => 115.00,
+            ]);
+
+        $response->assertForbidden();
     }
 }

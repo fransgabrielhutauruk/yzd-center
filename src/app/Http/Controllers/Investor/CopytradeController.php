@@ -32,7 +32,7 @@ class CopytradeController extends Controller
         $sortDirection = $request->string('sort_direction', $request->string('direction', 'desc')->value())->value();
         $perPage = $request->integer('per_page', 10);
 
-        $allowedSorts = ['nomor_akun_trading', 'tier', 'modal_riil', 'tanggal_mulai', 'status', 'created_at', 'copy_started_at'];
+        $allowedSorts = ['nomor_akun_trading', 'tier', 'modal_riil', 'tanggal_mulai', 'status', 'created_at'];
         if (!in_array($sortField, $allowedSorts, true)) {
             $sortField = 'created_at';
         }
@@ -79,14 +79,14 @@ class CopytradeController extends Controller
                     'status'               => $akun->status,
                     'catatan_admin'        => $akun->catatan_admin,
                     'server_broker'        => $akun->server_broker,
-                    'url_mql5'             => $akun->url_mql5,
                     'has_surat_perjanjian' => !empty($akun->surat_perjanjian_path),
                     'created_at'           => function_exists('tanggal_singkat_waktu') ? tanggal_singkat_waktu($akun->created_at) : $akun->created_at->format('d M Y H:i'),
-                    'copy_started_at'      => $akun->copy_started_at ? (function_exists('tanggal_singkat_waktu') ? tanggal_singkat_waktu($akun->copy_started_at) : $akun->copy_started_at->format('d M Y H:i')) : null,
                 ];
             });
 
-        $hasExisting = AkunCopytrade::where('user_id', $user->id)->exists();
+        $hasExisting = AkunCopytrade::where('user_id', $user->id)
+            ->whereIn('status', ['pending', 'active'])
+            ->exists();
         $pengaturan = PengaturanMaster::getSettings();
 
         return Inertia::render('Investor/Copytrade/Index', [

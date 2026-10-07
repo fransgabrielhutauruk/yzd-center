@@ -58,7 +58,7 @@ class InvestmentPortfolioController extends Controller
             $profitNominal = $isActive ? ($currentBalance - $modalAwal) : 0.0;
             $growthPct = ($isActive && $modalAwal > 0) ? round(($profitNominal / $modalAwal) * 100.0, 2) : 0.0;
 
-            $startDateCarbon = $akun->copy_started_at ?? $akun->tanggal_mulai ?? $akun->created_at;
+            $startDateCarbon = $akun->tanggal_mulai ?? $akun->created_at;
             $diffMonths = $startDateCarbon ? max(0, (int) Carbon::parse($startDateCarbon)->diffInMonths(now())) : 0;
             $recordsCount = $isActive ? $akun->riwayatBalance->count() : 0;
             $monthsActive = max($diffMonths, $recordsCount > 1 ? $recordsCount - 1 : 0);
@@ -91,7 +91,6 @@ class InvestmentPortfolioController extends Controller
                 'nomor_rekening'       => $akun->nomor_rekening,
                 'atas_nama_rekening'   => $akun->atas_nama_rekening,
                 'server_broker'        => $akun->server_broker,
-                'url_mql5'             => $akun->url_mql5,
                 'catatan_admin'        => $akun->catatan_admin,
                 'has_surat_perjanjian' => !empty($akun->surat_perjanjian_path),
                 'latest_record_date'   => $latestRecord?->tanggal_pencatatan?->format('Y-m-d'),
@@ -131,7 +130,7 @@ class InvestmentPortfolioController extends Controller
             'accounts'            => $accountsFormatted,
             'selected_account_id' => $selectedAccountId,
             'summary'             => $summary,
-            'has_existing'        => AkunCopytrade::where('user_id', $user->id)->exists(),
+            'has_existing'        => AkunCopytrade::where('user_id', $user->id)->whereIn('status', ['pending', 'active'])->exists(),
             'filters'             => [
                 'period'     => $period,
                 'start_date' => $startDate,
@@ -185,6 +184,36 @@ class InvestmentPortfolioController extends Controller
         return redirect()->route('investor.investments.index', [
             'account_id' => $akun->id,
         ])->with('success', "Saldo per {$tglIndo} pada akun {$akun->nomor_akun_trading} berhasil dicatat.");
+    }
+
+    /**
+     * Memperbarui catatan saldo tertentu dan merekalibrasi seluruh riwayat.
+     */
+    public function updateBalance(RiwayatBalanceRequest $request, int $id): RedirectResponse
+    {
+        $user = $request->user();
+        $validated = $request->validated();
+
+        $record = RiwayatBalanceCopytrade::query()
+            ->where('id', $id)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        $akun = $record->akunCopytrade;
+
+        if ($akun->status !== 'active') {
+            return redirect()->back()->with('error', 'Catatan saldo hanya dapat diperbarui untuk akun trading yang aktif.');
+        }
+
+        $record = $this->balanceService->updateBalance($record, $validated);
+
+        $tglIndo = function_exists('tanggal_indo')
+            ? tanggal_indo($record->tanggal_pencatatan)
+            : $record->tanggal_pencatatan->format('d/m/Y');
+
+        return redirect()->route('investor.investments.index', [
+            'account_id' => $akun->id,
+        ])->with('success', "Catatan saldo per {$tglIndo} pada akun {$akun->nomor_akun_trading} berhasil diperbarui.");
     }
 
     /**

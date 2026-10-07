@@ -23,7 +23,6 @@ return new class extends Migration
             $table->text('investor_password')->nullable(); // encrypted via Crypt::encryptString()
             $table->decimal('modal_riil', 15, 2)->unsigned();
             $table->string('surat_perjanjian_path')->nullable();
-            $table->string('url_mql5')->nullable();
             $table->date('tanggal_mulai');
             $table->date('tanggal_selesai')->nullable();
             $table->string('nama_bank', 100);
@@ -33,7 +32,6 @@ return new class extends Migration
             $table->text('catatan_admin')->nullable();
             $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('verified_at')->nullable();
-            $table->timestamp('copy_started_at')->nullable();
             $table->timestamps();
         });
     }

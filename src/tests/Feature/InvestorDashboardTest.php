@@ -50,7 +50,6 @@ class InvestorDashboardTest extends TestCase
             'nomor_rekening'     => '1234567890',
             'atas_nama_rekening' => 'Investor Test',
             'status'             => $status,
-            'copy_started_at'    => now()->startOfMonth()->subMonths(2),
         ]);
     }
 
@@ -137,9 +136,9 @@ class InvestorDashboardTest extends TestCase
             );
     }
 
-    public function test_running_stage_computes_mom_when_account_has_historical_records_prior_to_copy_started_at(): void
+    public function test_running_stage_computes_mom_when_account_has_historical_records(): void
     {
-        // Simulasi akun yang diverifikasi hari ini, namun memiliki catatan saldo bulan lalu dan bulan ini
+        // Simulasi akun yang memiliki catatan saldo bulan lalu dan bulan ini
         $akun = AkunCopytrade::create([
             'user_id'            => $this->investor->id,
             'tier'               => 'tier_2',
@@ -152,7 +151,6 @@ class InvestorDashboardTest extends TestCase
             'nomor_rekening'     => '1234567890',
             'atas_nama_rekening' => 'Investor Historical',
             'status'             => 'active',
-            'copy_started_at'    => now(), // Baru diverifikasi hari ini
         ]);
 
         $this->makeRecord($akun, now()->startOfMonth()->subMonth()->toDateString(), 9000.00);

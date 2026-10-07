@@ -130,6 +130,7 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     // Verifikasi Copytrade
     Route::get('/copytrade', [AdminCopytradeController::class, 'index'])->name('copytrade.index');
     Route::post('/copytrade/{id}/verify', [AdminCopytradeController::class, 'verify'])->name('copytrade.verify');
+    Route::get('/copytrade/{id}/detail', [AdminCopytradeController::class, 'detail'])->whereNumber('id')->name('copytrade.detail');
 
     // Pengaturan Master
     Route::get('/settings/master', [PengaturanMasterController::class, 'index'])->name('settings.master');
@@ -220,6 +221,7 @@ Route::middleware(['auth', 'role:investor,affiliator'])->prefix('investor')->nam
     Route::get('/investments', [InvestmentPortfolioController::class, 'index'])->name('investments.index');
     Route::post('/investments', [InvestmentPortfolioController::class, 'storeAccount'])->name('investments.store');
     Route::post('/investments/balance', [InvestmentPortfolioController::class, 'storeBalance'])->name('investments.balance.store');
+    Route::put('/investments/balance/{id}', [InvestmentPortfolioController::class, 'updateBalance'])->name('investments.balance.update');
     Route::delete('/investments/balance/{id}', [InvestmentPortfolioController::class, 'destroyBalance'])->name('investments.balance.destroy');
     Route::match(['get', 'post'], '/investments/template-perjanjian/{tier}', [InvestmentPortfolioController::class, 'downloadTemplate'])->name('investments.template');
 
@@ -228,6 +230,7 @@ Route::middleware(['auth', 'role:investor,affiliator'])->prefix('investor')->nam
     Route::get('/copytrade/balance', fn () => redirect()->route('investor.investments.index'))->name('copytrade.balance.index');
     Route::post('/copytrade', [InvestmentPortfolioController::class, 'storeAccount'])->name('copytrade.store');
     Route::post('/copytrade/balance', [InvestmentPortfolioController::class, 'storeBalance'])->name('copytrade.balance.store');
+    Route::put('/copytrade/balance/{id}', [InvestmentPortfolioController::class, 'updateBalance'])->name('copytrade.balance.update');
     Route::delete('/copytrade/balance/{id}', [InvestmentPortfolioController::class, 'destroyBalance'])->name('copytrade.balance.destroy');
     Route::match(['get', 'post'], '/copytrade/template-perjanjian/{tier}', [InvestmentPortfolioController::class, 'downloadTemplate'])->name('copytrade.template');
     Route::get('/copytrade/panduan-pdf/{tier}', [InvestorCopytradeController::class, 'downloadGuidePdf'])->name('copytrade.guide_pdf');

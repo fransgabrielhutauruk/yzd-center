@@ -150,8 +150,6 @@ class UserService
                 'status'               => $akun->status,
                 'tanggal_mulai'        => $akun->tanggal_mulai ? tanggal_indo($akun->tanggal_mulai) : '-',
                 'verified_at'          => $akun->verified_at ? tanggal_waktu_indo($akun->verified_at, true) : '-',
-                'copy_started_at'      => $akun->copy_started_at ? tanggal_waktu_indo($akun->copy_started_at, true) : '-',
-                'url_mql5'             => $akun->url_mql5,
                 'nama_bank'            => $akun->nama_bank ?? '-',
                 'nomor_rekening'       => $akun->nomor_rekening ?? '-',
                 'atas_nama_rekening'   => $akun->atas_nama_rekening ?? '-',

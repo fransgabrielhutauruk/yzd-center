@@ -1,323 +1,427 @@
 <script setup>
 import { ref } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
-import {
-    Eye,
-    TrendingUp,
-    Clock,
-    CheckCircle2,
-    XCircle,
-    Layers,
-    Filter,
-} from 'lucide-vue-next';
+import { Head } from '@inertiajs/vue3';
+import { Eye, Clock, CheckCircle2, XCircle, ClipboardCheck, Activity } from 'lucide-vue-next';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
 import { Button } from '@/Components/ui/button';
 import VerifyModal from './VerifyModal.vue';
+import DetailModal from './DetailModal.vue';
 
 const props = defineProps({
-    copytrades: {
-        type: Object,
-        required: true,
-    },
-    counts: {
-        type: Object,
-        default: () => ({
-            pending: 0,
-            active: 0,
-            rejected: 0,
-            all: 0,
-        }),
-    },
-    filters: {
-        type: Object,
-        default: () => ({}),
-    },
+    activeTab: { type: String, default: 'verifikasi' },
+    counts: { type: Object, default: () => ({ pending: 0, rejected: 0, active: 0 }) },
+    verifikasi: { type: Object, required: true },
+    aktif: { type: Object, required: true },
+    verFilters: { type: Object, default: () => ({}) },
+    aktFilters: { type: Object, default: () => ({}) },
 });
 
+const activeTab = ref(props.activeTab === 'aktif' ? 'aktif' : 'verifikasi');
+
+const switchTab = (tab) => {
+    activeTab.value = tab;
+    try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tab);
+        window.history.replaceState({}, '', url.toString());
+    } catch {
+        // Fallback jika window tidak tersedia
+    }
+};
+
 const isVerifyModalOpen = ref(false);
+const isDetailModalOpen = ref(false);
 const selectedCopytrade = ref(null);
 
-const columns = [
-    { key: 'created_at', label: 'Diajukan', sortable: true },
-    { key: 'user', label: 'Investor', sortable: false },
-    { key: 'nomor_akun_trading', label: 'Akun & Broker', sortable: true },
-    { key: 'tier', label: 'Tier', sortable: true },
-    { key: 'modal_riil', label: 'Modal Riil', sortable: true },
-    { key: 'status', label: 'Status', sortable: true },
-    { key: 'actions', label: 'Aksi', sortable: false, align: 'right' },
-];
-
-const openVerifyModal = (copytrade) => {
-    selectedCopytrade.value = copytrade;
+const openVerifyModal = (item) => {
+    selectedCopytrade.value = item;
     isVerifyModalOpen.value = true;
 };
+const openDetailModal = (item) => {
+    selectedCopytrade.value = item;
+    isDetailModalOpen.value = true;
+};
 
-const getStatusBadge = (status) => {
-    switch (status) {
-        case 'active':
-            return {
-                label: 'Aktif & Disetujui',
-                bg: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
-                icon: CheckCircle2,
-            };
-        case 'rejected':
-            return {
-                label: 'Ditolak',
-                bg: 'bg-destructive/10 text-destructive border-destructive/30',
-                icon: XCircle,
-            };
-        case 'pending':
-        default:
-            return {
-                label: 'Menunggu Verifikasi',
-                bg: 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30',
-                icon: Clock,
-            };
+const verColumns = [
+    { key: 'created_at', label: 'Diajukan', sortable: true },
+    { key: 'user', label: 'Investor', sortable: false },
+    { key: 'pengajuan_ke', label: 'Pengajuan Ke', sortable: false },
+    { key: 'nomor_akun_trading', label: 'Akun', sortable: true },
+    { key: 'tier', label: 'Tier', sortable: true },
+    { key: 'modal_riil', label: 'Modal', sortable: true },
+    { key: 'status', label: 'Status', sortable: true },
+    { key: 'actions', label: 'Aksi', sortable: false, align: 'center' },
+];
+
+const aktColumns = [
+    { key: 'tanggal_mulai', label: 'Mulai Investasi', sortable: true },
+    { key: 'user', label: 'Investor', sortable: false },
+    { key: 'nomor_akun_trading', label: 'Tier & Akun', sortable: true },
+    { key: 'modal_riil', label: 'Modal Awal', sortable: true },
+    { key: 'current_balance', label: 'Saldo Terakhir', sortable: false },
+    { key: 'last_recorded_at', label: 'Catatan Terakhir', sortable: false },
+    { key: 'actions', label: 'Aksi', sortable: false, align: 'center' },
+];
+
+const statusBadge = (status) => {
+    if (status === 'rejected') {
+        return {
+            label: 'Ditolak',
+            bg: 'bg-destructive/10 text-destructive border-destructive/30',
+            icon: XCircle,
+        };
     }
-};
-
-const getTierBadge = (tier) => {
-    switch (tier) {
-        case 'tier_3':
-            return {
-                label: 'Tier 3 (VPS)',
-                bg: 'bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30',
-            };
-        case 'tier_2':
-            return {
-                label: 'Tier 2 (Standard)',
-                bg: 'bg-indigo-500/10 text-indigo-800 dark:text-indigo-300 border-indigo-500/30',
-            };
-        case 'tier_1':
-        default:
-            return {
-                label: 'Tier 1 (Cent)',
-                bg: 'bg-sky-500/10 text-sky-800 dark:text-sky-300 border-sky-500/30',
-            };
+    if (status === 'active') {
+        return {
+            label: 'Aktif',
+            bg: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
+            icon: CheckCircle2,
+        };
     }
+    return {
+        label: 'Menunggu Verifikasi',
+        bg: 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30',
+        icon: Clock,
+    };
 };
 
-const filterByQuickStatus = (statusValue) => {
-    router.get(
-        '/admin/copytrade',
-        {
-            ...props.filters,
-            status: statusValue === props.filters.status ? undefined : statusValue,
-            page: 1,
-        },
-        { preserveState: true, preserveScroll: true }
-    );
+const tierBadgeClass = (tier) => {
+    if (tier === 'tier_3')
+        return 'bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30';
+    if (tier === 'tier_2')
+        return 'bg-indigo-500/10 text-indigo-800 dark:text-indigo-300 border-indigo-500/30';
+    return 'bg-sky-500/10 text-sky-800 dark:text-sky-300 border-sky-500/30';
 };
+
+const profitClass = (v) =>
+    v === null || v === undefined
+        ? 'text-muted-foreground'
+        : v >= 0
+          ? 'text-emerald-700 dark:text-emerald-400'
+          : 'text-destructive';
+
+const selectClass =
+    'bg-background border-input focus:ring-primary-500 min-h-[38px] w-full rounded-lg border px-3 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none sm:w-auto';
 </script>
 
 <template>
-    <Head title="Verifikasi Akun Copytrade" />
+    <Head title="Kelola Copytrade" />
     <AdminLayout
-        title="Verifikasi Akun Copytrade"
-        subtitle="Tinjau dan verifikasi pendaftaran akun trading MT4 investor, kesesuaian broker, dan kelengkapan surat perjanjian kemitraan."
-        :breadcrumbs="[
-            { label: 'Manajemen Copytrade' },
-            { label: 'Verifikasi Copytrade' }
-        ]"
+        title="Kelola Copytrade"
+        subtitle="Verifikasi pendaftaran akun trading baru dan pantau akun copytrade yang sedang aktif."
+        :breadcrumbs="[{ label: 'Menu Utama' }, { label: 'Kelola Copytrade' }]"
     >
         <div class="space-y-6">
-
-            <!-- Quick Stats Cards (Clickable Filter Shortcuts) -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <button
-                    type="button"
-                    @click="filterByQuickStatus('pending')"
-                    :class="[
-                        'p-4 rounded-xl border text-left transition-all',
-                        filters.status === 'pending'
-                            ? 'border-sky-500 bg-sky-500/10 ring-1 ring-sky-500/30'
-                            : 'border-border bg-card hover:bg-muted/40',
-                    ]"
-                >
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold text-sky-700 dark:text-sky-400">Menunggu</span>
-                        <Clock class="h-4 w-4 text-sky-600 dark:text-sky-400" />
-                    </div>
-                    <p class="mt-2 text-2xl font-bold text-foreground font-mono">{{ counts.pending }}</p>
-                    <span class="text-[11px] text-muted-foreground">Perlu ditinjau</span>
-                </button>
-
-                <button
-                    type="button"
-                    @click="filterByQuickStatus('active')"
-                    :class="[
-                        'p-4 rounded-xl border text-left transition-all',
-                        filters.status === 'active'
-                            ? 'border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500/30'
-                            : 'border-border bg-card hover:bg-muted/40',
-                    ]"
-                >
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Aktif & Berjalan</span>
-                        <CheckCircle2 class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <p class="mt-2 text-2xl font-bold text-foreground font-mono">{{ counts.active }}</p>
-                    <span class="text-[11px] text-muted-foreground">Telah disetujui</span>
-                </button>
-
-                <button
-                    type="button"
-                    @click="filterByQuickStatus('rejected')"
-                    :class="[
-                        'p-4 rounded-xl border text-left transition-all',
-                        filters.status === 'rejected'
-                            ? 'border-destructive bg-destructive/10 ring-1 ring-destructive/30'
-                            : 'border-border bg-card hover:bg-muted/40',
-                    ]"
-                >
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold text-destructive">Ditolak</span>
-                        <XCircle class="h-4 w-4 text-destructive" />
-                    </div>
-                    <p class="mt-2 text-2xl font-bold text-foreground font-mono">{{ counts.rejected }}</p>
-                    <span class="text-[11px] text-muted-foreground">Perlu revisi</span>
-                </button>
-
-                <button
-                    type="button"
-                    @click="filterByQuickStatus('all')"
-                    :class="[
-                        'p-4 rounded-xl border text-left transition-all',
-                        filters.status === 'all'
-                            ? 'border-primary-500 bg-primary-500/10 ring-1 ring-primary-500/30'
-                            : 'border-border bg-card hover:bg-muted/40',
-                    ]"
-                >
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold text-muted-foreground">Semua Akun</span>
-                        <Layers class="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <p class="mt-2 text-2xl font-bold text-foreground font-mono">{{ counts.all }}</p>
-                    <span class="text-[11px] text-muted-foreground">Total pendaftaran</span>
-                </button>
+            <!-- Tab Navigasi -->
+            <div class="border-border border-b">
+                <nav class="-mb-px flex gap-6 text-sm font-medium">
+                    <button
+                        type="button"
+                        @click="switchTab('verifikasi')"
+                        class="flex min-h-[40px] cursor-pointer items-center gap-2 border-b-2 pb-3 text-xs transition-colors sm:text-sm"
+                        :class="
+                            activeTab === 'verifikasi'
+                                ? 'border-primary-600 text-primary-600 dark:text-primary-400 font-bold'
+                                : 'text-muted-foreground hover:text-foreground border-transparent'
+                        "
+                    >
+                        <ClipboardCheck class="h-4 w-4" />
+                        <span>Verifikasi</span>
+                        <span
+                            class="text-foreground rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold dark:bg-slate-800"
+                            >{{ counts.pending }}</span
+                        >
+                    </button>
+                    <button
+                        type="button"
+                        @click="switchTab('aktif')"
+                        class="flex min-h-[40px] cursor-pointer items-center gap-2 border-b-2 pb-3 text-xs transition-colors sm:text-sm"
+                        :class="
+                            activeTab === 'aktif'
+                                ? 'border-primary-600 text-primary-600 dark:text-primary-400 font-bold'
+                                : 'text-muted-foreground hover:text-foreground border-transparent'
+                        "
+                    >
+                        <Activity class="h-4 w-4" />
+                        <span>Akun Aktif</span>
+                        <span
+                            class="text-foreground rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold dark:bg-slate-800"
+                            >{{ counts.active }}</span
+                        >
+                    </button>
+                </nav>
             </div>
 
-            <!-- Tabel AppDataTable Server-Side -->
-            <AppDataTable
-                :data="copytrades"
-                :columns="columns"
-                :filters="filters"
-                fetch-url="/admin/copytrade"
-                search-placeholder="Cari investor, username, nomor akun, atau bank..."
-                empty-title="Tidak Ada Pendaftaran Copytrade Ditemukan"
-                empty-message="Belum ada pendaftaran akun copytrade atau tidak ada data yang cocok dengan kriteria pencarian Anda."
-            >
-                <!-- Filter Slot -->
-                <template #filters="{ applyFilters }">
-                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                        <!-- Status Dropdown -->
-                        <select
-                            :value="filters.status || 'pending'"
-                            @change="(e) => applyFilters({ status: e.target.value || undefined, page: 1 })"
-                            class="bg-background border-input focus:ring-primary-500 min-h-[38px] w-full rounded-lg border px-3 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none sm:w-auto"
+            <!-- TAB 1: VERIFIKASI -->
+            <div v-show="activeTab === 'verifikasi'">
+                <AppDataTable
+                    :data="verifikasi"
+                    :columns="verColumns"
+                    :filters="verFilters"
+                    param-prefix="ver_"
+                    fetch-url="/admin/copytrade"
+                    search-placeholder="Cari investor, username, nomor akun..."
+                    empty-title="Tidak Ada Pendaftaran Ditemukan"
+                    empty-message="Tidak ada pendaftaran akun copytrade yang cocok dengan filter saat ini."
+                >
+                    <template #filters="{ applyFilters }">
+                        <div
+                            class="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center"
                         >
-                            <option value="pending">Menunggu Verifikasi</option>
-                            <option value="active">Aktif & Disetujui</option>
-                            <option value="rejected">Ditolak</option>
-                            <option value="all">Semua Status</option>
-                        </select>
+                            <select
+                                :value="verFilters.ver_status || 'pending'"
+                                @change="
+                                    (e) =>
+                                        applyFilters({
+                                            ver_status: e.target.value || undefined,
+                                            ver_page: 1,
+                                        })
+                                "
+                                :class="selectClass"
+                            >
+                                <option value="pending">Menunggu Verifikasi</option>
+                                <option value="rejected">Ditolak</option>
+                                <option value="all">Menunggu &amp; Ditolak</option>
+                            </select>
+                            <select
+                                :value="verFilters.ver_tier || ''"
+                                @change="
+                                    (e) =>
+                                        applyFilters({
+                                            ver_tier: e.target.value || undefined,
+                                            ver_page: 1,
+                                        })
+                                "
+                                :class="selectClass"
+                            >
+                                <option value="">Semua Tier</option>
+                                <option value="tier_1">Tier 1 (Cent)</option>
+                                <option value="tier_2">Tier 2 (Standard)</option>
+                                <option value="tier_3">Tier 3 (VPS)</option>
+                            </select>
+                        </div>
+                    </template>
 
-                        <!-- Tier Dropdown -->
-                        <select
-                            :value="filters.tier || ''"
-                            @change="(e) => applyFilters({ tier: e.target.value || undefined, page: 1 })"
-                            class="bg-background border-input focus:ring-primary-500 min-h-[38px] w-full rounded-lg border px-3 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none sm:w-auto"
+                    <template #column-created_at="{ item }">
+                        <span
+                            class="text-muted-foreground text-[11px] font-medium whitespace-nowrap"
+                            >{{ item.created_at }}</span
                         >
-                            <option value="">Semua Tier</option>
-                            <option value="tier_1">Tier 1 (Cent)</option>
-                            <option value="tier_2">Tier 2 (Standard)</option>
-                            <option value="tier_3">Tier 3 (VPS)</option>
-                        </select>
-                    </div>
-                </template>
-
-                <!-- Custom Column: Diajukan -->
-                <template #column-created_at="{ item }">
-                    <span class="text-muted-foreground text-[11px] font-medium whitespace-nowrap">
-                        {{ item.created_at }}
-                    </span>
-                </template>
-
-                <!-- Custom Column: Investor -->
-                <template #column-user="{ item }">
-                    <div class="space-y-0.5">
-                        <span class="text-foreground font-bold text-xs">{{ item.user.name }}</span>
-                        <div class="text-muted-foreground text-[11px]">
-                            <span>@{{ item.user.username }}</span>
-                            <span v-if="item.user.phone"> &bull; {{ item.user.phone }}</span>
+                    </template>
+                    <template #column-user="{ item }">
+                        <div class="space-y-0.5">
+                            <span class="text-foreground text-xs font-bold">{{
+                                item.user.name
+                            }}</span>
+                            <div class="text-muted-foreground text-[11px]">
+                                <span>@{{ item.user.username }}</span>
+                            </div>
                         </div>
-                    </div>
-                </template>
-
-                <!-- Custom Column: Akun & Broker -->
-                <template #column-nomor_akun_trading="{ item }">
-                    <div class="space-y-0.5">
-                        <span class="text-foreground font-mono font-bold">{{ item.nomor_akun_trading }}</span>
-                        <div class="text-muted-foreground text-[11px]">
-                            <span>{{ item.broker }} ({{ item.tipe_akun }})</span>
+                    </template>
+                    <template #column-pengajuan_ke="{ item }">
+                        <span
+                            v-if="item.pengajuan_ke"
+                            class="text-foreground inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold whitespace-nowrap dark:border-slate-700 dark:bg-slate-800"
+                        >
+                            Pengajuan ke-{{ item.pengajuan_ke }}
+                        </span>
+                        <span v-else class="text-muted-foreground text-xs">-</span>
+                    </template>
+                    <template #column-nomor_akun_trading="{ item }">
+                        <span class="text-foreground font-mono font-bold">{{
+                            item.nomor_akun_trading
+                        }}</span>
+                    </template>
+                    <template #column-tier="{ item }">
+                        <div class="space-y-0.5">
+                            <span
+                                :class="[
+                                    'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap',
+                                    tierBadgeClass(item.tier),
+                                ]"
+                                >{{ item.tier_label }}</span
+                            >
+                            <div class="text-muted-foreground text-[11px] text-nowrap">
+                                {{ item.broker }} ({{ item.tipe_akun }})
+                            </div>
                         </div>
-                    </div>
-                </template>
+                    </template>
+                    <template #column-modal_riil="{ item }">
+                        <span class="text-foreground font-mono text-xs font-bold">{{
+                            item.modal_riil_formatted
+                        }}</span>
+                    </template>
+                    <template #column-status="{ item }">
+                        <div
+                            :class="[
+                                'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold whitespace-nowrap',
+                                statusBadge(item.status).bg,
+                            ]"
+                        >
+                            <component
+                                :is="statusBadge(item.status).icon"
+                                class="h-3 w-3 shrink-0"
+                            />
+                            <span>{{ statusBadge(item.status).label }}</span>
+                        </div>
+                    </template>
+                    <template #column-actions="{ item }">
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            class="mx-auto flex min-h-[36px] items-center gap-1.5 text-xs"
+                            @click="openVerifyModal(item)"
+                        >
+                            <Eye class="h-3.5 w-3.5" />
+                            <span>Tinjau</span>
+                        </Button>
+                    </template>
+                </AppDataTable>
+            </div>
 
-                <!-- Custom Column: Tier -->
-                <template #column-tier="{ item }">
-                    <span
-                        :class="[
-                            'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap',
-                            getTierBadge(item.tier).bg,
-                        ]"
-                    >
-                        {{ item.tier_label }}
-                    </span>
-                </template>
+            <!-- TAB 2: AKUN AKTIF -->
+            <div v-show="activeTab === 'aktif'">
+                <AppDataTable
+                    :data="aktif"
+                    :columns="aktColumns"
+                    :filters="aktFilters"
+                    param-prefix="akt_"
+                    fetch-url="/admin/copytrade"
+                    search-placeholder="Cari investor, username, nomor akun..."
+                    empty-title="Belum Ada Akun Aktif"
+                    empty-message="Tidak ada akun copytrade aktif yang cocok dengan filter saat ini."
+                >
+                    <template #filters="{ applyFilters }">
+                        <div
+                            class="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center"
+                        >
+                            <select
+                                :value="aktFilters.akt_tier || ''"
+                                @change="
+                                    (e) =>
+                                        applyFilters({
+                                            akt_tier: e.target.value || undefined,
+                                            akt_page: 1,
+                                        })
+                                "
+                                :class="selectClass"
+                            >
+                                <option value="">Semua Tier</option>
+                                <option value="tier_1">Tier 1 (Cent)</option>
+                                <option value="tier_2">Tier 2 (Standard)</option>
+                                <option value="tier_3">Tier 3 (VPS)</option>
+                            </select>
+                            <select
+                                :value="aktFilters.akt_catatan || ''"
+                                @change="
+                                    (e) =>
+                                        applyFilters({
+                                            akt_catatan: e.target.value || undefined,
+                                            akt_page: 1,
+                                        })
+                                "
+                                :class="selectClass"
+                            >
+                                <option value="">Semua Status Catatan</option>
+                                <option value="belum">Belum dicatat bulan ini</option>
+                            </select>
+                        </div>
+                    </template>
 
-                <!-- Custom Column: Modal Riil -->
-                <template #column-modal_riil="{ item }">
-                    <span class="text-foreground font-mono font-bold text-xs">{{ item.modal_riil_formatted }}</span>
-                </template>
-
-                <!-- Custom Column: Status -->
-                <template #column-status="{ item }">
-                    <div
-                        :class="[
-                            'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold whitespace-nowrap',
-                            getStatusBadge(item.status).bg,
-                        ]"
-                    >
-                        <component :is="getStatusBadge(item.status).icon" class="h-3 w-3 shrink-0" />
-                        <span>{{ getStatusBadge(item.status).label }}</span>
-                    </div>
-                </template>
-
-                <!-- Custom Column: Aksi -->
-                <template #column-actions="{ item }">
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        class="flex items-center gap-1.5 text-xs"
-                        @click="openVerifyModal(item)"
-                    >
-                        <Eye class="h-3.5 w-3.5" />
-                        <span>Tinjau</span>
-                    </Button>
-                </template>
-            </AppDataTable>
+                    <template #column-tanggal_mulai="{ item }">
+                        <div class="space-y-0.5">
+                            <span
+                                class="text-muted-foreground text-[11px] font-medium whitespace-nowrap"
+                                >{{ item.tanggal_mulai || '-' }}</span
+                            >
+                            <div class="text-foreground text-[11px] font-semibold">
+                                {{ item.active_duration }}
+                            </div>
+                        </div>
+                    </template>
+                    <template #column-user="{ item }">
+                        <div class="space-y-0.5">
+                            <span class="text-foreground text-xs font-bold">{{
+                                item.user.name
+                            }}</span>
+                            <div class="text-muted-foreground text-[11px]">
+                                @{{ item.user.username }}
+                            </div>
+                        </div>
+                    </template>
+                    <template #column-nomor_akun_trading="{ item }">
+                        <div>
+                            <div>
+                                <span
+                                    :class="[
+                                        'me-1 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap',
+                                        tierBadgeClass(item.tier),
+                                    ]"
+                                    >{{ item.tier_label }}</span
+                                >
+                                <span class="text-muted-foreground text-[11px] text-nowrap">
+                                    {{ item.broker }} ({{ item.tipe_akun }})
+                                </span>
+                            </div>
+                            <span class="text-foreground font-mono font-bold">{{
+                                item.nomor_akun_trading
+                            }}</span>
+                        </div>
+                    </template>
+                    <template #column-modal_riil="{ item }">
+                        <span class="text-foreground font-mono text-xs font-bold">{{
+                            item.modal_riil_formatted
+                        }}</span>
+                    </template>
+                    <template #column-current_balance="{ item }">
+                        <div v-if="item.current_balance_formatted" class="space-y-0.5">
+                            <span class="text-foreground font-mono text-xs font-bold block">
+                                {{ item.current_balance_formatted }}
+                            </span>
+                            <span
+                                v-if="item.profit !== null"
+                                :class="['font-mono text-[11px] font-semibold block', profitClass(item.profit)]"
+                            >
+                                {{ item.profit_formatted }}
+                            </span>
+                        </div>
+                        <span v-else class="text-muted-foreground text-xs">Belum ada catatan</span>
+                    </template>
+                    <template #column-last_recorded_at="{ item }">
+                        <div class="space-y-1">
+                            <span
+                                class="text-foreground text-[11px] font-medium whitespace-nowrap"
+                                >{{ item.last_recorded_at || '-' }}</span
+                            >
+                        </div>
+                    </template>
+                    <template #column-actions="{ item }">
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            class="flex min-h-[36px] items-center mx-auto gap-1.5 text-xs"
+                            @click="openDetailModal(item)"
+                        >
+                            <Eye class="h-3.5 w-3.5" />
+                            <span>Detail</span>
+                        </Button>
+                    </template>
+                </AppDataTable>
+            </div>
         </div>
 
-        <!-- ========================================== -->
-        <!-- MODAL VERIFIKASI AKUN COPYTRADE (ADMIN)    -->
-        <!-- ========================================== -->
         <VerifyModal
             :show="isVerifyModalOpen"
             :copytrade="selectedCopytrade"
             @close="isVerifyModalOpen = false"
+        />
+        <DetailModal
+            :show="isDetailModalOpen"
+            :copytrade="selectedCopytrade"
+            @close="isDetailModalOpen = false"
         />
     </AdminLayout>
 </template>

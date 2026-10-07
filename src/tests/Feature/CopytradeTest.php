@@ -242,14 +242,16 @@ class CopytradeTest extends TestCase
             'status'             => 'pending',
         ]);
 
-        $response = $this->actingAs($this->admin)->get('/admin/copytrade?status=pending&search=11223344');
+        $response = $this->actingAs($this->admin)->get('/admin/copytrade?ver_status=pending&ver_search=11223344');
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Copytrade/Index')
-            ->has('copytrades')
+            ->has('verifikasi')
+            ->has('aktif')
             ->has('counts')
-            ->has('filters')
+            ->has('verFilters')
+            ->has('aktFilters')
         );
     }
 
@@ -280,7 +282,6 @@ class CopytradeTest extends TestCase
 
         $akun->refresh();
         $this->assertEquals('active', $akun->status);
-        $this->assertNotNull($akun->copy_started_at);
         $this->assertNotNull($akun->verified_at);
         $this->assertEquals($this->admin->id, $akun->verified_by);
 
@@ -325,7 +326,6 @@ class CopytradeTest extends TestCase
 
         $akun->refresh();
         $this->assertEquals('rejected', $akun->status);
-        $this->assertNull($akun->copy_started_at);
         $this->assertEquals('Nomor akun trading MT4 tidak ditemukan di server broker.', $akun->catatan_admin);
 
         Notification::assertSentTo(

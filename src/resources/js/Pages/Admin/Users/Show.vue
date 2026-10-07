@@ -23,7 +23,6 @@ import {
     MapPin,
     Briefcase,
     Calendar,
-    Globe,
     CreditCard,
     AlertCircle,
     Building2,
@@ -385,16 +384,6 @@ const copyReferralCode = () => {
                                     </div>
 
                                     <div class="flex items-center gap-2 shrink-0">
-                                        <a
-                                            v-if="akun.url_mql5"
-                                            :href="akun.url_mql5"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            class="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted"
-                                        >
-                                            <Globe class="h-3.5 w-3.5 text-primary-600" />
-                                            MQL5
-                                        </a>
                                         <a
                                             v-if="akun.agreement_url"
                                             :href="akun.agreement_url"

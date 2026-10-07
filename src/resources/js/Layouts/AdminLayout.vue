@@ -85,7 +85,7 @@ const navSections = [
         title: 'Menu Utama',
         items: [
             {
-                label: 'Dasbor Admin',
+                label: 'Dashboard',
                 href: '/admin/dashboard',
                 icon: LayoutDashboard,
                 routeName: 'admin.dashboard',
@@ -103,7 +103,7 @@ const navSections = [
                 routeName: 'admin.registrations.index',
             },
             {
-                label: 'Verifikasi Copytrade',
+                label: 'Kelola Copytrade',
                 href: '/admin/copytrade',
                 icon: ArrowLeftRight,
                 routeName: 'admin.copytrade.index',
