@@ -30,6 +30,7 @@ class CopytradeController extends Controller
         $akt = $this->tableParams($request, 'akt_', 'tanggal_mulai', 'desc');
         $akt['tier'] = trim((string) $request->query('akt_tier', ''));
         $akt['catatan'] = trim((string) $request->query('akt_catatan', ''));
+        $akt['username'] = trim((string) ($request->query('akt_username') ?? $request->query('username') ?? ''));
 
         return Inertia::render('Admin/Copytrade/Index', [
             'activeTab'  => $request->query('tab') === 'aktif' ? 'aktif' : 'verifikasi',
@@ -51,6 +52,7 @@ class CopytradeController extends Controller
                 'akt_per_page'       => $akt['per_page'],
                 'akt_tier'           => $akt['tier'],
                 'akt_catatan'        => $akt['catatan'],
+                'akt_username'       => $akt['username'] ?: null,
             ],
         ]);
     }

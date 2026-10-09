@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
-import { Eye, Clock, CheckCircle2, XCircle, ClipboardCheck, Activity } from 'lucide-vue-next';
+import { Eye, Clock, CheckCircle2, XCircle, ClipboardCheck, Activity, X } from 'lucide-vue-next';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
 import { Button } from '@/Components/ui/button';
@@ -297,6 +297,20 @@ const selectClass =
                         <div
                             class="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center"
                         >
+                            <div
+                                v-if="aktFilters.akt_username"
+                                class="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 bg-primary-50 px-2.5 py-1 text-xs font-medium text-primary-700 dark:border-primary-800 dark:bg-primary-950/60 dark:text-primary-300"
+                            >
+                                <span>Filter Pengguna: @{{ aktFilters.akt_username }}</span>
+                                <button
+                                    type="button"
+                                    class="ml-0.5 rounded p-0.5 hover:bg-primary-200/50 dark:hover:bg-primary-900 cursor-pointer"
+                                    title="Hapus filter pengguna"
+                                    @click="applyFilters({ akt_username: undefined, akt_page: 1 })"
+                                >
+                                    <X class="h-3 w-3" />
+                                </button>
+                            </div>
                             <select
                                 :value="aktFilters.akt_tier || ''"
                                 @change="

@@ -96,6 +96,8 @@ class UserManagementTest extends TestCase
             ->where('stats.total_affiliators', 1)
             ->where('stats.total_active', 2)
             ->where('stats.total_inactive', 0)
+            ->where('stats.inactive_investors', 0)
+            ->where('stats.inactive_affiliators', 0)
         );
     }
 
@@ -175,6 +177,21 @@ class UserManagementTest extends TestCase
             'atas_nama_rekening'    => $this->investor->name,
         ]);
 
+        // Buat akun copytrade yang masih pending verifikasi admin
+        AkunCopytrade::create([
+            'user_id'            => $this->investor->id,
+            'tier'               => 'tier_2',
+            'broker'             => 'Exness',
+            'tipe_akun'          => 'Standard',
+            'nomor_akun_trading' => '11223344',
+            'modal_riil'         => 1000.00,
+            'tanggal_mulai'      => now()->toDateString(),
+            'status'             => 'pending',
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => $this->investor->name,
+        ]);
+
         $response = $this->actingAs($this->admin)
             ->get(route('admin.users.show', $this->investor->id));
 
@@ -185,9 +202,13 @@ class UserManagementTest extends TestCase
             ->where('user.name', $this->investor->name)
             ->where('user.ahli_waris.nama', 'Budi Waris')
             ->where('user.ktp.file_name', 'ktp_investor.jpg')
+            ->where('user.surat_perjanjian.preview_url', '/documents/copytrade/' . AkunCopytrade::first()->id)
+            ->where('user.rekening_bank.nama_bank', 'BCA')
+            ->where('user.rekening_bank.nomor_rekening', '1234567890')
+            ->has('user.copytrades', 1)
             ->where('user.copytrades.0.nomor_akun_trading', '99887766')
-            ->where('user.copytrades.0.agreement_url', '/documents/copytrade/' . AkunCopytrade::first()->id)
             ->where('user.upline.name', $this->affiliator->name)
+            ->missing('user.ip_address')
         );
     }
 
@@ -317,6 +338,159 @@ class UserManagementTest extends TestCase
             ->component('Admin/Users/Index')
             ->has('users.data', 1)
             ->where('users.data.0.id', $this->investor->id)
+        );
+    }
+
+    public function test_admin_users_list_calculates_active_and_pending_copytrades_accurately(): void
+    {
+        AkunCopytrade::create([
+            'user_id'            => $this->investor->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'Exness',
+            'tipe_akun'          => 'Standard',
+            'nomor_akun_trading' => '11112222',
+            'server_broker'      => 'Exness-Real1',
+            'modal_riil'         => 1000.00,
+            'status'             => 'active',
+            'tanggal_mulai'      => now()->toDateString(),
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => $this->investor->name,
+        ]);
+
+        AkunCopytrade::create([
+            'user_id'            => $this->investor->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'Exness',
+            'tipe_akun'          => 'Standard',
+            'nomor_akun_trading' => '33334444',
+            'server_broker'      => 'Exness-Real1',
+            'modal_riil'         => 2000.00,
+            'status'             => 'pending',
+            'tanggal_mulai'      => now()->toDateString(),
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => $this->investor->name,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('admin.users.index'));
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Users/Index')
+            ->has('users.data')
+            ->where('users.data', fn ($users) => collect($users)->contains(function ($u) {
+                return $u['id'] === $this->investor->id
+                    && $u['active_copytrade_count'] === 1
+                    && $u['pending_copytrade_count'] === 1
+                    && $u['copytrade_count'] === 2;
+            }))
+        );
+    }
+
+    public function test_admin_can_sort_users_by_copytrade_count(): void
+    {
+        // Investor memiliki 2 akun aktif copytrade
+        AkunCopytrade::create([
+            'user_id'            => $this->investor->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'Exness',
+            'tipe_akun'          => 'Standard',
+            'nomor_akun_trading' => '55556666',
+            'server_broker'      => 'Exness-Real1',
+            'modal_riil'         => 1000.00,
+            'status'             => 'active',
+            'tanggal_mulai'      => now()->toDateString(),
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => $this->investor->name,
+        ]);
+
+        AkunCopytrade::create([
+            'user_id'            => $this->investor->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'Exness',
+            'tipe_akun'          => 'Standard',
+            'nomor_akun_trading' => '77778888',
+            'server_broker'      => 'Exness-Real1',
+            'modal_riil'         => 1000.00,
+            'status'             => 'active',
+            'tanggal_mulai'      => now()->toDateString(),
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => $this->investor->name,
+        ]);
+
+        // Affiliator memiliki 0 akun aktif copytrade
+
+        // Test Sort DESC: Investor (2 akun) harus paling atas
+        $responseDesc = $this->actingAs($this->admin)
+            ->get(route('admin.users.index', [
+                'sort_by'        => 'copytrade_count',
+                'sort_direction' => 'desc',
+            ]));
+
+        $responseDesc->assertStatus(200);
+        $responseDesc->assertInertia(fn ($page) => $page
+            ->component('Admin/Users/Index')
+            ->where('users.data.0.id', $this->investor->id)
+            ->where('users.data.1.id', $this->affiliator->id)
+        );
+
+        // Test Sort ASC: Affiliator (0 akun) harus paling atas
+        $responseAsc = $this->actingAs($this->admin)
+            ->get(route('admin.users.index', [
+                'sort_by'        => 'copytrade_count',
+                'sort_direction' => 'asc',
+            ]));
+
+        $responseAsc->assertStatus(200);
+        $responseAsc->assertInertia(fn ($page) => $page
+            ->component('Admin/Users/Index')
+            ->where('users.data.0.id', $this->affiliator->id)
+            ->where('users.data.1.id', $this->investor->id)
+        );
+    }
+
+    public function test_admin_users_stats_exclude_inactive_from_investor_and_affiliator_counts(): void
+    {
+        // Buat 1 affiliator nonaktif tambahan
+        User::factory()->create([
+            'role'      => 'affiliator',
+            'status'    => 'active',
+            'is_active' => false,
+        ]);
+
+        // Buat 2 investor nonaktif tambahan
+        User::factory()->count(2)->create([
+            'role'      => 'investor',
+            'status'    => 'active',
+            'is_active' => false,
+        ]);
+
+        // Total awal: 1 active investor, 1 active affiliator
+        // Sekarang ada tambahan: 1 inactive affiliator, 2 inactive investor
+        // Total users = 5 (2 aktif + 3 nonaktif)
+        // Total investors (hanya aktif) = 1
+        // Total affiliators (hanya aktif) = 1
+        // Total inactive = 3 (1 affiliator + 2 investor)
+        // Inactive affiliators = 1
+        // Inactive investors = 2
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('admin.users.index'));
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Users/Index')
+            ->where('stats.total_users', 5)
+            ->where('stats.total_investors', 1)
+            ->where('stats.total_affiliators', 1)
+            ->where('stats.total_active', 2)
+            ->where('stats.total_inactive', 3)
+            ->where('stats.inactive_affiliators', 1)
+            ->where('stats.inactive_investors', 2)
         );
     }
 }

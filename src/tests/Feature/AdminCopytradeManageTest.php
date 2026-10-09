@@ -292,4 +292,35 @@ class AdminCopytradeManageTest extends TestCase
                 ->where('verifikasi.data.0.show_perjanjian', false)
             );
     }
+
+    public function test_admin_can_filter_active_copytrade_accounts_by_username(): void
+    {
+        $otherInvestor = User::factory()->create(['role' => 'investor', 'status' => 'active']);
+
+        $acc1 = $this->makeAccount('ACC-INV1', 'active');
+        $acc2 = AkunCopytrade::create([
+            'user_id'            => $otherInvestor->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'HFM',
+            'tipe_akun'          => 'cent',
+            'nomor_akun_trading' => 'ACC-INV2',
+            'modal_riil'         => 1000,
+            'tanggal_mulai'      => now()->toDateString(),
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '9876543210',
+            'atas_nama_rekening' => 'Other Investor',
+            'status'             => 'active',
+        ]);
+
+        $response = $this->actingAs($this->admin)->get('/admin/copytrade?tab=aktif&akt_username=' . $this->investor->username);
+
+        $response->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/Copytrade/Index')
+                ->where('activeTab', 'aktif')
+                ->where('aktFilters.akt_username', $this->investor->username)
+                ->has('aktif.data', 1)
+                ->where('aktif.data.0.nomor_akun_trading', 'ACC-INV1')
+            );
+    }
 }

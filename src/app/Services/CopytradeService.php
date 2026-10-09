@@ -228,6 +228,10 @@ class CopytradeService
             $query->where('tier', $f['tier']);
         }
 
+        if (!empty($f['username'])) {
+            $query->whereHas('user', fn ($uq) => $uq->where('username', $f['username']));
+        }
+
         if ($f['catatan'] === 'belum') {
             $query->whereDoesntHave('riwayatBalance', $inThisMonth);
         }

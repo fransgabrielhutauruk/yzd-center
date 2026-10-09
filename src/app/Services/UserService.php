@@ -25,8 +25,12 @@ class UserService
         $sortDirection = strtolower(trim((string) ($filters['sort_direction'] ?? ($filters['direction'] ?? 'desc')))) === 'asc' ? 'asc' : 'desc';
         $perPage = max(5, min(100, (int) ($filters['per_page'] ?? 10)));
 
-        $allowedSorts = ['name', 'username', 'email', 'role', 'status', 'is_active', 'created_at'];
+        $allowedSorts = ['name', 'username', 'email', 'role', 'status', 'is_active', 'created_at', 'created_at_date', 'copytrade_count'];
         if (!in_array($sortField, $allowedSorts, true)) {
+            $sortField = 'created_at';
+        }
+
+        if ($sortField === 'created_at_date') {
             $sortField = 'created_at';
         }
 
@@ -34,11 +38,13 @@ class UserService
         $baseQuery = User::query()->whereIn('role', ['investor', 'affiliator']);
 
         $stats = [
-            'total_users'       => (clone $baseQuery)->count(),
-            'total_investors'   => (clone $baseQuery)->where('role', 'investor')->count(),
-            'total_affiliators' => (clone $baseQuery)->where('role', 'affiliator')->count(),
-            'total_active'      => (clone $baseQuery)->where('is_active', true)->count(),
-            'total_inactive'    => (clone $baseQuery)->where('is_active', false)->count(),
+            'total_users'          => (clone $baseQuery)->count(),
+            'total_investors'      => (clone $baseQuery)->where('role', 'investor')->where('is_active', true)->count(),
+            'total_affiliators'    => (clone $baseQuery)->where('role', 'affiliator')->where('is_active', true)->count(),
+            'total_active'         => (clone $baseQuery)->where('is_active', true)->count(),
+            'total_inactive'       => (clone $baseQuery)->where('is_active', false)->count(),
+            'inactive_investors'   => (clone $baseQuery)->where('role', 'investor')->where('is_active', false)->count(),
+            'inactive_affiliators' => (clone $baseQuery)->where('role', 'affiliator')->where('is_active', false)->count(),
         ];
 
         $query = (clone $baseQuery)->with([
@@ -47,6 +53,10 @@ class UserService
             'akunCopytrades',
             'relasiUpline.affiliator',
             'relasiDownlines',
+        ])->withCount([
+            'akunCopytrades as active_copytrade_count' => function ($q) {
+                $q->where('status', 'active');
+            },
         ]);
 
         if ($search !== '') {
@@ -73,26 +83,36 @@ class UserService
             $query->where('is_active', false);
         }
 
-        $users = $query->orderBy($sortField, $sortDirection)
-            ->paginate($perPage)
+        if ($sortField === 'copytrade_count') {
+            $query->orderBy('active_copytrade_count', $sortDirection)
+                ->orderBy('created_at', 'desc');
+        } else {
+            $query->orderBy($sortField, $sortDirection);
+        }
+
+        $users = $query->paginate($perPage)
             ->withQueryString()
             ->through(function (User $user) {
                 return [
-                    'id'              => $user->id,
-                    'name'            => $user->name,
-                    'username'        => $user->username,
-                    'email'           => $user->email,
-                    'phone'           => $user->phone ?? '-',
-                    'nik'             => $user->nik,
-                    'avatar'          => $user->avatar,
-                    'role'            => $user->role,
-                    'status'          => $user->status,
-                    'is_active'       => (bool) $user->is_active,
-                    'created_at'      => tanggal_waktu_indo($user->created_at),
-                    'created_at_date' => $user->created_at ? tanggal_singkat($user->created_at) : '-',
-                    'copytrade_count' => $user->akunCopytrades->count(),
-                    'downlines_count' => $user->role === 'affiliator' ? $user->relasiDownlines->count() : 0,
-                    'upline'          => $user->relasiUpline?->affiliator ? [
+                    'id'                      => $user->id,
+                    'name'                    => $user->name,
+                    'username'                => $user->username,
+                    'email'                   => $user->email,
+                    'phone'                   => $user->phone ?? '-',
+                    'nik'                     => $user->nik,
+                    'avatar'                  => $user->avatar,
+                    'role'                    => $user->role,
+                    'status'                  => $user->status,
+                    'is_active'               => (bool) $user->is_active,
+                    'referral_code'           => $user->referral_code,
+                    'created_at'              => tanggal_waktu_indo($user->created_at),
+                    'created_at_time'         => tanggal_waktu_indo($user->created_at, true),
+                    'created_at_date'         => $user->created_at ? tanggal_singkat($user->created_at) : '-',
+                    'copytrade_count'         => $user->akunCopytrades->count(),
+                    'active_copytrade_count'  => (int) ($user->active_copytrade_count ?? $user->akunCopytrades->where('status', 'active')->count()),
+                    'pending_copytrade_count' => $user->akunCopytrades->where('status', 'pending')->count(),
+                    'downlines_count'         => $user->role === 'affiliator' ? $user->relasiDownlines->count() : 0,
+                    'upline'                  => $user->relasiUpline?->affiliator ? [
                         'name'          => $user->relasiUpline->affiliator->name,
                         'username'      => $user->relasiUpline->affiliator->username,
                         'referral_code' => $user->relasiUpline->affiliator->referral_code,
@@ -135,28 +155,55 @@ class UserService
             ->findOrFail($id);
 
         $ktp = $user->dokumen->firstWhere('tipe_dokumen', 'ktp');
+        $perjanjianDokumen = $user->dokumen->firstWhere('tipe_dokumen', 'perjanjian');
+        $akunWithPerjanjian = $user->akunCopytrades->first(fn ($a) => !empty($a->surat_perjanjian_path));
+        $bankAccount = $user->akunCopytrades->first(fn ($a) => !empty($a->nomor_rekening));
         $upline = $user->relasiUpline?->affiliator;
 
-        $copytrades = $user->akunCopytrades->sortByDesc('created_at')->values()->map(function ($akun) {
-            return [
-                'id'                   => $akun->id,
-                'tier'                 => $akun->tier,
-                'broker'               => $akun->broker,
-                'tipe_akun'            => $akun->tipe_akun,
-                'nomor_akun_trading'   => $akun->nomor_akun_trading,
-                'server_broker'        => $akun->server_broker,
-                'modal_riil'           => (float) $akun->modal_riil,
-                'modal_riil_formatted' => '$ ' . number_format((float) $akun->modal_riil, 2),
-                'status'               => $akun->status,
-                'tanggal_mulai'        => $akun->tanggal_mulai ? tanggal_indo($akun->tanggal_mulai) : '-',
-                'verified_at'          => $akun->verified_at ? tanggal_waktu_indo($akun->verified_at, true) : '-',
-                'nama_bank'            => $akun->nama_bank ?? '-',
-                'nomor_rekening'       => $akun->nomor_rekening ?? '-',
-                'atas_nama_rekening'   => $akun->atas_nama_rekening ?? '-',
-                'catatan_admin'        => $akun->catatan_admin,
-                'agreement_url'        => $akun->surat_perjanjian_path ? route('documents.copytrade', $akun->id, false) : null,
+        $suratPerjanjian = null;
+        if ($akunWithPerjanjian) {
+            $suratPerjanjian = [
+                'id'          => $akunWithPerjanjian->id,
+                'file_name'   => basename($akunWithPerjanjian->surat_perjanjian_path),
+                'preview_url' => route('documents.copytrade', $akunWithPerjanjian->id, false),
+                'mime_type'   => strtolower(pathinfo($akunWithPerjanjian->surat_perjanjian_path, PATHINFO_EXTENSION)) === 'pdf' ? 'application/pdf' : 'image/jpeg',
+                'is_pdf'      => strtolower(pathinfo($akunWithPerjanjian->surat_perjanjian_path, PATHINFO_EXTENSION)) === 'pdf',
+                'verified_at' => $akunWithPerjanjian->verified_at ? tanggal_waktu_indo($akunWithPerjanjian->verified_at) : null,
             ];
-        });
+        } elseif ($perjanjianDokumen) {
+            $suratPerjanjian = [
+                'id'          => $perjanjianDokumen->id,
+                'file_name'   => $perjanjianDokumen->file_name,
+                'preview_url' => route('documents.show', $perjanjianDokumen->id, false),
+                'mime_type'   => $perjanjianDokumen->mime_type ?? 'application/pdf',
+                'is_pdf'      => ($perjanjianDokumen->mime_type ?? '') === 'application/pdf' || str_ends_with(strtolower($perjanjianDokumen->file_name), '.pdf'),
+                'verified_at' => $perjanjianDokumen->verified_at ? tanggal_waktu_indo($perjanjianDokumen->verified_at, true) : null,
+            ];
+        }
+
+        $rekeningBank = $bankAccount ? [
+            'nama_bank'          => $bankAccount->nama_bank,
+            'nomor_rekening'     => $bankAccount->nomor_rekening,
+            'atas_nama_rekening' => $bankAccount->atas_nama_rekening,
+        ] : null;
+
+        $copytrades = $user->akunCopytrades
+            ->where('status', 'active')
+            ->sortByDesc('created_at')
+            ->values()
+            ->map(function ($akun) {
+                return [
+                    'id'                   => $akun->id,
+                    'tier'                 => $akun->tier,
+                    'broker'               => $akun->broker,
+                    'tipe_akun'            => $akun->tipe_akun,
+                    'nomor_akun_trading'   => $akun->nomor_akun_trading,
+                    'modal_riil'           => (float) $akun->modal_riil,
+                    'modal_riil_formatted' => '$ ' . number_format((float) $akun->modal_riil, 2),
+                    'status'               => $akun->status,
+                    'tanggal_mulai'        => $akun->tanggal_mulai ? tanggal_singkat($akun->tanggal_mulai) : '-',
+                ];
+            });
 
         $downlines = [];
         if ($user->role === 'affiliator') {
@@ -192,7 +239,6 @@ class UserService
             'is_active'       => (bool) $user->is_active,
             'referral_code'   => $user->referral_code ?? '-',
             'terms_agreed_at' => $user->terms_agreed_at ? tanggal_waktu_indo($user->terms_agreed_at, true) : '-',
-            'ip_address'      => $user->ip_address ?? '-',
             'created_at'      => $user->created_at ? tanggal_waktu_indo($user->created_at, true) : '-',
             'created_at_date' => $user->created_at ? tanggal_indo($user->created_at) : '-',
             'ahli_waris'      => $user->ahliWaris ? [
@@ -212,8 +258,10 @@ class UserService
                 'verified_at'        => $ktp->verified_at ? tanggal_waktu_indo($ktp->verified_at, true) : null,
                 'preview_url'        => route('documents.show', $ktp->id, false),
             ] : null,
-            'copytrades' => $copytrades,
-            'upline'     => $upline ? [
+            'surat_perjanjian' => $suratPerjanjian,
+            'rekening_bank'    => $rekeningBank,
+            'copytrades'       => $copytrades,
+            'upline'           => $upline ? [
                 'id'            => $upline->id,
                 'name'          => $upline->name,
                 'username'      => $upline->username,

@@ -5,16 +5,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
 import AppConfirmDialog from '@/Components/Common/AppConfirmDialog.vue';
 import { Button } from '@/Components/ui/button';
-import {
-    Users,
-    UserCheck,
-    UserX,
-    Eye,
-    TrendingUp,
-    ShieldCheck,
-    Clock,
-    AlertCircle,
-} from 'lucide-vue-next';
+import { Users, TrendingUp, UserCheck, UserX, Eye, CheckCircle2 } from 'lucide-vue-next';
 
 const props = defineProps({
     users: {
@@ -29,6 +20,8 @@ const props = defineProps({
             total_affiliators: 0,
             total_active: 0,
             total_inactive: 0,
+            inactive_investors: 0,
+            inactive_affiliators: 0,
         }),
     },
     filters: {
@@ -42,10 +35,9 @@ const columns = [
     { key: 'created_at_date', label: 'Terdaftar', sortable: true },
     { key: 'name', label: 'Pengguna', sortable: true },
     { key: 'role', label: 'Peran', sortable: true },
-    { key: 'status', label: 'Status KYC', sortable: true },
-    { key: 'is_active', label: 'Akses Akun', sortable: true },
-    { key: 'copytrade_count', label: 'Copytrade', align: 'center' },
-    { key: 'actions', label: 'Aksi', align: 'right' },
+    { key: 'copytrade_count', label: 'Investasi / Copytrade', sortable: true },
+    { key: 'is_active', label: 'Status Akses', sortable: true },
+    { key: 'actions', label: 'Aksi', align: 'center' },
 ];
 
 // State Konfirmasi Status Pengguna
@@ -76,13 +68,25 @@ const handleConfirmToggle = () => {
     );
 };
 
-const filterByQuick = (key, val) => {
+const filterByQuick = (type, val) => {
     const currentFilters = { ...props.filters };
-    if (val === '') {
-        delete currentFilters[key];
-    } else {
-        currentFilters[key] = val;
+
+    if (type === 'role') {
+        delete currentFilters.is_active;
+        if (val === '') {
+            delete currentFilters.role;
+        } else {
+            currentFilters.role = val;
+        }
+    } else if (type === 'is_active') {
+        delete currentFilters.role;
+        if (val === '') {
+            delete currentFilters.is_active;
+        } else {
+            currentFilters.is_active = val;
+        }
     }
+
     currentFilters.page = 1;
 
     router.get(route('admin.users.index'), currentFilters, {
@@ -96,86 +100,100 @@ const filterByQuick = (key, val) => {
     <Head title="Manajemen Pengguna" />
     <AdminLayout
         title="Manajemen Pengguna"
-        subtitle="Daftar lengkap seluruh pengguna terdaftar (Investor & Affiliator), pemantauan status KYC, rincian profil, serta kontrol akses sistem."
-        :breadcrumbs="[
-            { label: 'Menu Utama' },
-            { label: 'Pengguna' }
-        ]"
+        subtitle="Pusat kendali pengguna untuk memantau investor dan affiliator, serta mengelola izin akses sistem."
+        :breadcrumbs="[{ label: 'Menu Utama' }, { label: 'Manajemen Pengguna' }]"
     >
         <div class="space-y-6">
-
-            <!-- Quick Filter Stat Cards -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <!-- 4 Quick Stat Filter Cards -->
+            <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                 <button
                     type="button"
                     @click="filterByQuick('role', '')"
                     :class="[
-                        'p-4 rounded-xl border text-left transition-all cursor-pointer',
+                        'cursor-pointer rounded-xl border p-4 text-left transition-all',
                         !filters.role && !filters.is_active
-                            ? 'border-primary-500 bg-primary-500/10 ring-1 ring-primary-500/30'
+                            ? 'border-primary-500 bg-primary-500/10 ring-primary-500/30 ring-1'
                             : 'border-border bg-card hover:bg-muted/40',
                     ]"
                 >
                     <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold text-primary-700 dark:text-primary-300">Semua Pengguna</span>
-                        <Users class="h-4 w-4 text-primary-600 dark:text-primary-400" />
+                        <span class="text-primary-700 dark:text-primary-300 text-xs font-semibold"
+                            >Semua Pengguna</span
+                        >
+                        <Users class="text-primary-600 dark:text-primary-400 h-4 w-4" />
                     </div>
-                    <p class="mt-2 text-2xl font-bold text-foreground font-mono">{{ stats.total_users }}</p>
-                    <span class="text-[11px] text-muted-foreground">Investor & Affiliator</span>
+                    <p class="text-foreground mt-2 font-mono text-2xl font-bold">
+                        {{ stats.total_users }}
+                    </p>
                 </button>
 
                 <button
                     type="button"
                     @click="filterByQuick('role', 'investor')"
                     :class="[
-                        'p-4 rounded-xl border text-left transition-all cursor-pointer',
-                        filters.role === 'investor'
+                        'cursor-pointer rounded-xl border p-4 text-left transition-all',
+                        filters.role === 'investor' && !filters.is_active
                             ? 'border-sky-500 bg-sky-500/10 ring-1 ring-sky-500/30'
                             : 'border-border bg-card hover:bg-muted/40',
                     ]"
                 >
                     <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold text-sky-700 dark:text-sky-300">Total Investor</span>
+                        <span class="text-xs font-semibold text-sky-700 dark:text-sky-300"
+                            >Total Investor Aktif</span
+                        >
                         <TrendingUp class="h-4 w-4 text-sky-600 dark:text-sky-400" />
                     </div>
-                    <p class="mt-2 text-2xl font-bold text-foreground font-mono">{{ stats.total_investors }}</p>
-                    <span class="text-[11px] text-muted-foreground">Pengguna Investor</span>
+                    <p class="text-foreground mt-2 font-mono text-2xl font-bold">
+                        {{ stats.total_investors }}
+                    </p>
                 </button>
 
                 <button
                     type="button"
                     @click="filterByQuick('role', 'affiliator')"
                     :class="[
-                        'p-4 rounded-xl border text-left transition-all cursor-pointer',
-                        filters.role === 'affiliator'
+                        'cursor-pointer rounded-xl border p-4 text-left transition-all',
+                        filters.role === 'affiliator' && !filters.is_active
                             ? 'border-indigo-500 bg-indigo-500/10 ring-1 ring-indigo-500/30'
                             : 'border-border bg-card hover:bg-muted/40',
                     ]"
                 >
                     <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold text-indigo-700 dark:text-indigo-300">Total Affiliator</span>
+                        <span class="text-xs font-semibold text-indigo-700 dark:text-indigo-300"
+                            >Total Affiliator Aktif</span
+                        >
                         <UserCheck class="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                     </div>
-                    <p class="mt-2 text-2xl font-bold text-foreground font-mono">{{ stats.total_affiliators }}</p>
-                    <span class="text-[11px] text-muted-foreground">Mitra Pemasar</span>
+                    <p class="text-foreground mt-2 font-mono text-2xl font-bold">
+                        {{ stats.total_affiliators }}
+                    </p>
                 </button>
 
                 <button
                     type="button"
                     @click="filterByQuick('is_active', 'inactive')"
                     :class="[
-                        'p-4 rounded-xl border text-left transition-all cursor-pointer',
+                        'cursor-pointer rounded-xl border p-4 text-left transition-all',
                         filters.is_active === 'inactive' || filters.is_active === '0'
                             ? 'border-rose-500 bg-rose-500/10 ring-1 ring-rose-500/30'
                             : 'border-border bg-card hover:bg-muted/40',
                     ]"
                 >
                     <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold text-rose-700 dark:text-rose-300">Dinonaktifkan</span>
+                        <span class="text-xs font-semibold text-rose-700 dark:text-rose-300"
+                            >Dinonaktifkan</span
+                        >
                         <UserX class="h-4 w-4 text-rose-600 dark:text-rose-400" />
                     </div>
-                    <p class="mt-2 text-2xl font-bold text-foreground font-mono">{{ stats.total_inactive }}</p>
-                    <span class="text-[11px] text-muted-foreground">Akses Diblokir</span>
+                    <div class="mt-2 flex flex-wrap items-baseline gap-1.5">
+                        <span class="text-foreground font-mono text-2xl font-bold">
+                            {{ stats.total_inactive }}
+                        </span>
+                        <span class="text-muted-foreground text-xs font-normal">
+                            ({{ stats.inactive_affiliators || 0 }} affiliator |
+                            {{ stats.inactive_investors || 0 }} investor)
+                        </span>
+                    </div>
                 </button>
             </div>
 
@@ -185,16 +203,18 @@ const filterByQuick = (key, val) => {
                 :columns="columns"
                 :filters="filters"
                 fetch-url="/admin/users"
-                search-placeholder="Cari nama, email, username, telepon, NIK..."
+                search-placeholder="Cari nama, username, email, telepon, NIK..."
                 empty-title="Tidak Ada Pengguna Ditemukan"
                 empty-message="Belum ada data pengguna atau tidak ada hasil yang sesuai dengan kriteria filter pencarian."
             >
-                <!-- Filter Slot: Filter Dropdowns -->
+                <!-- Filter Slot: Dropdown Peran & Akses -->
                 <template #filters="{ applyFilters }">
                     <!-- Filter Peran (Role) -->
                     <select
                         :value="filters.role || ''"
-                        @change="(e) => applyFilters({ role: e.target.value || undefined, page: 1 })"
+                        @change="
+                            (e) => applyFilters({ role: e.target.value || undefined, page: 1 })
+                        "
                         class="bg-background border-input focus:ring-primary-500 min-h-[38px] w-full rounded-lg border px-3 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none sm:w-auto"
                     >
                         <option value="">Semua Peran</option>
@@ -205,116 +225,100 @@ const filterByQuick = (key, val) => {
                     <!-- Filter Status Akses Akun -->
                     <select
                         :value="filters.is_active || ''"
-                        @change="(e) => applyFilters({ is_active: e.target.value || undefined, page: 1 })"
+                        @change="
+                            (e) => applyFilters({ is_active: e.target.value || undefined, page: 1 })
+                        "
                         class="bg-background border-input focus:ring-primary-500 min-h-[38px] w-full rounded-lg border px-3 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none sm:w-auto"
                     >
                         <option value="">Semua Akses</option>
-                        <option value="active">Aktif (Bisa Login)</option>
+                        <option value="active">Aktif</option>
                         <option value="inactive">Dinonaktifkan</option>
-                    </select>
-
-                    <!-- Filter Status KYC -->
-                    <select
-                        :value="filters.status || ''"
-                        @change="(e) => applyFilters({ status: e.target.value || undefined, page: 1 })"
-                        class="bg-background border-input focus:ring-primary-500 min-h-[38px] w-full rounded-lg border px-3 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none sm:w-auto"
-                    >
-                        <option value="">Semua Status KYC</option>
-                        <option value="active">Terverifikasi (Active)</option>
-                        <option value="pending">Menunggu (Pending)</option>
                     </select>
                 </template>
 
-                <!-- Kolom Pengguna (Avatar, Nama, Username, Email, Phone) -->
+                <!-- Kolom 1: Terdaftar Pada -->
+                <template #column-created_at_date="{ item }">
+                    <span class="text-foreground text-xs font-medium">
+                        {{ item.created_at_date }}
+                    </span>
+                </template>
+
+                <!-- Kolom 2: Pengguna (Avatar, Nama yang dapat diklik, Username) -->
                 <template #column-name="{ item }">
                     <div class="flex items-center gap-3">
                         <div
-                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-100 font-bold text-primary-700 dark:bg-primary-900/50 dark:text-primary-300 text-xs shadow-xs"
+                            class="bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold shadow-2xs"
                         >
                             {{ item.name ? item.name.charAt(0).toUpperCase() : 'U' }}
                         </div>
                         <div class="min-w-0">
-                            <p class="truncate font-semibold text-foreground text-sm">
+                            <Link
+                                :href="route('admin.users.show', item.id)"
+                                class="text-foreground hover:text-primary-600 block truncate text-sm font-semibold transition-colors"
+                                title="Lihat detail pengguna"
+                            >
                                 {{ item.name }}
-                            </p>
-                            <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                                <span class="font-mono">@{{ item.username || '-' }}</span>
-                                <span>&bull;</span>
-                                <span class="truncate">{{ item.email }}</span>
-                            </div>
+                            </Link>
+                            <span class="text-muted-foreground block truncate font-mono text-xs">
+                                @{{ item.username || '-' }}
+                            </span>
                         </div>
                     </div>
                 </template>
 
-                <!-- Kolom Peran -->
+                <!-- Kolom 3: Peran -->
                 <template #column-role="{ item }">
                     <span
                         v-if="item.role === 'affiliator'"
-                        class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800"
+                        class="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300"
                     >
                         Affiliator
                     </span>
                     <span
                         v-else
-                        class="inline-flex items-center rounded-md bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700 dark:bg-sky-950/50 dark:text-sky-300 border border-sky-200 dark:border-sky-800"
+                        class="inline-flex items-center rounded-md border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-300"
                     >
                         Investor
                     </span>
                 </template>
 
-                <!-- Kolom Status KYC -->
-                <template #column-status="{ item }">
+                <!-- Kolom 4: Investasi / Copytrade (Hanya Akun Aktif) -->
+                <template #column-copytrade_count="{ item }">
                     <span
-                        v-if="item.status === 'active'"
-                        class="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                        class="text-foreground inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold whitespace-nowrap dark:border-slate-700 dark:bg-slate-800"
                     >
-                        <ShieldCheck class="h-3.5 w-3.5" />
-                        Terverifikasi
-                    </span>
-                    <span
-                        v-else
-                        class="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
-                    >
-                        <Clock class="h-3.5 w-3.5" />
-                        Pending KYC
+                        {{ item.active_copytrade_count }} Investasi Aktif
                     </span>
                 </template>
 
-                <!-- Kolom Status Akses Akun (is_active) -->
+                <!-- Kolom 5: Status Akses Akun (is_active) -->
                 <template #column-is_active="{ item }">
                     <span
                         v-if="item.is_active"
-                        class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                        class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300"
                     >
-                        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"></span>
                         Aktif
                     </span>
                     <span
                         v-else
-                        class="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-semibold text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
+                        class="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-xs font-semibold text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300"
                     >
                         <span class="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
                         Dinonaktifkan
                     </span>
                 </template>
 
-                <!-- Kolom Copytrade Count -->
-                <template #column-copytrade_count="{ item }">
-                    <span class="font-mono text-xs font-medium text-muted-foreground">
-                        {{ item.copytrade_count }} akun
-                    </span>
-                </template>
-
-                <!-- Kolom Aksi -->
+                <!-- Kolom 6: Aksi -->
                 <template #column-actions="{ item }">
-                    <div class="flex items-center justify-end gap-1.5">
+                    <div class="flex items-center justify-center gap-1.5">
                         <!-- Tombol Lihat Detail Lengkap -->
                         <Link
                             :href="route('admin.users.show', item.id)"
-                            class="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted hover:text-foreground transition-colors shadow-2xs"
+                            class="border-border bg-card text-foreground hover:bg-muted hover:text-foreground inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium shadow-2xs transition-colors"
                             title="Lihat Detail Profil Lengkap"
                         >
-                            <Eye class="h-3.5 w-3.5 text-muted-foreground" />
+                            <Eye class="text-muted-foreground h-3.5 w-3.5" />
                             Detail
                         </Link>
 
@@ -323,22 +327,22 @@ const filterByQuick = (key, val) => {
                             v-if="item.is_active"
                             variant="ghost"
                             size="sm"
-                            class="h-7 px-2 text-xs font-medium text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/50 cursor-pointer"
+                            class="h-7 cursor-pointer px-2 text-xs font-medium text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/50"
                             @click="openToggleConfirm(item)"
-                            title="Nonaktifkan Akun"
+                            title="Nonaktifkan Akses Akun"
                         >
-                            <UserX class="h-3.5 w-3.5 mr-1" />
+                            <UserX class="mr-1 h-3.5 w-3.5" />
                             Nonaktifkan
                         </Button>
                         <Button
                             v-else
                             variant="ghost"
                             size="sm"
-                            class="h-7 px-2 text-xs font-medium text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950/50 cursor-pointer"
+                            class="h-7 cursor-pointer px-2 text-xs font-medium text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
                             @click="openToggleConfirm(item)"
-                            title="Aktifkan Kembali Akun"
+                            title="Aktifkan Kembali Akses Akun"
                         >
-                            <UserCheck class="h-3.5 w-3.5 mr-1" />
+                            <UserCheck class="mr-1 h-3.5 w-3.5" />
                             Aktifkan
                         </Button>
                     </div>
@@ -349,7 +353,11 @@ const filterByQuick = (key, val) => {
         <!-- Dialog Konfirmasi Status Akses Akun -->
         <AppConfirmDialog
             :show="isConfirmDialogOpen"
-            :title="selectedUser?.is_active ? 'Nonaktifkan Akun Pengguna?' : 'Aktifkan Kembali Akun Pengguna?'"
+            :title="
+                selectedUser?.is_active
+                    ? 'Nonaktifkan Akses Pengguna?'
+                    : 'Aktifkan Kembali Akses Pengguna?'
+            "
             :message="
                 selectedUser?.is_active
                     ? `Apakah Anda yakin ingin menonaktifkan akun '${selectedUser?.name}' (@${selectedUser?.username})? Pengguna ini tidak akan dapat login atau mengakses sistem kembali, dan seluruh sesi aktifnya akan segera diputus.`
