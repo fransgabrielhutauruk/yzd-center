@@ -11,7 +11,6 @@ use App\Http\Controllers\Admin\HelpCenterController;
 use App\Http\Controllers\Admin\InvitationController;
 use App\Http\Controllers\Admin\LegalContentController;
 use App\Http\Controllers\Admin\PengaturanMasterController;
-use App\Http\Controllers\Admin\ProfitReportController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Admin\Settings\PasswordController as AdminPasswordController;
 use App\Http\Controllers\Admin\UserController;
@@ -27,7 +26,6 @@ use App\Http\Controllers\Investor\EducationController as InvestorEducationContro
 use App\Http\Controllers\Investor\InvestmentPortfolioController;
 use App\Http\Controllers\Investor\InvestorDashboardController;
 use App\Http\Controllers\Investor\PasswordController as InvestorPasswordController;
-use App\Http\Controllers\Investor\PromotionMaterialController;
 use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -94,12 +92,6 @@ Route::get('/documents/commissions/{id}/proof', [DocumentStreamController::class
 Route::get('/documents/commissions/{id}/receipt', [DocumentStreamController::class, 'showCommissionReceipt'])
     ->middleware('auth')
     ->name('documents.commission_receipt');
-Route::get('/documents/profit-reports/{imageId}/view', [ProfitReportController::class, 'streamImage'])
-    ->middleware('auth')
-    ->name('documents.profit_report.view');
-Route::get('/documents/profit-reports/{imageId}/download', [ProfitReportController::class, 'downloadImage'])
-    ->middleware('auth')
-    ->name('documents.profit_report.download');
 
 // Notifikasi In-App (Terotentikasi)
 Route::middleware('auth')->prefix('notifications')->name('notifications.')->group(function () {
@@ -184,12 +176,6 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::post('/education/faq/topics', [FaqController::class, 'storeTopic'])->name('education.faq.topics.store');
     Route::put('/education/faq/topics/{id}', [FaqController::class, 'updateTopic'])->name('education.faq.topics.update');
     Route::delete('/education/faq/topics/{id}', [FaqController::class, 'destroyTopic'])->name('education.faq.topics.destroy');
-
-    // Manajemen Laporan Keuntungan & Materi Promosi
-    Route::get('/profit-reports', [ProfitReportController::class, 'index'])->name('profit_reports.index');
-    Route::post('/profit-reports', [ProfitReportController::class, 'store'])->name('profit_reports.store');
-    Route::post('/profit-reports/{id}', [ProfitReportController::class, 'update'])->name('profit_reports.update');
-    Route::delete('/profit-reports/{id}', [ProfitReportController::class, 'destroy'])->name('profit_reports.destroy');
 });
 
 // Portal Investor & Afiliator
@@ -234,9 +220,6 @@ Route::middleware(['auth', 'role:investor,affiliator'])->prefix('investor')->nam
     Route::delete('/copytrade/balance/{id}', [InvestmentPortfolioController::class, 'destroyBalance'])->name('copytrade.balance.destroy');
     Route::match(['get', 'post'], '/copytrade/template-perjanjian/{tier}', [InvestmentPortfolioController::class, 'downloadTemplate'])->name('copytrade.template');
     Route::get('/copytrade/panduan-pdf/{tier}', [InvestorCopytradeController::class, 'downloadGuidePdf'])->name('copytrade.guide_pdf');
-
-    // Materi Promosi & Laporan Keuntungan (Khusus Affiliator)
-    Route::get('/promotions', [PromotionMaterialController::class, 'index'])->name('promotions.index');
 
     // Edukasi, Pusat Bantuan & Kalkulator Proyeksi (Modul 06 - Selalu dapat diakses)
     Route::get('/education/glossary', [InvestorEducationController::class, 'glossary'])->name('education.glossary');

@@ -20,7 +20,6 @@ import {
     BookOpen,
     HelpCircle,
     MessageCircleQuestion,
-    Megaphone,
     Network,
     SquarePlay,
     KeyRound,
@@ -121,13 +120,6 @@ const navSections = computed(() => {
         sections.push({
             title: 'Program Afiliasi',
             items: [
-                {
-                    label: 'Materi Promosi & Profit',
-                    href: '/investor/promotions',
-                    icon: Megaphone,
-                    requiresActive: false,
-                    routeName: 'investor.promotions.index',
-                },
                 {
                     label: 'Jaringan Kemitraan',
                     href: '/investor/affiliates',

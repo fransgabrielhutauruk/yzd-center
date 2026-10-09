@@ -15,7 +15,6 @@ import {
     Link2,
     ArrowRight,
     Calculator,
-    Megaphone,
     Coins,
     LifeBuoy,
     Copy,
@@ -149,7 +148,6 @@ const profitClass = computed(() =>
 const shortcuts = [
     { label: 'Jaringan Kemitraan', href: AFFILIATES_URL, icon: Network },
     { label: 'Klaim Komisi (PB 3)', href: COMMISSIONS_URL, icon: Banknote },
-    { label: 'Materi Promosi', href: '/investor/promotions', icon: Megaphone },
     { label: 'Portofolio Investasi', href: INVESTMENTS_URL, icon: Layers },
     { label: 'Kalkulator Proyeksi', href: '/investor/education/calculator', icon: Calculator },
     { label: 'Pusat Bantuan', href: '/investor/education/help', icon: LifeBuoy },

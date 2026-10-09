@@ -19,7 +19,6 @@ import {
     BookOpen,
     HelpCircle,
     MessageCircleQuestion,
-    TrendingUp,
     ArrowLeftRight,
     Network,
     SquarePlay,
@@ -130,12 +129,6 @@ const navSections = [
                 href: '/admin/commissions',
                 icon: Banknote,
                 routeName: 'admin.commissions.index',
-            },
-            {
-                label: 'Laporan Keuntungan',
-                href: '/admin/profit-reports',
-                icon: TrendingUp,
-                routeName: 'admin.profit_reports.index',
             },
             {
                 label: 'Klaim Susulan Referral',
