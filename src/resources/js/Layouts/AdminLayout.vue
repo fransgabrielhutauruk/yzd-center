@@ -14,7 +14,6 @@ import {
     ChevronDown,
     UserCheck,
     Users,
-    Settings,
     Banknote,
     BookOpen,
     HelpCircle,
@@ -158,12 +157,6 @@ const navSections = [
     {
         title: 'Pengaturan Sistem',
         items: [
-            {
-                label: 'Pengaturan Master',
-                href: '/admin/settings/master',
-                icon: Settings,
-                routeName: 'admin.settings.master',
-            },
             {
                 label: 'Konten Legalitas',
                 href: '/admin/settings/legal',

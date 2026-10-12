@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\AkunCopytrade;
-use App\Models\PengaturanMaster;
 use App\Models\User;
 use App\Notifications\CopytradeAccountStatusChangedNotification;
 use App\Notifications\NewCopytradeSubmittedNotification;
@@ -36,14 +35,6 @@ class CopytradeTest extends TestCase
             'role'   => 'investor',
             'status' => 'active',
         ]);
-
-        PengaturanMaster::create([
-            'link_referral_broker' => 'https://hfm.com/?ref=YZD',
-            'link_master_akun'     => 'https://mql5.com/yzd-master',
-            'tier_1_min'           => 100,
-            'tier_2_min'           => 5000,
-            'tier_3_min'           => 300000,
-        ]);
     }
 
     public function test_investor_can_view_copytrade_page(): void
@@ -57,7 +48,6 @@ class CopytradeTest extends TestCase
             ->component('Investor/Investments/Index')
             ->has('consolidated')
             ->has('accounts')
-            ->has('pengaturan')
         );
     }
 
@@ -416,84 +406,5 @@ class CopytradeTest extends TestCase
         $this->assertStringContainsString('Dewi Lestari', $xml);
         $zip->close();
         unlink($tempPath);
-    }
-
-    public function test_admin_can_update_tier_descriptions_and_upload_pdf(): void
-    {
-        $pdfFile = UploadedFile::fake()->create('panduan_tier_1.pdf', 200, 'application/pdf');
-
-        $response = $this->actingAs($this->admin)->post('/admin/settings/master', [
-            'link_referral_broker' => 'https://hfm.com/?ref=YZDNEW',
-            'link_master_akun'     => 'https://mql5.com/yzd-new',
-            'tier_1_min'           => 150,
-            'tier_2_min'           => 6000,
-            'tier_3_min'           => 350000,
-            'tier_1_desc'          => 'Langkah-langkah akun Cent khusus.',
-            'tier_2_desc'          => 'Langkah-langkah akun Standard.',
-            'tier_3_desc'          => 'Langkah-langkah akun Dedicated VPS.',
-            'tier_1_pdf'           => $pdfFile,
-        ]);
-
-        $response->assertRedirect();
-        $response->assertSessionHas('success');
-
-        $pengaturan = PengaturanMaster::first();
-        $this->assertEquals(150, (float) $pengaturan->tier_1_min);
-        $this->assertEquals('Langkah-langkah akun Cent khusus.', $pengaturan->tier_1_desc);
-        $this->assertNotNull($pengaturan->tier_1_pdf_path);
-        Storage::disk('local')->assertExists($pengaturan->tier_1_pdf_path);
-    }
-
-    public function test_investor_can_download_tier_guide_pdf(): void
-    {
-        $pdfFile = UploadedFile::fake()->create('panduan_tier_1.pdf', 200, 'application/pdf');
-        $stored = $pdfFile->store('master_guides', 'local');
-
-        $pengaturan = PengaturanMaster::first();
-        $pengaturan->update(['tier_1_pdf_path' => $stored]);
-
-        $response = $this->actingAs($this->investor)->get('/investor/copytrade/panduan-pdf/tier_1');
-
-        $response->assertStatus(200);
-        $this->assertStringContainsString('Panduan-Copytrade-Tier-1-Cent.pdf', $response->headers->get('content-disposition'));
-    }
-
-    public function test_admin_can_remove_tier_guide_pdf(): void
-    {
-        $pdfFile = UploadedFile::fake()->create('panduan_tier_1.pdf', 200, 'application/pdf');
-        $stored = $pdfFile->store('master_guides', 'local');
-
-        $pengaturan = PengaturanMaster::first();
-        $pengaturan->update(['tier_1_pdf_path' => $stored]);
-
-        $response = $this->actingAs($this->admin)->post('/admin/settings/master', [
-            'tier_1_min'        => 100,
-            'tier_2_min'        => 5000,
-            'tier_3_min'        => 300000,
-            'remove_tier_1_pdf' => 1,
-        ]);
-
-        $response->assertRedirect();
-        $this->assertNull($pengaturan->fresh()->tier_1_pdf_path);
-        Storage::disk('local')->assertMissing($stored);
-    }
-
-    public function test_admin_can_view_settings_master_page_with_uploaded_pdfs(): void
-    {
-        $pdfFile = UploadedFile::fake()->create('panduan_tier_1.pdf', 200, 'application/pdf');
-        $stored = $pdfFile->store('master_guides', 'local');
-
-        $pengaturan = PengaturanMaster::first();
-        $pengaturan->update([
-            'tier_1_pdf_path' => $stored,
-        ]);
-
-        $response = $this->actingAs($this->admin)->get('/admin/settings/master');
-
-        $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('Admin/Settings/Master')
-            ->has('pengaturan.tier_1_pdf_url')
-        );
     }
 }

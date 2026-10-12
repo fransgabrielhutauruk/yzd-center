@@ -10,7 +10,6 @@ use App\Http\Controllers\Admin\FaqController;
 use App\Http\Controllers\Admin\HelpCenterController;
 use App\Http\Controllers\Admin\InvitationController;
 use App\Http\Controllers\Admin\LegalContentController;
-use App\Http\Controllers\Admin\PengaturanMasterController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Admin\Settings\PasswordController as AdminPasswordController;
 use App\Http\Controllers\Admin\UserController;
@@ -21,7 +20,6 @@ use App\Http\Controllers\DocumentStreamController;
 use App\Http\Controllers\Investor\AccountController;
 use App\Http\Controllers\Investor\AffiliateNetworkController;
 use App\Http\Controllers\Investor\CommissionClaimController as InvestorCommissionClaimController;
-use App\Http\Controllers\Investor\CopytradeController as InvestorCopytradeController;
 use App\Http\Controllers\Investor\EducationController as InvestorEducationController;
 use App\Http\Controllers\Investor\InvestmentPortfolioController;
 use App\Http\Controllers\Investor\InvestorDashboardController;
@@ -124,11 +122,6 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::post('/copytrade/{id}/verify', [AdminCopytradeController::class, 'verify'])->name('copytrade.verify');
     Route::get('/copytrade/{id}/detail', [AdminCopytradeController::class, 'detail'])->whereNumber('id')->name('copytrade.detail');
 
-    // Pengaturan Master
-    Route::get('/settings/master', [PengaturanMasterController::class, 'index'])->name('settings.master');
-    Route::post('/settings/master', [PengaturanMasterController::class, 'update'])->name('settings.master.update');
-    Route::get('/settings/master/download-pdf/{tier}', [PengaturanMasterController::class, 'downloadPdf'])->name('settings.master.download_pdf');
-
     // Ganti Password Admin
     Route::get('/settings/password', [AdminPasswordController::class, 'index'])->name('settings.password');
 
@@ -219,7 +212,6 @@ Route::middleware(['auth', 'role:investor,affiliator'])->prefix('investor')->nam
     Route::put('/copytrade/balance/{id}', [InvestmentPortfolioController::class, 'updateBalance'])->name('copytrade.balance.update');
     Route::delete('/copytrade/balance/{id}', [InvestmentPortfolioController::class, 'destroyBalance'])->name('copytrade.balance.destroy');
     Route::match(['get', 'post'], '/copytrade/template-perjanjian/{tier}', [InvestmentPortfolioController::class, 'downloadTemplate'])->name('copytrade.template');
-    Route::get('/copytrade/panduan-pdf/{tier}', [InvestorCopytradeController::class, 'downloadGuidePdf'])->name('copytrade.guide_pdf');
 
     // Edukasi, Pusat Bantuan & Kalkulator Proyeksi (Modul 06 - Selalu dapat diakses)
     Route::get('/education/glossary', [InvestorEducationController::class, 'glossary'])->name('education.glossary');

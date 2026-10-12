@@ -66,10 +66,6 @@ const props = defineProps({
             end_date: null,
         }),
     },
-    pengaturan: {
-        type: Object,
-        default: () => ({}),
-    },
     exchange_rate_meta: {
         type: Object,
         default: () => ({ rate: 16796 }),
@@ -1978,7 +1974,6 @@ onMounted(() => {
         <!-- ===================================================================== -->
         <AddInvestmentAccountModal
             :show="isAddModalOpen"
-            :pengaturan="pengaturan"
             :has-existing="has_existing || accounts.length > 0"
             :default-tier="selectedTierForAdd"
             @close="isAddModalOpen = false"

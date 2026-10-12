@@ -21,11 +21,6 @@ class InvestorFinancialTest extends TestCase
         parent::setUp();
 
         PengaturanMaster::create([
-            'link_referral_broker'    => 'https://broker.example.com',
-            'link_master_akun'        => 'https://mql5.example.com',
-            'tier_1_min'              => 100,
-            'tier_2_min'              => 5000,
-            'tier_3_min'              => 300000,
             'kurs_usd_idr'            => 16796.00,
             'kurs_usd_idr_updated_at' => now(),
         ]);

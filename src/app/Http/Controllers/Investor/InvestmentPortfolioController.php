@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Investor\RiwayatBalanceRequest;
 use App\Http\Requests\Investor\StoreCopytradeRequest;
 use App\Models\AkunCopytrade;
-use App\Models\PengaturanMaster;
 use App\Models\RiwayatBalanceCopytrade;
 use App\Services\BalanceService;
 use App\Services\CopytradeService;
@@ -123,8 +122,6 @@ class InvestmentPortfolioController extends Controller
             );
         }
 
-        $pengaturan = PengaturanMaster::getSettings();
-
         return Inertia::render('Investor/Investments/Index', [
             'consolidated'        => $consolidated,
             'accounts'            => $accountsFormatted,
@@ -136,7 +133,6 @@ class InvestmentPortfolioController extends Controller
                 'start_date' => $startDate,
                 'end_date'   => $endDate,
             ],
-            'pengaturan'            => $pengaturan,
             'exchange_rate_meta'    => $kursData,
             'today_date'            => now()->toDateString(),
             'is_first_day_of_month' => now()->day === 1,

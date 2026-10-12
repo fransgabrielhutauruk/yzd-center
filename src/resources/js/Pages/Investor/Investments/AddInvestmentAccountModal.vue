@@ -27,10 +27,6 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    pengaturan: {
-        type: Object,
-        default: () => ({}),
-    },
     hasExisting: {
         type: Boolean,
         default: false,
@@ -40,6 +36,9 @@ const props = defineProps({
         default: '',
     },
 });
+
+const TIER_2_MIN = 5000;
+const TIER_3_MIN = 300000;
 
 const emit = defineEmits(['close']);
 
@@ -77,8 +76,8 @@ const showMasterPassword = ref(false);
 const showInvestorPassword = ref(false);
 
 const tierRangeInfo = computed(() => {
-    const tier2Min = Number(props.pengaturan?.tier_2_min) || 5000;
-    const tier3Min = Number(props.pengaturan?.tier_3_min) || 300000;
+    const tier2Min = TIER_2_MIN;
+    const tier3Min = TIER_3_MIN;
 
     switch (form.tier_investasi) {
         case 'tier_3':
@@ -273,9 +272,9 @@ const resetAndClose = () => {
                             class="bg-background border-input focus:ring-primary w-full rounded-lg border px-3 py-2 text-xs font-medium focus:ring-2 focus:outline-none"
                         >
                             <option value="" disabled>Pilih Tier Investasi</option>
-                            <option value="tier_1">Tier 1 - Copytrade Cent Broker HFM (Di bawah ${{ Number(props.pengaturan?.tier_2_min || 5000).toLocaleString() }})</option>
-                            <option value="tier_2">Tier 2 - Copytrade Standard Broker XM (${{ Number(props.pengaturan?.tier_2_min || 5000).toLocaleString() }} - ${{ Number(props.pengaturan?.tier_3_min || 300000).toLocaleString() }})</option>
-                            <option value="tier_3">Tier 3 - Direct Managed Trading Broker XM (Minimal ${{ Number(props.pengaturan?.tier_3_min || 300000).toLocaleString() }})</option>
+                            <option value="tier_1">Tier 1 - Copytrade Cent Broker HFM (Di bawah ${{ TIER_2_MIN.toLocaleString() }})</option>
+                            <option value="tier_2">Tier 2 - Copytrade Standard Broker XM (${{ TIER_2_MIN.toLocaleString() }} - ${{ TIER_3_MIN.toLocaleString() }})</option>
+                            <option value="tier_3">Tier 3 - Direct Managed Trading Broker XM (Minimal ${{ TIER_3_MIN.toLocaleString() }})</option>
                         </select>
                         <p v-if="form.errors.tier_investasi" class="text-destructive text-xs">
                             {{ form.errors.tier_investasi }}

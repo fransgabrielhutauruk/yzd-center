@@ -62,9 +62,8 @@ class StoreCopytradeRequest extends FormRequest
                 return;
             }
 
-            $settings = PengaturanMaster::getSettings();
-            $tier2Min = (float) ($settings->tier_2_min ?? 5000);
-            $tier3Min = (float) ($settings->tier_3_min ?? 300000);
+            $tier2Min = PengaturanMaster::TIER_2_MIN_USD;
+            $tier3Min = PengaturanMaster::TIER_3_MIN_USD;
 
             if ($tier === 'tier_1') {
                 if ($modal <= 0) {

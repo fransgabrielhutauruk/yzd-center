@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\AkunCopytrade;
-use App\Models\PengaturanMaster;
 use App\Models\RiwayatBalanceCopytrade;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,14 +19,6 @@ class AdminCopytradeManageTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        PengaturanMaster::create([
-            'link_referral_broker' => 'https://hfm.com/?ref=YZD',
-            'link_master_akun'     => 'https://mql5.com/yzd-master',
-            'tier_1_min'           => 100,
-            'tier_2_min'           => 5000,
-            'tier_3_min'           => 300000,
-        ]);
 
         $this->admin = User::factory()->create(['role' => 'administrator', 'status' => 'active']);
         $this->investor = User::factory()->create(['role' => 'investor', 'status' => 'active']);
