@@ -48,6 +48,12 @@ class AdminReferralClaimController extends Controller
 
         $actionLabel = $request->input('status') === 'approved' ? 'disetujui' : 'ditolak';
 
+        $referer = (string) $request->headers->get('referer', '');
+        if ($request->boolean('from_affiliates') || str_contains($referer, '/admin/affiliates')) {
+            return redirect()->route('admin.affiliates.index', ['tab' => 'claims'])
+                ->with('success', "Permohonan klaim referral berhasil {$actionLabel}.");
+        }
+
         return redirect()->route('admin.referral_claims.index')
             ->with('success', "Permohonan klaim referral berhasil {$actionLabel}.");
     }

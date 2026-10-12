@@ -26,6 +26,8 @@ return new class extends Migration
             $table->decimal('total_affiliate_commission', 15, 2)->nullable();
             $table->decimal('total_profit_master', 15, 2)->nullable();
             $table->decimal('total_nominal_transfer', 15, 2)->nullable();
+            $table->decimal('kurs_konversi_idr', 15, 2)->nullable();
+            $table->decimal('total_nominal_transfer_idr', 18, 2)->nullable();
             $table->string('nama_bank', 100);
             $table->string('nomor_rekening', 50);
             $table->string('atas_nama_rekening', 100);

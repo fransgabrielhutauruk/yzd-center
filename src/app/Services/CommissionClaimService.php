@@ -17,6 +17,30 @@ use Illuminate\Validation\ValidationException;
 
 class CommissionClaimService
 {
+    public function __construct(
+        private readonly ?ExchangeRateService $exchangeRateService = null
+    ) {}
+
+    /**
+     * Ambil informasi kurs USD ke IDR dari ExchangeRateService.
+     */
+    public function getExchangeRateInfo(): array
+    {
+        $service = $this->exchangeRateService ?? app(ExchangeRateService::class);
+
+        return $service->getUsdToIdrRate();
+    }
+
+    /**
+     * Ambil nilai numerik kurs USD ke IDR saat ini.
+     */
+    public function getUsdToIdrRate(): float
+    {
+        $rateData = $this->getExchangeRateInfo();
+
+        return (float) ($rateData['rate'] ?? ExchangeRateService::DEFAULT_FALLBACK_RATE);
+    }
+
     /**
      * Dapatkan ringkasan statistik antrean pencairan komisi untuk Administrator.
      *
@@ -59,13 +83,26 @@ class CommissionClaimService
     }
 
     /**
-     * Tentukan skema 4-tiering komisi berdasarkan modal deposit investor.
+     * Tentukan skema 4-tiering komisi berdasarkan modal deposit investor (dalam IDR).
      *
      * @return array{tier_level: int, persentase_tier: int, label: string}
      */
-    public function determineTier(float $modalRiil): array
+    public function determineTier(float $modalIdr): array
     {
-        return KlaimKomisiItem::determineTier($modalRiil);
+        return KlaimKomisiItem::determineTier($modalIdr);
+    }
+
+    /**
+     * Tentukan skema 4-tiering komisi dari nominal USD dengan konversi ke IDR via ExchangeRateService.
+     *
+     * @return array{tier_level: int, persentase_tier: int, label: string}
+     */
+    public function determineTierFromUsd(float $modalUsd, ?float $kursUsdIdr = null): array
+    {
+        $rate = $kursUsdIdr ?? $this->getUsdToIdrRate();
+        $modalIdr = round($modalUsd * $rate, 2);
+
+        return KlaimKomisiItem::determineTier($modalIdr);
     }
 
     /**
@@ -112,6 +149,10 @@ class CommissionClaimService
             ->where('status', 'approved_transferred')
             ->sum('total_nominal_transfer');
 
+        $totalDicairkanIdr = (float) KlaimKomisi::where('affiliator_id', $affiliator->id)
+            ->where('status', 'approved_transferred')
+            ->sum('total_nominal_transfer_idr');
+
         $menungguTransfer = KlaimKomisi::where('affiliator_id', $affiliator->id)
             ->where('status', 'pending')
             ->count();
@@ -122,6 +163,7 @@ class CommissionClaimService
 
         return [
             'total_dicairkan'       => $totalDicairkan,
+            'total_dicairkan_idr'   => $totalDicairkanIdr,
             'menunggu_transfer'     => $menungguTransfer,
             'klaim_disetujui'       => $klaimDisetujui,
             'downline_siap_diklaim' => $downlineSiapCount,
@@ -130,10 +172,13 @@ class CommissionClaimService
 
     /**
      * Ambil daftar seluruh downline affiliator beserta rincian akun copytrade dan perhitungan hari kehitung.
-     * Acuan klaim: 1x klaim per downline dengan periode 90 hari (3 bulan) dari tanggal copytrade pertama.
+     * Acuan klaim: 1x klaim per downline dengan periode 3 bulan kalender (tanggal yang sama, misal 1 Apr - 1 Jul)
+     * dari tanggal copytrade pertama, serta konversi modal USD ke IDR untuk penentuan Tier.
      */
     public function getEligibleDownlinesForCommission(User $affiliator): array
     {
+        $kursUsdIdr = $this->getUsdToIdrRate();
+
         $relations = RelasiReferral::where('affiliator_id', $affiliator->id)
             ->with(['downline.akunCopytrades' => function ($q) {
                 $q->where('status', 'active')->orderBy('tanggal_mulai', 'asc');
@@ -179,9 +224,11 @@ class CommissionClaimService
 
             $firstStartedAt = null;
             $activeDays = 0;
+            $targetDays = 90;
             $periodStartDate = null;
             $periodEndDate = null;
             $totalModalRiil = 0.0;
+            $totalModalIdr = 0.0;
             $tierInfo = ['tier_level' => 4, 'persentase_tier' => 20, 'label' => 'Tier 4 (< Rp 100 Juta) - Komisi 20%'];
             $accountsDetail = [];
 
@@ -189,19 +236,27 @@ class CommissionClaimService
                 $firstStartedAt = $activeAccounts->min('tanggal_mulai');
                 if ($firstStartedAt) {
                     $periodStartDate = Carbon::parse($firstStartedAt)->startOfDay();
+                    $periodEndDate = $periodStartDate->copy()->addMonthsNoOverflow(3)->startOfDay();
+                    $targetDays = (int) $periodStartDate->diffInDays($periodEndDate);
                     $activeDays = (int) $periodStartDate->diffInDays(now()->startOfDay());
-                    $periodEndDate = $periodStartDate->copy()->addDays(90);
                 }
-
-                $totalModalRiil = (float) $activeAccounts->sum('modal_riil');
-                $tierInfo = KlaimKomisiItem::determineTier($totalModalRiil);
 
                 foreach ($activeAccounts as $index => $acc) {
                     $accStart = Carbon::parse($acc->tanggal_mulai)->startOfDay();
-                    $selisihHari = (int) $periodStartDate->diffInDays($accStart);
-                    // Hari yang kehitung di dalam periode 90 hari pertama
-                    $hariKehitung = max(0, 90 - $selisihHari);
+                    $selisihHari = $periodStartDate ? (int) $periodStartDate->diffInDays($accStart) : 0;
+                    // Hari yang kehitung di dalam periode 3 bulan pertama
+                    $hariKehitung = $periodEndDate ? max(0, (int) $accStart->diffInDays($periodEndDate, false)) : 0;
+
+                    // Hanya akun yang masuk sebelum periode 3 bulan berakhir yang ikut dihitung
+                    if ($hariKehitung <= 0) {
+                        continue;
+                    }
+
                     $isFirst = ($index === 0);
+                    $modalUsd = (float) $acc->modal_riil;
+                    $modalIdr = round($modalUsd * $kursUsdIdr, 2);
+                    // Penentuan Tier dihitung per akun masing-masing (tidak digabungkan antar akun)
+                    $accTierInfo = KlaimKomisiItem::determineTier($modalIdr);
 
                     $accountsDetail[] = [
                         'id'                  => $acc->id,
@@ -209,7 +264,11 @@ class CommissionClaimService
                         'nomor_akun'          => $acc->nomor_akun_trading,
                         'tipe_akun'           => $acc->tipe_akun,
                         'tier'                => $acc->tier,
-                        'modal_riil'          => (float) $acc->modal_riil,
+                        'modal_riil'          => $modalUsd,
+                        'modal_idr'           => $modalIdr,
+                        'tier_level'          => $accTierInfo['tier_level'],
+                        'persentase_tier'     => $accTierInfo['persentase_tier'],
+                        'tier_info'           => $accTierInfo,
                         'is_first'            => $isFirst,
                         'tanggal_mulai'       => tanggal_indo($accStart),
                         'tanggal_selesai'     => tanggal_indo($periodEndDate),
@@ -219,9 +278,17 @@ class CommissionClaimService
                         'hari_kehitung'       => $hariKehitung,
                     ];
                 }
+
+                $accountCount = count($accountsDetail);
+                $hasMultiCopytrade = $accountCount > 1;
+                $totalModalRiil = (float) collect($accountsDetail)->sum('modal_riil');
+                $totalModalIdr = round($totalModalRiil * $kursUsdIdr, 2);
+                $tierInfo = !empty($accountsDetail)
+                    ? $accountsDetail[0]['tier_info']
+                    : ['tier_level' => 4, 'persentase_tier' => 20, 'label' => 'Tier 4 (< Rp 100 Juta) - Komisi 20%'];
             }
 
-            // Penentuan kelayakan: wajib aktif minimal 90 hari dan belum pernah diklaim (pending/approved)
+            // Penentuan kelayakan: wajib aktif minimal 3 bulan penuh ($targetDays hari) dan belum pernah diklaim
             $isEligible = false;
             $statusLabel = 'Belum Copytrade';
             $reason = 'Belum memiliki akun copytrade aktif.';
@@ -229,51 +296,75 @@ class CommissionClaimService
             if ($isClaimed) {
                 $isEligible = false;
                 $statusLabel = 'Sudah Dicairkan';
-                $reason = 'Hak komisi periode 90 hari untuk investor ini telah dicairkan.';
+                $reason = 'Hak komisi periode 3 bulan untuk investor ini telah dicairkan.';
             } elseif ($isPending) {
                 $isEligible = false;
-                $statusLabel = 'Sedang Diproses';
+                $statusLabel = 'Menunggu Verifikasi';
                 $reason = 'Permohonan klaim untuk investor ini sedang ditinjau Administrator.';
             } elseif ($accountCount > 0) {
-                if ($activeDays >= 90) {
+                if ($activeDays >= $targetDays) {
                     $isEligible = true;
-                    $statusLabel = 'Siap Diklaim (90 Hari)';
-                    $reason = 'Masa aktif copytrade telah memenuhi syarat minimal 90 hari penuh.';
+                    $statusLabel = 'Siap Diklaim (3 Bulan)';
+                    $reason = 'Masa aktif copytrade telah memenuhi syarat minimal periode 3 bulan penuh.';
                 } else {
                     $isEligible = false;
-                    $remaining = 90 - $activeDays;
-                    $statusLabel = "Aktif {$activeDays}/90 Hari";
-                    $reason = "Aktif {$activeDays} hari — Tersisa {$remaining} hari lagi menuju 90 hari.";
+                    $remaining = $targetDays - $activeDays;
+                    $statusLabel = "Aktif {$activeDays}/{$targetDays} Hari";
+                    $reason = "Aktif {$activeDays} hari — Tersisa {$remaining} hari lagi menuju {$targetDays} hari (3 bulan).";
                 }
             }
 
             $result[] = [
-                'id'                  => $downline->id,
-                'name'                => $downline->name,
-                'username'            => $downline->username,
-                'email'               => $downline->email,
-                'phone'               => $downline->phone,
-                'first_started_at'    => $periodStartDate ? tanggal_indo($periodStartDate) : null,
-                'period_end_date'     => $periodEndDate ? tanggal_indo($periodEndDate) : null,
-                'active_days'         => $activeDays,
-                'jumlah_akun'         => $accountCount,
-                'has_multi_copytrade' => $hasMultiCopytrade,
-                'total_modal_riil'    => $totalModalRiil,
-                'tier_info'           => $tierInfo,
-                'accounts'            => $accountsDetail,
-                'is_eligible'         => $isEligible,
-                'is_claimed'          => $isClaimed,
-                'is_pending'          => $isPending,
-                'status_label'        => $statusLabel,
-                'reason'              => $reason,
+                'id'                   => $downline->id,
+                'name'                 => $downline->name,
+                'username'             => $downline->username,
+                'email'                => $downline->email,
+                'phone'                => $downline->phone,
+                'first_started_at'     => $periodStartDate ? tanggal_indo($periodStartDate) : null,
+                'first_started_at_raw' => $periodStartDate ? $periodStartDate->toDateString() : null,
+                'period_end_date'      => $periodEndDate ? tanggal_indo($periodEndDate) : null,
+                'active_days'          => $activeDays,
+                'target_days'          => $targetDays,
+                'jumlah_akun'          => $accountCount,
+                'has_multi_copytrade'  => $hasMultiCopytrade,
+                'total_modal_riil'     => $totalModalRiil,
+                'total_modal_idr'      => $totalModalIdr,
+                'kurs_usd_idr'         => $kursUsdIdr,
+                'tier_info'            => $tierInfo,
+                'accounts'             => $accountsDetail,
+                'is_eligible'          => $isEligible,
+                'is_claimed'           => $isClaimed,
+                'is_pending'           => $isPending,
+                'status_label'         => $statusLabel,
+                'reason'               => $reason,
             ];
         }
+
+        // Urutkan: paling atas yang belum ada copytrade (null), lalu dari tanggal mulai copytrade paling awal (ASC)
+        usort($result, function (array $a, array $b): int {
+            $dateA = $a['first_started_at_raw'] ?? null;
+            $dateB = $b['first_started_at_raw'] ?? null;
+
+            if ($dateA === null && $dateB !== null) {
+                return -1;
+            }
+
+            if ($dateA !== null && $dateB === null) {
+                return 1;
+            }
+
+            if ($dateA !== null && $dateB !== null && $dateA !== $dateB) {
+                return strcmp($dateA, $dateB);
+            }
+
+            return ($a['id'] ?? 0) <=> ($b['id'] ?? 0);
+        });
 
         return $result;
     }
 
     /**
-     * Simpan pengajuan klaim komisi batch (bisa memilih banyak downline yang memenuhi syarat 90 hari sekaligus).
+     * Simpan pengajuan klaim komisi batch (bisa memilih banyak downline yang memenuhi syarat 3 bulan sekaligus).
      * Seluruh downline dan akun copytrade disimpan sebagai 1 (SATU) baris tiket klaim komisi.
      *
      * @throws ValidationException
@@ -283,7 +374,7 @@ class CommissionClaimService
         $downlineIds = $data['downline_ids'] ?? [];
         if (empty($downlineIds) || !is_array($downlineIds)) {
             throw ValidationException::withMessages([
-                'downline_ids' => 'Pilih minimal satu investor downline yang telah aktif minimal 90 hari.',
+                'downline_ids' => 'Pilih minimal satu investor downline yang telah aktif minimal 3 bulan.',
             ]);
         }
 
@@ -297,7 +388,9 @@ class CommissionClaimService
             ]);
         }
 
-        return DB::transaction(function () use ($affiliator, $downlineIds, $namaBank, $nomorRekening, $atasNama) {
+        $kursUsdIdr = $this->getUsdToIdrRate();
+
+        return DB::transaction(function () use ($affiliator, $downlineIds, $namaBank, $nomorRekening, $atasNama, $kursUsdIdr) {
             $preparedItems = [];
             $uniqueDownlineIds = array_values(array_unique(array_map('intval', $downlineIds)));
 
@@ -329,7 +422,7 @@ class CommissionClaimService
                     ]);
                 }
 
-                // 3. Waktu pertama kali start copytrade & masa aktif
+                // 3. Waktu pertama kali start copytrade & masa aktif 3 bulan kalender
                 $firstStartedAt = $activeAccounts->min('tanggal_mulai');
                 if (!$firstStartedAt) {
                     throw ValidationException::withMessages([
@@ -338,13 +431,14 @@ class CommissionClaimService
                 }
 
                 $periodStartDate = Carbon::parse($firstStartedAt)->startOfDay();
+                $periodEndDate = $periodStartDate->copy()->addMonthsNoOverflow(3)->startOfDay();
+                $targetDays = (int) $periodStartDate->diffInDays($periodEndDate);
                 $activeDays = (int) $periodStartDate->diffInDays(now()->startOfDay());
-                $periodEndDate = $periodStartDate->copy()->addDays(90);
 
-                if ($activeDays < 90) {
-                    $remaining = 90 - $activeDays;
+                if ($activeDays < $targetDays) {
+                    $remaining = $targetDays - $activeDays;
                     throw ValidationException::withMessages([
-                        'downline_ids' => "Investor {$downline->name} baru aktif {$activeDays} hari. Syarat klaim komisi minimal 90 hari (tersisa {$remaining} hari lagi).",
+                        'downline_ids' => "Investor {$downline->name} baru aktif {$activeDays} hari. Syarat klaim komisi minimal periode 3 bulan ({$targetDays} hari, tersisa {$remaining} hari lagi).",
                     ]);
                 }
 
@@ -359,16 +453,34 @@ class CommissionClaimService
                     ]);
                 }
 
-                // 5. Total modal riil investor dan penentuan hak tier
-                $totalModalRiil = (float) $activeAccounts->sum('modal_riil');
-                $tierInfo = KlaimKomisiItem::determineTier($totalModalRiil);
-
-                // 6. Siapkan record item per akun copytrade
+                // 5. Filter hanya akun yang masuk sebelum periode 3 bulan berakhir
+                $validAccounts = [];
                 foreach ($activeAccounts as $index => $acc) {
                     $accStart = Carbon::parse($acc->tanggal_mulai)->startOfDay();
-                    $selisihHari = (int) $periodStartDate->diffInDays($accStart);
-                    $hariKehitung = max(0, 90 - $selisihHari);
-                    $isFirst = ($index === 0);
+                    $hariKehitung = max(0, (int) $accStart->diffInDays($periodEndDate, false));
+
+                    if ($hariKehitung <= 0) {
+                        continue;
+                    }
+
+                    $validAccounts[] = [
+                        'acc'           => $acc,
+                        'acc_start'     => $accStart,
+                        'hari_kehitung' => $hariKehitung,
+                        'is_first'      => ($index === 0),
+                    ];
+                }
+
+                // 6. Siapkan record item per akun copytrade dengan Tier masing-masing akun (tidak digabungkan)
+                foreach ($validAccounts as $validAcc) {
+                    $acc = $validAcc['acc'];
+                    $accStart = $validAcc['acc_start'];
+                    $hariKehitung = $validAcc['hari_kehitung'];
+                    $isFirst = $validAcc['is_first'];
+
+                    $modalUsd = (float) $acc->modal_riil;
+                    $modalIdr = round($modalUsd * $kursUsdIdr, 2);
+                    $accTierInfo = KlaimKomisiItem::determineTier($modalIdr);
 
                     $preparedItems[] = [
                         'downline_id'          => $downlineId,
@@ -379,12 +491,12 @@ class CommissionClaimService
                         'tanggal_mulai'        => $accStart->toDateString(),
                         'tanggal_selesai'      => $periodEndDate->toDateString(),
                         'hari_kehitung'        => $hariKehitung,
-                        'modal_riil'           => (float) $acc->modal_riil,
-                        'deposit_amount'       => (float) $acc->modal_riil,
-                        'tier_level'           => $tierInfo['tier_level'],
-                        'persentase_tier'      => $tierInfo['persentase_tier'],
+                        'modal_riil'           => $modalUsd,
+                        'deposit_amount'       => $modalUsd,
+                        'tier_level'           => $accTierInfo['tier_level'],
+                        'persentase_tier'      => $accTierInfo['persentase_tier'],
                         'master_share_pct'     => 30.00,
-                        'affiliate_share_pct'  => (float) $tierInfo['persentase_tier'],
+                        'affiliate_share_pct'  => (float) $accTierInfo['persentase_tier'],
                         'roi_percentage'       => null,
                         'gross_profit'         => null,
                         'master_gross_share'   => null,
@@ -497,10 +609,11 @@ class CommissionClaimService
         }
 
         $perPage = max(5, min(100, (int) ($filters['per_page'] ?? 10)));
+        $kursUsdIdr = $this->getUsdToIdrRate();
 
         return $query->paginate($perPage, ['*'], $pageName)
             ->withQueryString()
-            ->through(function (KlaimKomisi $claim) {
+            ->through(function (KlaimKomisi $claim) use ($kursUsdIdr) {
                 $items = $claim->items->map(fn (KlaimKomisiItem $it) => [
                     'id'                   => $it->id,
                     'downline_id'          => $it->downline_id,
@@ -514,6 +627,7 @@ class CommissionClaimService
                     'tanggal_selesai'      => tanggal_indo($it->tanggal_selesai),
                     'hari_kehitung'        => $it->hari_kehitung,
                     'modal_riil'           => (float) $it->modal_riil,
+                    'modal_idr'            => round((float) $it->modal_riil * $kursUsdIdr, 2),
                     'deposit_amount'       => (float) ($it->deposit_amount ?: $it->modal_riil),
                     'tier_level'           => $it->tier_level,
                     'persentase_tier'      => $it->persentase_tier,
@@ -538,6 +652,7 @@ class CommissionClaimService
                     'total_downline'             => $claim->total_downline,
                     'total_akun'                 => $claim->total_akun,
                     'total_modal_riil'           => (float) $claim->total_modal_riil,
+                    'total_modal_idr'            => round((float) $claim->total_modal_riil * $kursUsdIdr, 2),
                     'total_deposit_amount'       => (float) ($claim->total_deposit_amount ?: $claim->total_modal_riil),
                     'total_gross_profit'         => $claim->total_gross_profit !== null ? (float) $claim->total_gross_profit : null,
                     'total_master_gross_share'   => $claim->total_master_gross_share !== null ? (float) $claim->total_master_gross_share : null,
@@ -547,6 +662,9 @@ class CommissionClaimService
                     'total_profit_master'        => $claim->total_profit_master !== null ? (float) $claim->total_profit_master : null,
                     'total_nominal_transfer'     => $claim->total_nominal_transfer !== null ? (float) $claim->total_nominal_transfer : null,
                     'nominal_transfer'           => $claim->total_nominal_transfer !== null ? (float) $claim->total_nominal_transfer : null,
+                    'kurs_usd_idr'               => $kursUsdIdr,
+                    'kurs_konversi_idr'          => $claim->kurs_konversi_idr !== null ? (float) $claim->kurs_konversi_idr : null,
+                    'total_nominal_transfer_idr' => $claim->total_nominal_transfer_idr !== null ? (float) $claim->total_nominal_transfer_idr : null,
                     'nama_bank'                  => $claim->nama_bank,
                     'nomor_rekening'             => $claim->nomor_rekening,
                     'atas_nama_rekening'         => $claim->atas_nama_rekening,
@@ -575,7 +693,8 @@ class CommissionClaimService
 
     /**
      * Proses keputusan pencairan dana komisi atau penolakan oleh Administrator.
-     * Admin menginput nominal profit Master Trader untuk masing-masing akun copytrade berdasarkan periode tanggalnya.
+     * Admin menginput nominal profit Master Trader untuk masing-masing akun copytrade berdasarkan periode tanggalnya
+     * serta kurs konversi riil MT4 ke Rupiah.
      *
      * @throws ValidationException
      */
@@ -586,7 +705,8 @@ class CommissionClaimService
         ?UploadedFile $buktiTransfer,
         ?string $catatanAdmin,
         User $processor,
-        ?array $itemizedProfits = null
+        ?array $itemizedProfits = null,
+        ?float $kursKonversiIdr = null
     ): KlaimKomisi {
         if (is_int($claim)) {
             $claim = $this->findClaimOrFail($claim);
@@ -603,7 +723,11 @@ class CommissionClaimService
                 ]);
             }
 
-            return DB::transaction(function () use ($claim, $status, $profitMaster, $itemizedProfits, $buktiTransfer, $catatanAdmin, $processor) {
+            $finalKursIdr = ($kursKonversiIdr !== null && $kursKonversiIdr > 0)
+                ? $kursKonversiIdr
+                : $this->getUsdToIdrRate();
+
+            return DB::transaction(function () use ($claim, $status, $profitMaster, $itemizedProfits, $buktiTransfer, $catatanAdmin, $processor, $finalKursIdr) {
                 $claim->load('items.downline');
                 $items = $claim->items;
 
@@ -694,6 +818,7 @@ class CommissionClaimService
                 }
 
                 $transferPath = $buktiTransfer->store('commission_claims/transfers', 'local');
+                $totalNominalTransferIdr = round($totalAffiliateCommission * $finalKursIdr, 2);
 
                 $claim->update([
                     'status'                     => $status,
@@ -704,6 +829,8 @@ class CommissionClaimService
                     'total_affiliate_commission' => $totalAffiliateCommission,
                     'total_profit_master'        => $totalMasterGrossShare,
                     'total_nominal_transfer'     => $totalAffiliateCommission,
+                    'kurs_konversi_idr'          => $finalKursIdr,
+                    'total_nominal_transfer_idr' => $totalNominalTransferIdr,
                     'bukti_transfer_path'        => $transferPath,
                     'catatan_admin'              => $catatanAdmin ?: null,
                     'processed_by'               => $processor->id,

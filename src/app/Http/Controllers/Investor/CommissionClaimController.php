@@ -39,6 +39,7 @@ class CommissionClaimController extends Controller
             'filters'           => $filters,
             'eligibleDownlines' => $this->commissionClaimService->getEligibleDownlinesForCommission($user),
             'defaultBank'       => $this->commissionClaimService->getDefaultBankForAffiliator($user),
+            'exchangeRate'      => $this->commissionClaimService->getExchangeRateInfo(),
         ]);
     }
 
@@ -68,7 +69,8 @@ class CommissionClaimController extends Controller
         abort_unless($user && $user->isAffiliator(), 403, 'Akses terbatas untuk akun Mitra Affiliator.');
 
         return response()->json([
-            'downlines' => $this->commissionClaimService->getEligibleDownlinesForCommission($user),
+            'downlines'     => $this->commissionClaimService->getEligibleDownlinesForCommission($user),
+            'exchange_rate' => $this->commissionClaimService->getExchangeRateInfo(),
         ]);
     }
 }

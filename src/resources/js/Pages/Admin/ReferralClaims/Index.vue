@@ -118,7 +118,7 @@ const columns = [
                             class="h-9 rounded-lg border border-input bg-background px-3 text-xs text-foreground transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none"
                         >
                             <option value="">Semua Status Klaim</option>
-                            <option value="pending">Pending</option>
+                            <option value="pending">Menunggu Verifikasi</option>
                             <option value="approved">Disetujui</option>
                             <option value="rejected">Ditolak</option>
                         </select>
@@ -154,21 +154,27 @@ const columns = [
 
                 <!-- Custom Slot: Status -->
                 <template #column-status="{ item }">
-                    <span
-                        class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold whitespace-nowrap"
-                        :class="[
-                            item.status === 'approved'
-                                ? 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30'
-                                : item.status === 'rejected'
-                                ? 'bg-rose-500/10 text-rose-800 dark:text-rose-300 border border-rose-500/30'
-                                : 'bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/30',
-                        ]"
+                    <div
+                        v-if="item.status === 'approved'"
+                        class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-500/30 whitespace-nowrap"
                     >
-                        <CheckCircle2 v-if="item.status === 'approved'" class="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                        <XCircle v-else-if="item.status === 'rejected'" class="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
-                        <Clock v-else class="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                        <span>{{ item.status_label }}</span>
-                    </span>
+                        <CheckCircle2 class="h-3 w-3" />
+                        <span>Disetujui</span>
+                    </div>
+                    <div
+                        v-else-if="item.status === 'rejected'"
+                        class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold bg-rose-500/10 text-rose-800 dark:text-rose-300 border-rose-500/30 whitespace-nowrap"
+                    >
+                        <XCircle class="h-3 w-3" />
+                        <span>Ditolak</span>
+                    </div>
+                    <div
+                        v-else
+                        class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold bg-sky-500/10 text-sky-800 dark:text-sky-300 border-sky-500/30 whitespace-nowrap"
+                    >
+                        <Clock class="h-3 w-3" />
+                        <span>Menunggu Verifikasi</span>
+                    </div>
                 </template>
 
                 <!-- Custom Slot: Actions -->

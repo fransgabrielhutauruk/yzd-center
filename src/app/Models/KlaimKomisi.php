@@ -28,6 +28,8 @@ class KlaimKomisi extends Model
         'total_affiliate_commission',
         'total_profit_master',
         'total_nominal_transfer',
+        'kurs_konversi_idr',
+        'total_nominal_transfer_idr',
         'nama_bank',
         'nomor_rekening',
         'atas_nama_rekening',
@@ -52,6 +54,8 @@ class KlaimKomisi extends Model
             'total_affiliate_commission' => 'decimal:2',
             'total_profit_master'        => 'decimal:2',
             'total_nominal_transfer'     => 'decimal:2',
+            'kurs_konversi_idr'          => 'decimal:2',
+            'total_nominal_transfer_idr' => 'decimal:2',
             'processed_at'               => 'datetime',
         ];
     }

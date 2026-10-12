@@ -130,12 +130,6 @@ const navSections = [
                 icon: Banknote,
                 routeName: 'admin.commissions.index',
             },
-            {
-                label: 'Klaim Susulan Referral',
-                href: '/admin/referral-claims',
-                icon: UserCheck,
-                routeName: 'admin.referral_claims.index',
-            },
         ],
     },
     {

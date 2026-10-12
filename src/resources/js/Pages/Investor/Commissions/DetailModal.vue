@@ -40,6 +40,11 @@ const formatUSD = (val) => {
     return '$' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+const formatRupiah = (val) => {
+    if (val === null || val === undefined || isNaN(val)) return 'Rp 0';
+    return 'Rp ' + Math.round(Number(val)).toLocaleString('id-ID');
+};
+
 const statusBadge = computed(() => {
     if (!props.claim) return { label: '-', class: '' };
 
@@ -59,8 +64,8 @@ const statusBadge = computed(() => {
         case 'pending':
         default:
             return {
-                label: 'Menunggu Transfer',
-                class: 'bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30',
+                label: 'Menunggu Verifikasi',
+                class: 'bg-sky-500/10 text-sky-800 dark:text-sky-300 border-sky-500/30',
                 icon: Clock,
             };
     }
@@ -70,7 +75,7 @@ const statusBadge = computed(() => {
 <template>
     <AppModal
         :show="isVisible"
-        title="Rincian Permohonan Klaim Komisi (PB 3)"
+        title="Rincian Permohonan Klaim Komisi"
         max-width="3xl"
         @close="$emit('close')"
     >
@@ -92,11 +97,11 @@ const statusBadge = computed(() => {
                 <div class="flex items-center">
                     <span
                         :class="[
-                            'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold',
+                            'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold',
                             statusBadge.class,
                         ]"
                     >
-                        <component :is="statusBadge.icon" class="h-3.5 w-3.5" />
+                        <component :is="statusBadge.icon" class="h-3 w-3" />
                         <span>{{ statusBadge.label }}</span>
                     </span>
                 </div>
@@ -188,6 +193,7 @@ const statusBadge = computed(() => {
                             <div>
                                 <span class="text-muted-foreground block text-[10px]">Modal Awal Investor:</span>
                                 <span class="text-foreground font-mono font-bold block">{{ formatUSD(item.deposit_amount || item.modal_riil) }}</span>
+                                <span v-if="item.modal_idr" class="text-muted-foreground font-mono text-[10px] block">&approx; {{ formatRupiah(item.modal_idr) }}</span>
                             </div>
                         </div>
 
@@ -258,8 +264,31 @@ const statusBadge = computed(() => {
                         <strong class="text-foreground">{{ formatUSD(claim.total_master_net_share) }}</strong>
                     </div>
                     <div class="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-2">
-                        <span class="text-emerald-800 dark:text-emerald-300 text-[10px] font-sans font-bold block">Komisi Ditransfer:</span>
+                        <span class="text-emerald-800 dark:text-emerald-300 text-[10px] font-sans font-bold block">Komisi (USD):</span>
                         <strong class="text-emerald-800 dark:text-emerald-300 text-sm font-extrabold">{{ formatUSD(claim.total_affiliate_commission ?? claim.total_nominal_transfer) }}</strong>
+                    </div>
+                </div>
+
+                <!-- Konversi Rupiah Sesuai Kurs MT4 -->
+                <div
+                    v-if="claim.kurs_konversi_idr || claim.total_nominal_transfer_idr"
+                    class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 flex items-center justify-between flex-wrap gap-2"
+                >
+                    <div class="space-y-0.5">
+                        <span class="text-[10px] font-semibold text-emerald-900 dark:text-emerald-200 block">
+                            Kurs Konversi MT4:
+                        </span>
+                        <strong class="font-mono text-xs text-foreground">
+                            {{ formatRupiah(claim.kurs_konversi_idr) }} / $1 USD
+                        </strong>
+                    </div>
+                    <div class="text-right space-y-0.5">
+                        <span class="text-[10px] font-semibold text-emerald-900 dark:text-emerald-200 block">
+                            Nominal Ditransfer ke Rekening (IDR):
+                        </span>
+                        <strong class="font-mono text-sm sm:text-base font-extrabold text-emerald-800 dark:text-emerald-300">
+                            {{ formatRupiah(claim.total_nominal_transfer_idr) }}
+                        </strong>
                     </div>
                 </div>
 

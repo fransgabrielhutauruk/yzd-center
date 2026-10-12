@@ -352,11 +352,15 @@ class ReferralService
      */
     public function getAffiliatorNetworkStats(User $affiliator): array
     {
-        $totalDownlines = RelasiReferral::where('affiliator_id', $affiliator->id)->count();
+        $totalDownlines = RelasiReferral::where('affiliator_id', $affiliator->id)
+            ->whereHas('downline', function ($q) {
+                $q->where('is_active', true);
+            })
+            ->count();
 
         $activeDownlines = RelasiReferral::where('affiliator_id', $affiliator->id)
             ->whereHas('downline', function ($q) {
-                $q->where('status', 'active');
+                $q->where('is_active', true)->where('status', 'active');
             })
             ->count();
 
@@ -416,21 +420,22 @@ class ReferralService
             ->withQueryString()
             ->through(function (RelasiReferral $rel): array {
                 $downline = $rel->downline;
-                $akun = $downline?->akunCopytrades?->first();
+                $accounts = $downline?->akunCopytrades ?? collect();
+                $activeCount = $accounts->where('status', 'active')->count();
+                $pendingCount = $accounts->where('status', 'pending')->count();
 
                 return [
-                    'id'               => $rel->id,
-                    'name'             => $downline?->name ?? '-',
-                    'username'         => $downline?->username ?? '-',
-                    'email'            => $downline?->email ?? '-',
-                    'phone'            => $downline?->phone ?? '-',
-                    'user_status'      => $downline?->status ?? 'pending',
-                    'copytrade_status' => $akun?->status ?? 'pending',
-                    'tier'             => $akun?->tier ?? null,
-                    'sumber'           => $rel->sumber,
-                    'sumber_label'     => $rel->sumber === 'link_otomatis' ? 'Kode Registrasi' : 'Klaim Susulan',
-                    'joined_at'        => $rel->joined_at ? $rel->joined_at->toIso8601String() : null,
-                    'joined_at_label'  => tanggal_singkat($rel->joined_at),
+                    'id'                     => $rel->id,
+                    'name'                   => $downline?->name ?? '-',
+                    'username'               => $downline?->username ?? '-',
+                    'email'                  => $downline?->email ?? '-',
+                    'phone'                  => $downline?->phone ?? '-',
+                    'active_accounts_count'  => $activeCount,
+                    'pending_accounts_count' => $pendingCount,
+                    'sumber'                 => $rel->sumber,
+                    'sumber_label'           => $rel->sumber === 'link_otomatis' ? 'Kode Registrasi' : 'Klaim Susulan',
+                    'joined_at'              => $rel->joined_at ? $rel->joined_at->toIso8601String() : null,
+                    'joined_at_label'        => tanggal_singkat($rel->joined_at),
                 ];
             });
     }
@@ -496,7 +501,7 @@ class ReferralService
                     'status_label'   => match ($claim->status) {
                         'approved' => 'Disetujui',
                         'rejected' => 'Ditolak',
-                        default    => 'Pending',
+                        default    => 'Menunggu Verifikasi',
                     },
                     'catatan_admin'    => $claim->catatan_admin,
                     'reviewed_by_name' => $claim->reviewer?->name,
@@ -510,18 +515,23 @@ class ReferralService
     }
 
     /**
-     * Ambil rekap seluruh mitra affiliator untuk panel Admin.
+     * Ambil rekap seluruh mitra affiliator untuk panel Admin beserta rincian anggota downline.
      *
      * @param array<string, mixed> $filters
      */
-    public function getAllAffiliatesSummary(array $filters): LengthAwarePaginator
+    public function getAllAffiliatesSummary(array $filters, string $pageName = 'page'): LengthAwarePaginator
     {
         $query = User::query()
             ->where('role', 'affiliator')
+            ->where('is_active', true)
+            ->with(['relasiDownlines' => function ($q) {
+                $q->whereHas('downline', fn ($sub) => $sub->where('is_active', true))
+                    ->with(['downline.akunCopytrades'])
+                    ->orderByDesc('joined_at');
+            }])
             ->withCount([
-                'relasiDownlines as total_downlines',
-                'relasiDownlines as active_downlines' => function ($q) {
-                    $q->whereHas('downline', fn ($sub) => $sub->where('status', 'active'));
+                'relasiDownlines as total_downlines' => function ($q) {
+                    $q->whereHas('downline', fn ($sub) => $sub->where('is_active', true));
                 },
             ]);
 
@@ -530,7 +540,6 @@ class ReferralService
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('username', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
                     ->orWhere('referral_code', 'like', "%{$search}%")
                     ->orWhere('phone', 'like', "%{$search}%");
             });
@@ -540,21 +549,42 @@ class ReferralService
 
         $perPage = min(100, max(5, (int) ($filters['per_page'] ?? 10)));
 
-        return $query->paginate($perPage)
+        return $query->paginate($perPage, ['*'], $pageName)
             ->withQueryString()
             ->through(function (User $user): array {
+                $downlinesList = $user->relasiDownlines->map(function (RelasiReferral $rel): array {
+                    $downline = $rel->downline;
+                    $accounts = $downline?->akunCopytrades ?? collect();
+                    $activeAccounts = $accounts->where('status', 'active');
+                    $pendingAccounts = $accounts->where('status', 'pending');
+
+                    return [
+                        'id'                     => $rel->id,
+                        'user_id'                => $downline?->id,
+                        'name'                   => $downline?->name ?? '-',
+                        'username'               => $downline?->username ?? '-',
+                        'phone'                  => $downline?->phone ?? '-',
+                        'status'                 => $downline?->status ?? 'active',
+                        'sumber'                 => $rel->sumber,
+                        'sumber_label'           => $rel->sumber === 'link_otomatis' ? 'Kode Registrasi' : 'Klaim Susulan',
+                        'joined_at_label'        => tanggal_singkat($rel->joined_at),
+                        'active_accounts_count'  => $activeAccounts->count(),
+                        'pending_accounts_count' => $pendingAccounts->count(),
+                        'total_modal_usd'        => (float) $activeAccounts->sum('modal_riil'),
+                    ];
+                })->values()->all();
+
                 return [
-                    'id'               => $user->id,
-                    'name'             => $user->name,
-                    'username'         => $user->username,
-                    'email'            => $user->email,
-                    'phone'            => $user->phone,
-                    'referral_code'    => $user->referral_code ?? '-',
-                    'is_active'        => $user->is_active,
-                    'status'           => $user->status,
-                    'total_downlines'  => $user->total_downlines ?? 0,
-                    'active_downlines' => $user->active_downlines ?? 0,
-                    'joined_at_label'  => tanggal_singkat($user->created_at),
+                    'id'              => $user->id,
+                    'name'            => $user->name,
+                    'username'        => $user->username,
+                    'phone'           => $user->phone,
+                    'referral_code'   => $user->referral_code ?? '-',
+                    'is_active'       => $user->is_active,
+                    'status'          => $user->status,
+                    'total_downlines' => $user->total_downlines ?? 0,
+                    'joined_at_label' => tanggal_singkat($user->created_at),
+                    'downlines_list'  => $downlinesList,
                 ];
             });
     }

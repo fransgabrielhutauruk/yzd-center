@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\AkunCopytrade;
+use App\Models\KlaimKomisi;
 use App\Models\PengaturanMaster;
+use App\Models\RelasiReferral;
 use App\Models\RiwayatBalanceCopytrade;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -177,6 +179,49 @@ class InvestorDashboardTest extends TestCase
             'referral_code' => 'TESTAF',
         ]);
 
+        $activeDownline = User::factory()->create([
+            'role'      => 'investor',
+            'status'    => 'active',
+            'is_active' => true,
+        ]);
+
+        $inactiveDownline = User::factory()->create([
+            'role'      => 'investor',
+            'status'    => 'pending_review',
+            'is_active' => false,
+        ]);
+
+        RelasiReferral::create([
+            'affiliator_id' => $affiliator->id,
+            'downline_id'   => $activeDownline->id,
+            'sumber'        => 'link_otomatis',
+            'joined_at'     => now(),
+            'status'        => 'active',
+        ]);
+
+        RelasiReferral::create([
+            'affiliator_id' => $affiliator->id,
+            'downline_id'   => $inactiveDownline->id,
+            'sumber'        => 'link_otomatis',
+            'joined_at'     => now(),
+            'status'        => 'active',
+        ]);
+
+        KlaimKomisi::create([
+            'kode_klaim'                 => 'CLM-202610-0001',
+            'affiliator_id'              => $affiliator->id,
+            'total_downline'             => 1,
+            'total_akun'                 => 1,
+            'total_modal_riil'           => 10000,
+            'total_nominal_transfer'     => 120,
+            'kurs_konversi_idr'          => 16250,
+            'total_nominal_transfer_idr' => 1950000,
+            'nama_bank'                  => 'BCA',
+            'nomor_rekening'             => '1234567890',
+            'atas_nama_rekening'         => $affiliator->name,
+            'status'                     => 'approved_transferred',
+        ]);
+
         $this->actingAs($affiliator)
             ->get(route('investor.dashboard'))
             ->assertOk()
@@ -185,8 +230,10 @@ class InvestorDashboardTest extends TestCase
                 ->where('user.role', 'affiliator')
                 ->where('user.referral_code', 'TESTAF')
                 ->has('dashboard')
-                ->has('affiliate.network')
-                ->has('affiliate.commission')
+                ->where('affiliate.network.total_downlines', 1)
+                ->where('affiliate.commission.total_dicairkan', 120)
+                ->where('affiliate.commission.total_dicairkan_idr', 1950000)
+                ->where('affiliate.commission.klaim_disetujui', 1)
             );
     }
 }

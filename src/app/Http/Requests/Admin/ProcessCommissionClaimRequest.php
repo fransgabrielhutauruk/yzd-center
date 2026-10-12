@@ -24,6 +24,7 @@ class ProcessCommissionClaimRequest extends FormRequest
         return [
             'status'                      => ['required', 'string', 'in:approved_transferred,rejected'],
             'profit_master'               => ['nullable', 'numeric'],
+            'kurs_konversi_idr'           => ['nullable', 'numeric', 'min:1'],
             'items'                       => ['nullable', 'array'],
             'items.*.id'                  => ['required_with:items', 'integer'],
             'items.*.roi_percentage'      => ['nullable', 'numeric'],
@@ -45,6 +46,8 @@ class ProcessCommissionClaimRequest extends FormRequest
             'status.in'                  => 'Pilihan status keputusan tidak valid.',
             'profit_master.numeric'      => 'Nominal profit Master Trader harus berupa angka.',
             'profit_master.min'          => 'Nominal profit Master Trader minimal Rp 0.',
+            'kurs_konversi_idr.numeric'  => 'Nilai kurs konversi Rupiah (MT4) harus berupa angka.',
+            'kurs_konversi_idr.min'      => 'Nilai kurs konversi Rupiah (MT4) harus lebih besar dari 0.',
             'items.array'                => 'Format data rincian item komisi tidak valid.',
             'items.*.profit_master.min'  => 'Nominal profit Master Trader untuk setiap item minimal Rp 0.',
             'bukti_transfer.required_if' => 'Unggah berkas bukti/resi transfer bank sebelum menyelesaikan pencairan.',

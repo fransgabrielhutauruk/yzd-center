@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { Head, useForm, router, Link } from '@inertiajs/vue3';
+import { ref, onMounted, onUnmounted } from 'vue';
+import { Head, useForm } from '@inertiajs/vue3';
 import InvestorLayout from '@/Layouts/InvestorLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
@@ -9,10 +9,7 @@ import { toast } from 'vue-sonner';
 import { compressImageFile, formatBytes } from '@/lib/imageCompression';
 import {
     Users,
-    UserCheck,
     Clock,
-    Copy,
-    Check,
     FileText,
     PlusCircle,
     CheckCircle2,
@@ -21,11 +18,8 @@ import {
     UploadCloud,
     Loader2,
     Eye,
-    Image as ImageIcon,
-    Info,
     ExternalLink,
     MessageSquare,
-    Banknote,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -100,22 +94,6 @@ onMounted(() => {
 onUnmounted(() => {
     window.removeEventListener('popstate', handlePopState);
 });
-
-const isCopied = ref(false);
-
-const copyReferralCode = async () => {
-    if (!props.stats.referral_code || props.stats.referral_code === '-') return;
-    try {
-        await navigator.clipboard.writeText(props.stats.referral_code);
-        isCopied.value = true;
-        toast.success(`Kode referral ${props.stats.referral_code} berhasil disalin!`);
-        setTimeout(() => {
-            isCopied.value = false;
-        }, 2000);
-    } catch (error) {
-        toast.error(`Gagal menyalin kode referral. ${error}`);
-    }
-};
 
 // Modal Ajukan Klaim Susulan
 const isClaimModalOpen = ref(false);
@@ -323,9 +301,7 @@ const downlineColumns = [
     { key: 'joined_at', label: 'Bergabung', sortable: true },
     { key: 'name', label: 'Investor', sortable: false },
     { key: 'phone', label: 'Nomor HP', sortable: false },
-    { key: 'tier', label: 'Tier Akun', sortable: false },
     { key: 'copytrade_status', label: 'Status Akun Trading', sortable: false },
-    { key: 'user_status', label: 'Status KYC', sortable: false },
     { key: 'sumber', label: 'Sumber Relasi', sortable: false },
 ];
 
@@ -343,7 +319,7 @@ const claimColumns = [
 <template>
     <InvestorLayout
         title="Jaringan Kemitraan"
-        subtitle="Pantau investor binaan Anda, kelola kode referral, dan ajukan klaim referral susulan."
+        subtitle="Pantau daftar investor binaan Anda dan ajukan klaim referral susulan."
         :breadcrumbs="[
             { label: 'Program Afiliasi' },
             { label: 'Jaringan Kemitraan' }
@@ -351,17 +327,10 @@ const claimColumns = [
     >
         <template #header-actions>
             <div class="flex items-center gap-2 self-start sm:self-center">
-                <Link
-                    :href="route('investor.commissions.index')"
-                    class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors shadow-xs"
-                >
-                    <Banknote class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>Klaim Komisi (PB 3)</span>
-                </Link>
                 <Button
                     type="button"
                     @click="openClaimModal"
-                    class="bg-primary-600 hover:bg-primary-700 flex items-center gap-1.5 text-xs text-white shadow-xs sm:text-sm cursor-pointer"
+                    class="bg-primary-600 hover:bg-primary-700 flex cursor-pointer items-center gap-1.5 text-xs text-white shadow-xs sm:text-sm"
                 >
                     <PlusCircle class="h-4 w-4" />
                     <span>Ajukan Klaim Susulan</span>
@@ -372,46 +341,6 @@ const claimColumns = [
         <Head title="Jaringan Kemitraan" />
 
         <div class="space-y-6">
-
-            <!-- Banner Kode Referral -->
-            <div class="grid grid-cols-1 gap-4 lg:grid-cols-5">
-                <!-- Kartu Kode Referral -->
-                <div
-                    class="border-primary-500/30 from-primary-500/10 via-primary-500/5 rounded-xl border bg-gradient-to-br to-transparent p-5 shadow-xs lg:col-span-2"
-                >
-                    <div class="flex items-center justify-between">
-                        <span class="text-primary-700 dark:text-primary-300 text-xs font-semibold">
-                            Kode Referral Anda
-                        </span>
-                    </div>
-
-                    <div class="mt-3 flex items-center justify-between gap-3">
-                        <span
-                            class="text-foreground font-mono text-2xl font-black tracking-widest sm:text-3xl"
-                        >
-                            {{ stats.referral_code }}
-                        </span>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            @click="copyReferralCode"
-                            class="border-primary-500/40 hover:bg-primary-500/10 hover:text-foreground flex items-center gap-1.5 text-xs font-semibold"
-                        >
-                            <Check v-if="isCopied" class="h-3.5 w-3.5 text-emerald-600" />
-                            <Copy v-else class="h-3.5 w-3.5" />
-                            <span>{{ isCopied ? 'Tersalin' : 'Salin Kode' }}</span>
-                        </Button>
-                    </div>
-
-                    <p class="text-muted-foreground mt-3 text-[11px] leading-relaxed">
-                        Berikan kode ini kepada calon investor untuk diketikkan pada kolom
-                        <strong class="text-foreground">Kode Referral Affiliator</strong> di
-                        formulir pendaftaran.
-                    </p>
-                </div>
-            </div>
-
             <!-- Tab Navigasi -->
             <div class="border-border border-b">
                 <nav class="-mb-px flex gap-6 text-sm font-medium">
@@ -466,7 +395,7 @@ const claimColumns = [
                     :fetch-url="route('investor.affiliates.index')"
                     search-placeholder="Cari nama, username, email, atau no. HP downline..."
                     empty-title="Belum Ada Downline Terdaftar"
-                    empty-message="Belum ada investor yang terhubung dengan kode referral Anda. Bagikan kode referral resmi Anda untuk memulai."
+                    empty-message="Belum ada investor yang terhubung dengan kode referral Anda."
                 >
                     <!-- Filter Kustom: Sumber Relasi -->
                     <template #filters="{ applyFilters }">
@@ -514,74 +443,30 @@ const claimColumns = [
                         <span v-else class="text-muted-foreground text-xs">-</span>
                     </template>
 
-                    <!-- Custom Slot: Tier -->
-                    <template #column-tier="{ item }">
-                        <span
-                            v-if="item.tier"
-                            class="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wider whitespace-nowrap uppercase"
-                            :class="[
-                                item.tier === 'tier_3'
-                                    ? 'border border-violet-500/30 bg-violet-500/10 text-violet-800 dark:text-violet-300'
-                                    : item.tier === 'tier_2'
-                                      ? 'border border-blue-500/30 bg-blue-500/10 text-blue-800 dark:text-blue-300'
-                                      : 'border border-slate-500/30 bg-slate-500/10 text-slate-800 dark:text-slate-300',
-                            ]"
-                        >
-                            {{ String(item.tier).replace('_', ' ') }}
-                        </span>
-                        <span v-else class="text-muted-foreground text-xs">-</span>
-                    </template>
-
-                    <!-- Custom Slot: Copytrade Status -->
+                    <!-- Custom Slot: Copytrade Status (Jumlah Akun Aktif & Menunggu Verifikasi) -->
                     <template #column-copytrade_status="{ item }">
-                        <span
-                            class="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap"
-                            :class="[
-                                item.copytrade_status === 'active'
-                                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
-                                    : item.copytrade_status === 'rejected'
-                                      ? 'border-rose-500/30 bg-rose-500/10 text-rose-800 dark:text-rose-300'
-                                      : 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300',
-                            ]"
+                        <div
+                            v-if="item.active_accounts_count > 0 || item.pending_accounts_count > 0"
+                            class="flex flex-wrap items-center gap-1.5"
                         >
-                            <CheckCircle2
-                                v-if="item.copytrade_status === 'active'"
-                                class="h-3 w-3 text-emerald-600 dark:text-emerald-400"
-                            />
-                            <XCircle
-                                v-else-if="item.copytrade_status === 'rejected'"
-                                class="h-3 w-3 text-rose-600 dark:text-rose-400"
-                            />
-                            <Clock v-else class="h-3 w-3 text-amber-600 dark:text-amber-400" />
-                            <span>{{
-                                item.copytrade_status === 'active'
-                                    ? 'Terverifikasi'
-                                    : item.copytrade_status === 'rejected'
-                                      ? 'Ditolak'
-                                      : 'Pending'
-                            }}</span>
-                        </span>
-                    </template>
-
-                    <!-- Custom Slot: User KYC Status -->
-                    <template #column-user_status="{ item }">
-                        <span
-                            class="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap"
-                            :class="[
-                                item.user_status === 'active'
-                                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
-                                    : 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300',
-                            ]"
-                        >
-                            <CheckCircle2
-                                v-if="item.user_status === 'active'"
-                                class="h-3 w-3 text-emerald-600 dark:text-emerald-400"
-                            />
-                            <Clock v-else class="h-3 w-3 text-amber-600 dark:text-amber-400" />
-                            <span>{{
-                                item.user_status === 'active' ? 'Terverifikasi' : 'Pending'
-                            }}</span>
-                        </span>
+                            <span
+                                v-if="item.active_accounts_count > 0"
+                                class="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap text-emerald-800 dark:text-emerald-300"
+                            >
+                                <CheckCircle2
+                                    class="h-3 w-3 text-emerald-600 dark:text-emerald-400"
+                                />
+                                <span>{{ item.active_accounts_count }} Aktif</span>
+                            </span>
+                            <span
+                                v-if="item.pending_accounts_count > 0"
+                                class="inline-flex items-center gap-1 rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap text-sky-800 dark:text-sky-300"
+                            >
+                                <Clock class="h-3 w-3" />
+                                <span>{{ item.pending_accounts_count }} Menunggu Verifikasi</span>
+                            </span>
+                        </div>
+                        <span v-else class="text-muted-foreground text-xs">Belum Ada Akun</span>
                     </template>
 
                     <!-- Custom Slot: Sumber Relasi -->
@@ -627,7 +512,7 @@ const claimColumns = [
                             class="border-input bg-background text-foreground focus:border-primary-500 focus:ring-primary-500/20 h-9 rounded-lg border px-3 text-xs transition-all focus:ring-2 focus:outline-none"
                         >
                             <option value="">Semua Status Klaim</option>
-                            <option value="pending">Pending</option>
+                            <option value="pending">Menunggu Verifikasi</option>
                             <option value="approved">Disetujui</option>
                             <option value="rejected">Ditolak</option>
                         </select>
@@ -698,24 +583,24 @@ const claimColumns = [
                     <!-- Custom Slot: Status -->
                     <template #column-status="{ item }">
                         <span
-                            class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold whitespace-nowrap"
+                            class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap"
                             :class="[
                                 item.status === 'approved'
-                                    ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
+                                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
                                     : item.status === 'rejected'
-                                      ? 'border border-rose-500/30 bg-rose-500/10 text-rose-800 dark:text-rose-300'
-                                      : 'border border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300',
+                                      ? 'border-rose-500/30 bg-rose-500/10 text-rose-800 dark:text-rose-300'
+                                      : 'border-sky-500/30 bg-sky-500/10 text-sky-800 dark:text-sky-300',
                             ]"
                         >
                             <CheckCircle2
                                 v-if="item.status === 'approved'"
-                                class="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400"
+                                class="h-3 w-3 text-emerald-600 dark:text-emerald-400"
                             />
                             <XCircle
                                 v-else-if="item.status === 'rejected'"
-                                class="h-3.5 w-3.5 text-rose-600 dark:text-rose-400"
+                                class="h-3 w-3 text-rose-600 dark:text-rose-400"
                             />
-                            <Clock v-else class="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                            <Clock v-else class="h-3 w-3" />
                             <span>{{ item.status_label }}</span>
                         </span>
                     </template>
@@ -760,13 +645,6 @@ const claimColumns = [
             @close="closeClaimModal"
         >
             <form @submit.prevent="submitClaim" class="space-y-3">
-                <div
-                    class="border-primary-500/30 bg-primary-500/10 text-primary-800 dark:text-primary-300 rounded-lg border p-3 text-xs leading-relaxed"
-                >
-                    Fitur ini digunakan jika calon investor lupa memasukkan kode referral Anda saat
-                    pendaftaran.
-                </div>
-
                 <!-- Input Username Calon Downline & Pengecekan Database -->
                 <div class="space-y-1.5">
                     <label
@@ -1044,7 +922,7 @@ const claimColumns = [
         <AppModal
             :show="isReasonModalOpen"
             title="Detail Alasan & Kronologi Klaim"
-            max-width="lg"
+            max-width="2xl"
             @close="isReasonModalOpen = false"
         >
             <div class="space-y-3 p-1">
@@ -1078,7 +956,7 @@ const claimColumns = [
         <AppModal
             :show="isAdminNoteModalOpen"
             title="Catatan dari Administrator"
-            max-width="lg"
+            max-width="2xl"
             @close="isAdminNoteModalOpen = false"
         >
             <div class="space-y-3 p-1">

@@ -2,10 +2,8 @@
 import { ref, computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import InvestorLayout from '@/Layouts/InvestorLayout.vue';
-import DashboardTrendChart from '@/Components/Investor/DashboardTrendChart.vue';
 import { Button } from '@/Components/ui/button';
 import {
-    UserCheck,
     Wallet,
     TrendingUp,
     Target,
@@ -17,6 +15,7 @@ import {
     Calculator,
     Coins,
     LifeBuoy,
+    HelpCircle,
     Copy,
     Check,
     Users,
@@ -147,10 +146,11 @@ const profitClass = computed(() =>
 
 const shortcuts = [
     { label: 'Jaringan Kemitraan', href: AFFILIATES_URL, icon: Network },
-    { label: 'Klaim Komisi (PB 3)', href: COMMISSIONS_URL, icon: Banknote },
+    { label: 'Klaim Komisi', href: COMMISSIONS_URL, icon: Banknote },
     { label: 'Portofolio Investasi', href: INVESTMENTS_URL, icon: Layers },
     { label: 'Kalkulator Proyeksi', href: '/investor/education/calculator', icon: Calculator },
     { label: 'Pusat Bantuan', href: '/investor/education/help', icon: LifeBuoy },
+    { label: 'FAQ', href: '/investor/education/faq', icon: HelpCircle },
 ];
 </script>
 
@@ -160,15 +160,6 @@ const shortcuts = [
         subtitle="Pusat kendali jaringan kemitraan afiliasi dan portofolio investasi Anda."
         :breadcrumbs="[{ label: 'Menu Utama' }, { label: 'Dasbor Mitra Affiliator' }]"
     >
-        <template #header-actions>
-            <span
-                class="bg-accent-500 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold text-white shadow-xs"
-            >
-                <UserCheck class="h-3.5 w-3.5" />
-                Mitra Affiliator
-            </span>
-        </template>
-
         <div class="space-y-6">
             <!-- 1. KARTU KODE REFERRAL RESMI -->
             <section
@@ -212,17 +203,19 @@ const shortcuts = [
                         {{ affiliate.network.total_downlines }}
                     </p>
                     <p class="text-muted-foreground mt-0.5 text-[11px] font-medium">
-                        {{ affiliate.network.active_downlines }} akun aktif
+                        <Link :href="AFFILIATES_URL" class="text-primary hover:underline font-bold">
+                            Lihat Jaringan &rarr;
+                        </Link>
                     </p>
                 </div>
 
-                <!-- Total Komisi Dicairkan -->
+                <!-- Total Komisi Dicairkan (Hanya Rupiah) -->
                 <div class="bg-card border-border rounded-2xl border p-4 shadow-xs sm:p-5">
                     <div class="text-muted-foreground flex items-center gap-1.5 text-xs font-bold">
                         <Banknote class="h-4 w-4" /> Total Komisi Dicairkan
                     </div>
                     <p class="text-emerald-700 dark:text-emerald-400 mt-1 font-mono text-lg font-black sm:text-2xl">
-                        {{ formatIDR(affiliate.commission.total_dicairkan) }}
+                        {{ formatIDR(affiliate.commission.total_dicairkan_idr ?? affiliate.commission.total_dicairkan) }}
                     </p>
                     <p class="text-muted-foreground mt-0.5 text-[11px] font-medium">
                         {{ affiliate.commission.klaim_disetujui }} permohonan disetujui
@@ -244,12 +237,12 @@ const shortcuts = [
                     </p>
                 </div>
 
-                <!-- Menunggu Transfer -->
+                <!-- Menunggu Verifikasi -->
                 <div class="bg-card border-border rounded-2xl border p-4 shadow-xs sm:p-5">
                     <div class="text-muted-foreground flex items-center gap-1.5 text-xs font-bold">
-                        <Clock class="h-4 w-4" /> Menunggu Transfer
+                        <Clock class="h-4 w-4" /> Menunggu Verifikasi
                     </div>
-                    <p :class="['mt-1 font-mono text-lg font-black sm:text-2xl', affiliate.commission.menunggu_transfer > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-foreground']">
+                    <p :class="['mt-1 font-mono text-lg font-black sm:text-2xl', affiliate.commission.menunggu_transfer > 0 ? 'text-sky-700 dark:text-sky-400' : 'text-foreground']">
                         {{ affiliate.commission.menunggu_transfer }}
                     </p>
                     <p class="text-muted-foreground mt-0.5 text-[11px] font-medium">
@@ -354,62 +347,65 @@ const shortcuts = [
                 </div>
             </section>
 
-            <!-- 5. GRAFIK TREN (HANYA TAHAP RUNNING) -->
-            <section v-if="isRunning" class="bg-card border-border rounded-2xl border p-5 shadow-xs sm:p-6">
-                <div class="mb-3 flex items-center justify-between gap-3">
-                    <h3 class="text-foreground text-sm font-bold">Tren Saldo Portofolio Pribadi</h3>
-                    <Link :href="RECORD_URL" class="text-primary inline-flex min-h-[36px] items-center gap-1 text-xs font-bold hover:underline">
-                        Detail <ArrowRight class="h-3 w-3" />
-                    </Link>
-                </div>
-                <div v-if="dashboard.trend.length >= 2" class="max-w-2xl">
-                    <DashboardTrendChart :points="dashboard.trend" />
-                </div>
-                <p v-else class="text-muted-foreground text-xs leading-relaxed">
-                    Grafik tampil setelah saldo tercatat pada minimal 2 bulan berbeda.
-                </p>
-            </section>
-
-            <!-- 6. DAFTAR AKUN TRADING -->
-            <section v-if="dashboard.accounts.length" class="bg-card border-border rounded-2xl border p-5 shadow-xs sm:p-6">
-                <div class="mb-3 flex items-center justify-between gap-3">
-                    <h3 class="text-foreground text-sm font-bold">Akun Trading Anda</h3>
-                    <Link :href="INVESTMENTS_URL" class="text-primary inline-flex min-h-[36px] items-center gap-1 text-xs font-bold hover:underline">
-                        Kelola <ArrowRight class="h-3 w-3" />
-                    </Link>
-                </div>
-                <ul class="divide-border divide-y">
-                    <li v-for="acc in dashboard.accounts" :key="acc.id" class="flex flex-wrap items-center justify-between gap-2 py-3">
-                        <div class="min-w-0 space-y-0.5">
-                            <p class="text-foreground truncate font-mono text-sm font-bold">{{ acc.nomor_akun_trading }}</p>
-                            <p class="text-muted-foreground text-[11px] font-medium">{{ TIER_LABEL[acc.tier] || acc.tier }}</p>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span
-                                :class="[
-                                    'rounded-full border px-2 py-0.5 text-[11px] font-bold',
-                                    acc.status === 'active'
-                                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
-                                        : 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300',
-                                ]"
-                            >
-                                {{ acc.status === 'active' ? 'Aktif' : 'Menunggu Verifikasi' }}
-                            </span>
-                            <div class="text-right">
-                                <p class="text-foreground font-mono text-sm font-bold">
-                                    {{ formatUSD(acc.status === 'active' ? acc.current_balance : acc.modal_riil) }}
-                                </p>
-                                <p class="text-muted-foreground text-[10px] font-medium">
-                                    {{ acc.status === 'active' ? 'Saldo terakhir' : 'Modal awal' }}
-                                </p>
+            <!-- 5. AKUN TRADING & PINTASAN CEPAT (50% - 50% DI DESKTOP) -->
+            <div v-if="dashboard.accounts.length" class="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+                <!-- Kolom Kiri: Akun Trading Anda -->
+                <section class="bg-card border-border rounded-2xl border p-5 shadow-xs sm:p-6">
+                    <div class="mb-3 flex items-center justify-between gap-3">
+                        <h3 class="text-foreground text-sm font-bold">Akun Trading Anda</h3>
+                        <Link :href="INVESTMENTS_URL" class="text-primary inline-flex min-h-[36px] items-center gap-1 text-xs font-bold hover:underline">
+                            Kelola <ArrowRight class="h-3 w-3" />
+                        </Link>
+                    </div>
+                    <ul class="divide-border divide-y">
+                        <li v-for="acc in dashboard.accounts" :key="acc.id" class="flex flex-wrap items-center justify-between gap-2 py-3">
+                            <div class="min-w-0 space-y-0.5">
+                                <p class="text-foreground truncate font-mono text-sm font-bold">{{ acc.nomor_akun_trading }}</p>
+                                <p class="text-muted-foreground text-[11px] font-medium">{{ TIER_LABEL[acc.tier] || acc.tier }}</p>
                             </div>
-                        </div>
-                    </li>
-                </ul>
-            </section>
+                            <div class="flex items-center gap-3">
+                                <span
+                                    v-if="acc.status === 'active'"
+                                    class="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-800 dark:text-emerald-300"
+                                >
+                                    Aktif
+                                </span>
+                                <div
+                                    v-else
+                                    class="inline-flex items-center gap-1 rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold text-sky-800 dark:text-sky-300"
+                                >
+                                    <Clock class="h-3 w-3" />
+                                    <span>Menunggu Verifikasi</span>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-foreground font-mono text-sm font-bold">
+                                        {{ formatUSD(acc.status === 'active' ? acc.current_balance : acc.modal_riil) }}
+                                    </p>
+                                    <p class="text-muted-foreground text-[10px] font-medium">
+                                        {{ acc.status === 'active' ? 'Saldo terakhir' : 'Modal awal' }}
+                                    </p>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </section>
 
-            <!-- 7. PINTASAN CEPAT MITRA AFFILIATOR -->
-            <section class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                <!-- Kolom Kanan: Pintasan Cepat -->
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <Link
+                        v-for="s in shortcuts"
+                        :key="s.href"
+                        :href="s.href"
+                        class="bg-muted/40 hover:bg-muted/80 border-border text-foreground flex min-h-[48px] cursor-pointer items-center gap-2.5 rounded-xl border px-3.5 py-3 text-xs font-bold shadow-xs transition-colors"
+                    >
+                        <component :is="s.icon" class="text-primary h-4 w-4 shrink-0" />
+                        <span class="truncate">{{ s.label }}</span>
+                    </Link>
+                </div>
+            </div>
+
+            <!-- Jika Belum Ada Akun (Pintasan Full Width) -->
+            <section v-else class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 <Link
                     v-for="s in shortcuts"
                     :key="s.href"

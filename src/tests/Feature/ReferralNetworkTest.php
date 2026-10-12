@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AkunCopytrade;
 use App\Models\Invitation;
 use App\Models\KlaimReferral;
 use App\Models\RelasiReferral;
@@ -247,6 +248,34 @@ class ReferralNetworkTest extends TestCase
             'status'        => 'active',
         ]);
 
+        AkunCopytrade::create([
+            'user_id'            => $this->investor->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'HFM',
+            'tipe_akun'          => 'cent',
+            'nomor_akun_trading' => '1001001',
+            'modal_riil'         => 1500,
+            'tanggal_mulai'      => '2026-03-01',
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => 'Budi Santoso',
+            'status'             => 'active',
+        ]);
+
+        AkunCopytrade::create([
+            'user_id'            => $this->investor->id,
+            'tier'               => 'tier_2',
+            'broker'             => 'HFM',
+            'tipe_akun'          => 'cent',
+            'nomor_akun_trading' => '1001002',
+            'modal_riil'         => 3500,
+            'tanggal_mulai'      => '2026-03-05',
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => 'Budi Santoso',
+            'status'             => 'pending',
+        ]);
+
         $response = $this->actingAs($this->affiliator)->get(route('investor.affiliates.index'));
 
         $response->assertOk()
@@ -256,6 +285,8 @@ class ReferralNetworkTest extends TestCase
                 ->has('downlines.data', 1)
                 ->where('stats.referral_code', 'ABI8K2')
                 ->where('stats.total_downlines', 1)
+                ->where('downlines.data.0.active_accounts_count', 1)
+                ->where('downlines.data.0.pending_accounts_count', 1)
             );
     }
 
@@ -572,13 +603,50 @@ class ReferralNetworkTest extends TestCase
 
     public function test_admin_can_view_claims_and_affiliates_overview(): void
     {
+        RelasiReferral::create([
+            'affiliator_id' => $this->affiliator->id,
+            'downline_id'   => $this->investor->id,
+            'sumber'        => 'link_otomatis',
+            'joined_at'     => now(),
+            'status'        => 'active',
+        ]);
+
+        // Buat downline yang tidak aktif (!is_active) -> tidak boleh masuk hitungan total_downlines
+        $inactiveInvestor = User::factory()->create([
+            'role'      => 'investor',
+            'status'    => 'pending',
+            'is_active' => false,
+        ]);
+        RelasiReferral::create([
+            'affiliator_id' => $this->affiliator->id,
+            'downline_id'   => $inactiveInvestor->id,
+            'sumber'        => 'link_otomatis',
+            'joined_at'     => now(),
+            'status'        => 'active',
+        ]);
+
+        // Buat affiliator yang tidak aktif (!is_active) -> tidak boleh tampil di daftar
+        User::factory()->affiliator()->create([
+            'name'          => 'Inactive Affiliator',
+            'referral_code' => 'INA999',
+            'status'        => 'pending',
+            'is_active'     => false,
+        ]);
+
         $responseClaims = $this->actingAs($this->admin)->get(route('admin.referral_claims.index'));
         $responseClaims->assertOk()
             ->assertInertia(fn ($page) => $page->component('Admin/ReferralClaims/Index'));
 
         $responseAffiliates = $this->actingAs($this->admin)->get(route('admin.affiliates.index'));
         $responseAffiliates->assertOk()
-            ->assertInertia(fn ($page) => $page->component('Admin/Affiliates/Index'));
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/Affiliates/Index')
+                ->has('affiliates.data', 1)
+                ->where('affiliates.data.0.total_downlines', 1)
+                ->has('affiliates.data.0.downlines_list', 1)
+                ->has('claims')
+                ->has('pendingClaimsCount')
+            );
     }
 
     public function test_secure_claim_proof_streaming_authorization(): void

@@ -36,7 +36,7 @@ class CopytradeAccountStatusChangedNotification extends Notification
             : 'Akun Copy Trade Ditolak';
 
         $message = $isActive
-            ? "Akun trading MT4 ({$this->akun->nomor_akun_trading}) Anda telah berhasil divalidasi dan dinyatakan aktif."
+            ? "Akun investasi ({$this->akun->nomor_akun_trading}) Anda telah berhasil divalidasi dan dinyatakan aktif."
             : ($this->notes ? "Pendaftaran akun trading ({$this->akun->nomor_akun_trading}) ditolak oleh Administrator. Catatan: {$this->notes}. Silakan daftarkan kembali akun trading Anda dengan data yang valid." : "Pendaftaran akun trading ({$this->akun->nomor_akun_trading}) ditolak oleh Administrator. Silakan daftarkan kembali akun trading Anda dengan data yang valid.");
 
         return [
