@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import {
@@ -6,28 +7,122 @@ import {
     UserCheck,
     Link2,
     ArrowRight,
-    ShieldCheck,
-    FileCheck,
-    Inbox,
-    PlusCircle
+    BadgeCheck,
+    ArrowLeftRight,
+    Network,
+    Banknote,
+    PlusCircle,
+    CheckCircle2,
+    Clock,
 } from 'lucide-vue-next';
 
-defineProps({
+const props = defineProps({
+    pending_actions: {
+        type: Object,
+        default: () => ({
+            kyc: 0,
+            copytrade: 0,
+            referral_claims: 0,
+            commission_claims: 0,
+            total: 0,
+        }),
+    },
     stats: {
         type: Object,
         default: () => ({
             investor_count: 0,
+            active_investor_count: 0,
             affiliator_count: 0,
+            active_affiliator_count: 0,
+            active_copytrade_count: 0,
             active_invites: 0,
         }),
     },
 });
+
+const pendingList = computed(() => {
+    const list = [];
+    const pa = props.pending_actions || {};
+
+    if (pa.kyc > 0) {
+        list.push({
+            id: 'kyc',
+            title: 'Verifikasi Pendaftaran KYC',
+            desc: 'Berkas identitas & data calon member baru menunggu peninjauan legalitas.',
+            count: pa.kyc,
+            href: '/admin/registrations',
+            icon: BadgeCheck,
+            unit: 'Pendaftar',
+        });
+    }
+
+    if (pa.copytrade > 0) {
+        list.push({
+            id: 'copytrade',
+            title: 'Verifikasi Akun Copytrade',
+            desc: 'Pengajuan akun trading MT4 baru investor menunggu verifikasi broker.',
+            count: pa.copytrade,
+            href: '/admin/copytrade',
+            icon: ArrowLeftRight,
+            unit: 'Akun MT4',
+        });
+    }
+
+    if (pa.referral_claims > 0) {
+        list.push({
+            id: 'referral_claims',
+            title: 'Klaim Susulan Referral',
+            desc: 'Pengajuan klaim downline manual dari mitra affiliator menunggu validasi.',
+            count: pa.referral_claims,
+            href: '/admin/affiliates?tab=claims',
+            icon: Network,
+            unit: 'Permohonan',
+        });
+    }
+
+    if (pa.commission_claims > 0) {
+        list.push({
+            id: 'commission_claims',
+            title: 'Pencairan Komisi Afiliasi',
+            desc: 'Tiket pencairan komisi 3 bulan affiliator menunggu konfirmasi transfer dana.',
+            count: pa.commission_claims,
+            href: '/admin/commissions',
+            icon: Banknote,
+            unit: 'Tiket Klaim',
+        });
+    }
+
+    return list;
+});
+
+const shortcuts = [
+    {
+        label: 'Buat Tautan Undangan',
+        href: '/admin/invitations',
+        icon: PlusCircle,
+    },
+    {
+        label: 'Verifikasi Pendaftaran KYC',
+        href: '/admin/registrations',
+        icon: BadgeCheck,
+    },
+    {
+        label: 'Kelola Akun Copytrade',
+        href: '/admin/copytrade',
+        icon: ArrowLeftRight,
+    },
+    {
+        label: 'Pencairan Komisi',
+        href: '/admin/commissions',
+        icon: Banknote,
+    },
+];
 </script>
 
 <template>
     <AdminLayout
         title="Dashboard Administrator"
-        subtitle="Sistem manajemen trading terintegrasi YZD Center. Pantau keanggotaan investor, mitra affiliator, dan kelola tautan pendaftaran eksklusif."
+        subtitle="Pusat kendali operasional trading dan manajemen ekosistem YZD Center."
         :breadcrumbs="[
             { label: 'Menu Utama' },
             { label: 'Dashboard' }
@@ -35,125 +130,187 @@ defineProps({
     >
         <div class="space-y-6">
 
-            <!-- Stats Metric Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                <!-- Stat 1: Total Investor -->
-                <div class="bg-card rounded-2xl border border-border p-5 shadow-xs flex items-center justify-between">
-                    <div class="space-y-1">
-                        <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Total Investor
+            <!-- 1. SEKSI ANTREAN BUTUH TINDAKAN (KONDISIONAL) -->
+            <section class="space-y-3">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Antrean Butuh Tindakan
+                        </h2>
+                        <span
+                            v-if="pending_actions.total > 0"
+                            class="inline-flex items-center gap-1 rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold text-sky-800 dark:text-sky-300"
+                        >
+                            <Clock class="h-3 w-3" />
+                            <span>{{ pending_actions.total }} Menunggu Verifikasi</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- A. Jika ada antrean pending: Tampilkan kartu antrean aktif -->
+                <div
+                    v-if="pendingList.length > 0"
+                    class="grid grid-cols-1 md:grid-cols-2 gap-4"
+                >
+                    <div
+                        v-for="item in pendingList"
+                        :key="item.id"
+                        class="bg-card border-border hover:border-sky-500/40 rounded-2xl border p-5 shadow-xs transition-colors flex flex-col justify-between gap-4"
+                    >
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-2">
+                                    <h3 class="text-sm font-bold text-foreground">
+                                        {{ item.title }}
+                                    </h3>
+                                </div>
+                                <p class="text-xs text-muted-foreground leading-relaxed">
+                                    {{ item.desc }}
+                                </p>
+                            </div>
+                            <div class="shrink-0 w-10 h-10 rounded-xl bg-sky-500/10 text-sky-700 dark:text-sky-400 flex items-center justify-center">
+                                <component :is="item.icon" class="w-5 h-5" />
+                            </div>
+                        </div>
+
+                        <div class="pt-2 border-t border-border/60 flex items-center justify-between gap-2">
+                            <div class="flex items-baseline gap-1.5">
+                                <span class="font-mono text-xl font-black text-sky-800 dark:text-sky-300">
+                                    {{ item.count }}
+                                </span>
+                                <span class="text-xs font-medium text-muted-foreground">
+                                    {{ item.unit }}
+                                </span>
+                            </div>
+                            <Link
+                                :href="item.href"
+                                class="inline-flex items-center gap-1 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 px-3 py-1.5 text-xs font-bold text-sky-800 dark:text-sky-300 transition-colors"
+                            >
+                                Tinjau Sekarang
+                                <ArrowRight class="w-3.5 h-3.5" />
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- B. Jika tidak ada antrean: Banner emerald bersih -->
+                <div
+                    v-else
+                    class="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 sm:p-5 flex items-center gap-3.5"
+                >
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                        <CheckCircle2 class="w-5 h-5" />
+                    </div>
+                    <div class="space-y-0.5">
+                        <h3 class="text-sm font-bold text-emerald-950 dark:text-emerald-200">
+                            Semua antrean operasional terkendali
+                        </h3>
+                        <p class="text-xs text-emerald-800/80 dark:text-emerald-300/80 leading-relaxed">
+                            Tidak ada permohonan pendaftaran, akun copytrade, maupun pencairan komisi yang menunggu verifikasi saat ini.
                         </p>
-                        <p class="text-2xl sm:text-3xl font-extrabold text-foreground">
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. SEKSI RINGKASAN EKOSISTEM (4 KARTU METRIK) -->
+            <section class="space-y-3">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Ringkasan Ekosistem Trading
+                </h2>
+
+                <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                    <!-- Kartu 1: Total Investor -->
+                    <div class="bg-card border-border rounded-2xl border p-4 shadow-xs sm:p-5">
+                        <div class="text-muted-foreground flex items-center justify-between gap-1.5 text-xs font-bold">
+                            <span class="flex items-center gap-1.5">
+                                <Users class="h-4 w-4" /> Total Investor
+                            </span>
+                        </div>
+                        <p class="text-foreground mt-1 font-mono text-xl font-black sm:text-2xl">
                             {{ stats.investor_count }}
                         </p>
-                        <p class="text-[11px] text-muted-foreground">
-                            Anggota pemodal terdaftar
+                        <p class="text-muted-foreground mt-0.5 text-[11px] font-medium">
+                            <Link href="/admin/users" class="hover:text-primary transition-colors">
+                                {{ stats.active_investor_count }} anggota aktif &rarr;
+                            </Link>
                         </p>
                     </div>
-                    <div class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                        <Users class="w-6 h-6" />
-                    </div>
-                </div>
 
-                <!-- Stat 2: Total Affiliator -->
-                <div class="bg-card rounded-2xl border border-border p-5 shadow-xs flex items-center justify-between">
-                    <div class="space-y-1">
-                        <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Total Affiliator
-                        </p>
-                        <p class="text-2xl sm:text-3xl font-extrabold text-foreground">
+                    <!-- Kartu 2: Total Affiliator -->
+                    <div class="bg-card border-border rounded-2xl border p-4 shadow-xs sm:p-5">
+                        <div class="text-muted-foreground flex items-center justify-between gap-1.5 text-xs font-bold">
+                            <span class="flex items-center gap-1.5">
+                                <UserCheck class="h-4 w-4" /> Total Affiliator
+                            </span>
+                        </div>
+                        <p class="text-foreground mt-1 font-mono text-xl font-black sm:text-2xl">
                             {{ stats.affiliator_count }}
                         </p>
-                        <p class="text-[11px] text-muted-foreground">
-                            Mitra referral aktif
+                        <p class="text-muted-foreground mt-0.5 text-[11px] font-medium">
+                            <Link href="/admin/affiliates" class="hover:text-primary transition-colors">
+                                {{ stats.active_affiliator_count }} mitra aktif &rarr;
+                            </Link>
                         </p>
                     </div>
-                    <div class="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                        <UserCheck class="w-6 h-6" />
-                    </div>
-                </div>
 
-                <!-- Stat 3: Undangan Aktif -->
-                <div class="bg-card rounded-2xl border border-border p-5 shadow-xs flex items-center justify-between">
-                    <div class="space-y-1">
-                        <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Tautan Undangan Aktif
+                    <!-- Kartu 3: Akun Trading Aktif -->
+                    <div class="bg-card border-border rounded-2xl border p-4 shadow-xs sm:p-5">
+                        <div class="text-muted-foreground flex items-center justify-between gap-1.5 text-xs font-bold">
+                            <span class="flex items-center gap-1.5">
+                                <ArrowLeftRight class="h-4 w-4" /> Akun Trading Aktif
+                            </span>
+                        </div>
+                        <p class="text-foreground mt-1 font-mono text-xl font-black sm:text-2xl">
+                            {{ stats.active_copytrade_count }}
                         </p>
-                        <p class="text-2xl sm:text-3xl font-extrabold text-foreground">
+                        <p class="text-muted-foreground mt-0.5 text-[11px] font-medium">
+                            <Link href="/admin/copytrade" class="hover:text-primary transition-colors">
+                                Terkoneksi copytrade MT4 &rarr;
+                            </Link>
+                        </p>
+                    </div>
+
+                    <!-- Kartu 4: Tautan Undangan Aktif -->
+                    <div class="bg-card border-border rounded-2xl border p-4 shadow-xs sm:p-5">
+                        <div class="text-muted-foreground flex items-center justify-between gap-1.5 text-xs font-bold">
+                            <span class="flex items-center gap-1.5">
+                                <Link2 class="h-4 w-4" /> Undangan Aktif
+                            </span>
+                        </div>
+                        <p class="text-foreground mt-1 font-mono text-xl font-black sm:text-2xl">
                             {{ stats.active_invites }}
                         </p>
-                        <Link
-                            href="/admin/invitations"
-                            class="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-600 dark:text-primary-400 hover:underline"
-                        >
-                            Kelola Undangan <ArrowRight class="w-3 h-3" />
-                        </Link>
-                    </div>
-                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                        <Link2 class="w-6 h-6" />
+                        <p class="text-muted-foreground mt-0.5 text-[11px] font-medium">
+                            <Link href="/admin/invitations" class="hover:text-primary transition-colors">
+                                Kelola tautan undangan &rarr;
+                            </Link>
+                        </p>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Quick Access / Shortcuts Grid -->
-            <div class="space-y-3">
-                <h3 class="text-sm font-bold uppercase tracking-wider text-foreground">
+            <!-- 3. SEKSI AKSI CEPAT OPERASIONAL (4 TOMBOL RINGKAS) -->
+            <section class="space-y-3">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     Aksi Cepat Operasional
-                </h3>
+                </h2>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     <Link
-                        href="/admin/invitations"
-                        class="p-4 rounded-xl bg-card border border-border hover:border-primary-500 hover:shadow-md transition-all flex items-start gap-3 group"
+                        v-for="s in shortcuts"
+                        :key="s.href"
+                        :href="s.href"
+                        class="bg-card border-border hover:bg-muted text-foreground flex min-h-[48px] cursor-pointer items-center justify-between gap-2.5 rounded-xl border px-3.5 py-3 text-xs font-bold shadow-xs transition-colors"
                     >
-                        <div class="p-2.5 rounded-lg bg-primary-500/10 text-primary-600 group-hover:bg-primary-600 group-hover:text-white transition-colors">
-                            <PlusCircle class="w-5 h-5" />
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <component :is="s.icon" class="text-primary h-4 w-4 shrink-0" />
+                            <span class="truncate">{{ s.label }}</span>
                         </div>
-                        <div>
-                            <h4 class="text-sm font-bold text-foreground group-hover:text-primary-600 transition-colors">
-                                Buat Tautan Undangan
-                            </h4>
-                            <p class="text-xs text-muted-foreground mt-0.5">
-                                Terbitkan tautan pendaftaran eksklusif untuk investor atau affiliator.
-                            </p>
-                        </div>
-                    </Link>
-
-                    <Link
-                        href="/admin/verifikasi-legalitas"
-                        class="p-4 rounded-xl bg-card border border-border hover:border-primary-500 hover:shadow-md transition-all flex items-start gap-3 group"
-                    >
-                        <div class="p-2.5 rounded-lg bg-blue-500/10 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                            <FileCheck class="w-5 h-5" />
-                        </div>
-                        <div>
-                            <h4 class="text-sm font-bold text-foreground group-hover:text-blue-600 transition-colors">
-                                Verifikasi Legalitas
-                            </h4>
-                            <p class="text-xs text-muted-foreground mt-0.5">
-                                Tinjau audit persetujuan syarat, identitas NIK, dan dokumen investor.
-                            </p>
-                        </div>
-                    </Link>
-
-                    <Link
-                        href="/admin/antrean-validasi"
-                        class="p-4 rounded-xl bg-card border border-border hover:border-primary-500 hover:shadow-md transition-all flex items-start gap-3 group"
-                    >
-                        <div class="p-2.5 rounded-lg bg-accent-500/10 text-accent-600 group-hover:bg-accent-600 group-hover:text-white transition-colors">
-                            <Inbox class="w-5 h-5" />
-                        </div>
-                        <div>
-                            <h4 class="text-sm font-bold text-foreground group-hover:text-accent-600 transition-colors">
-                                Antrean Validasi
-                            </h4>
-                            <p class="text-xs text-muted-foreground mt-0.5">
-                                Pantau permohonan deposit baru dan pencairan profit member.
-                            </p>
-                        </div>
+                        <ArrowRight class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
                     </Link>
                 </div>
-            </div>
+            </section>
+
         </div>
     </AdminLayout>
 </template>

@@ -454,7 +454,11 @@ class AuthTest extends TestCase
         $response = $this->actingAs($admin)->get('/admin/dashboard');
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page->component('Admin/Dashboard'));
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Dashboard')
+            ->has('pending_actions')
+            ->has('stats')
+        );
     }
 
     public function test_non_admin_cannot_view_admin_dashboard(): void
