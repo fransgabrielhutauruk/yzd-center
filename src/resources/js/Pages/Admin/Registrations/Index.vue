@@ -4,6 +4,7 @@ import { useForm, router, Head } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
+import AppTableAction from '@/Components/Common/AppTableAction.vue';
 import { Button } from '@/Components/ui/button';
 import { formatBytes } from '@/lib/imageCompression';
 import { toast } from 'vue-sonner';
@@ -163,7 +164,6 @@ const getStatusBadge = (status) => {
             };
     }
 };
-
 </script>
 
 <template>
@@ -218,7 +218,7 @@ const getStatusBadge = (status) => {
                             <span class="text-foreground text-xs font-bold">{{ item.name }}</span>
                             <span
                                 v-if="item.role === 'affiliator'"
-                                class="border-indigo-200 dark:border-indigo-800  bg-indigo-50 dark:bg-indigo-950/50 py-0.2 text-indigo-700 dark:text-indigo-300 inline-flex items-center rounded-full border px-1.5 text-[9px] font-semibold"
+                                class="py-0.2 inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-1.5 text-[9px] font-semibold text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300"
                             >
                                 Affiliator
                             </span>
@@ -263,7 +263,9 @@ const getStatusBadge = (status) => {
                             Ref: {{ item.upline.referral_code }}
                         </span>
                     </div>
-                    <span v-else class="text-muted-foreground text-xs italic"> Tanpa Referral </span>
+                    <span v-else class="text-muted-foreground text-xs italic">
+                        Tanpa Referral
+                    </span>
                 </template>
 
                 <!-- Custom Column: Dokumen KTP -->
@@ -281,23 +283,17 @@ const getStatusBadge = (status) => {
                             />
                             <span>{{ getStatusBadge(item.dokumen.ktp.status).label }}</span>
                         </div>
-
                     </div>
                     <span v-else class="text-muted-foreground text-xs italic">Belum Ada</span>
                 </template>
 
                 <!-- Custom Column: Actions -->
                 <template #column-actions="{ item }">
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        class="flex items-center gap-1.5 text-xs"
+                    <AppTableAction
+                        type="verify"
+                        title="Tinjau Pendaftaran"
                         @click="openVerifyModal(item)"
-                    >
-                        <Eye class="h-3.5 w-3.5" />
-                        <span>Tinjau</span>
-                    </Button>
+                    />
                 </template>
             </AppDataTable>
         </div>
@@ -523,7 +519,7 @@ const getStatusBadge = (status) => {
                         >
                             <AlertTriangle class="h-4 w-4 shrink-0" />
                             <spanm>
-                                <strong>Peringatan Kualitas Dokumen:</strong> <br/>
+                                <strong>Peringatan Kualitas Dokumen:</strong> <br />
                                 Resolusi atau ketajaman berkas KTP terdeteksi rendah.
                             </spanm>
                         </div>

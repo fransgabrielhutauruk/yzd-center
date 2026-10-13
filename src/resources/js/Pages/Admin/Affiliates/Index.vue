@@ -1,9 +1,11 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
+import AppTableAction from '@/Components/Common/AppTableAction.vue';
+import AppTabs from '@/Components/Common/AppTabs.vue';
 import { Button } from '@/Components/ui/button';
 import {
     Users,
@@ -69,6 +71,22 @@ watch(
         }
     }
 );
+
+const tabs = computed(() => [
+    {
+        key: 'affiliates',
+        label: 'Daftar Mitra & Jaringan Downline',
+        icon: Network,
+        count: props.stats.total_affiliators || props.affiliates.total || 0,
+    },
+    {
+        key: 'claims',
+        label: 'Verifikasi Klaim Susulan Referral',
+        icon: UserCheck,
+        badge: props.pendingClaimsCount > 0 ? `${props.pendingClaimsCount} Menunggu` : undefined,
+        badgeVariant: 'warning',
+    },
+]);
 
 const formatUSD = (val) => {
     if (val === null || val === undefined || isNaN(val)) return '$0.00';
@@ -162,57 +180,7 @@ const submitVerify = () => {
 
         <div class="space-y-5">
             <!-- Navigasi 2 Tab -->
-            <div class="flex flex-wrap items-center gap-2 border-b border-border pb-3">
-                <button
-                    type="button"
-                    @click="currentTab = 'affiliates'"
-                    :class="[
-                        'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all border',
-                        currentTab === 'affiliates'
-                            ? 'bg-primary-600 text-white border-primary-600 shadow-xs'
-                            : 'bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted/40',
-                    ]"
-                >
-                    <Network class="h-3.5 w-3.5" />
-                    <span>Daftar Mitra & Jaringan Downline</span>
-                    <span
-                        :class="[
-                            'rounded-full px-2 py-0.5 text-[10px] font-bold',
-                            currentTab === 'affiliates'
-                                ? 'bg-white/20 text-white'
-                                : 'bg-muted text-foreground',
-                        ]"
-                    >
-                        {{ stats.total_affiliators || affiliates.total || 0 }}
-                    </span>
-                </button>
-
-                <button
-                    type="button"
-                    @click="currentTab = 'claims'"
-                    :class="[
-                        'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all border',
-                        currentTab === 'claims'
-                            ? 'bg-primary-600 text-white border-primary-600 shadow-xs'
-                            : 'bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted/40',
-                    ]"
-                >
-                    <UserCheck class="h-3.5 w-3.5" />
-                    <span>Verifikasi Klaim Susulan Referral</span>
-                    <span
-                        v-if="pendingClaimsCount > 0"
-                        :class="[
-                            'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border',
-                            currentTab === 'claims'
-                                ? 'bg-white text-primary-700 border-white'
-                                : 'bg-sky-500/10 text-sky-800 dark:text-sky-300 border-sky-500/30',
-                        ]"
-                    >
-                        <Clock class="h-2.5 w-2.5" />
-                        <span>{{ pendingClaimsCount }} Menunggu</span>
-                    </span>
-                </button>
-            </div>
+            <AppTabs v-model="currentTab" :items="tabs" />
 
             <!-- ========================================================= -->
             <!-- TAB 1: DAFTAR MITRA & JARINGAN DOWNLINE                   -->
@@ -270,16 +238,11 @@ const submitVerify = () => {
                     </template>
 
                     <template #column-actions="{ item }">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
+                        <AppTableAction
+                            type="detail"
+                            :title="`Lihat Downline (${item.total_downlines || 0})`"
                             @click="openDownlinesModal(item)"
-                            class="h-8 px-2.5 text-xs font-semibold inline-flex items-center gap-1.5"
-                        >
-                            <Eye class="h-3.5 w-3.5 text-primary-600 dark:text-primary-400" />
-                            <span>Lihat Downline ({{ item.total_downlines || 0 }})</span>
-                        </Button>
+                        />
                     </template>
                 </AppDataTable>
             </div>
@@ -362,16 +325,11 @@ const submitVerify = () => {
                     </template>
 
                     <template #column-actions="{ item }">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
+                        <AppTableAction
+                            type="verify"
+                            :title="item.status === 'pending' ? 'Tinjau & Putuskan' : 'Lihat Keputusan'"
                             @click="openVerifyModal(item)"
-                            class="h-8 px-2.5 text-xs font-semibold flex items-center gap-1.5"
-                        >
-                            <UserCheck class="h-3.5 w-3.5 text-primary-600 dark:text-primary-400" />
-                            <span>{{ item.status === 'pending' ? 'Tinjau & Putuskan' : 'Lihat Keputusan' }}</span>
-                        </Button>
+                        />
                     </template>
                 </AppDataTable>
             </div>

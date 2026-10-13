@@ -4,6 +4,7 @@ import { useForm, Link, router } from '@inertiajs/vue3';
 import AuthLayout from '@/Layouts/AuthLayout.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
 import AppConfirmDialog from '@/Components/Common/AppConfirmDialog.vue';
+import AppCheckbox from '@/Components/Common/AppCheckbox.vue';
 import { Button } from '@/Components/ui/button';
 import { compressImageFile, formatBytes } from '@/lib/imageCompression';
 import { toast } from 'vue-sonner';
@@ -1736,14 +1737,12 @@ const submit = () => {
                         class="border-border/80 bg-card/60 space-y-2 rounded-2xl border p-4 shadow-2xs sm:p-5"
                     >
                         <!-- Checkbox Persetujuan -->
-                        <label class="flex cursor-pointer items-start gap-3">
-                            <input
-                                v-model="form.terms"
-                                type="checkbox"
-                                required
-                                class="border-input text-primary-600 focus:ring-primary-500 mt-1 h-4 w-4 shrink-0 cursor-pointer rounded"
-                            />
-                            <span class="text-muted-foreground text-xs leading-relaxed select-none">
+                        <AppCheckbox
+                            v-model="form.terms"
+                            required
+                            align="start"
+                        >
+                            <span class="text-muted-foreground text-xs leading-relaxed font-normal">
                                 Saya telah membaca, memahami, dan menyetujui secara sadar seluruh
                                 klausul pada
                                 <button
@@ -1763,7 +1762,7 @@ const submit = () => {
                                 </button>
                                 platform YZD Center.
                             </span>
-                        </label>
+                        </AppCheckbox>
 
                         <p v-if="form.errors.terms" class="text-destructive text-xs font-medium">
                             {{ form.errors.terms }}

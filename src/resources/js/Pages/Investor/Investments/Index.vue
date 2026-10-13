@@ -13,14 +13,12 @@ import {
     Coins,
     Copy,
     DollarSign,
-    Edit3,
     ExternalLink,
     HelpCircle,
     Info,
     Layers,
     LineChart,
     Loader2,
-    Plus,
     PlusCircle,
     ShieldCheck,
     Sparkles,
@@ -33,6 +31,8 @@ import {
 import InvestorLayout from '@/Layouts/InvestorLayout.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
 import AppConfirmDialog from '@/Components/Common/AppConfirmDialog.vue';
+import AppTableAction from '@/Components/Common/AppTableAction.vue';
+import AppButton from '@/Components/Common/AppButton.vue';
 import { Button } from '@/Components/ui/button';
 import { toast } from 'vue-sonner';
 import AddInvestmentAccountModal from './AddInvestmentAccountModal.vue';
@@ -935,15 +935,13 @@ onMounted(() => {
                         </h2>
                     </div>
 
-                    <Button
-                        type="button"
+                    <AppButton
+                        type="create"
+                        :icon="PlusCircle"
+                        label="Tambah Akun Baru"
                         size="sm"
                         @click="openAddModal()"
-                        class="bg-primary hover:bg-primary/90 text-primary-foreground h-8 cursor-pointer gap-1.5 rounded-xl px-3 text-xs font-semibold shadow-xs"
-                    >
-                        <PlusCircle class="h-3.5 w-3.5" />
-                        <span>Tambah Akun Baru</span>
-                    </Button>
+                    />
                 </div>
 
                 <!-- Grid Kartu Akun -->
@@ -1103,14 +1101,12 @@ onMounted(() => {
                         </p>
 
                         <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
-                            <Button
-                                type="button"
+                            <AppButton
+                                type="create"
+                                :icon="PlusCircle"
+                                label="Ajukan Akun Investasi Baru"
                                 @click="openAddModal()"
-                                class="bg-primary hover:bg-primary/90 text-primary-foreground min-h-[40px] cursor-pointer gap-2 rounded-xl px-4 text-xs font-semibold shadow-xs"
-                            >
-                                <PlusCircle class="h-4 w-4" />
-                                <span>Ajukan Akun Investasi Baru</span>
-                            </Button>
+                            />
                             <Link
                                 href="/investor/education/help?kategori=investasi-tiering"
                                 target="_blank"
@@ -1289,15 +1285,12 @@ onMounted(() => {
                             </div>
 
                             <div class="flex shrink-0 items-center gap-2 self-start sm:self-center">
-                                <Button
-                                    type="button"
+                                <AppButton
+                                    type="create"
+                                    label="Input Saldo Tanggal 1"
                                     size="sm"
                                     @click="openBalanceModalForAccount(selectedAccountId)"
-                                    class="bg-primary hover:bg-primary/90 text-primary-foreground h-9 cursor-pointer gap-1.5 rounded-xl px-4 text-xs shadow-xs"
-                                >
-                                    <Plus class="h-4 w-4" />
-                                    <span>Input Saldo Tanggal 1</span>
-                                </Button>
+                                />
                             </div>
                         </div>
 
@@ -1844,15 +1837,12 @@ onMounted(() => {
                                         (BEP).
                                     </p>
                                 </div>
-                                <Button
-                                    type="button"
+                                <AppButton
+                                    type="create"
+                                    label="Input Saldo Pertama Sekarang"
                                     size="sm"
                                     @click="openBalanceModalForAccount(selectedAccountId)"
-                                    class="bg-primary hover:bg-primary/90 text-primary-foreground h-8 cursor-pointer gap-1.5 rounded-xl px-4 text-xs shadow-xs"
-                                >
-                                    <Plus class="h-3.5 w-3.5" />
-                                    <span>Input Saldo Pertama Sekarang</span>
-                                </Button>
+                                />
                             </div>
 
                             <!-- Tabel Riwayat (Jika Ada Catatan) -->
@@ -1940,23 +1930,17 @@ onMounted(() => {
                                                 </span>
                                             </td>
                                             <td class="px-3 py-3 text-center whitespace-nowrap">
-                                                <div class="flex items-center justify-center gap-1">
-                                                    <button
-                                                        type="button"
-                                                        @click="openEditBalanceModal(rec)"
-                                                        class="text-muted-foreground hover:text-primary hover:bg-primary/10 inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors"
+                                                <div class="flex items-center justify-center gap-1.5">
+                                                    <AppTableAction
+                                                        type="edit"
                                                         title="Edit Saldo"
-                                                    >
-                                                        <Edit3 class="h-3.5 w-3.5" />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        @click="confirmDeleteRecord(rec)"
-                                                        class="text-muted-foreground hover:text-destructive hover:bg-destructive/10 inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg transition-colors"
+                                                        @click="openEditBalanceModal(rec)"
+                                                    />
+                                                    <AppTableAction
+                                                        type="delete"
                                                         title="Hapus Saldo"
-                                                    >
-                                                        <Trash2 class="h-3.5 w-3.5" />
-                                                    </button>
+                                                        @click="confirmDeleteRecord(rec)"
+                                                    />
                                                 </div>
                                             </td>
                                         </tr>

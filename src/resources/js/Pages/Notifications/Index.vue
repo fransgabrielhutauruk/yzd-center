@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { Head, Link, usePage, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import InvestorLayout from '@/Layouts/InvestorLayout.vue';
-import { Button } from '@/Components/ui/button';
+import AppButton from '@/Components/Common/AppButton.vue';
 import {
     Bell,
     CheckCheck,
@@ -156,17 +156,17 @@ const goToPage = (url) => {
         :breadcrumbs="[{ label: 'Sistem' }, { label: 'Semua Notifikasi' }]"
     >
         <template #header-actions>
-            <Button
-                type="button"
+            <AppButton
+                type="custom"
                 variant="outline"
                 size="sm"
-                @click="markAllAsRead"
+                :icon="CheckCheck"
+                label="Tandai Semua Dibaca"
                 :disabled="unreadCount === 0 || isProcessing"
-                class="flex h-9 cursor-pointer items-center gap-1.5 text-xs font-semibold disabled:opacity-50"
-            >
-                <CheckCheck class="text-primary-600 dark:text-primary-400 h-4 w-4" />
-                <span>Tandai Semua Dibaca</span>
-            </Button>
+                :loading="isProcessing"
+                loading-text="Memproses..."
+                @click="markAllAsRead"
+            />
         </template>
 
         <div class="space-y-6">

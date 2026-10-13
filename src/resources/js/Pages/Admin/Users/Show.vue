@@ -4,7 +4,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppConfirmDialog from '@/Components/Common/AppConfirmDialog.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
-import { Button } from '@/Components/ui/button';
+import AppButton from '@/Components/Common/AppButton.vue';
 import {
     User as UserIcon,
     UserCheck,
@@ -18,7 +18,6 @@ import {
     CreditCard,
     HeartHandshake,
     ArrowRight,
-    ArrowLeft,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -72,37 +71,31 @@ const handleConfirmToggle = () => {
     >
         <template #header-actions>
             <div class="flex items-center gap-2">
-                <Button
-                    variant="outline"
-                    as-child
+                <AppButton
+                    type="back"
+                    :href="route('admin.users.index')"
+                    label="Kembali"
                     size="sm"
-                    class="h-9 cursor-pointer gap-1.5 px-3 text-xs font-medium"
-                >
-                    <Link :href="route('admin.users.index')">
-                        <ArrowLeft class="h-4 w-4" />
-                        <span>Kembali</span>
-                    </Link>
-                </Button>
-                <Button
+                />
+                <AppButton
                     v-if="user.is_active"
+                    type="custom"
                     variant="destructive"
                     size="sm"
-                    class="h-9 cursor-pointer px-3 text-xs font-medium"
+                    :icon="UserX"
+                    label="Nonaktifkan Akun"
                     @click="isConfirmDialogOpen = true"
-                >
-                    <UserX class="mr-1.5 h-4 w-4" />
-                    Nonaktifkan Akun
-                </Button>
-                <Button
+                />
+                <AppButton
                     v-else
+                    type="custom"
                     variant="default"
                     size="sm"
-                    class="h-9 cursor-pointer bg-emerald-600 px-3 text-xs font-medium text-white hover:bg-emerald-700"
+                    :icon="UserCheck"
+                    label="Aktifkan Kembali Akun"
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white"
                     @click="isConfirmDialogOpen = true"
-                >
-                    <UserCheck class="mr-1.5 h-4 w-4" />
-                    Aktifkan Kembali Akun
-                </Button>
+                />
             </div>
         </template>
 

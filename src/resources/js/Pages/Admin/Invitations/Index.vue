@@ -5,18 +5,17 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
 import AppConfirmDialog from '@/Components/Common/AppConfirmDialog.vue';
-import { Button } from '@/Components/ui/button';
+import AppTableAction from '@/Components/Common/AppTableAction.vue';
+import AppButton from '@/Components/Common/AppButton.vue';
 import { toast } from 'vue-sonner';
 import {
     Link2,
-    Plus,
     Copy,
     Trash2,
     Clock,
     Users,
     UserCheck,
     Check,
-    Loader2,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -183,14 +182,11 @@ const getStatusBadgeClass = (statusKey) => {
         :breadcrumbs="[{ label: 'Menu Utama' }, { label: 'Tautan Undangan' }]"
     >
         <template #header-actions>
-            <Button
-                type="button"
+            <AppButton
+                type="create"
+                label="Buat Undangan Baru"
                 @click="openCreateModal"
-                class="bg-primary-600 hover:bg-primary-700 flex cursor-pointer items-center gap-2 self-start rounded-lg px-4 py-2 font-medium text-white shadow-xs transition-colors sm:self-auto"
-            >
-                <Plus class="h-4 w-4" />
-                <span>Buat Undangan Baru</span>
-            </Button>
+            />
         </template>
 
         <div class="space-y-6">
@@ -209,17 +205,15 @@ const getStatusBadgeClass = (statusKey) => {
             >
                 <!-- Custom Batch Action Slot: Hapus Massal -->
                 <template #batch-actions="{ selected, selectedCount, clearSelection }">
-                    <Button
-                        type="button"
+                    <AppButton
+                        type="custom"
                         variant="destructive"
                         size="sm"
-                        @click="openBatchDeleteConfirm(selected, clearSelection)"
+                        :icon="Trash2"
+                        :label="`Hapus Terpilih (${selectedCount})`"
                         :disabled="isDeleting"
-                        class="h-8 cursor-pointer gap-1.5 px-3 text-xs font-semibold shadow-xs"
-                    >
-                        <Trash2 class="h-3.5 w-3.5" />
-                        <span>Hapus Terpilih ({{ selectedCount }})</span>
-                    </Button>
+                        @click="openBatchDeleteConfirm(selected, clearSelection)"
+                    />
                 </template>
 
                 <!-- Custom Filter Slot: Role & Status Filter Dropdowns -->
@@ -348,27 +342,22 @@ const getStatusBadgeClass = (statusKey) => {
 
                 <!-- Custom Column: Aksi Hapus -->
                 <template #column-actions="{ item }">
-                    <button
-                        type="button"
+                    <AppTableAction
+                        type="delete"
+                        title="Hapus Tautan Undangan"
                         @click="openDeleteConfirm(item)"
-                        class="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md p-1.5 transition-colors"
-                        title="Hapus Tautan"
-                    >
-                        <Trash2 class="h-4 w-4" />
-                    </button>
+                    />
                 </template>
 
                 <!-- Action Button inside Empty State -->
                 <template #empty-action>
                     <div class="pt-2">
-                        <Button
-                            type="button"
-                            @click="openCreateModal"
+                        <AppButton
+                            type="create"
+                            label="Buat Undangan Sekarang"
                             size="sm"
-                            class="bg-primary-600 hover:bg-primary-700 rounded-lg px-3 py-1.5 text-xs font-medium text-white"
-                        >
-                            + Buat Undangan Sekarang
-                        </Button>
+                            @click="openCreateModal"
+                        />
                     </div>
                 </template>
             </AppDataTable>
@@ -504,23 +493,19 @@ const getStatusBadgeClass = (statusKey) => {
 
                 <!-- Modal Actions -->
                 <div class="border-border flex items-center justify-end gap-3 border-t pt-4">
-                    <Button
-                        type="button"
-                        variant="outline"
+                    <AppButton
+                        type="cancel"
                         @click="closeCreateModal"
-                        class="px-4 py-2 text-xs font-medium"
-                    >
-                        Batal
-                    </Button>
-
-                    <Button
-                        type="submit"
                         :disabled="form.processing"
-                        class="bg-primary-600 hover:bg-primary-700 rounded-lg px-5 py-2 text-xs font-semibold text-white shadow-sm disabled:opacity-50"
-                    >
-                        <Loader2 v-if="form.processing" class="h-3.5 w-3.5 animate-spin" />
-                        {{ form.processing ? 'Menyimpan...' : 'Simpan & Buat Tautan' }}
-                    </Button>
+                    />
+
+                    <AppButton
+                        type="save"
+                        submit
+                        :loading="form.processing"
+                        loading-text="Menyimpan..."
+                        label="Simpan & Buat Tautan"
+                    />
                 </div>
             </form>
         </AppModal>

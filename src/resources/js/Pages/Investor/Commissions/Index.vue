@@ -4,6 +4,10 @@ import { Head } from '@inertiajs/vue3';
 import InvestorLayout from '@/Layouts/InvestorLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
+import AppTableAction from '@/Components/Common/AppTableAction.vue';
+import AppButton from '@/Components/Common/AppButton.vue';
+import AppTabs from '@/Components/Common/AppTabs.vue';
+import AppCheckbox from '@/Components/Common/AppCheckbox.vue';
 import { Button } from '@/Components/ui/button';
 import SubmitClaimModal from './SubmitClaimModal.vue';
 import DetailModal from './DetailModal.vue';
@@ -13,7 +17,6 @@ import {
     XCircle,
     PlusCircle,
     FileText,
-    Eye,
     TrendingUp,
     Users,
     Search,
@@ -50,6 +53,21 @@ const props = defineProps({
 });
 
 const activeTab = ref('downlines'); // 'downlines' | 'claims'
+
+const tabs = computed(() => [
+    {
+        key: 'downlines',
+        label: 'Status Komisi Downline (3 Bulan)',
+        icon: Users,
+    },
+    {
+        key: 'claims',
+        label: 'Riwayat Pencairan Klaim',
+        icon: FileText,
+        count: props.stats.menunggu_transfer > 0 ? props.stats.menunggu_transfer : undefined,
+        badgeVariant: 'sky',
+    },
+]);
 
 const switchTab = (tab) => {
     activeTab.value = tab;
@@ -137,6 +155,13 @@ const eligibleDownlinesList = computed(() => {
 const isAllEligibleSelected = computed(() => {
     if (eligibleDownlinesList.value.length === 0) return false;
     return eligibleDownlinesList.value.every((d) => selectedDownlineIds.value.includes(d.id));
+});
+
+const isIndeterminateEligible = computed(() => {
+    const totalEligible = eligibleDownlinesList.value.length;
+    if (totalEligible === 0) return false;
+    const selectedCount = eligibleDownlinesList.value.filter((d) => selectedDownlineIds.value.includes(d.id)).length;
+    return selectedCount > 0 && selectedCount < totalEligible;
 });
 
 const toggleSelectAll = () => {
@@ -254,21 +279,18 @@ const getStatusBadge = (status) => {
         :breadcrumbs="[{ label: 'Program Afiliasi' }, { label: 'Klaim Komisi' }]"
     >
         <template #header-actions>
-            <Button
-                type="button"
-                @click="openBatchClaimModal"
+            <AppButton
+                type="create"
+                :icon="PlusCircle"
+                :label="
+                    selectedDownlineIds.length > 0
+                        ? `Ajukan Klaim Komisi (${selectedDownlineIds.length} Investor)`
+                        : 'Ajukan Klaim Komisi'
+                "
                 :disabled="selectedDownlineIds.length === 0"
-                class="bg-primary-600 hover:bg-primary-700 w-full cursor-pointer text-xs text-white sm:w-auto sm:text-sm"
-            >
-                <PlusCircle class="mr-1.5 h-4 w-4" />
-                <span>
-                    {{
-                        selectedDownlineIds.length > 0
-                            ? `Ajukan Klaim Komisi (${selectedDownlineIds.length} Investor)`
-                            : 'Ajukan Klaim Komisi'
-                    }}
-                </span>
-            </Button>
+                class="w-full sm:w-auto"
+                @click="openBatchClaimModal"
+            />
         </template>
 
         <div class="space-y-6">
@@ -361,54 +383,21 @@ const getStatusBadge = (status) => {
             </div>
 
             <!-- Tab Navigasi -->
-            <div class="border-border border-b">
-                <nav class="-mb-px flex gap-6 text-sm font-medium">
-                    <button
-                        type="button"
-                        @click="switchTab('downlines')"
-                        class="flex cursor-pointer items-center gap-2 border-b-2 pb-3 text-xs transition-colors sm:text-sm"
-                        :class="[
-                            activeTab === 'downlines'
-                                ? 'border-primary-600 text-primary-600 dark:text-primary-400 font-bold'
-                                : 'text-muted-foreground hover:border-border hover:text-foreground border-transparent',
-                        ]"
+            <AppTabs v-model="activeTab" :items="tabs">
+                <template #badge-downlines>
+                    <span
+                        class="text-foreground rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold dark:bg-slate-800 shrink-0"
                     >
-                        <Users class="h-4 w-4" />
-                        <span>Status Komisi Downline (3 Bulan)</span>
-                        <span
-                            class="text-foreground rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold dark:bg-slate-800"
-                        >
-                            {{ eligibleDownlines.length }}
-                        </span>
-                        <span
-                            v-if="eligibleDownlinesList.length > 0"
-                            class="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-300"
-                        >
-                            {{ eligibleDownlinesList.length }} Siap
-                        </span>
-                    </button>
-
-                    <button
-                        type="button"
-                        @click="switchTab('claims')"
-                        class="flex cursor-pointer items-center gap-2 border-b-2 pb-3 text-xs transition-colors sm:text-sm"
-                        :class="[
-                            activeTab === 'claims'
-                                ? 'border-primary-600 text-primary-600 dark:text-primary-400 font-bold'
-                                : 'text-muted-foreground hover:border-border hover:text-foreground border-transparent',
-                        ]"
+                        {{ eligibleDownlines.length }}
+                    </span>
+                    <span
+                        v-if="eligibleDownlinesList.length > 0"
+                        class="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-300 shrink-0"
                     >
-                        <FileText class="h-4 w-4" />
-                        <span>Riwayat Pencairan Klaim</span>
-                        <span
-                            v-if="stats.menunggu_transfer > 0"
-                            class="rounded-full bg-sky-500/20 px-2 py-0.5 text-[11px] font-bold text-sky-800 dark:text-sky-300"
-                        >
-                            {{ stats.menunggu_transfer }}
-                        </span>
-                    </button>
-                </nav>
-            </div>
+                        {{ eligibleDownlinesList.length }} Siap
+                    </span>
+                </template>
+            </AppTabs>
 
             <!-- TAB 1: STATUS KOMISI DOWNLINE (3 BULAN) -->
             <div v-show="activeTab === 'downlines'" class="space-y-4">
@@ -465,16 +454,14 @@ const getStatusBadge = (status) => {
                                 </span>
                             </Button>
 
-                            <Button
+                            <AppButton
                                 v-if="selectedDownlineIds.length > 0"
-                                type="button"
+                                type="create"
+                                :icon="PlusCircle"
                                 size="sm"
+                                :label="`Klaim Terpilih (${selectedDownlineIds.length})`"
                                 @click="openBatchClaimModal"
-                                class="bg-primary-600 hover:bg-primary-700 h-9 cursor-pointer text-xs text-white"
-                            >
-                                <PlusCircle class="mr-1.5 h-3.5 w-3.5" />
-                                <span>Klaim Terpilih ({{ selectedDownlineIds.length }})</span>
-                            </Button>
+                            />
                         </div>
                     </div>
 
@@ -486,28 +473,14 @@ const getStatusBadge = (status) => {
                             >
                                 <tr>
                                     <th class="w-10 px-3.5 py-3 text-center">
-                                        <button
-                                            type="button"
-                                            @click="toggleSelectAll"
+                                        <AppCheckbox
+                                            :checked="isAllEligibleSelected"
+                                            :indeterminate="isIndeterminateEligible"
                                             :disabled="eligibleDownlinesList.length === 0"
-                                            class="inline-flex items-center justify-center transition-opacity"
-                                            :class="
-                                                eligibleDownlinesList.length > 0
-                                                    ? 'cursor-pointer'
-                                                    : 'cursor-not-allowed opacity-40'
-                                            "
+                                            @change="toggleSelectAll"
                                             title="Pilih semua investor yang siap diklaim"
-                                        >
-                                            <component
-                                                :is="isAllEligibleSelected ? CheckSquare : Square"
-                                                class="h-4 w-4"
-                                                :class="
-                                                    isAllEligibleSelected
-                                                        ? 'text-primary-600 dark:text-primary-400'
-                                                        : 'text-muted-foreground'
-                                                "
-                                            />
-                                        </button>
+                                            aria-label="Pilih semua investor yang siap diklaim"
+                                        />
                                     </th>
                                     <th class="px-4 py-3">Investor</th>
                                     <th class="px-4 py-3">Periode 3 Bulan &amp; Progres</th>
@@ -545,33 +518,12 @@ const getStatusBadge = (status) => {
                                 >
                                     <!-- 1. Kolom Checklist -->
                                     <td class="px-3.5 py-3.5 text-center align-middle">
-                                        <button
-                                            type="button"
-                                            @click="
-                                                downline.is_eligible && toggleDownline(downline.id)
-                                            "
+                                        <AppCheckbox
+                                            :checked="isDownlineSelected(downline.id)"
                                             :disabled="!downline.is_eligible"
-                                            class="inline-flex items-center justify-center transition-opacity"
-                                            :class="
-                                                downline.is_eligible
-                                                    ? 'cursor-pointer'
-                                                    : 'cursor-not-allowed opacity-35'
-                                            "
-                                        >
-                                            <component
-                                                :is="
-                                                    isDownlineSelected(downline.id)
-                                                        ? CheckSquare
-                                                        : Square
-                                                "
-                                                class="h-4 w-4"
-                                                :class="
-                                                    isDownlineSelected(downline.id)
-                                                        ? 'text-primary-600 dark:text-primary-400'
-                                                        : 'text-muted-foreground'
-                                                "
-                                            />
-                                        </button>
+                                            @change="downline.is_eligible && toggleDownline(downline.id)"
+                                            :aria-label="`Pilih downline ${downline.name}`"
+                                        />
                                     </td>
 
                                     <!-- 2. Kolom Investor -->
@@ -758,26 +710,21 @@ const getStatusBadge = (status) => {
                                     <!-- 7. Kolom Aksi -->
                                     <td class="px-4 py-3.5 text-right align-middle">
                                         <div class="flex items-center justify-end gap-1.5">
-                                            <Button
+                                            <AppTableAction
                                                 v-if="downline.is_eligible"
-                                                type="button"
-                                                size="sm"
+                                                type="process"
+                                                label="Klaim"
+                                                title="Klaim Komisi"
+                                                variant="default"
+                                                :icon-only="false"
                                                 @click="claimSingleDownline(downline)"
-                                                class="bg-primary-600 hover:bg-primary-700 h-8 cursor-pointer px-2.5 text-xs text-white"
-                                            >
-                                                <span>Klaim</span>
-                                            </Button>
-                                            <Button
+                                            />
+                                            <AppTableAction
                                                 v-if="downline.accounts?.length > 0"
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
+                                                type="detail"
+                                                title="Rincian Akun Downline"
                                                 @click="openDownlineBreakdown(downline)"
-                                                class="h-8 cursor-pointer px-2.5 text-xs"
-                                            >
-                                                <Eye class="mr-1 h-3.5 w-3.5" />
-                                                <span>Rincian</span>
-                                            </Button>
+                                            />
                                             <span
                                                 v-if="
                                                     !downline.is_eligible &&
@@ -938,15 +885,11 @@ const getStatusBadge = (status) => {
 
                     <!-- Kolom Aksi -->
                     <template #column-actions="{ item }">
-                        <Button
-                            variant="outline"
-                            size="sm"
+                        <AppTableAction
+                            type="detail"
+                            title="Lihat Rincian Klaim"
                             @click="openDetailModal(item)"
-                            class="h-8 cursor-pointer px-2.5 text-xs"
-                        >
-                            <Eye class="mr-1 h-3.5 w-3.5" />
-                            <span>Rincian</span>
-                        </Button>
+                        />
                     </template>
                 </AppDataTable>
             </div>

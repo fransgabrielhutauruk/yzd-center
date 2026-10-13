@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, watchEffect } from 'vue';
 import { router } from '@inertiajs/vue3';
+import AppCheckbox from '@/Components/Common/AppCheckbox.vue';
 import {
     Search,
     ArrowUpDown,
@@ -357,18 +358,6 @@ const isIndeterminate = computed(() => {
     return selectedCountOnPage > 0 && selectedCountOnPage < pageItems.length;
 });
 
-const selectAllCheckboxRef = ref(null);
-
-watch(
-    isIndeterminate,
-    (val) => {
-        if (selectAllCheckboxRef.value) {
-            selectAllCheckboxRef.value.indeterminate = val;
-        }
-    },
-    { flush: 'post' }
-);
-
 const toggleSelectAll = () => {
     const pageItems = props.data?.data || [];
     if (pageItems.length === 0) return;
@@ -621,12 +610,10 @@ defineExpose({
                         <tr>
                             <!-- Batch Select All Checkbox -->
                             <th v-if="enableBatch" class="w-10 px-3 py-3 text-center">
-                                <input
-                                    ref="selectAllCheckboxRef"
-                                    type="checkbox"
+                                <AppCheckbox
                                     :checked="isAllSelected"
+                                    :indeterminate="isIndeterminate"
                                     @change="toggleSelectAll"
-                                    class="rounded border-input text-primary-600 focus:ring-primary-500 h-4 w-4 cursor-pointer align-middle transition-colors"
                                     aria-label="Pilih semua baris pada halaman ini"
                                 />
                             </th>
@@ -662,11 +649,9 @@ defineExpose({
                             >
                                 <!-- Batch Row Checkbox -->
                                 <td v-if="enableBatch" class="w-10 px-3 py-3 text-center">
-                                    <input
-                                        type="checkbox"
+                                    <AppCheckbox
                                         :checked="isItemSelected(item, index)"
                                         @change="toggleSelectItem(item, index)"
-                                        class="rounded border-input text-primary-600 focus:ring-primary-500 h-4 w-4 cursor-pointer align-middle transition-colors"
                                         :aria-label="`Pilih baris ${index + 1}`"
                                     />
                                 </td>

@@ -3,15 +3,12 @@ import { ref, computed, watch } from 'vue';
 import { Head, useForm, router, Link } from '@inertiajs/vue3';
 import {
     HelpCircle,
-    Plus,
-    Edit2,
     Trash2,
     FileText,
     FolderKanban,
     Eye,
     CheckCircle2,
     XCircle,
-    Loader2,
     ExternalLink,
     Search,
     X,
@@ -20,7 +17,10 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
 import AppConfirmDialog from '@/Components/Common/AppConfirmDialog.vue';
-import { Button } from '@/Components/ui/button';
+import AppTableAction from '@/Components/Common/AppTableAction.vue';
+import AppButton from '@/Components/Common/AppButton.vue';
+import AppTabs from '@/Components/Common/AppTabs.vue';
+import AppCheckbox from '@/Components/Common/AppCheckbox.vue';
 
 const props = defineProps({
     articles: {
@@ -50,14 +50,19 @@ const filteredCategories = computed(() => {
 
 const activeTab = ref(props.filters.tab || 'articles');
 
-const switchTab = (tab) => {
-    activeTab.value = tab;
-    router.get(
-        '/admin/education/help',
-        { ...props.filters, tab },
-        { preserveState: true, preserveScroll: true, replace: true }
-    );
-};
+const tabs = computed(() => [
+    {
+        key: 'articles',
+        label: 'Artikel & Video Panduan',
+        icon: FileText,
+    },
+    {
+        key: 'categories',
+        label: 'Kategori Topik',
+        icon: FolderKanban,
+        count: props.categories.length,
+    },
+]);
 
 // -----------------------------------------------------------------------------
 // State & Form Modal Kategori
@@ -198,62 +203,24 @@ const articleColumns = [
         ]"
     >
         <template #header-actions>
-            <Button
+            <AppButton
                 v-if="activeTab === 'categories'"
+                type="create"
+                label="Tambah Kategori Topik"
                 @click="openCreateCategoryModal"
-                class="gap-1.5 cursor-pointer text-xs h-9"
-            >
-                <Plus class="h-4 w-4" />
-                Tambah Kategori Topik
-            </Button>
-            <Button
+            />
+            <AppButton
                 v-else
-                as-child
-                class="gap-1.5 cursor-pointer text-xs h-9"
-            >
-                <Link href="/admin/education/help/articles/create">
-                    <Plus class="h-4 w-4" />
-                    <span>Tambah Artikel Panduan</span>
-                </Link>
-            </Button>
+                type="create"
+                label="Tambah Artikel Panduan"
+                href="/admin/education/help/articles/create"
+            />
         </template>
 
         <div class="space-y-6">
 
             <!-- Tab Navigasi (Artikel vs Kategori Topik) -->
-            <div class="flex border-b border-slate-200 dark:border-slate-800">
-                <button
-                    type="button"
-                    @click="switchTab('articles')"
-                    :class="[
-                        'flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
-                        activeTab === 'articles'
-                            ? 'border-primary text-primary dark:text-primary'
-                            : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200',
-                    ]"
-                >
-                    <FileText class="h-4 w-4" />
-                    Artikel & Video Panduan
-                </button>
-                <button
-                    type="button"
-                    @click="switchTab('categories')"
-                    :class="[
-                        'flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
-                        activeTab === 'categories'
-                            ? 'border-primary text-primary dark:text-primary'
-                            : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200',
-                    ]"
-                >
-                    <FolderKanban class="h-4 w-4" />
-                    Kategori Topik
-                    <span
-                        class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                    >
-                        {{ categories.length }}
-                    </span>
-                </button>
-            </div>
+            <AppTabs v-model="activeTab" :items="tabs" />
 
             <!-- TAB 1: ARTIKEL & VIDEO PANDUAN -->
             <div v-if="activeTab === 'articles'" class="space-y-4">
@@ -329,25 +296,16 @@ const articleColumns = [
                         <!-- Slot Aksi -->
                         <template #column-actions="{ item }">
                             <div class="flex items-center justify-end gap-1.5">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    as-child
-                                    class="h-8 px-2.5 text-slate-600 dark:text-slate-300 cursor-pointer"
-                                >
-                                    <Link :href="`/admin/education/help/articles/${item.id}/edit`">
-                                        <Edit2 class="h-3.5 w-3.5 mr-1" />
-                                        <span>Edit</span>
-                                    </Link>
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    class="h-8 px-2 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950/40"
+                                <AppTableAction
+                                    type="edit"
+                                    title="Edit Panduan"
+                                    :href="`/admin/education/help/articles/${item.id}/edit`"
+                                />
+                                <AppTableAction
+                                    type="delete"
+                                    title="Hapus Panduan"
                                     @click="confirmDeleteArticle(item)"
-                                >
-                                    <Trash2 class="h-3.5 w-3.5" />
-                                </Button>
+                                />
                             </div>
                         </template>
                     </AppDataTable>
@@ -456,24 +414,16 @@ const articleColumns = [
                                         <!-- Aksi -->
                                         <td class="py-3 px-4 text-right">
                                             <div class="flex items-center justify-end gap-1.5">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    class="h-7 px-2.5 text-xs cursor-pointer"
+                                                <AppTableAction
+                                                    type="edit"
+                                                    title="Edit Kategori"
                                                     @click="openEditCategoryModal(cat)"
-                                                >
-                                                    <Edit2 class="h-3 w-3 mr-1" />
-                                                    Edit
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    class="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer"
-                                                    @click="confirmDeleteCategory(cat)"
+                                                />
+                                                <AppTableAction
+                                                    type="delete"
                                                     title="Hapus Kategori"
-                                                >
-                                                    <Trash2 class="h-3 w-3" />
-                                                </Button>
+                                                    @click="confirmDeleteCategory(cat)"
+                                                />
                                             </div>
                                         </td>
                                     </tr>
@@ -492,15 +442,14 @@ const articleColumns = [
                                             <p class="text-xs leading-relaxed">
                                                 {{ categorySearch ? 'Tidak ada kategori yang cocok dengan kriteria pencarian Anda.' : 'Belum ada kategori topik panduan yang terdaftar.' }}
                                             </p>
-                                            <Button
+                                            <AppButton
                                                 v-if="!categorySearch"
+                                                type="create"
+                                                label="Tambah Kategori Topik"
                                                 size="sm"
+                                                class="mt-2"
                                                 @click="openCreateCategoryModal"
-                                                class="gap-1.5 cursor-pointer mt-2"
-                                            >
-                                                <Plus class="h-3.5 w-3.5" />
-                                                Tambah Kategori Topik
-                                            </Button>
+                                            />
                                         </div>
                                     </td>
                                 </tr>
@@ -559,31 +508,27 @@ const articleColumns = [
                     />
                 </div>
 
-                <div class="flex items-center gap-2 pt-2">
-                    <input
+                <div class="pt-2">
+                    <AppCheckbox
                         id="cat_active"
                         v-model="categoryForm.is_active"
-                        type="checkbox"
-                        class="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                        label="Kategori Aktif"
                     />
-                    <label for="cat_active" class="text-sm font-medium text-slate-700 dark:text-slate-300">
-                        Kategori Aktif
-                    </label>
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-                    <Button
-                        type="button"
-                        variant="outline"
+                    <AppButton
+                        type="cancel"
                         @click="isCategoryModalOpen = false"
                         :disabled="categoryForm.processing"
-                    >
-                        Batal
-                    </Button>
-                    <Button type="submit" @click="submitCategoryForm" :disabled="categoryForm.processing" class="gap-1.5 cursor-pointer">
-                        <Loader2 v-if="categoryForm.processing" class="h-4 w-4 animate-spin" />
-                        {{ isEditingCategory ? 'Simpan Perubahan' : 'Tambah Kategori' }}
-                    </Button>
+                    />
+                    <AppButton
+                        type="save"
+                        submit
+                        @click="submitCategoryForm"
+                        :loading="categoryForm.processing"
+                        :label="isEditingCategory ? 'Simpan Perubahan' : 'Tambah Kategori'"
+                    />
                 </div>
             </form>
         </AppModal>

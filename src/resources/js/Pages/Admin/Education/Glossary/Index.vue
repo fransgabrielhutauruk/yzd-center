@@ -3,16 +3,14 @@ import { ref } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import {
     BookOpen,
-    Plus,
-    Edit2,
     Trash2,
-    Loader2,
 } from 'lucide-vue-next';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
 import AppConfirmDialog from '@/Components/Common/AppConfirmDialog.vue';
-import { Button } from '@/Components/ui/button';
+import AppTableAction from '@/Components/Common/AppTableAction.vue';
+import AppButton from '@/Components/Common/AppButton.vue';
 
 const props = defineProps({
     glossary: {
@@ -134,10 +132,11 @@ const handleBatchDelete = () => {
         ]"
     >
         <template #header-actions>
-            <Button @click="openCreateModal" class="gap-2 cursor-pointer">
-                <Plus class="h-4 w-4" />
-                Tambah Istilah Baru
-            </Button>
+            <AppButton
+                type="create"
+                label="Tambah Istilah Baru"
+                @click="openCreateModal"
+            />
         </template>
 
         <Head title="Glosarium Istilah Forex - Admin" />
@@ -157,14 +156,14 @@ const handleBatchDelete = () => {
                 >
                     <!-- Batch Actions -->
                     <template #batch-actions="{ selected }">
-                        <button
-                            type="button"
+                        <AppButton
+                            type="custom"
+                            variant="destructive"
+                            size="sm"
+                            :icon="Trash2"
+                            :label="`Hapus ${selected.length} Istilah`"
                             @click="isBatchDeleteOpen = true"
-                            class="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-rose-700 transition-colors cursor-pointer"
-                        >
-                            <Trash2 class="h-3.5 w-3.5" />
-                            Hapus {{ selected.length }} Istilah
-                        </button>
+                        />
                     </template>
 
                     <!-- Kolom Istilah -->
@@ -183,23 +182,17 @@ const handleBatchDelete = () => {
 
                     <!-- Kolom Aksi — icon-only tanpa label -->
                     <template #column-actions="{ item }">
-                        <div class="flex items-center justify-end gap-1">
-                            <button
-                                type="button"
-                                @click="openEditModal(item)"
-                                class="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white transition-colors"
+                        <div class="flex items-center justify-end gap-1.5">
+                            <AppTableAction
+                                type="edit"
                                 title="Edit Istilah"
-                            >
-                                <Edit2 class="h-4 w-4" />
-                            </button>
-                            <button
-                                type="button"
-                                @click="confirmDelete(item)"
-                                class="rounded p-1.5 text-red-500 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/50 transition-colors"
+                                @click="openEditModal(item)"
+                            />
+                            <AppTableAction
+                                type="delete"
                                 title="Hapus Istilah"
-                            >
-                                <Trash2 class="h-4 w-4" />
-                            </button>
+                                @click="confirmDelete(item)"
+                            />
                         </div>
                     </template>
                 </AppDataTable>
@@ -250,22 +243,17 @@ const handleBatchDelete = () => {
 
                 <!-- Aksi Form -->
                 <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-                    <Button
-                        type="button"
-                        variant="outline"
+                    <AppButton
+                        type="cancel"
                         @click="isFormModalOpen = false"
                         :disabled="form.processing"
-                    >
-                        Batal
-                    </Button>
-                    <Button
-                        type="submit"
-                        :disabled="form.processing"
-                        class="gap-1.5"
-                    >
-                        <Loader2 v-if="form.processing" class="h-4 w-4 animate-spin" />
-                        {{ isEditing ? 'Simpan Perubahan' : 'Tambah Istilah' }}
-                    </Button>
+                    />
+                    <AppButton
+                        type="save"
+                        submit
+                        :loading="form.processing"
+                        :label="isEditing ? 'Simpan Perubahan' : 'Tambah Istilah'"
+                    />
                 </div>
             </form>
         </AppModal>

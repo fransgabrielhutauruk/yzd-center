@@ -3,6 +3,7 @@ import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { useForm, Link, usePage } from '@inertiajs/vue3';
 import AuthLayout from '@/Layouts/AuthLayout.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
+import AppCheckbox from '@/Components/Common/AppCheckbox.vue';
 import { Button } from '@/Components/ui/button';
 import {
     User,
@@ -224,17 +225,11 @@ const submit = () => {
 
                     <!-- Remember Me Checkbox -->
                     <div class="flex items-center justify-between pt-1">
-                        <label class="flex cursor-pointer items-center gap-2" :class="{ 'cursor-not-allowed opacity-60': remainingSeconds > 0 }">
-                            <input
-                                v-model="form.remember"
-                                type="checkbox"
-                                :disabled="remainingSeconds > 0 || form.processing"
-                                class="border-input text-primary-600 focus:ring-primary-500 h-4 w-4 rounded cursor-pointer disabled:cursor-not-allowed"
-                            />
-                            <span class="text-muted-foreground text-xs select-none"
-                                >Ingat saya di perangkat ini</span
-                            >
-                        </label>
+                        <AppCheckbox
+                            v-model="form.remember"
+                            :disabled="remainingSeconds > 0 || form.processing"
+                            label="Ingat saya di perangkat ini"
+                        />
                     </div>
 
                     <!-- Submit Button -->

@@ -19,7 +19,7 @@ defineProps({
 </script>
 
 <template>
-    <div class="mb-6 sm:mb-8">
+    <div class="mb-6">
         <!-- Breadcrumb Navigation -->
         <nav
             v-if="breadcrumbs && breadcrumbs.length > 0"

@@ -1,10 +1,11 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Head } from '@inertiajs/vue3';
-import { Eye, Clock, CheckCircle2, XCircle, ClipboardCheck, Activity, X } from 'lucide-vue-next';
+import { Clock, CheckCircle2, XCircle, ClipboardCheck, Activity, X } from 'lucide-vue-next';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
-import { Button } from '@/Components/ui/button';
+import AppTableAction from '@/Components/Common/AppTableAction.vue';
+import AppTabs from '@/Components/Common/AppTabs.vue';
 import VerifyModal from './VerifyModal.vue';
 import DetailModal from './DetailModal.vue';
 
@@ -19,16 +20,20 @@ const props = defineProps({
 
 const activeTab = ref(props.activeTab === 'aktif' ? 'aktif' : 'verifikasi');
 
-const switchTab = (tab) => {
-    activeTab.value = tab;
-    try {
-        const url = new URL(window.location.href);
-        url.searchParams.set('tab', tab);
-        window.history.replaceState({}, '', url.toString());
-    } catch {
-        // Fallback jika window tidak tersedia
-    }
-};
+const tabs = computed(() => [
+    {
+        key: 'verifikasi',
+        label: 'Verifikasi',
+        icon: ClipboardCheck,
+        count: props.counts.pending,
+    },
+    {
+        key: 'aktif',
+        label: 'Akun Aktif',
+        icon: Activity,
+        count: props.counts.active,
+    },
+]);
 
 const isVerifyModalOpen = ref(false);
 const isDetailModalOpen = ref(false);
@@ -114,44 +119,7 @@ const selectClass =
     >
         <div class="space-y-6">
             <!-- Tab Navigasi -->
-            <div class="border-border border-b">
-                <nav class="-mb-px flex gap-6 text-sm font-medium">
-                    <button
-                        type="button"
-                        @click="switchTab('verifikasi')"
-                        class="flex min-h-[40px] cursor-pointer items-center gap-2 border-b-2 pb-3 text-xs transition-colors sm:text-sm"
-                        :class="
-                            activeTab === 'verifikasi'
-                                ? 'border-primary-600 text-primary-600 dark:text-primary-400 font-bold'
-                                : 'text-muted-foreground hover:text-foreground border-transparent'
-                        "
-                    >
-                        <ClipboardCheck class="h-4 w-4" />
-                        <span>Verifikasi</span>
-                        <span
-                            class="text-foreground rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold dark:bg-slate-800"
-                            >{{ counts.pending }}</span
-                        >
-                    </button>
-                    <button
-                        type="button"
-                        @click="switchTab('aktif')"
-                        class="flex min-h-[40px] cursor-pointer items-center gap-2 border-b-2 pb-3 text-xs transition-colors sm:text-sm"
-                        :class="
-                            activeTab === 'aktif'
-                                ? 'border-primary-600 text-primary-600 dark:text-primary-400 font-bold'
-                                : 'text-muted-foreground hover:text-foreground border-transparent'
-                        "
-                    >
-                        <Activity class="h-4 w-4" />
-                        <span>Akun Aktif</span>
-                        <span
-                            class="text-foreground rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold dark:bg-slate-800"
-                            >{{ counts.active }}</span
-                        >
-                    </button>
-                </nav>
-            </div>
+            <AppTabs v-model="activeTab" :items="tabs" />
 
             <!-- TAB 1: VERIFIKASI -->
             <div v-show="activeTab === 'verifikasi'">
@@ -267,16 +235,12 @@ const selectClass =
                         </div>
                     </template>
                     <template #column-actions="{ item }">
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            class="mx-auto flex min-h-[36px] items-center gap-1.5 text-xs"
+                        <AppTableAction
+                            type="verify"
+                            title="Tinjau Pengajuan"
+                            class="mx-auto flex"
                             @click="openVerifyModal(item)"
-                        >
-                            <Eye class="h-3.5 w-3.5" />
-                            <span>Tinjau</span>
-                        </Button>
+                        />
                     </template>
                 </AppDataTable>
             </div>
@@ -412,16 +376,12 @@ const selectClass =
                         </div>
                     </template>
                     <template #column-actions="{ item }">
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            class="flex min-h-[36px] items-center mx-auto gap-1.5 text-xs"
+                        <AppTableAction
+                            type="detail"
+                            title="Lihat Detail Akun"
+                            class="mx-auto flex"
                             @click="openDetailModal(item)"
-                        >
-                            <Eye class="h-3.5 w-3.5" />
-                            <span>Detail</span>
-                        </Button>
+                        />
                     </template>
                 </AppDataTable>
             </div>

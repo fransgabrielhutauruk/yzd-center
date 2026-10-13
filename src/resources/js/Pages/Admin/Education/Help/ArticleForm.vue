@@ -2,8 +2,6 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { Head, useForm, Link } from '@inertiajs/vue3';
 import {
-    ArrowLeft,
-    Save,
     FileText,
     FolderKanban,
     Eye,
@@ -15,6 +13,8 @@ import {
 } from 'lucide-vue-next';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppFullTextEditor from '@/Components/Common/AppFullTextEditor.vue';
+import AppButton from '@/Components/Common/AppButton.vue';
+import AppCheckbox from '@/Components/Common/AppCheckbox.vue';
 import { Button } from '@/Components/ui/button';
 
 const props = defineProps({
@@ -121,12 +121,12 @@ const submit = () => {
     >
         <template v-if="!isFullContent" #header-actions>
             <div class="flex items-center gap-2">
-                <Button variant="outline" as-child class="h-9 cursor-pointer gap-1.5 text-xs">
-                    <Link href="/admin/education/help?tab=articles">
-                        <ArrowLeft class="h-4 w-4" />
-                        <span>Kembali ke Daftar</span>
-                    </Link>
-                </Button>
+                <AppButton
+                    type="back"
+                    href="/admin/education/help?tab=articles"
+                    label="Kembali ke Daftar"
+                    size="sm"
+                />
             </div>
         </template>
 
@@ -330,10 +330,9 @@ const submit = () => {
                                     Jika aktif, artikel dapat dicari dan dibaca investor.
                                 </span>
                             </div>
-                            <input
+                            <AppCheckbox
                                 v-model="form.is_published"
-                                type="checkbox"
-                                class="border-input text-primary-600 focus:ring-primary-500 h-4 w-4 cursor-pointer rounded"
+                                aria-label="Tampilkan ke Investor"
                             />
                         </div>
 
@@ -364,21 +363,14 @@ const submit = () => {
 
                         <!-- Tombol Submit Action -->
                         <div class="pt-2">
-                            <Button
-                                type="button"
+                            <AppButton
+                                type="save"
+                                :label="isEditing ? 'Simpan Perubahan' : 'Terbitkan Panduan'"
+                                :loading="form.processing"
+                                loading-text="Menyimpan..."
+                                class="w-full text-xs font-semibold shadow-xs"
                                 @click="submit"
-                                :disabled="form.processing"
-                                class="w-full cursor-pointer gap-2 text-xs font-semibold shadow-xs"
-                            >
-                                <Save class="h-4 w-4" />
-                                <span>{{
-                                    form.processing
-                                        ? 'Menyimpan...'
-                                        : isEditing
-                                          ? 'Simpan Perubahan'
-                                          : 'Terbitkan Panduan'
-                                }}</span>
-                            </Button>
+                            />
                         </div>
                     </div>
                 </div>

@@ -4,6 +4,7 @@ import { Head, useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
+import AppTableAction from '@/Components/Common/AppTableAction.vue';
 import { Button } from '@/Components/ui/button';
 import { toast } from 'vue-sonner';
 import {
@@ -179,16 +180,11 @@ const columns = [
 
                 <!-- Custom Slot: Actions -->
                 <template #column-actions="{ item }">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
+                    <AppTableAction
+                        type="verify"
+                        :title="item.status === 'pending' ? 'Tinjau & Putuskan' : 'Lihat Keputusan'"
                         @click="openVerifyModal(item)"
-                        class="text-xs flex items-center gap-1.5"
-                    >
-                        <UserCheck class="h-3.5 w-3.5" />
-                        <span>{{ item.status === 'pending' ? 'Tinjau & Putuskan' : 'Lihat Keputusan' }}</span>
-                    </Button>
+                    />
                 </template>
             </AppDataTable>
         </div>

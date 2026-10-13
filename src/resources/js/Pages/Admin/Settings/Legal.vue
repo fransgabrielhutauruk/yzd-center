@@ -3,16 +3,15 @@ import { ref, watch, computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppRichTextEditor from '@/Components/Common/AppRichTextEditor.vue';
-import { Button } from '@/Components/ui/button';
+import AppButton from '@/Components/Common/AppButton.vue';
+import AppTabs from '@/Components/Common/AppTabs.vue';
 import { toast } from 'vue-sonner';
 import {
     FileText,
     Shield,
-    Save,
     Clock,
     Eye,
     Edit3,
-    Loader2,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -27,6 +26,19 @@ const props = defineProps({
 });
 
 const activeDoc = ref('terms_conditions'); // 'terms_conditions' | 'privacy_policy'
+
+const tabs = [
+    {
+        key: 'terms_conditions',
+        label: 'Syarat & Ketentuan',
+        icon: FileText,
+    },
+    {
+        key: 'privacy_policy',
+        label: 'Kebijakan Privasi',
+        icon: Shield,
+    },
+];
 const isPreviewMode = ref(false);
 
 const termsForm = useForm({
@@ -107,68 +119,30 @@ const previewHtml = computed(
     >
         <template #header-actions>
             <div class="flex items-center gap-2">
-                <button
-                    type="button"
+                <AppButton
+                    type="custom"
+                    :variant="!isPreviewMode ? 'default' : 'outline'"
+                    size="sm"
+                    :icon="Edit3"
+                    label="Mode Editor"
                     @click="isPreviewMode = false"
-                    :class="[
-                        'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer',
-                        !isPreviewMode
-                            ? 'bg-primary-600 text-white shadow-xs'
-                            : 'bg-muted text-muted-foreground hover:text-foreground',
-                    ]"
-                >
-                    <Edit3 class="h-3.5 w-3.5" />
-                    <span>Mode Editor</span>
-                </button>
+                />
 
-                <button
-                    type="button"
+                <AppButton
+                    type="custom"
+                    :variant="isPreviewMode ? 'default' : 'outline'"
+                    size="sm"
+                    :icon="Eye"
+                    label="Pratinjau Pengguna"
                     @click="isPreviewMode = true"
-                    :class="[
-                        'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer',
-                        isPreviewMode
-                            ? 'bg-primary-600 text-white shadow-xs'
-                            : 'bg-muted text-muted-foreground hover:text-foreground',
-                    ]"
-                >
-                    <Eye class="h-3.5 w-3.5" />
-                    <span>Pratinjau Pengguna</span>
-                </button>
+                />
             </div>
         </template>
 
         <div class="space-y-6">
 
             <!-- Tab Pemilihan Dokumen -->
-            <div class="border-border flex items-center gap-3 border-b">
-                <button
-                    type="button"
-                    @click="activeDoc = 'terms_conditions'"
-                    :class="[
-                        'flex items-center gap-2 border-b-2 pb-3 text-xs font-bold transition-colors',
-                        activeDoc === 'terms_conditions'
-                            ? 'border-primary-600 text-primary-600 dark:text-primary-400'
-                            : 'text-muted-foreground hover:text-foreground border-transparent',
-                    ]"
-                >
-                    <FileText class="h-4 w-4" />
-                    <span>Syarat & Ketentuan</span>
-                </button>
-
-                <button
-                    type="button"
-                    @click="activeDoc = 'privacy_policy'"
-                    :class="[
-                        'flex items-center gap-2 border-b-2 pb-3 text-xs font-bold transition-colors',
-                        activeDoc === 'privacy_policy'
-                            ? 'border-primary-600 text-primary-600 dark:text-primary-400'
-                            : 'text-muted-foreground hover:text-foreground border-transparent',
-                    ]"
-                >
-                    <Shield class="h-4 w-4" />
-                    <span>Kebijakan Privasi</span>
-                </button>
-            </div>
+            <AppTabs v-model="activeDoc" :items="tabs" :sync-url="false" />
 
             <!-- Card Utama -->
             <div class="bg-card border-border space-y-6 rounded-2xl border p-6 shadow-xs">
@@ -246,19 +220,14 @@ const previewHtml = computed(
 
                     <!-- Submit Button -->
                     <div class="border-border flex items-center justify-end gap-3 border-t pt-4">
-                        <Button
-                            type="submit"
-                            :disabled="currentForm.processing"
-                            class="bg-primary-600 hover:bg-primary-700 flex items-center gap-2 px-6 py-2.5 text-xs text-white shadow-xs"
-                        >
-                            <Loader2 v-if="currentForm.processing" class="h-4 w-4 animate-spin" />
-                            <Save v-else class="h-4 w-4" />
-                            <span>{{
-                                currentForm.processing
-                                    ? 'Menyimpan Perubahan...'
-                                    : 'Simpan & Publikasikan Dokumen'
-                            }}</span>
-                        </Button>
+                        <AppButton
+                            type="save"
+                            submit
+                            :loading="currentForm.processing"
+                            loading-text="Menyimpan Perubahan..."
+                            label="Simpan & Publikasikan Dokumen"
+                            class="px-6 py-2.5 text-xs shadow-xs"
+                        />
                     </div>
                 </form>
 
@@ -279,15 +248,13 @@ const previewHtml = computed(
                     </div>
 
                     <div class="flex justify-end">
-                        <Button
-                            type="button"
+                        <AppButton
+                            type="back"
                             variant="outline"
                             size="sm"
-                            class="text-xs"
+                            label="Kembali ke Mode Editor"
                             @click="isPreviewMode = false"
-                        >
-                            Kembali ke Mode Editor
-                        </Button>
+                        />
                     </div>
                 </div>
             </div>

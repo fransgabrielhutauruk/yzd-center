@@ -1,9 +1,11 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import InvestorLayout from '@/Layouts/InvestorLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
+import AppButton from '@/Components/Common/AppButton.vue';
+import AppTabs from '@/Components/Common/AppTabs.vue';
 import { Button } from '@/Components/ui/button';
 import { toast } from 'vue-sonner';
 import { compressImageFile, formatBytes } from '@/lib/imageCompression';
@@ -54,6 +56,22 @@ const props = defineProps({
 });
 
 const activeTab = ref(props.activeTab || 'downlines'); // 'downlines' | 'claims'
+
+const tabs = computed(() => [
+    {
+        key: 'downlines',
+        label: 'Daftar Downline',
+        icon: Users,
+        count: props.stats.total_downlines,
+    },
+    {
+        key: 'claims',
+        label: 'Riwayat Klaim Susulan',
+        icon: FileText,
+        count: props.stats.pending_claims > 0 ? props.stats.pending_claims : undefined,
+        badgeVariant: 'warning',
+    },
+]);
 
 const switchTab = (tab) => {
     activeTab.value = tab;
@@ -327,14 +345,12 @@ const claimColumns = [
     >
         <template #header-actions>
             <div class="flex items-center gap-2 self-start sm:self-center">
-                <Button
-                    type="button"
+                <AppButton
+                    type="create"
+                    :icon="PlusCircle"
+                    label="Ajukan Klaim Susulan"
                     @click="openClaimModal"
-                    class="bg-primary-600 hover:bg-primary-700 flex cursor-pointer items-center gap-1.5 text-xs text-white shadow-xs sm:text-sm"
-                >
-                    <PlusCircle class="h-4 w-4" />
-                    <span>Ajukan Klaim Susulan</span>
-                </Button>
+                />
             </div>
         </template>
 
@@ -342,48 +358,7 @@ const claimColumns = [
 
         <div class="space-y-6">
             <!-- Tab Navigasi -->
-            <div class="border-border border-b">
-                <nav class="-mb-px flex gap-6 text-sm font-medium">
-                    <button
-                        type="button"
-                        @click="switchTab('downlines')"
-                        class="flex cursor-pointer items-center gap-2 border-b-2 pb-3 text-xs transition-colors sm:text-sm"
-                        :class="[
-                            activeTab === 'downlines'
-                                ? 'border-primary-600 text-primary-600 dark:text-primary-400 font-bold'
-                                : 'text-muted-foreground hover:border-border hover:text-foreground border-transparent',
-                        ]"
-                    >
-                        <Users class="h-4 w-4" />
-                        <span>Daftar Downline</span>
-                        <span
-                            class="text-foreground rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold dark:bg-slate-800"
-                        >
-                            {{ stats.total_downlines }}
-                        </span>
-                    </button>
-
-                    <button
-                        type="button"
-                        @click="switchTab('claims')"
-                        class="flex cursor-pointer items-center gap-2 border-b-2 pb-3 text-xs transition-colors sm:text-sm"
-                        :class="[
-                            activeTab === 'claims'
-                                ? 'border-primary-600 text-primary-600 dark:text-primary-400 font-bold'
-                                : 'text-muted-foreground hover:border-border hover:text-foreground border-transparent',
-                        ]"
-                    >
-                        <FileText class="h-4 w-4" />
-                        <span>Riwayat Klaim Susulan</span>
-                        <span
-                            v-if="stats.pending_claims > 0"
-                            class="rounded-full bg-amber-500/20 px-2 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-300"
-                        >
-                            {{ stats.pending_claims }}
-                        </span>
-                    </button>
-                </nav>
-            </div>
+            <AppTabs v-model="activeTab" :items="tabs" />
 
             <!-- TAB 1: DAFTAR DOWNLINE -->
             <div v-show="activeTab === 'downlines'" class="space-y-4">
@@ -831,36 +806,25 @@ const claimColumns = [
 
                 <!-- Tombol Aksi Form -->
                 <div class="border-border flex items-center justify-end gap-2 border-t pt-3">
-                    <Button
-                        type="button"
-                        variant="outline"
+                    <AppButton
+                        type="cancel"
                         @click="closeClaimModal"
                         class="text-xs"
-                    >
-                        Batal
-                    </Button>
-                    <Button
-                        type="submit"
+                    />
+                    <AppButton
+                        type="save"
+                        submit
+                        :loading="claimForm.processing || isCompressingProof"
+                        :loading-text="claimForm.processing ? 'Mengirim...' : 'Memproses...'"
+                        label="Kirim Permohonan Klaim"
                         :disabled="
                             claimForm.processing ||
                             !claimForm.downline_id ||
                             isCheckingDownline ||
                             isCompressingProof
                         "
-                        class="bg-primary-600 hover:bg-primary-700 flex items-center gap-1.5 text-xs text-white"
-                    >
-                        <Loader2
-                            v-if="claimForm.processing || isCompressingProof"
-                            class="h-3.5 w-3.5 animate-spin"
-                        />
-                        <span>{{
-                            claimForm.processing
-                                ? 'Mengirim...'
-                                : isCompressingProof
-                                  ? 'Memproses...'
-                                  : 'Kirim Permohonan Klaim'
-                        }}</span>
-                    </Button>
+                        class="text-xs"
+                    />
                 </div>
             </form>
         </AppModal>

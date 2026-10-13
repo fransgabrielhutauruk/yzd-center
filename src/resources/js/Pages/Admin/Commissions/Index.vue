@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
-import { Button } from '@/Components/ui/button';
+import AppTableAction from '@/Components/Common/AppTableAction.vue';
 import ProcessModal from './ProcessModal.vue';
 import {
     Clock,
@@ -214,14 +214,11 @@ const tableColumns = [
 
                 <!-- Kolom Aksi -->
                 <template #column-actions="{ item }">
-                    <Button
-                        variant="outline"
-                        size="sm"
+                    <AppTableAction
+                        :type="item.status === 'pending' ? 'process' : 'detail'"
+                        :title="item.status === 'pending' ? 'Proses Pencairan' : 'Lihat Rincian'"
                         @click="openProcessModal(item)"
-                        class="h-8 px-2.5 text-xs font-semibold"
-                    >
-                        <span>{{ item.status === 'pending' ? 'Proses Pencairan' : 'Lihat Rincian' }}</span>
-                    </Button>
+                    />
                 </template>
             </AppDataTable>
         </div>

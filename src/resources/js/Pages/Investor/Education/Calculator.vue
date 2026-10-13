@@ -17,6 +17,7 @@ import {
     ArrowUpRight,
 } from 'lucide-vue-next';
 import InvestorLayout from '@/Layouts/InvestorLayout.vue';
+import AppButton from '@/Components/Common/AppButton.vue';
 import { Button } from '@/Components/ui/button';
 import { toast } from 'vue-sonner';
 
@@ -431,15 +432,15 @@ const whatsappConsultUrl = computed(() => {
         ]"
     >
         <template #header-actions>
-            <Button
+            <AppButton
+                type="custom"
                 variant="outline"
                 size="sm"
-                class="gap-1.5 border-slate-200 dark:border-slate-700 dark:hover:bg-white min-h-[36px] cursor-pointer"
+                :icon="RotateCcw"
+                label="Reset Nilai Acuan"
+                class="min-h-[36px]"
                 @click="resetToDefaults"
-            >
-                <RotateCcw class="h-4 w-4" />
-                Reset Nilai Acuan
-            </Button>
+            />
         </template>
 
         <div class="space-y-6">

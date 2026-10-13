@@ -4,8 +4,8 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
 import AppConfirmDialog from '@/Components/Common/AppConfirmDialog.vue';
-import { Button } from '@/Components/ui/button';
-import { Users, TrendingUp, UserCheck, UserX, Eye, CheckCircle2 } from 'lucide-vue-next';
+import AppTableAction from '@/Components/Common/AppTableAction.vue';
+import { Users, TrendingUp, UserCheck, UserX, CheckCircle2 } from 'lucide-vue-next';
 
 const props = defineProps({
     users: {
@@ -312,39 +312,16 @@ const filterByQuick = (type, val) => {
                 <!-- Kolom 6: Aksi -->
                 <template #column-actions="{ item }">
                     <div class="flex items-center justify-center gap-1.5">
-                        <!-- Tombol Lihat Detail Lengkap -->
-                        <Link
+                        <AppTableAction
+                            type="detail"
+                            title="Lihat Detail Akun"
                             :href="route('admin.users.show', item.id)"
-                            class="border-border bg-card text-foreground hover:bg-muted hover:text-foreground inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium shadow-2xs transition-colors"
-                            title="Lihat Detail Profil Lengkap"
-                        >
-                            <Eye class="text-muted-foreground h-3.5 w-3.5" />
-                            Detail
-                        </Link>
-
-                        <!-- Tombol Nonaktifkan / Aktifkan Akun -->
-                        <Button
-                            v-if="item.is_active"
-                            variant="ghost"
-                            size="sm"
-                            class="h-7 cursor-pointer px-2 text-xs font-medium text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/50"
+                        />
+                        <AppTableAction
+                            :type="item.is_active ? 'disable' : 'activate'"
+                            :title="item.is_active ? 'Nonaktifkan Akses Akun' : 'Aktifkan Kembali Akses Akun'"
                             @click="openToggleConfirm(item)"
-                            title="Nonaktifkan Akses Akun"
-                        >
-                            <UserX class="mr-1 h-3.5 w-3.5" />
-                            Nonaktifkan
-                        </Button>
-                        <Button
-                            v-else
-                            variant="ghost"
-                            size="sm"
-                            class="h-7 cursor-pointer px-2 text-xs font-medium text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
-                            @click="openToggleConfirm(item)"
-                            title="Aktifkan Kembali Akses Akun"
-                        >
-                            <UserCheck class="mr-1 h-3.5 w-3.5" />
-                            Aktifkan
-                        </Button>
+                        />
                     </div>
                 </template>
             </AppDataTable>

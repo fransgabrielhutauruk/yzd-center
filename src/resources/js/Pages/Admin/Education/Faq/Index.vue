@@ -1,12 +1,9 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import {
     MessageCircleQuestion,
-    Plus,
-    Edit2,
     Trash2,
-    Loader2,
     FolderKanban,
     Layers,
 } from 'lucide-vue-next';
@@ -14,7 +11,10 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
 import AppConfirmDialog from '@/Components/Common/AppConfirmDialog.vue';
-import { Button } from '@/Components/ui/button';
+import AppTableAction from '@/Components/Common/AppTableAction.vue';
+import AppButton from '@/Components/Common/AppButton.vue';
+import AppTabs from '@/Components/Common/AppTabs.vue';
+import AppCheckbox from '@/Components/Common/AppCheckbox.vue';
 
 const props = defineProps({
     faqs: {
@@ -33,14 +33,19 @@ const props = defineProps({
 
 const activeTab = ref(props.filters.tab || 'faqs');
 
-const switchTab = (tab) => {
-    activeTab.value = tab;
-    router.get(
-        '/admin/education/faq',
-        { ...props.filters, tab },
-        { preserveState: true, preserveScroll: true, replace: true }
-    );
-};
+const tabs = computed(() => [
+    {
+        key: 'faqs',
+        label: 'Daftar Pertanyaan FAQ',
+        icon: MessageCircleQuestion,
+    },
+    {
+        key: 'topics',
+        label: 'Topik FAQ',
+        icon: FolderKanban,
+        count: props.topics.length,
+    },
+]);
 
 // -----------------------------------------------------------------------------
 // State & Form Modal Topik FAQ
@@ -240,22 +245,18 @@ const faqColumns = [
         ]"
     >
         <template #header-actions>
-            <Button
+            <AppButton
                 v-if="activeTab === 'topics'"
+                type="create"
+                label="Tambah Topik FAQ"
                 @click="openCreateTopicModal"
-                class="gap-1.5 cursor-pointer"
-            >
-                <Plus class="h-4 w-4" />
-                Tambah Topik FAQ
-            </Button>
-            <Button
+            />
+            <AppButton
                 v-else
+                type="create"
+                label="Tambah Pertanyaan FAQ"
                 @click="openCreateFaqModal"
-                class="gap-1.5 cursor-pointer"
-            >
-                <Plus class="h-4 w-4" />
-                Tambah Pertanyaan FAQ
-            </Button>
+            />
         </template>
 
         <Head title="Manajemen Tanya Jawab (FAQ) - Admin" />
@@ -263,39 +264,7 @@ const faqColumns = [
         <div class="space-y-6">
 
             <!-- Tab Navigasi (Pertanyaan FAQ vs Topik FAQ) -->
-            <div class="flex border-b border-slate-200 dark:border-slate-800">
-                <button
-                    type="button"
-                    @click="switchTab('faqs')"
-                    :class="[
-                        'flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
-                        activeTab === 'faqs'
-                            ? 'border-primary text-primary dark:text-primary font-semibold'
-                            : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200',
-                    ]"
-                >
-                    <MessageCircleQuestion class="h-4 w-4" />
-                    Daftar Pertanyaan FAQ
-                </button>
-                <button
-                    type="button"
-                    @click="switchTab('topics')"
-                    :class="[
-                        'flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
-                        activeTab === 'topics'
-                            ? 'border-primary text-primary dark:text-primary font-semibold'
-                            : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200',
-                    ]"
-                >
-                    <FolderKanban class="h-4 w-4" />
-                    Topik FAQ
-                    <span
-                        class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                    >
-                        {{ topics.length }}
-                    </span>
-                </button>
-            </div>
+            <AppTabs v-model="activeTab" :items="tabs" />
 
             <!-- TAB 1: PERTANYAAN FAQ -->
             <div v-if="activeTab === 'faqs'" class="space-y-4">
@@ -328,14 +297,14 @@ const faqColumns = [
 
                         <!-- Batch Actions -->
                         <template #batch-actions="{ selected }">
-                            <button
-                                type="button"
+                            <AppButton
+                                type="custom"
+                                variant="destructive"
+                                size="sm"
+                                :icon="Trash2"
+                                :label="`Hapus ${selected.length} FAQ`"
                                 @click="isBatchDeleteOpen = true"
-                                class="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-rose-700 transition-colors cursor-pointer"
-                            >
-                                <Trash2 class="h-3.5 w-3.5" />
-                                Hapus {{ selected.length }} FAQ
-                            </button>
+                            />
                         </template>
 
                         <!-- Kolom Pertanyaan & Cuplikan Jawaban -->
@@ -375,23 +344,17 @@ const faqColumns = [
 
                         <!-- Kolom Aksi -->
                         <template #column-actions="{ item }">
-                            <div class="flex items-center justify-end gap-1">
-                                <button
-                                    type="button"
-                                    @click="openEditFaqModal(item)"
-                                    class="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white transition-colors"
+                            <div class="flex items-center justify-end gap-1.5">
+                                <AppTableAction
+                                    type="edit"
                                     title="Edit FAQ"
-                                >
-                                    <Edit2 class="h-4 w-4" />
-                                </button>
-                                <button
-                                    type="button"
-                                    @click="confirmDeleteFaq(item)"
-                                    class="rounded p-1.5 text-red-500 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/50 transition-colors"
+                                    @click="openEditFaqModal(item)"
+                                />
+                                <AppTableAction
+                                    type="delete"
                                     title="Hapus FAQ"
-                                >
-                                    <Trash2 class="h-4 w-4" />
-                                </button>
+                                    @click="confirmDeleteFaq(item)"
+                                />
                             </div>
                         </template>
                     </AppDataTable>
@@ -457,29 +420,18 @@ const faqColumns = [
                                         </span>
                                     </td>
                                     <td class="px-4 py-3 text-right">
-                                        <div class="flex items-center justify-end gap-1">
-                                            <button
-                                                type="button"
-                                                @click="openEditTopicModal(topic)"
-                                                class="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white transition-colors"
+                                        <div class="flex items-center justify-end gap-1.5">
+                                            <AppTableAction
+                                                type="edit"
                                                 title="Edit Topik"
-                                            >
-                                                <Edit2 class="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                @click="confirmDeleteTopic(topic)"
+                                                @click="openEditTopicModal(topic)"
+                                            />
+                                            <AppTableAction
+                                                type="delete"
                                                 :disabled="topic.faqs_count > 0"
-                                                :class="[
-                                                    'rounded p-1.5 transition-colors',
-                                                    topic.faqs_count > 0
-                                                        ? 'cursor-not-allowed text-slate-300 dark:text-slate-700'
-                                                        : 'text-red-500 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/50',
-                                                ]"
                                                 :title="topic.faqs_count > 0 ? 'Pindahkan atau hapus pertanyaan pada topik ini terlebih dahulu' : 'Hapus Topik'"
-                                            >
-                                                <Trash2 class="h-4 w-4" />
-                                            </button>
+                                                @click="confirmDeleteTopic(topic)"
+                                            />
                                         </div>
                                     </td>
                                 </tr>
@@ -547,31 +499,26 @@ const faqColumns = [
                     />
                 </div>
 
-                <div class="flex items-center gap-2 pt-2">
-                    <input
+                <div class="pt-2">
+                    <AppCheckbox
                         id="topic_active"
                         v-model="topicForm.is_active"
-                        type="checkbox"
-                        class="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                        label="Topik Aktif (Dapat dilihat oleh investor)"
                     />
-                    <label for="topic_active" class="text-sm font-medium text-slate-700 dark:text-slate-300">
-                        Topik Aktif (Dapat dilihat oleh investor)
-                    </label>
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-                    <Button
-                        type="button"
-                        variant="outline"
+                    <AppButton
+                        type="cancel"
                         @click="isTopicModalOpen = false"
                         :disabled="topicForm.processing"
-                    >
-                        Batal
-                    </Button>
-                    <Button type="submit" :disabled="topicForm.processing" class="gap-1.5">
-                        <Loader2 v-if="topicForm.processing" class="h-4 w-4 animate-spin" />
-                        {{ isEditingTopic ? 'Simpan Perubahan' : 'Tambah Topik' }}
-                    </Button>
+                    />
+                    <AppButton
+                        type="save"
+                        submit
+                        :loading="topicForm.processing"
+                        :label="isEditingTopic ? 'Simpan Perubahan' : 'Tambah Topik'"
+                    />
                 </div>
             </form>
         </AppModal>
@@ -639,31 +586,26 @@ const faqColumns = [
                     </p>
                 </div>
 
-                <div class="flex items-center gap-2 pt-2">
-                    <input
+                <div class="pt-2">
+                    <AppCheckbox
                         id="faq_active"
                         v-model="faqForm.is_active"
-                        type="checkbox"
-                        class="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                        label="Pertanyaan Aktif (Dapat dilihat oleh investor)"
                     />
-                    <label for="faq_active" class="text-sm font-medium text-slate-700 dark:text-slate-300">
-                        Pertanyaan Aktif (Dapat dilihat oleh investor)
-                    </label>
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-                    <Button
-                        type="button"
-                        variant="outline"
+                    <AppButton
+                        type="cancel"
                         @click="isFaqModalOpen = false"
                         :disabled="faqForm.processing"
-                    >
-                        Batal
-                    </Button>
-                    <Button type="submit" :disabled="faqForm.processing" class="gap-1.5">
-                        <Loader2 v-if="faqForm.processing" class="h-4 w-4 animate-spin" />
-                        {{ isEditingFaq ? 'Simpan Perubahan' : 'Tambah Pertanyaan' }}
-                    </Button>
+                    />
+                    <AppButton
+                        type="save"
+                        submit
+                        :loading="faqForm.processing"
+                        :label="isEditingFaq ? 'Simpan Perubahan' : 'Tambah Pertanyaan'"
+                    />
                 </div>
             </form>
         </AppModal>
