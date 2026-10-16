@@ -4,8 +4,6 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import {
     HelpCircle,
     Search,
-    FolderKanban,
-    Layers,
     X,
 } from 'lucide-vue-next';
 import InvestorLayout from '@/Layouts/InvestorLayout.vue';
@@ -106,7 +104,7 @@ const selectCategory = (slug) => {
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
                     <h2 class="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                        Pilih Topik Panduan
+                        Pilih Topik
                     </h2>
                     <span class="text-xs text-muted-foreground font-medium">
                         {{ (help.categories.length || 0) + 1 }} Topik
@@ -114,7 +112,7 @@ const selectCategory = (slug) => {
                 </div>
 
                 <div class="relative w-full">
-                    <div class="category-scroll-container flex items-center gap-2 overflow-x-auto pb-2.5 pt-0.5">
+                    <div class="topic-scroll-container flex items-center gap-2 overflow-x-auto pb-2.5 pt-0.5">
                         <!-- Pill: Semua (Default) -->
                         <button
                             type="button"
@@ -126,14 +124,6 @@ const selectCategory = (slug) => {
                                     : 'bg-card text-foreground border-border hover:bg-muted/70 hover:border-border/80',
                             ]"
                         >
-                            <Layers
-                                :class="[
-                                    'h-3.5 w-3.5 shrink-0 transition-colors',
-                                    isAllActive
-                                        ? 'text-primary-foreground'
-                                        : 'text-muted-foreground group-hover:text-foreground',
-                                ]"
-                            />
                             <span>Semua</span>
                             <span
                                 :class="[
@@ -160,14 +150,6 @@ const selectCategory = (slug) => {
                                     : 'bg-card text-foreground border-border hover:bg-muted/70 hover:border-border/80',
                             ]"
                         >
-                            <FolderKanban
-                                :class="[
-                                    'h-3.5 w-3.5 shrink-0 transition-colors',
-                                    help.active_slug === cat.slug
-                                        ? 'text-primary-foreground'
-                                        : 'text-muted-foreground group-hover:text-foreground',
-                                ]"
-                            />
                             <span>{{ cat.nama }}</span>
                             <span
                                 :class="[
@@ -207,13 +189,7 @@ const selectCategory = (slug) => {
                         :href="`/investor/education/help/${article.slug}`"
                         class="group rounded-xl border border-border bg-card p-5 shadow-2xs transition-all hover:border-primary/50 hover:shadow-xs block"
                     >
-                        <div class="flex items-center gap-3">
-                            <span class="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground border border-border/60">
-                                {{ article.kategori_nama }}
-                            </span>
-                        </div>
-
-                        <h3 class="mt-3 text-base font-bold text-foreground group-hover:text-primary transition-colors">
+                        <h3 class="text-base font-bold text-foreground group-hover:text-primary transition-colors">
                             {{ article.judul }}
                         </h3>
 
@@ -269,22 +245,22 @@ const selectCategory = (slug) => {
 </template>
 
 <style scoped>
-.category-scroll-container {
+.topic-scroll-container {
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
 }
-.category-scroll-container::-webkit-scrollbar {
+.topic-scroll-container::-webkit-scrollbar {
     height: 6px;
 }
-.category-scroll-container::-webkit-scrollbar-track {
+.topic-scroll-container::-webkit-scrollbar-track {
     background: transparent;
     border-radius: 9999px;
 }
-.category-scroll-container::-webkit-scrollbar-thumb {
+.topic-scroll-container::-webkit-scrollbar-thumb {
     background: var(--border);
     border-radius: 9999px;
 }
-.category-scroll-container::-webkit-scrollbar-thumb:hover {
+.topic-scroll-container::-webkit-scrollbar-thumb:hover {
     background: var(--muted-foreground);
 }
 </style>

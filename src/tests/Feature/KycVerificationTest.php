@@ -121,6 +121,27 @@ class KycVerificationTest extends TestCase
         ]);
     }
 
+    public function test_investor_can_reupload_document_that_is_rejected(): void
+    {
+        $dokumen = $this->createDummyDokumen([
+            'status'        => 'rejected',
+            'catatan_admin' => 'Dokumen tidak valid',
+        ]);
+
+        $file = UploadedFile::fake()->image('ktp_baru.jpg');
+
+        $response = $this->actingAs($this->investor)->post('/investor/account/reupload/ktp', [
+            'file' => $file,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('user_dokumen', [
+            'id'            => $dokumen->id,
+            'status'        => 'pending',
+            'catatan_admin' => null,
+        ]);
+    }
+
     public function test_investor_cannot_reupload_approved_document(): void
     {
         $this->createDummyDokumen(['status' => 'approved']);

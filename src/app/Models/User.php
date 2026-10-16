@@ -109,6 +109,11 @@ class User extends Authenticatable
         return $this->dokumen()->where('status', 'revision_needed')->exists();
     }
 
+    public function hasKycRejected(): bool
+    {
+        return $this->dokumen()->where('status', 'rejected')->exists();
+    }
+
     public function relasiUpline(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(RelasiReferral::class, 'downline_id');

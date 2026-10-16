@@ -67,10 +67,6 @@ class AuthenticatedSessionController extends Controller
             return redirect()->intended(route('admin.dashboard'));
         }
 
-        if ($user && $user->status !== 'active') {
-            return redirect()->route('investor.account');
-        }
-
         return redirect()->intended(route('investor.dashboard'));
     }
 

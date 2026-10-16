@@ -24,7 +24,10 @@ class AccountController extends Controller
         $user = $request->user()->load(['ahliWaris', 'dokumen', 'akunCopytrade']);
 
         $ktp = $user->dokumen->firstWhere('tipe_dokumen', 'ktp');
-        $perjanjianDokumen = $user->dokumen->firstWhere('tipe_dokumen', 'perjanjian');
+        // Hanya tampilkan berkas surat perjanjian yang telah disetujui Administrator
+        $perjanjianDokumen = $user->dokumen
+            ->where('tipe_dokumen', 'perjanjian')
+            ->firstWhere('status', 'approved');
 
         $perjanjian = null;
         if ($perjanjianDokumen) {
@@ -33,15 +36,16 @@ class AccountController extends Controller
                 'file_name'          => $perjanjianDokumen->file_name,
                 'file_size'          => $perjanjianDokumen->file_size,
                 'mime_type'          => $perjanjianDokumen->mime_type,
-                'status'             => $perjanjianDokumen->status,
-                'catatan_admin'      => $perjanjianDokumen->status === 'approved' ? null : $perjanjianDokumen->catatan_admin,
-                'is_quality_warning' => $perjanjianDokumen->is_quality_warning,
-                'verified_at'        => $perjanjianDokumen->verified_at?->toIso8601String(),
+                'status'             => 'approved',
+                'catatan_admin'      => null,
+                'is_quality_warning' => false,
+                'verified_at'        => $perjanjianDokumen->verified_at ? tanggal_singkat($perjanjianDokumen->verified_at) : "",
                 'preview_url'        => route('documents.show', $perjanjianDokumen->id, false) . '?v=' . ($perjanjianDokumen->updated_at?->timestamp ?? time()),
             ];
         } else {
-            // Cek berkas surat perjanjian dari pendaftaran copytrade jika belum ada di user_dokumen
+            // Cek berkas surat perjanjian dari pendaftaran copytrade yang berstatus active jika belum ada di user_dokumen
             $akunWithPerjanjian = $user->akunCopytrade
+                ->where('status', 'active')
                 ->whereNotNull('surat_perjanjian_path')
                 ->filter(fn ($a) => Storage::disk('local')->exists($a->surat_perjanjian_path))
                 ->last();
@@ -56,8 +60,8 @@ class AccountController extends Controller
                     'file_name'          => 'Surat_Perjanjian_Kemitraan.pdf',
                     'file_size'          => $fileSize,
                     'mime_type'          => $mimeType,
-                    'status'             => $akunWithPerjanjian->status === 'active' ? 'approved' : ($akunWithPerjanjian->status === 'rejected' ? 'revision_needed' : 'pending'),
-                    'catatan_admin'      => $akunWithPerjanjian->status === 'active' ? null : $akunWithPerjanjian->catatan_admin,
+                    'status'             => 'approved',
+                    'catatan_admin'      => null,
                     'is_quality_warning' => false,
                     'verified_at'        => $akunWithPerjanjian->verified_at?->toIso8601String(),
                     'preview_url'        => route('documents.copytrade', $akunWithPerjanjian->id, false) . '?v=' . ($akunWithPerjanjian->updated_at?->timestamp ?? time()),
@@ -97,7 +101,7 @@ class AccountController extends Controller
                     'status'             => $ktp->status,
                     'catatan_admin'      => $ktp->status === 'approved' ? null : $ktp->catatan_admin,
                     'is_quality_warning' => $ktp->is_quality_warning,
-                    'verified_at'        => $ktp->verified_at?->toIso8601String(),
+                    'verified_at'        => $ktp->verified_at ? tanggal_singkat($ktp->verified_at) : "",
                     'preview_url'        => route('documents.show', $ktp->id, false) . '?v=' . ($ktp->updated_at?->timestamp ?? time()),
                 ] : null,
                 'perjanjian' => $perjanjian,
@@ -107,29 +111,25 @@ class AccountController extends Controller
     }
 
     /**
-     * Unggah ulang berkas dokumen yang berstatus revision_needed.
+     * Unggah ulang berkas dokumen KTP yang berstatus revision_needed atau rejected.
      */
     public function reupload(Request $request, string $type): RedirectResponse
     {
-        if (!in_array($type, ['ktp', 'perjanjian'], true)) {
+        if ($type !== 'ktp') {
             abort(404);
         }
 
-        $rules = $type === 'ktp'
-            ? ['file' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:10240']]
-            : ['file' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240']];
-
-        $request->validate($rules, [
-            'file.required' => 'Pilih berkas dokumen yang ingin diunggah ulang.',
-            'file.mimes'    => $type === 'ktp' ? 'Foto KTP harus berupa format JPG, JPEG, atau PNG.' : 'Surat perjanjian harus berupa format JPG, PNG, atau PDF.',
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:10240'],
+        ], [
+            'file.required' => 'Pilih berkas foto KTP yang ingin diunggah ulang.',
+            'file.mimes'    => 'Foto KTP harus berupa format JPG, JPEG, atau PNG.',
             'file.max'      => 'Ukuran berkas maksimal 10 MB.',
         ]);
 
-        $this->kycService->reuploadDocument($request->user(), $request->file('file'), $type);
-
-        $label = $type === 'ktp' ? 'Foto KTP' : 'Surat Perjanjian';
+        $this->kycService->reuploadDocument($request->user(), $request->file('file'), 'ktp');
 
         return redirect()->back()
-            ->with('success', "Berkas {$label} berhasil diunggah ulang dan sedang menunggu peninjauan kembali oleh Administrator.");
+            ->with('success', 'Berkas Foto KTP berhasil diunggah ulang dan sedang menunggu peninjauan kembali oleh Administrator.');
     }
 }

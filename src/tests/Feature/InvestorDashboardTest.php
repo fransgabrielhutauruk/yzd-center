@@ -77,6 +77,19 @@ class InvestorDashboardTest extends TestCase
             );
     }
 
+    public function test_newly_registered_unverified_investor_can_access_dashboard_with_no_account_stage(): void
+    {
+        $pendingInvestor = User::factory()->pending()->create();
+
+        $this->actingAs($pendingInvestor)
+            ->get(route('investor.dashboard'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Investor/InvestorDashboard')
+                ->where('dashboard.stage', 'no_account')
+            );
+    }
+
     public function test_stage_pending_account_when_only_pending_accounts_exist(): void
     {
         $this->makeAccount('pending');

@@ -61,6 +61,11 @@ class UserDokumen extends Model
         return $query->where('status', 'revision_needed');
     }
 
+    public function scopeRejected(Builder $query): Builder
+    {
+        return $query->where('status', 'rejected');
+    }
+
     public function isApproved(): bool
     {
         return $this->status === 'approved';
@@ -69,6 +74,11 @@ class UserDokumen extends Model
     public function isRevisionNeeded(): bool
     {
         return $this->status === 'revision_needed';
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->status === 'rejected';
     }
 
     public function isPending(): bool

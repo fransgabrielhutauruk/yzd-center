@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { Head, Link, usePage, router } from '@inertiajs/vue3';
 import {
     LayoutDashboard,
@@ -11,7 +11,6 @@ import {
     Menu,
     X,
     ChevronDown,
-    Lock,
     Users,
     TrendingUp,
     LineChart,
@@ -54,11 +53,90 @@ const isMobileSidebarOpen = ref(false);
 const isUserDropdownOpen = ref(false);
 const isCollapsed = ref(false);
 
+const SIDEBAR_SCROLL_KEY = 'yzd_investor_sidebar_scroll';
+const sidebarNavRef = ref(null);
+const isRestoringScroll = ref(false);
+
+const saveSidebarScroll = () => {
+    if (!sidebarNavRef.value || isRestoringScroll.value) return;
+    try {
+        sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(sidebarNavRef.value.scrollTop));
+    } catch {
+        // Ignore storage error
+    }
+};
+
+const onSidebarScroll = () => {
+    saveSidebarScroll();
+};
+
+const handleLinkClick = () => {
+    isMobileSidebarOpen.value = false;
+    saveSidebarScroll();
+};
+
+const handleLogoClick = () => {
+    isMobileSidebarOpen.value = false;
+    try {
+        sessionStorage.setItem(SIDEBAR_SCROLL_KEY, '0');
+    } catch {
+        // Ignore storage error
+    }
+    if (sidebarNavRef.value) {
+        sidebarNavRef.value.scrollTop = 0;
+    }
+};
+
+const restoreSidebarScroll = () => {
+    if (!sidebarNavRef.value) return;
+    isRestoringScroll.value = true;
+    try {
+        const saved = sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
+        if (saved !== null) {
+            const top = parseInt(saved, 10);
+            if (!isNaN(top)) {
+                sidebarNavRef.value.scrollTop = top;
+            }
+        } else {
+            const activeEl = sidebarNavRef.value.querySelector('.bg-primary-600');
+            if (activeEl) {
+                activeEl.scrollIntoView({ block: 'nearest' });
+            }
+        }
+    } catch {
+        // Ignore storage error
+    } finally {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                isRestoringScroll.value = false;
+            });
+        });
+    }
+};
+
+let removeNavigateListener = null;
+
 onMounted(() => {
     try {
         isCollapsed.value = localStorage.getItem('yzd_investor_sidebar_collapsed') === 'true';
     } catch {
         isCollapsed.value = false;
+    }
+
+    nextTick(() => {
+        restoreSidebarScroll();
+    });
+
+    removeNavigateListener = router.on('finish', () => {
+        nextTick(() => {
+            restoreSidebarScroll();
+        });
+    });
+});
+
+onUnmounted(() => {
+    if (removeNavigateListener) {
+        removeNavigateListener();
     }
 });
 
@@ -83,10 +161,6 @@ const userInitials = computed(() => {
     return name.slice(0, 2).toUpperCase();
 });
 
-const isUserActive = computed(() => {
-    return user.value?.status === 'active' || Boolean(user.value?.is_active);
-});
-
 const navSections = computed(() => {
     const sections = [
         {
@@ -96,20 +170,17 @@ const navSections = computed(() => {
                     label: 'Dashboard',
                     href: '/investor/dashboard',
                     icon: LayoutDashboard,
-                    requiresActive: true,
                 },
                 {
                     label: 'Portofolio Investasi',
                     href: '/investor/investments',
                     icon: Layers,
-                    requiresActive: false,
                     routeName: 'investor.investments.index',
                 },
                 {
                     label: 'Kalkulator Proyeksi',
                     href: '/investor/education/calculator',
                     icon: Calculator,
-                    requiresActive: false,
                     routeName: 'investor.education.calculator',
                 },
             ],
@@ -124,13 +195,11 @@ const navSections = computed(() => {
                     label: 'Jaringan Kemitraan',
                     href: '/investor/affiliates',
                     icon: Network,
-                    requiresActive: true,
                 },
                 {
                     label: 'Klaim Komisi',
                     href: '/investor/commissions',
                     icon: Banknote,
-                    requiresActive: true,
                     routeName: 'investor.commissions.index',
                 },
             ],
@@ -144,21 +213,18 @@ const navSections = computed(() => {
                 label: 'Pusat Bantuan',
                 href: '/investor/education/help',
                 icon: Newspaper,
-                requiresActive: false,
                 routeName: 'investor.education.help',
             },
             {
                 label: 'Tanya Jawab (FAQ)',
                 href: '/investor/education/faq',
                 icon: HelpCircle,
-                requiresActive: false,
                 routeName: 'investor.education.faq',
             },
             {
                 label: 'Glosarium Forex',
                 href: '/investor/education/glossary',
                 icon: BookOpen,
-                requiresActive: false,
                 routeName: 'investor.education.glossary',
             },
         ],
@@ -169,16 +235,6 @@ const navSections = computed(() => {
 
 const isActive = (href) => {
     return page.url.startsWith(href);
-};
-
-const isLocked = (item) => {
-    return Boolean(item.requiresActive && !isUserActive.value);
-};
-
-const handleLockedClick = (item) => {
-    toast.info('Fitur Terkunci', {
-        description: `Menu "${item.label}" belum dapat diakses karena akun Anda masih dalam proses verifikasi oleh Administrator.`,
-    });
 };
 
 const logout = () => {
@@ -222,7 +278,11 @@ const logout = () => {
             <div
                 class="h-16 px-4 flex items-center justify-between"
             >
-                <Link :href="isUserActive ? '/investor/dashboard' : '/investor/account'" class="flex items-center gap-1.5 overflow-hidden mx-auto">
+                <Link
+                    href="/investor/dashboard"
+                    @click="handleLogoClick"
+                    class="flex items-center gap-1.5 overflow-hidden mx-auto"
+                >
                     <span class="text-accent-500 font-black text-2xl tracking-tight shrink-0">YZD</span>
                     <span v-if="!isCollapsed" class="text-primary-600 dark:text-primary-400 font-bold text-xl tracking-tight shrink-0">Center</span>
                     <span
@@ -251,7 +311,11 @@ const logout = () => {
             </div>
 
             <!-- Sidebar Navigation Links -->
-            <nav class="flex-1 overflow-y-auto px-3 py-1 space-y-4 text-sm font-medium">
+            <nav
+                ref="sidebarNavRef"
+                @scroll.passive="onSidebarScroll"
+                class="flex-1 overflow-y-auto px-3 py-1 space-y-4 text-sm font-medium"
+            >
                 <div v-for="(section, idx) in navSections" :key="idx" class="space-y-1">
                     <!-- Section Title (Hidden when collapsed) -->
                     <p
@@ -263,67 +327,35 @@ const logout = () => {
                     <div v-else-if="idx > 0" class="h-px bg-slate-200 dark:bg-slate-800 mx-2 my-2"></div>
 
                     <div class="space-y-1">
-                        <template v-for="item in section.items" :key="item.href">
-                            <!-- Menu Terkunci (Klik memicu Toast) -->
-                            <button
-                                v-if="isLocked(item)"
-                                type="button"
-                                @click="handleLockedClick(item)"
-                                :title="isCollapsed ? `${item.label} (Terkunci)` : `${item.label} (Terkunci - Menunggu verifikasi)`"
-                                :class="[
-                                    'w-full group flex items-center rounded-xl py-2.5 transition-all duration-150 cursor-pointer text-slate-400 dark:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800/60',
-                                    isCollapsed ? 'justify-center px-2' : 'justify-between px-3.5',
-                                ]"
-                            >
-                                <div class="flex items-center gap-3 min-w-0">
-                                    <component
-                                        :is="item.icon"
-                                        class="w-4 h-4 shrink-0 text-slate-300 dark:text-slate-600 transition-colors"
-                                    />
-                                    <span v-if="!isCollapsed" class="truncate font-semibold text-[13px]">
-                                        {{ item.label }}
-                                    </span>
-                                </div>
-
-                                <!-- Gembok Indikator jika menu terkunci -->
-                                <div
-                                    v-if="!isCollapsed"
-                                    class="flex items-center gap-1 text-[11px] text-amber-500 dark:text-amber-400 font-medium shrink-0 ml-2"
-                                >
-                                    <Lock class="w-3.5 h-3.5" />
-                                </div>
-                            </button>
-
-                            <!-- Menu Aktif Normal -->
-                            <Link
-                                v-else
-                                :href="item.href"
-                                @click="isMobileSidebarOpen = false"
-                                :title="isCollapsed ? item.label : undefined"
-                                :class="[
-                                    'group flex items-center rounded-xl py-2.5 transition-all duration-150',
-                                    isCollapsed ? 'justify-center px-2' : 'justify-between px-3.5',
-                                    isActive(item.href)
-                                        ? 'bg-primary-600 text-white font-semibold shadow-xs'
-                                        : 'text-slate-700 dark:text-slate-300 font-semibold hover:bg-primary-50 dark:hover:bg-primary-950/40 hover:text-primary-600 dark:hover:text-primary-400',
-                                ]"
-                            >
-                                <div class="flex items-center gap-3 min-w-0">
-                                    <component
-                                        :is="item.icon"
-                                        :class="[
-                                            'w-4 h-4 shrink-0 transition-colors',
-                                            isActive(item.href)
-                                                ? 'text-white'
-                                                : 'text-slate-500 dark:text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400',
-                                        ]"
-                                    />
-                                    <span v-if="!isCollapsed" class="truncate font-semibold text-[13px]">
-                                        {{ item.label }}
-                                    </span>
-                                </div>
-                            </Link>
-                        </template>
+                        <Link
+                            v-for="item in section.items"
+                            :key="item.href"
+                            :href="item.href"
+                            @click="handleLinkClick"
+                            :title="isCollapsed ? item.label : undefined"
+                            :class="[
+                                'group flex items-center rounded-xl py-2.5 transition-all duration-150',
+                                isCollapsed ? 'justify-center px-2' : 'justify-between px-3.5',
+                                isActive(item.href)
+                                    ? 'bg-primary-600 text-white font-semibold shadow-xs'
+                                    : 'text-slate-700 dark:text-slate-300 font-semibold hover:bg-primary-50 dark:hover:bg-primary-950/40 hover:text-primary-600 dark:hover:text-primary-400',
+                            ]"
+                        >
+                            <div class="flex items-center gap-3 min-w-0">
+                                <component
+                                    :is="item.icon"
+                                    :class="[
+                                        'w-4 h-4 shrink-0 transition-colors',
+                                        isActive(item.href)
+                                            ? 'text-white'
+                                            : 'text-slate-500 dark:text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400',
+                                    ]"
+                                />
+                                <span v-if="!isCollapsed" class="truncate font-semibold text-[13px]">
+                                    {{ item.label }}
+                                </span>
+                            </div>
+                        </Link>
                     </div>
                 </div>
             </nav>

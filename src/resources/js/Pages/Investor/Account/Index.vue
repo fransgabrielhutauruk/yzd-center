@@ -29,6 +29,7 @@ import {
     Check,
     Edit3,
 } from 'lucide-vue-next';
+import AppButton from '@/Components/Common/AppButton.vue';
 
 const props = defineProps({
     user: {
@@ -58,9 +59,7 @@ const previewModal = ref({
 });
 
 const openPreview = (title, url, mimeType) => {
-    const freshUrl = url
-        ? `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`
-        : '';
+    const freshUrl = url ? `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}` : '';
 
     previewModal.value = {
         isOpen: true,
@@ -87,6 +86,7 @@ const canReuploadKtp = computed(() => {
     if (props.dokumen.ktp.status === 'approved') return false;
     return (
         props.dokumen.ktp.status === 'revision_needed' ||
+        props.dokumen.ktp.status === 'rejected' ||
         (props.dokumen.ktp.status === 'pending' && props.dokumen.ktp.is_quality_warning) ||
         showKtpReupload.value
     );
@@ -136,69 +136,6 @@ const submitKtpReupload = () => {
     });
 };
 
-// State Unggah Ulang Perjanjian
-const perjanjianForm = useForm({
-    file: null,
-});
-const perjanjianProcessing = ref(false);
-const perjanjianInfo = ref(null);
-const showPerjanjianReupload = ref(false);
-
-const canReuploadPerjanjian = computed(() => {
-    if (!props.dokumen?.perjanjian) return false;
-    if (props.dokumen.perjanjian.status === 'approved') return false;
-    return (
-        props.dokumen.perjanjian.status === 'revision_needed' ||
-        (props.dokumen.perjanjian.status === 'pending' &&
-            props.dokumen.perjanjian.is_quality_warning) ||
-        showPerjanjianReupload.value
-    );
-});
-
-const handlePerjanjianChange = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    perjanjianProcessing.value = true;
-    try {
-        const result = await compressImageFile(file);
-        if (result) {
-            perjanjianForm.file = result.file;
-            perjanjianInfo.value = {
-                name: file.name,
-                isQualityWarning: result.isQualityWarning || false,
-                warningMessage: result.warningMessage || null,
-            };
-            if (result.isQualityWarning) {
-                toast.warning(
-                    'Peringatan: Surat perjanjian terindikasi resolusi rendah atau sedikit buram.'
-                );
-            }
-        }
-    } catch (e) {
-        toast.error('Gagal memproses berkas perjanjian.');
-    } finally {
-        perjanjianProcessing.value = false;
-    }
-};
-
-const submitPerjanjianReupload = () => {
-    if (!perjanjianForm.file) {
-        toast.error('Pilih berkas perjanjian baru terlebih dahulu.');
-        return;
-    }
-
-    perjanjianForm.post('/investor/account/reupload/perjanjian', {
-        forceFormData: true,
-        preserveScroll: true,
-        onSuccess: () => {
-            perjanjianForm.reset();
-            perjanjianInfo.value = null;
-            showPerjanjianReupload.value = false;
-        },
-    });
-};
-
 const getStatusBadge = (status) => {
     switch (status) {
         case 'approved':
@@ -233,7 +170,7 @@ const getStatusBadge = (status) => {
 <template>
     <InvestorLayout
         title="Informasi Akun"
-        subtitle="Informasi identitas diri, status verifikasi dokumen pendaftaran, dan data perlindungan hak ahli waris."
+        subtitle="Informasi identitas diri, data ahli waris, status verifikasi dokumen pendaftaran, dan surat perjanjian investasi."
         :breadcrumbs="[{ label: 'Profil' }, { label: 'Informasi Akun' }]"
     >
         <div class="space-y-6">
@@ -253,38 +190,40 @@ const getStatusBadge = (status) => {
                                 <span class="text-muted-foreground block text-[11px]"
                                     >Nama Lengkap</span
                                 >
-                                <span class="text-foreground">{{ user.name }}</span>
+                                <span class="text-foreground font-semibold">{{ user.name }}</span>
                             </div>
 
                             <div>
                                 <span class="text-muted-foreground block text-[11px]"
                                     >Username</span
                                 >
-                                <span class="text-foreground">{{ user.username }}</span>
+                                <span class="text-foreground font-semibold">{{
+                                    user.username
+                                }}</span>
                             </div>
 
                             <div>
                                 <span class="text-muted-foreground block text-[11px]">Email</span>
-                                <span class="text-foreground">{{ user.email }}</span>
+                                <span class="text-foreground font-semibold">{{ user.email }}</span>
                             </div>
 
                             <div>
                                 <span class="text-muted-foreground block text-[11px]"
                                     >Nomor WhatsApp/HP</span
                                 >
-                                <span class="text-foreground">{{ user.phone }}</span>
+                                <span class="text-foreground font-semibold">{{ user.phone }}</span>
                             </div>
 
                             <div>
                                 <span class="text-muted-foreground block text-[11px]">NIK</span>
-                                <span class="text-foreground font-mono">{{ user.nik }}</span>
+                                <span class="text-foreground font-semibold">{{ user.nik }}</span>
                             </div>
 
                             <div v-if="user.tempat_lahir || user.tanggal_lahir">
                                 <span class="text-muted-foreground block text-[11px]"
                                     >Tempat, Tanggal Lahir</span
                                 >
-                                <span class="text-foreground font-medium">
+                                <span class="text-foreground font-semibold">
                                     {{
                                         [user.tempat_lahir, user.tanggal_lahir]
                                             .filter(Boolean)
@@ -297,14 +236,14 @@ const getStatusBadge = (status) => {
                                 <span class="text-muted-foreground block text-[11px]"
                                     >Pekerjaan / Sumber Dana</span
                                 >
-                                <span class="text-foreground font-medium">{{
+                                <span class="text-foreground font-semibold">{{
                                     user.pekerjaan
                                 }}</span>
                             </div>
 
                             <div>
                                 <span class="text-muted-foreground block text-[11px]">Alamat</span>
-                                <span class="text-foreground leading-relaxed">{{
+                                <span class="text-foreground leading-relaxed font-semibold">{{
                                     user.alamat
                                 }}</span>
                             </div>
@@ -325,14 +264,16 @@ const getStatusBadge = (status) => {
                                 <span class="text-muted-foreground block text-[11px]"
                                     >Nama Ahli Waris</span
                                 >
-                                <span class="text-foreground">{{ ahli_waris.nama }}</span>
+                                <span class="text-foreground font-semibold">{{
+                                    ahli_waris.nama
+                                }}</span>
                             </div>
 
                             <div>
                                 <span class="text-muted-foreground block text-[11px]"
                                     >Hubungan</span
                                 >
-                                <span class="text-foreground">{{
+                                <span class="text-foreground font-semibold">{{
                                     ahli_waris.hubungan_keluarga
                                 }}</span>
                             </div>
@@ -341,14 +282,16 @@ const getStatusBadge = (status) => {
                                 <span class="text-muted-foreground block text-[11px]"
                                     >Kontak Darurat</span
                                 >
-                                <span class="text-foreground">{{ ahli_waris.no_hp }}</span>
+                                <span class="text-foreground font-semibold">{{
+                                    ahli_waris.no_hp
+                                }}</span>
                             </div>
 
                             <div v-if="ahli_waris.alamat">
                                 <span class="text-muted-foreground block text-[11px]"
                                     >Alamat Domisili Ahli Waris</span
                                 >
-                                <span class="text-foreground leading-relaxed">{{
+                                <span class="text-foreground leading-relaxed font-semibold">{{
                                     ahli_waris.alamat
                                 }}</span>
                             </div>
@@ -362,7 +305,6 @@ const getStatusBadge = (status) => {
 
                 <!-- Kolom Kanan: Status & Re-upload Berkas Dokumen (2 Col) -->
                 <div class="space-y-6">
-
                     <!-- ========================================== -->
                     <!-- DOKUMEN 1: FOTO KTP                        -->
                     <!-- ========================================== -->
@@ -404,38 +346,32 @@ const getStatusBadge = (status) => {
                                     </p>
                                     <p class="text-muted-foreground text-[11px]">
                                         <span v-if="dokumen.ktp.verified_at">
-                                            &bull; Diverifikasi:
-                                            {{
-                                                new Date(
-                                                    dokumen.ktp.verified_at
-                                                ).toLocaleDateString('id-ID')
-                                            }}</span
-                                        >
+                                            Diverifikasi: {{ dokumen.ktp.verified_at }}
+                                        </span>
                                     </p>
                                 </div>
 
                                 <div class="flex shrink-0 items-center gap-2">
-                                    <Button
+                                    <AppButton
                                         v-if="
                                             dokumen.ktp.status === 'pending' &&
                                             !dokumen.ktp.is_quality_warning &&
                                             !showKtpReupload
                                         "
-                                        type="button"
+                                        type="custom"
                                         variant="ghost"
                                         size="sm"
-                                        class="text-muted-foreground flex items-center gap-1.5 text-xs hover:text-white"
+                                        label="Ganti Berkas"
+                                        :icon="Edit3"
                                         @click="showKtpReupload = true"
-                                    >
-                                        <Edit3 class="h-3.5 w-3.5" />
-                                        <span>Ganti Berkas</span>
-                                    </Button>
+                                    />
 
-                                    <Button
-                                        type="button"
+                                    <AppButton
+                                        type="custom"
+                                        label="Lihat"
+                                        :icon="Eye"
                                         variant="outline"
                                         size="sm"
-                                        class="flex items-center gap-1.5 text-xs"
                                         @click="
                                             openPreview(
                                                 'Foto KTP - ' + user.name,
@@ -443,10 +379,7 @@ const getStatusBadge = (status) => {
                                                 dokumen.ktp.mime_type
                                             )
                                         "
-                                    >
-                                        <Eye class="h-3.5 w-3.5" />
-                                        <span>Lihat Berkas</span>
-                                    </Button>
+                                    />
                                 </div>
                             </div>
 
@@ -497,8 +430,9 @@ const getStatusBadge = (status) => {
                                         class="text-foreground text-xs font-bold tracking-wider uppercase"
                                     >
                                         {{
-                                            dokumen.ktp.status === 'revision_needed'
-                                                ? 'Unggah Ulang Foto KTP Revisi'
+                                            dokumen.ktp.status === 'revision_needed' ||
+                                            dokumen.ktp.status === 'rejected'
+                                                ? 'Unggah Ulang Foto KTP'
                                                 : dokumen.ktp.is_quality_warning
                                                   ? 'Perbaiki & Unggah Ulang Foto KTP'
                                                   : 'Ganti Foto KTP'
@@ -592,8 +526,9 @@ const getStatusBadge = (status) => {
                                         <span>{{
                                             ktpForm.processing
                                                 ? 'Mengunggah Berkas...'
-                                                : dokumen.ktp.status === 'revision_needed'
-                                                  ? 'Kirim Berkas KTP Revisi'
+                                                : dokumen.ktp.status === 'revision_needed' ||
+                                                    dokumen.ktp.status === 'rejected'
+                                                  ? 'Kirim Berkas KTP'
                                                   : 'Kirim Pembaruan Foto KTP'
                                         }}</span>
                                     </Button>
@@ -634,7 +569,7 @@ const getStatusBadge = (status) => {
                             </div>
                         </div>
 
-                        <!-- Info Berkas Terunggah -->
+                        <!-- Info Berkas Terunggah (Hanya Disetujui) -->
                         <div v-if="dokumen.perjanjian" class="space-y-4">
                             <div
                                 class="bg-muted/40 border-border flex flex-col items-start justify-between gap-4 rounded-xl border p-3 sm:flex-row sm:items-center"
@@ -647,38 +582,18 @@ const getStatusBadge = (status) => {
                                     </p>
                                     <p class="text-muted-foreground text-[11px]">
                                         <span v-if="dokumen.perjanjian.verified_at">
-                                            &bull; Diverifikasi:
-                                            {{
-                                                new Date(
-                                                    dokumen.perjanjian.verified_at
-                                                ).toLocaleDateString('id-ID')
-                                            }}</span
-                                        >
+                                            Diverifikasi: {{ dokumen.perjanjian.verified_at }}
+                                        </span>
                                     </p>
                                 </div>
 
                                 <div class="flex shrink-0 items-center gap-2">
-                                    <Button
-                                        v-if="
-                                            dokumen.perjanjian.status === 'pending' &&
-                                            !dokumen.perjanjian.is_quality_warning &&
-                                            !showPerjanjianReupload
-                                        "
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        class="text-muted-foreground flex items-center gap-1.5 text-xs hover:text-white"
-                                        @click="showPerjanjianReupload = true"
-                                    >
-                                        <Edit3 class="h-3.5 w-3.5" />
-                                        <span>Ganti Berkas</span>
-                                    </Button>
-
-                                    <Button
-                                        type="button"
+                                    <AppButton
+                                        type="custom"
+                                        label="Lihat"
+                                        :icon="Eye"
                                         variant="outline"
                                         size="sm"
-                                        class="flex items-center gap-1.5 text-xs"
                                         @click="
                                             openPreview(
                                                 'Surat Perjanjian - ' + user.name,
@@ -686,169 +601,14 @@ const getStatusBadge = (status) => {
                                                 dokumen.perjanjian.mime_type
                                             )
                                         "
-                                    >
-                                        <Eye class="h-3.5 w-3.5" />
-                                        <span>Lihat Berkas</span>
-                                    </Button>
+                                    />
                                 </div>
-                            </div>
-
-                            <!-- Quality Warning Notification -->
-                            <div
-                                v-if="
-                                    dokumen.perjanjian.is_quality_warning &&
-                                    dokumen.perjanjian.status !== 'approved'
-                                "
-                                class="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-800 dark:text-amber-200"
-                            >
-                                <AlertCircle
-                                    class="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
-                                />
-                                <div class="space-y-1">
-                                    <p class="font-bold">Peringatan Kualitas Dokumen</p>
-                                    <p class="leading-relaxed">
-                                        Berkas Surat Perjanjian yang Anda unggah terindikasi
-                                        memiliki ketajaman rendah atau resolusi kecil. Agar proses
-                                        verifikasi tidak terhambat, Anda disarankan mengunggah ulang
-                                        berkas baru atau hasil scan PDF yang lebih jelas.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <!-- Catatan Verifikator -->
-                            <div
-                                v-if="
-                                    dokumen.perjanjian.catatan_admin &&
-                                    dokumen.perjanjian.status !== 'approved'
-                                "
-                                class="bg-muted/70 border-border space-y-1 rounded-xl border p-3.5 text-xs"
-                            >
-                                <span class="text-foreground block font-bold">
-                                    Catatan Administrator:
-                                </span>
-                                <p class="text-muted-foreground leading-relaxed italic">
-                                    "{{ dokumen.perjanjian.catatan_admin }}"
-                                </p>
-                            </div>
-
-                            <!-- FORM RE-UPLOAD PERJANJIAN -->
-                            <div
-                                v-if="canReuploadPerjanjian"
-                                class="border-border mt-4 space-y-3 border-t pt-4"
-                            >
-                                <div class="flex items-center justify-between">
-                                    <h4
-                                        class="text-foreground text-xs font-bold tracking-wider uppercase"
-                                    >
-                                        {{
-                                            dokumen.perjanjian.status === 'revision_needed'
-                                                ? 'Unggah Ulang Surat Perjanjian Revisi'
-                                                : dokumen.perjanjian.is_quality_warning
-                                                  ? 'Perbaiki & Unggah Ulang Surat Perjanjian'
-                                                  : 'Ganti Surat Perjanjian'
-                                        }}
-                                    </h4>
-                                    <button
-                                        v-if="
-                                            showPerjanjianReupload &&
-                                            dokumen.perjanjian.status === 'pending' &&
-                                            !dokumen.perjanjian.is_quality_warning
-                                        "
-                                        type="button"
-                                        class="text-muted-foreground hover:text-foreground text-xs"
-                                        @click="showPerjanjianReupload = false"
-                                    >
-                                        Batal
-                                    </button>
-                                </div>
-
-                                <form @submit.prevent="submitPerjanjianReupload" class="space-y-3">
-                                    <div
-                                        class="border-input hover:border-primary-500 bg-background/50 relative cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-all"
-                                    >
-                                        <input
-                                            type="file"
-                                            accept="image/jpeg,image/png,image/jpg,application/pdf"
-                                            @change="handlePerjanjianChange"
-                                            class="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
-                                        />
-
-                                        <div
-                                            v-if="perjanjianProcessing"
-                                            class="flex items-center justify-center gap-2 py-2 text-xs font-semibold"
-                                        >
-                                            <Loader2
-                                                class="text-primary-600 h-4 w-4 animate-spin"
-                                            />
-                                            <span>Memeriksa berkas...</span>
-                                        </div>
-
-                                        <div v-else-if="perjanjianInfo" class="space-y-1.5 text-xs">
-                                            <p
-                                                class="text-foreground flex items-center justify-center gap-1.5 px-2 font-semibold break-all"
-                                            >
-                                                <Check class="h-4 w-4 shrink-0 text-emerald-600" />
-                                                <span>{{ perjanjianInfo.name }}</span>
-                                            </p>
-
-                                            <!-- Peringatan Kualitas File Baru -->
-                                            <div
-                                                v-if="perjanjianInfo.isQualityWarning"
-                                                class="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-left text-xs text-amber-800 dark:text-amber-200"
-                                            >
-                                                <AlertCircle
-                                                    class="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400"
-                                                />
-                                                <p class="text-[11px] leading-relaxed">
-                                                    {{
-                                                        perjanjianInfo.warningMessage ||
-                                                        'Berkas baru ini terindikasi kurang tajam atau buram. Disarankan memilih foto atau scan PDF yang lebih jelas.'
-                                                    }}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div
-                                            v-else
-                                            class="flex flex-col items-center justify-center space-y-1 py-2"
-                                        >
-                                            <UploadCloud class="h-6 w-6 text-emerald-600" />
-                                            <p class="text-foreground text-xs font-semibold">
-                                                Klik untuk memilih berkas perjanjian baru
-                                            </p>
-                                            <p class="text-muted-foreground text-[10px]">
-                                                Maksimal 10 MB (JPG, PNG, atau PDF)
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <Button
-                                        type="submit"
-                                        :disabled="
-                                            perjanjianForm.processing ||
-                                            !perjanjianForm.file ||
-                                            perjanjianProcessing
-                                        "
-                                        class="bg-primary-600 hover:bg-primary-700 w-full rounded-lg py-2 text-xs text-white"
-                                    >
-                                        <Loader2
-                                            v-if="perjanjianForm.processing"
-                                            class="mr-1 h-3.5 w-3.5 animate-spin"
-                                        />
-                                        <span>{{
-                                            perjanjianForm.processing
-                                                ? 'Mengunggah Berkas...'
-                                                : dokumen.perjanjian.status === 'revision_needed'
-                                                  ? 'Kirim Surat Perjanjian Revisi'
-                                                  : 'Kirim Pembaruan Surat Perjanjian'
-                                        }}</span>
-                                    </Button>
-                                </form>
                             </div>
                         </div>
 
                         <div v-else class="text-muted-foreground text-xs italic">
-                            Berkas perjanjian belum pernah diunggah.
+                            Belum ada berkas surat perjanjian yang disetujui. Berkas perjanjian
+                            disertakan dan diverifikasi saat pendaftaran akun copytrade (investasi).
                         </div>
                     </div>
                 </div>

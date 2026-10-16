@@ -149,7 +149,7 @@ class RegistrationController extends Controller
 
         $validated = $request->validate([
             'status'        => ['required', 'string', 'in:approved,revision_needed'],
-            'catatan_admin' => ['nullable', 'string', 'max:500'],
+            'catatan_admin' => ['nullable', 'string', 'max:20000'],
         ], [
             'status.required' => 'Pilih status verifikasi berkas.',
             'status.in'       => 'Pilihan status verifikasi tidak valid. Hanya disetujui atau minta revisi yang diperbolehkan.',

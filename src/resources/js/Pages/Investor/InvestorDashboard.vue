@@ -53,8 +53,8 @@ const nextStep = computed(() => {
         return {
             icon: Link2,
             tone: 'primary',
-            title: 'Daftarkan akun investasi pertama Anda',
-            desc: 'Hubungkan akun trading untuk mulai copy trade dan memantau portofolio.',
+            title: 'Daftarkan akun copytrade (investasi) pertama Anda',
+            desc: 'Hubungkan akun copytrade (investasi) dan memantau portofolio.',
             cta: 'Daftarkan Akun Investasi',
             href: INVESTMENTS_URL,
         };
@@ -63,8 +63,8 @@ const nextStep = computed(() => {
         return {
             icon: Clock,
             tone: 'amber',
-            title: 'Akun trading menunggu verifikasi',
-            desc: `Administrator sedang meninjau ${d.portfolio.pending_accounts_count} akun trading Anda. Saldo dan statistik tampil setelah akun aktif.`,
+            title: 'Akun copytrade (investasi) menunggu verifikasi',
+            desc: `Administrator sedang meninjau ${d.portfolio.pending_accounts_count} akun Anda. Saldo dan statistik tampil setelah akun aktif.`,
             cta: 'Lihat Status Akun',
             href: INVESTMENTS_URL,
         };
@@ -118,7 +118,7 @@ const shortcuts = [
     <InvestorLayout
         :title="`Selamat Datang, ${user.name}!`"
         subtitle="Ringkasan investasi Anda dan langkah berikutnya bulan ini."
-        :breadcrumbs="[{ label: 'Menu Utama' }, { label: 'Dasbor Portofolio' }]"
+        :breadcrumbs="[{ label: 'Menu Utama' }, { label: 'Dashboard' }]"
     >
 
         <div class="space-y-6">

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AkunCopytrade;
 use App\Models\User;
 use App\Models\UserDokumen;
 use App\Notifications\KycDocumentReuploadedNotification;
@@ -65,7 +66,7 @@ class KycService
             return $this->uploadDocument($user, $file, $type);
         }
 
-        if ($existing->status !== 'revision_needed' && $existing->status !== 'pending') {
+        if ($existing->status === 'approved') {
             throw ValidationException::withMessages([
                 $type => 'Berkas ini telah disetujui dan tidak dapat diunggah ulang kecuali diminta oleh Administrator.',
             ]);
@@ -90,6 +91,14 @@ class KycService
             'verified_at'        => null,
             'verified_by'        => null,
         ]);
+
+        if ($type === 'perjanjian') {
+            AkunCopytrade::where('user_id', $user->id)
+                ->where('status', '!=', 'active')
+                ->latest('id')
+                ->first()
+                ?->update(['surat_perjanjian_path' => $storedPath]);
+        }
 
         $this->syncUserStatus($user);
 

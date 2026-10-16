@@ -60,7 +60,7 @@ const resetFilter = () => {
 <template>
     <InvestorLayout
         title="Kamus & Glosarium Forex"
-        subtitle="Pahami istilah-istilah penting dalam dunia trading dan copytrade dengan bahasa yang ramah bagi pemula."
+        subtitle="Pahami istilah-istilah dalam trading dan copytrade dengan bahasa yang ramah bagi pemula."
         :breadcrumbs="[
             { label: 'Bantuan & Edukasi' },
             { label: 'Glosarium Forex' }

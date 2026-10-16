@@ -192,7 +192,7 @@ const downloadAgreementTemplate = () => {
         });
 
         window.open(`${url}?${params.toString()}`, '_blank');
-        toast.success('Mengunduh draf template surat perjanjian Word (.docx)...');
+        toast.success('Mengunduh draf template surat perjanjian Word (.docx)');
     } catch {
         toast.error('Gagal mengunduh template surat perjanjian.');
     } finally {

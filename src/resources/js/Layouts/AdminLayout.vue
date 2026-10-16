@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue';
 import { Head, Link, usePage, router } from '@inertiajs/vue3';
 import {
     LayoutDashboard,
@@ -50,11 +50,90 @@ const isMobileSidebarOpen = ref(false);
 const isUserDropdownOpen = ref(false);
 const isCollapsed = ref(false);
 
+const SIDEBAR_SCROLL_KEY = 'yzd_admin_sidebar_scroll';
+const sidebarNavRef = ref(null);
+const isRestoringScroll = ref(false);
+
+const saveSidebarScroll = () => {
+    if (!sidebarNavRef.value || isRestoringScroll.value) return;
+    try {
+        sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(sidebarNavRef.value.scrollTop));
+    } catch {
+        // Ignore storage error
+    }
+};
+
+const onSidebarScroll = () => {
+    saveSidebarScroll();
+};
+
+const handleLinkClick = () => {
+    isMobileSidebarOpen.value = false;
+    saveSidebarScroll();
+};
+
+const handleLogoClick = () => {
+    isMobileSidebarOpen.value = false;
+    try {
+        sessionStorage.setItem(SIDEBAR_SCROLL_KEY, '0');
+    } catch {
+        // Ignore storage error
+    }
+    if (sidebarNavRef.value) {
+        sidebarNavRef.value.scrollTop = 0;
+    }
+};
+
+const restoreSidebarScroll = () => {
+    if (!sidebarNavRef.value) return;
+    isRestoringScroll.value = true;
+    try {
+        const saved = sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
+        if (saved !== null) {
+            const top = parseInt(saved, 10);
+            if (!isNaN(top)) {
+                sidebarNavRef.value.scrollTop = top;
+            }
+        } else {
+            const activeEl = sidebarNavRef.value.querySelector('.bg-primary-600');
+            if (activeEl) {
+                activeEl.scrollIntoView({ block: 'nearest' });
+            }
+        }
+    } catch {
+        // Ignore storage error
+    } finally {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                isRestoringScroll.value = false;
+            });
+        });
+    }
+};
+
+let removeNavigateListener = null;
+
 onMounted(() => {
     try {
         isCollapsed.value = localStorage.getItem('yzd_admin_sidebar_collapsed') === 'true';
     } catch {
         isCollapsed.value = false;
+    }
+
+    nextTick(() => {
+        restoreSidebarScroll();
+    });
+
+    removeNavigateListener = router.on('finish', () => {
+        nextTick(() => {
+            restoreSidebarScroll();
+        });
+    });
+});
+
+onUnmounted(() => {
+    if (removeNavigateListener) {
+        removeNavigateListener();
     }
 });
 
@@ -212,6 +291,7 @@ const logout = () => {
             <div class="flex h-16 items-center justify-between px-4">
                 <Link
                     href="/admin/dashboard"
+                    @click="handleLogoClick"
                     class="mx-auto flex items-center gap-1.5 overflow-hidden"
                 >
                     <span class="text-accent-500 shrink-0 text-2xl font-black tracking-tight"
@@ -243,7 +323,11 @@ const logout = () => {
             </div>
 
             <!-- Sidebar Navigation Links -->
-            <nav class="flex-1 space-y-4 overflow-y-auto px-3 py-1 text-sm font-medium">
+            <nav
+                ref="sidebarNavRef"
+                @scroll.passive="onSidebarScroll"
+                class="flex-1 space-y-4 overflow-y-auto px-3 py-1 text-sm font-medium"
+            >
                 <div v-for="(section, idx) in navSections" :key="idx" class="space-y-1">
                     <!-- Section Title (Hidden when collapsed) -->
                     <p
@@ -258,7 +342,7 @@ const logout = () => {
                             v-for="item in section.items"
                             :key="item.href"
                             :href="item.href"
-                            @click="isMobileSidebarOpen = false"
+                            @click="handleLinkClick"
                             :title="isCollapsed ? item.label : undefined"
                             :class="[
                                 'group flex items-center rounded-xl py-2.5 transition-all duration-150',

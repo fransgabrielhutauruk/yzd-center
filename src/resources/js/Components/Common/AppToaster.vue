@@ -36,7 +36,7 @@ watch(
 <template>
     <Toaster
         :theme="isDark ? 'dark' : 'light'"
-        position="top-right"
+        position="top-center"
         rich-colors
         close-button
         :duration="3500"

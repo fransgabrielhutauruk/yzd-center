@@ -530,7 +530,7 @@ class AuthTest extends TestCase
         $response->assertRedirect(route('investor.dashboard'));
     }
 
-    public function test_unverified_investor_is_redirected_to_kyc_after_login(): void
+    public function test_unverified_investor_is_redirected_to_dashboard_after_login(): void
     {
         $investor = User::factory()->pending()->create([
             'email'    => 'pending_investor@example.com',
@@ -543,26 +543,26 @@ class AuthTest extends TestCase
         ]);
 
         $this->assertAuthenticatedAs($investor);
-        $response->assertRedirect(route('investor.account'));
+        $response->assertRedirect(route('investor.dashboard'));
     }
 
-    public function test_unverified_investor_accessing_dashboard_is_redirected_to_account(): void
+    public function test_unverified_investor_can_access_dashboard(): void
     {
         $investor = User::factory()->pending()->create();
 
         $response = $this->actingAs($investor)->get('/investor/dashboard');
 
-        $response->assertRedirect(route('investor.account'));
-        $response->assertSessionHas('error');
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page->component('Investor/InvestorDashboard'));
     }
 
-    public function test_unverified_investor_accessing_root_is_redirected_to_account(): void
+    public function test_unverified_investor_accessing_root_is_redirected_to_dashboard(): void
     {
         $investor = User::factory()->pending()->create();
 
         $response = $this->actingAs($investor)->get('/');
 
-        $response->assertRedirect(route('investor.account'));
+        $response->assertRedirect(route('investor.dashboard'));
     }
 
     public function test_unverified_investor_can_access_account_page(): void

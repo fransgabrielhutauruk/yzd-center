@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AkunCopytrade;
 use App\Models\User;
+use App\Models\UserDokumen;
 use App\Notifications\CopytradeAccountStatusChangedNotification;
 use App\Notifications\NewCopytradeSubmittedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -322,6 +323,164 @@ class CopytradeTest extends TestCase
             $this->investor,
             CopytradeAccountStatusChangedNotification::class,
             fn ($n) => $n->status === 'rejected' && $n->notes === 'Nomor akun trading MT4 tidak ditemukan di server broker.'
+        );
+    }
+
+    public function test_admin_rejects_first_copytrade_updates_agreement_document_status_to_rejected(): void
+    {
+        Notification::fake();
+
+        $file = UploadedFile::fake()->create('surat_perjanjian.pdf', 500, 'application/pdf');
+        $storedPath = $file->store("copytrade_agreements/{$this->investor->id}", 'local');
+
+        $dokumen = UserDokumen::create([
+            'user_id'      => $this->investor->id,
+            'tipe_dokumen' => 'perjanjian',
+            'file_path'    => $storedPath,
+            'file_name'    => 'surat_perjanjian.pdf',
+            'mime_type'    => 'application/pdf',
+            'file_size'    => 500000,
+            'status'       => 'pending',
+        ]);
+
+        $akun = AkunCopytrade::create([
+            'user_id'               => $this->investor->id,
+            'tier'                  => 'tier_1',
+            'broker'                => 'HFM',
+            'tipe_akun'             => 'cent',
+            'nomor_akun_trading'    => '11223344',
+            'modal_riil'            => 1000,
+            'tanggal_mulai'         => '2026-03-01',
+            'nama_bank'             => 'BCA',
+            'nomor_rekening'        => '1234567890',
+            'atas_nama_rekening'    => 'Investor Tester',
+            'status'                => 'pending',
+            'surat_perjanjian_path' => $storedPath,
+        ]);
+
+        $response = $this->actingAs($this->admin)->post("/admin/copytrade/{$akun->id}/verify", [
+            'status'        => 'rejected',
+            'catatan_admin' => 'Tanda tangan pada surat perjanjian tidak sesuai dengan KTP.',
+        ]);
+
+        $response->assertSessionHas('success');
+
+        $akun->refresh();
+        $this->assertEquals('rejected', $akun->status);
+
+        $dokumen->refresh();
+        $this->assertEquals('rejected', $dokumen->status);
+        $this->assertEquals('Tanda tangan pada surat perjanjian tidak sesuai dengan KTP.', $dokumen->catatan_admin);
+        $this->assertEquals($this->admin->id, $dokumen->verified_by);
+        $this->assertNotNull($dokumen->verified_at);
+    }
+
+    public function test_admin_rejects_subsequent_copytrade_does_not_affect_approved_agreement(): void
+    {
+        Notification::fake();
+
+        $file = UploadedFile::fake()->create('surat_perjanjian.pdf', 500, 'application/pdf');
+        $storedPath = $file->store("copytrade_agreements/{$this->investor->id}", 'local');
+
+        // Perjanjian awal sudah disetujui bersama akun pertama
+        $dokumen = UserDokumen::create([
+            'user_id'      => $this->investor->id,
+            'tipe_dokumen' => 'perjanjian',
+            'file_path'    => $storedPath,
+            'file_name'    => 'surat_perjanjian.pdf',
+            'mime_type'    => 'application/pdf',
+            'file_size'    => 500000,
+            'status'       => 'approved',
+            'verified_at'  => now()->subDay(),
+            'verified_by'  => $this->admin->id,
+        ]);
+
+        // Akun pertama sudah aktif
+        AkunCopytrade::create([
+            'user_id'               => $this->investor->id,
+            'tier'                  => 'tier_1',
+            'broker'                => 'HFM',
+            'tipe_akun'             => 'cent',
+            'nomor_akun_trading'    => '11223344',
+            'modal_riil'            => 1000,
+            'tanggal_mulai'         => '2026-03-01',
+            'nama_bank'             => 'BCA',
+            'nomor_rekening'        => '1234567890',
+            'atas_nama_rekening'    => 'Investor Tester',
+            'status'                => 'active',
+            'surat_perjanjian_path' => $storedPath,
+        ]);
+
+        // Pengajuan akun kedua (pending)
+        $akun2 = AkunCopytrade::create([
+            'user_id'               => $this->investor->id,
+            'tier'                  => 'tier_2',
+            'broker'                => 'XM',
+            'tipe_akun'             => 'standard',
+            'nomor_akun_trading'    => '55667788',
+            'modal_riil'            => 10000,
+            'tanggal_mulai'         => '2026-04-01',
+            'nama_bank'             => 'BCA',
+            'nomor_rekening'        => '1234567890',
+            'atas_nama_rekening'    => 'Investor Tester',
+            'status'                => 'pending',
+            'surat_perjanjian_path' => $storedPath,
+        ]);
+
+        $response = $this->actingAs($this->admin)->post("/admin/copytrade/{$akun2->id}/verify", [
+            'status'        => 'rejected',
+            'catatan_admin' => 'Nomor akun kedua salah.',
+        ]);
+
+        $response->assertSessionHas('success');
+
+        $akun2->refresh();
+        $this->assertEquals('rejected', $akun2->status);
+
+        // Dokumen perjanjian awal tetap berstatus approved
+        $dokumen->refresh();
+        $this->assertEquals('approved', $dokumen->status);
+    }
+
+    public function test_account_page_only_displays_approved_agreement_and_disallows_modification(): void
+    {
+        $file = UploadedFile::fake()->create('surat_perjanjian.pdf', 500, 'application/pdf');
+        $storedPath = $file->store("copytrade_agreements/{$this->investor->id}", 'local');
+
+        $dokumen = UserDokumen::create([
+            'user_id'       => $this->investor->id,
+            'tipe_dokumen'  => 'perjanjian',
+            'file_path'     => $storedPath,
+            'file_name'     => 'surat_perjanjian.pdf',
+            'mime_type'     => 'application/pdf',
+            'file_size'     => 500000,
+            'status'        => 'rejected',
+            'catatan_admin' => 'Tanda tangan buram.',
+        ]);
+
+        // 1. Dokumen yang ditolak / belum disetujui TIDAK ditampilkan pada halaman account
+        $response = $this->actingAs($this->investor)->get('/investor/account');
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Investor/Account/Index')
+            ->where('dokumen.perjanjian', null)
+        );
+
+        // 2. Fungsional pengubahan / unggah ulang surat perjanjian di halaman account ditiadakan (404)
+        $fileBaru = UploadedFile::fake()->create('surat_perjanjian_revisi.pdf', 600, 'application/pdf');
+        $reuploadResponse = $this->actingAs($this->investor)->post('/investor/account/reupload/perjanjian', [
+            'file' => $fileBaru,
+        ]);
+        $reuploadResponse->assertStatus(404);
+
+        // 3. Hanya dokumen perjanjian yang telah berstatus approved yang ditampilkan
+        $dokumen->update(['status' => 'approved', 'verified_at' => now(), 'verified_by' => $this->admin->id]);
+        $responseApproved = $this->actingAs($this->investor)->get('/investor/account');
+        $responseApproved->assertStatus(200);
+        $responseApproved->assertInertia(fn ($page) => $page
+            ->component('Investor/Account/Index')
+            ->where('dokumen.perjanjian.status', 'approved')
+            ->where('dokumen.perjanjian.file_name', 'surat_perjanjian.pdf')
         );
     }
 

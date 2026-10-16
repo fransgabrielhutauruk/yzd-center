@@ -29,10 +29,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 return route('admin.dashboard');
             }
 
-            if ($user && $user->status !== 'active') {
-                return route('investor.account');
-            }
-
             return route('investor.dashboard');
         });
     })

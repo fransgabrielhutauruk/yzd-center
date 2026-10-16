@@ -2,7 +2,6 @@
 import { Head, Link } from '@inertiajs/vue3';
 import {
     ArrowLeft,
-    Eye,
     Calendar,
     ChevronRight,
 } from 'lucide-vue-next';
@@ -55,15 +54,11 @@ const isHtmlContent = (content) => {
                     {{ article.judul }}
                 </h1>
 
-                <!-- Info Tanggal & Views -->
+                <!-- Info Tanggal -->
                 <div class="mt-3 flex items-center gap-4 text-xs text-muted-foreground border-b border-border/60 pb-5">
                     <span class="flex items-center gap-1.5">
                         <Calendar class="h-3.5 w-3.5" />
                         Diperbarui: {{ article.updated_at }}
-                    </span>
-                    <span class="flex items-center gap-1.5">
-                        <Eye class="h-3.5 w-3.5" />
-                        Dibaca: {{ article.views_count }} kali
                     </span>
                 </div>
 

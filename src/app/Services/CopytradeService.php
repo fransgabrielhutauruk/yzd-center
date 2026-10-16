@@ -11,7 +11,9 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use PhpOffice\PhpWord\TemplateProcessor;
 
 class CopytradeService
 {
@@ -143,6 +145,39 @@ class CopytradeService
                         'verified_at' => now(),
                         'verified_by' => $verifier->id,
                     ]);
+            } elseif ($status === 'rejected') {
+                $hasApprovedAccount = $this->hasApprovedAccount($akun->user_id);
+
+                if (!$hasApprovedAccount) {
+                    $doc = UserDokumen::where('user_id', $akun->user_id)
+                        ->where('tipe_dokumen', 'perjanjian')
+                        ->where('status', '!=', 'approved')
+                        ->first();
+
+                    if ($doc) {
+                        $doc->update([
+                            'status'        => 'rejected',
+                            'catatan_admin' => $catatanAdmin,
+                            'verified_at'   => now(),
+                            'verified_by'   => $verifier->id,
+                        ]);
+                    } elseif (!empty($akun->surat_perjanjian_path)) {
+                        UserDokumen::create([
+                            'user_id'      => $akun->user_id,
+                            'tipe_dokumen' => 'perjanjian',
+                            'file_path'    => $akun->surat_perjanjian_path,
+                            'file_name'    => basename($akun->surat_perjanjian_path),
+                            'mime_type'    => 'application/pdf',
+                            'file_size'    => Storage::disk('local')->exists($akun->surat_perjanjian_path)
+                                ? Storage::disk('local')->size($akun->surat_perjanjian_path)
+                                : 0,
+                            'status'        => 'rejected',
+                            'catatan_admin' => $catatanAdmin,
+                            'verified_at'   => now(),
+                            'verified_by'   => $verifier->id,
+                        ]);
+                    }
+                }
             }
 
             // Kirim notifikasi database in-app ke investor pemilik akun
@@ -451,29 +486,7 @@ class CopytradeService
             return null;
         }
 
-        $tempFile = tempnam(sys_get_temp_dir(), 'perjanjian_') . '.docx';
-        if (!copy($sourcePath, $tempFile)) {
-            return null;
-        }
-
-        $zip = new \ZipArchive;
-        if ($zip->open($tempFile) !== true) {
-            @unlink($tempFile);
-
-            return null;
-        }
-
-        $xml = $zip->getFromName('word/document.xml');
-        if ($xml === false) {
-            $zip->close();
-            @unlink($tempFile);
-
-            return null;
-        }
-
-        // Normalisasi proofing errors dan pemisahan text run yang memecah placeholder
-        $xml = preg_replace('/<w:proofErr[^>]*\/>/i', '', $xml);
-        $xml = preg_replace('/(<\/w:t><\/w:r>)(<w:r[^>]*><w:t[^>]*>)/i', '', $xml);
+        $template = new TemplateProcessor($sourcePath);
 
         $user->loadMissing('ahliWaris');
 
@@ -537,33 +550,36 @@ class CopytradeService
             : '-';
 
         $replacements = [
-            '${NAMA_LENGKAP}'         => htmlspecialchars($user->name, ENT_XML1),
-            '${NAMA_INVESTOR_TTD}'    => htmlspecialchars($user->name, ENT_XML1),
-            '${NIK}'                  => htmlspecialchars($user->nik ?? '-', ENT_XML1),
-            '${TEMPAT_TANGGAL_LAHIR}' => htmlspecialchars($ttl ?: '-', ENT_XML1),
-            '${ALAMAT_LENGKAP}'       => htmlspecialchars($user->alamat ?? '-', ENT_XML1),
-            '${NOMOR_HP}'             => htmlspecialchars($user->phone ?? '-', ENT_XML1),
-            '${EMAIL}'                => htmlspecialchars($user->email ?? '-', ENT_XML1),
-            '${PEKERJAAN}'            => htmlspecialchars($user->pekerjaan ?? '-', ENT_XML1),
-            '${TANGGAL_MULAI}'        => htmlspecialchars($tanggalMulaiFormatted, ENT_XML1),
-            '${TANGGAL_SELESAI}'      => htmlspecialchars($tanggalSelesaiFormatted, ENT_XML1),
-            '${NOMOR_AKUN_TRADING}'   => htmlspecialchars($nomorAkunTrading, ENT_XML1),
-            '${SERVER_BROKER}'        => htmlspecialchars($serverBroker, ENT_XML1),
-            '${MASTER_PASSWORD}'      => htmlspecialchars($masterPassword, ENT_XML1),
-            '${INVESTOR_PASSWORD}'    => htmlspecialchars($investorPassword, ENT_XML1),
-            '${ESTIMASI_MODAL}'       => htmlspecialchars($modalRiilFormatted, ENT_XML1),
-            '${REKENING_PENCAIRAN}'   => htmlspecialchars($rekening, ENT_XML1),
-            '${AHLI_WARIS_NAMA}'      => htmlspecialchars($user->ahliWaris?->nama ?? '-', ENT_XML1),
-            '${AHLI_WARIS_HUBUNGAN}'  => htmlspecialchars($user->ahliWaris?->hubungan_keluarga ?? '-', ENT_XML1),
-            '${AHLI_WARIS_PHONE}'     => htmlspecialchars($user->ahliWaris?->no_hp ?? '-', ENT_XML1),
-            '${TANGGAL_SURAT}'        => htmlspecialchars($tanggalSuratFormatted, ENT_XML1),
+            'NAMA_LENGKAP'         => $user->name,
+            'NAMA_INVESTOR_TTD'    => $user->name,
+            'NIK'                  => $user->nik ?? '-',
+            'TEMPAT_TANGGAL_LAHIR' => $ttl ?: '-',
+            'ALAMAT_LENGKAP'       => $user->alamat ?? '-',
+            'NOMOR_HP'             => $user->phone ?? '-',
+            'EMAIL'                => $user->email ?? '-',
+            'PEKERJAAN'            => $user->pekerjaan ?? '-',
+            'TANGGAL_MULAI'        => $tanggalMulaiFormatted,
+            'TANGGAL_SELESAI'      => $tanggalSelesaiFormatted,
+            'NOMOR_AKUN_TRADING'   => $nomorAkunTrading,
+            'SERVER_BROKER'        => $serverBroker,
+            'MASTER_PASSWORD'      => $masterPassword,
+            'INVESTOR_PASSWORD'    => $investorPassword,
+            'ESTIMASI_MODAL'       => $modalRiilFormatted,
+            'REKENING_PENCAIRAN'   => $rekening,
+            'AHLI_WARIS_NAMA'      => $user->ahliWaris?->nama ?? '-',
+            'AHLI_WARIS_HUBUNGAN'  => $user->ahliWaris?->hubungan_keluarga ?? '-',
+            'AHLI_WARIS_PHONE'     => $user->ahliWaris?->no_hp ?? '-',
+            'TANGGAL_SURAT'        => $tanggalSuratFormatted,
         ];
 
-        $xml = str_replace(array_keys($replacements), array_values($replacements), $xml);
+        foreach ($replacements as $search => $replace) {
+            $template->setValue($search, (string) $replace);
+        }
 
-        $zip->addFromString('word/document.xml', $xml);
-        $zip->close();
+        $tempFile = tempnam(sys_get_temp_dir(), 'perjanjian_') . '.docx';
+        $template->saveAs($tempFile);
 
         return $tempFile;
+
     }
 }

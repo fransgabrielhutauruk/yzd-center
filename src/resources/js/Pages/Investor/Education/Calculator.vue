@@ -417,7 +417,7 @@ const whatsappConsultUrl = computed(() => {
     const rate = monthlyProfitRate.value;
     const dur = durationYears.value;
     const modeText = withdrawalMode.value === 'with_wd' ? 'Tarik Rutin Tiap Bulan' : 'Reinvest Penuh (Tanpa WD)';
-    const msg = `Halo Pak Yazid, saya telah mencoba simulasi kalkulator proyeksi YZD Center dengan modal awal ${init} (${modeText}) dan target profit ${rate}%/bulan selama ${dur} tahun (estimasi modal akhir ${end}). Saya ingin konsultasi lebih lanjut mengenai registrasi akun dan alokasi copytrade.`;
+    const msg = `Halo Pak, saya telah mencoba simulasi kalkulator proyeksi YZD Center dengan modal awal ${init} (${modeText}) dan target profit ${rate}%/bulan selama ${dur} tahun (estimasi saldo akhir ${end}). Saya ingin konsultasi lebih lanjut mengenai registrasi akun dan alokasi copytrade.`;
     return `https://wa.me/6282388986189?text=${encodeURIComponent(msg)}`;
 });
 </script>
@@ -593,7 +593,7 @@ const whatsappConsultUrl = computed(() => {
                     <button
                         type="button"
                         @click="showAdvancedSettings = !showAdvancedSettings"
-                        class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer min-h-[36px]"
+                        class="flex items-center gap-1.5 text-start text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer min-h-[36px]"
                     >
                         <Sliders class="w-3.5 h-3.5" />
                         <span>Pengaturan Lanjutan: Kurs Acuan Rupiah (Rp / USD)</span>
@@ -601,7 +601,7 @@ const whatsappConsultUrl = computed(() => {
                         <ChevronUp v-else class="w-3.5 h-3.5 ml-0.5" />
                     </button>
 
-                    <div v-show="showAdvancedSettings" class="mt-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 space-y-3">
+                    <div v-show="showAdvancedSettings" class="mt-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 space-y-1">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div class="max-w-xs">
                                 <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -651,7 +651,7 @@ const whatsappConsultUrl = computed(() => {
                     <!-- 1. Modal Akhir di Broker -->
                     <div class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
                         <span class="text-xs font-bold text-slate-700 dark:text-slate-300 block">
-                            Modal Akhir di Broker (Thn ke-{{ durationYears }})
+                            Saldo Akhir (Thn ke-{{ durationYears }})
                         </span>
                         <p class="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
                             {{ formatUSD(simulationData.endModal) }}
@@ -1070,7 +1070,7 @@ const whatsappConsultUrl = computed(() => {
                         Tertarik Memulai Portofolio Berdasarkan Simulasi Ini?
                     </h4>
                     <p class="text-xs text-slate-600 dark:text-slate-400 max-w-xl">
-                        Konsultasikan alokasi modal dan tahapan registrasi akun copytrade resmi langsung via WhatsApp resmi YZD Center.
+                        Konsultasikan alokasi modal dan tahapan registrasi akun copytrade via WhatsApp resmi YZD Center.
                     </p>
                 </div>
 

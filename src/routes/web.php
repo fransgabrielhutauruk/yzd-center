@@ -43,10 +43,6 @@ Route::get('/', function () {
             return redirect()->route('admin.dashboard');
         }
 
-        if ($user && $user->status !== 'active') {
-            return redirect()->route('investor.account');
-        }
-
         return redirect()->route('investor.dashboard');
     }
 

@@ -722,6 +722,12 @@ const getStatusBadge = (status) => {
                                     placeholder="Contoh: Foto KTP sedikit terpotong pada bagian NIK. Mohon unggah ulang foto yang jelas dan seluruh sudut terlihat."
                                     class="bg-background border-input focus:ring-primary-500 w-full resize-none rounded-lg border px-3 py-2 text-xs transition-all focus:ring-2 focus:outline-none"
                                 ></textarea>
+                                <p
+                                    v-if="verifyForm.errors.catatan_admin"
+                                    class="text-destructive text-xs font-medium"
+                                >
+                                    {{ verifyForm.errors.catatan_admin }}
+                                </p>
                             </div>
 
                             <!-- Tombol Aksi Simpan -->

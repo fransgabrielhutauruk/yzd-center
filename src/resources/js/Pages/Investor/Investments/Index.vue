@@ -683,19 +683,6 @@ onMounted(() => {
         subtitle="Pantau seluruh investasi Anda, BEP, dan catat saldo bulanan secara disiplin."
         :breadcrumbs="[{ label: 'Menu Utama' }, { label: 'Portofolio Investasi' }]"
     >
-        <template #header-actions>
-            <div class="flex shrink-0 flex-wrap items-center gap-2">
-                <Link
-                    href="/investor/education/help?kategori=investasi-tiering"
-                    target="_blank"
-                    class="border-border bg-card hover:bg-muted text-foreground inline-flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold shadow-xs transition-colors"
-                >
-                    <HelpCircle class="h-4 w-4 text-sky-600 dark:text-sky-400" />
-                    <span>Panduan Tier</span>
-                </Link>
-            </div>
-        </template>
-
         <div class="space-y-8">
             <!-- ================================================================= -->
             <!-- 1. RINGKASAN KONSOLIDASI TOTAL PORTOFOLIO (Semua Akun / Tier)    -->
@@ -912,9 +899,9 @@ onMounted(() => {
                                 </h3>
                             </div>
                             <p class="text-muted-foreground max-w-3xl text-xs leading-relaxed">
-                                Anda telah mendaftarkan akun trading. Tim administrator saat ini
-                                sedang memverifikasi kredensial akun MT4 dan dokumen kemitraan Anda.
-                                Seluruh ringkasan statistik portofolio, analisis keuntungan, dan
+                                Anda telah mendaftarkan akun copytrade (investasi). Tim administrator saat ini
+                                sedang memverifikasi dan dokumen kemitraan Anda.
+                                Ringkasan statistik portofolio, analisis keuntungan, dan
                                 kalkulasi balik modal (BEP) akan aktif secara otomatis setelah
                                 permohonan disetujui.
                             </p>
@@ -1083,10 +1070,7 @@ onMounted(() => {
                 </div>
 
                 <!-- KONDISI EMPTY STATE: Belum Ada Akun Investasi Sama Sekali -->
-                <div
-                    v-else
-                    class="border-border bg-card rounded-2xl border p-6 shadow-xs sm:p-8"
-                >
+                <div v-else class="border-border bg-card rounded-2xl border p-6 shadow-xs sm:p-8">
                     <div class="mx-auto max-w-2xl text-center">
                         <div
                             class="bg-primary/10 text-primary mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl"
@@ -1097,7 +1081,9 @@ onMounted(() => {
                             Belum Ada Pengajuan Akun Investasi
                         </h3>
                         <p class="text-muted-foreground mt-2 text-xs leading-relaxed sm:text-sm">
-                            Anda belum mendaftarkan akun trading untuk dikelola dalam sistem copytrade YZD. Daftarkan akun investasi Anda sekarang untuk mulai menikmati otomatisasi copytrade, pemantauan portofolio, dan kalkulasi balik modal (BEP).
+                            Anda belum mendaftarkan akun copytrade (investasi) untuk dikelola dalam
+                            sistem YZD Center. Daftarkan akun investasi Anda sekarang untuk mulai
+                            pemantauan portofolio, dan kalkulasi balik modal (BEP).
                         </p>
 
                         <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
@@ -1193,8 +1179,8 @@ onMounted(() => {
                                 </span>
                             </div>
                             <p class="text-muted-foreground max-w-3xl text-xs leading-relaxed">
-                                Akun trading ini telah didaftarkan dan sedang menunggu verifikasi
-                                oleh tim Administrator. Evaluasi kinerja bulanan, grafik tren saldo,
+                                Akun ini telah didaftarkan dan sedang menunggu verifikasi
+                                oleh Administrator. Evaluasi kinerja bulanan, grafik tren saldo,
                                 dan formulir pencatatan saldo tanggal 1 akan otomatis aktif segera
                                 setelah permohonan disetujui.
                             </p>
@@ -1812,8 +1798,7 @@ onMounted(() => {
                                 <div class="flex items-center gap-2">
                                     <Calendar class="text-primary h-4 w-4" />
                                     <h4 class="text-foreground text-xs font-bold sm:text-sm">
-                                        Riwayat Catatan Saldo & Keuntungan Month-on-Month
-                                        (MoM)
+                                        Riwayat Catatan Saldo & Keuntungan Month-on-Month (MoM)
                                     </h4>
                                 </div>
                                 <span class="text-muted-foreground font-mono text-[11px]">
@@ -1832,7 +1817,7 @@ onMounted(() => {
                                         Belum Ada Catatan Saldo Bulanan
                                     </p>
                                     <p class="text-muted-foreground mx-auto max-w-md text-[11px]">
-                                        Mulai catat saldo MT4 Anda setiap tanggal 1 untuk memantau
+                                        Mulai catat saldo Anda setiap tanggal 1 untuk memantau
                                         performa keuntungan bulanan (MoM) dan kalkulasi balik modal
                                         (BEP).
                                     </p>
@@ -1856,7 +1841,7 @@ onMounted(() => {
                                                 Tanggal Pencatatan
                                             </th>
                                             <th class="px-3 py-2.5 font-mono font-semibold">
-                                                Saldo MT4 (USD)
+                                                Saldo (USD)
                                             </th>
                                             <th class="px-3 py-2.5 font-semibold">
                                                 Keuntungan MoM
@@ -1930,7 +1915,9 @@ onMounted(() => {
                                                 </span>
                                             </td>
                                             <td class="px-3 py-3 text-center whitespace-nowrap">
-                                                <div class="flex items-center justify-center gap-1.5">
+                                                <div
+                                                    class="flex items-center justify-center gap-1.5"
+                                                >
                                                     <AppTableAction
                                                         type="edit"
                                                         title="Edit Saldo"
@@ -2052,7 +2039,7 @@ onMounted(() => {
                 <!-- Nilai Saldo (Balance) USD -->
                 <div class="space-y-1.5">
                     <label class="text-foreground block text-xs font-semibold">
-                        Nilai Saldo Terkini di MT4 (USD) <span class="text-destructive">*</span>
+                        Nilai Saldo Terkini (USD) <span class="text-destructive">*</span>
                     </label>
                     <div class="relative">
                         <span

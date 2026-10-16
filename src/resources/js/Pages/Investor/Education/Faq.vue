@@ -5,7 +5,6 @@ import {
     Search,
     ChevronDown,
     X,
-    Layers,
     MessageCircle,
     HelpCircle,
     ChevronsUpDown,
@@ -27,13 +26,8 @@ const props = defineProps({
 const searchQuery = ref(props.filters.search || '');
 const activeTopikId = ref(props.filters.topik_id ? Number(props.filters.topik_id) : null);
 
-// Menyimpan ID FAQ yang sedang terbuka di accordion
+// Menyimpan ID FAQ yang sedang terbuka di accordion (default tertutup semua)
 const openFaqIds = ref(new Set());
-
-// Buka pertanyaan pertama secara default jika ada
-if (props.faq.topics?.length > 0 && props.faq.topics[0]?.faqs?.length > 0) {
-    openFaqIds.value.add(props.faq.topics[0].faqs[0].id);
-}
 
 const toggleFaq = (id) => {
     if (openFaqIds.value.has(id)) {
@@ -118,7 +112,7 @@ const resetAllFilters = () => {
 <template>
     <InvestorLayout
         title="Pertanyaan yang Sering Diajukan (FAQ)"
-        subtitle="Temukan jawaban seputar legalitas, skema copytrade, dan lainnya."
+        subtitle="Temukan jawaban seputar copytrade (investasi) dan lainnya."
         :breadcrumbs="[
             { label: 'Bantuan & Edukasi' },
             { label: 'Tanya Jawab (FAQ)' }
@@ -127,21 +121,21 @@ const resetAllFilters = () => {
         <Head title="Tanya Jawab (FAQ) - YZD Center" />
 
         <div class="space-y-6">
-            <!-- Kotak Pencarian -->
+            <!-- Kotak Pencarian (Live Search) -->
             <div class="max-w-xl">
                 <div class="relative">
-                    <Search class="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Search class="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                     <input
                         v-model="searchQuery"
                         type="text"
                         placeholder="Ketik kata kunci..."
-                        class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2.5 pl-10 pr-10 text-sm text-foreground shadow-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        class="w-full rounded-xl border border-input bg-card py-2.5 pl-10 pr-10 text-sm text-foreground shadow-2xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
                     />
                     <button
                         v-if="searchQuery"
                         type="button"
                         @click="clearSearch"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer rounded-md hover:bg-muted"
                         title="Bersihkan pencarian"
                     >
                         <X class="h-4 w-4" />
@@ -149,29 +143,37 @@ const resetAllFilters = () => {
                 </div>
             </div>
 
-            <!-- Filter Topik Pills -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <!-- Pills dengan scroll-x -->
-                <div class="overflow-x-auto scrollbar-hide -mx-1 px-1">
-                    <div class="flex items-center gap-2 w-max">
-                        <!-- Pill: Semua Topik -->
+            <!-- Deretan Pills Topik FAQ (Scrollable Horizontal jika melebihi lebar konten) -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Pilih Topik
+                    </h2>
+                    <span class="text-xs text-muted-foreground font-medium">
+                        {{ (faq.available_topics?.length || 0) + 1 }} Topik
+                    </span>
+                </div>
+
+                <div class="relative w-full">
+                    <div class="topic-scroll-container flex items-center gap-2 overflow-x-auto pb-2.5 pt-0.5">
+                        <!-- Pill: Semua -->
                         <button
                             type="button"
                             @click="selectTopic(null)"
                             :class="[
-                                'relative flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all shadow-sm whitespace-nowrap shrink-0',
+                                'group inline-flex items-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer shrink-0 border shadow-2xs',
                                 activeTopikId === null
-                                    ? 'bg-primary text-white shadow-primary/20'
-                                    : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800',
+                                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                                    : 'bg-card text-foreground border-border hover:bg-muted/70 hover:border-border/80',
                             ]"
                         >
-                            Semua Topik
+                            <span>Semua</span>
                             <span
                                 :class="[
-                                    'inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none min-w-[18px]',
+                                    'rounded-full px-1.5 py-0.2 text-[10px] font-bold font-mono transition-colors',
                                     activeTopikId === null
-                                        ? 'bg-white/25 text-white'
-                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300',
+                                        ? 'bg-primary-foreground/20 text-primary-foreground'
+                                        : 'bg-muted text-muted-foreground group-hover:text-foreground',
                                 ]"
                             >
                                 {{ totalStaticCount }}
@@ -185,19 +187,19 @@ const resetAllFilters = () => {
                             type="button"
                             @click="selectTopic(topic.id)"
                             :class="[
-                                'relative flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all shadow-sm whitespace-nowrap shrink-0',
+                                'group inline-flex items-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer shrink-0 border shadow-2xs',
                                 activeTopikId === topic.id
-                                    ? 'bg-primary text-white shadow-primary/20'
-                                    : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800',
+                                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                                    : 'bg-card text-foreground border-border hover:bg-muted/70 hover:border-border/80',
                             ]"
                         >
-                            {{ topic.nama }}
+                            <span>{{ topic.nama }}</span>
                             <span
                                 :class="[
-                                    'inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none min-w-[18px]',
+                                    'rounded-full px-1.5 py-0.2 text-[10px] font-bold font-mono transition-colors',
                                     activeTopikId === topic.id
-                                        ? 'bg-white/25 text-white'
-                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300',
+                                        ? 'bg-primary-foreground/20 text-primary-foreground'
+                                        : 'bg-muted text-muted-foreground group-hover:text-foreground',
                                 ]"
                             >
                                 {{ faqCountByTopicId[topic.id] ?? 0 }}
@@ -205,113 +207,130 @@ const resetAllFilters = () => {
                         </button>
                     </div>
                 </div>
-
-                <!-- Tombol Buka/Tutup Semua -->
-                <button
-                    v-if="totalFaqsCount > 0"
-                    type="button"
-                    @click="toggleAll"
-                    class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors self-end sm:self-auto shrink-0"
-                >
-                    <ChevronsUpDown class="h-3.5 w-3.5" />
-                    {{ openFaqIds.size === totalFaqsCount ? 'Tutup Semua' : 'Buka Semua' }}
-                </button>
             </div>
 
             <!-- Konten Tanya Jawab (Accordion per Topik) -->
-            <div v-if="faq.topics && faq.topics.length > 0" class="space-y-8">
-                <div
-                    v-for="topic in faq.topics"
-                    :key="topic.id"
-                    class="space-y-3"
-                >
-                    <!-- Header Topik -->
-                    <div class="flex items-center gap-2.5 pb-2 border-b border-slate-200 dark:border-slate-800">
-                        <div>
-                            <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                                {{ topic.nama }}
-                            </h2>
-                            <p v-if="topic.deskripsi" class="text-xs text-slate-500 dark:text-slate-400">
-                                {{ topic.deskripsi }}
-                            </p>
-                        </div>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between border-b border-border pb-3">
+                    <div>
+                        <h2 class="text-lg font-bold text-foreground">
+                            Daftar FAQ
+                        </h2>
                     </div>
-
-                    <!-- Accordion Item Pertanyaan -->
-                    <div class="space-y-2.5 pt-1">
-                        <div
-                            v-for="item in topic.faqs"
-                            :key="item.id"
-                            class="rounded-xl border border-slate-200 bg-white transition-all dark:border-slate-800 dark:bg-slate-900 overflow-hidden shadow-sm"
+                    <div class="flex items-center gap-3 shrink-0">
+                        <span v-if="totalFaqsCount > 0" class="hidden sm:inline text-xs font-medium text-muted-foreground">
+                            {{ totalFaqsCount }} pertanyaan
+                        </span>
+                        <button
+                            v-if="totalFaqsCount > 0"
+                            type="button"
+                            @click="toggleAll"
+                            class="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer rounded-md hover:bg-muted px-2.5 py-1.5 border border-border/60 shadow-2xs"
                         >
-                            <button
-                                type="button"
-                                @click="toggleFaq(item.id)"
-                                :aria-expanded="isFaqOpen(item.id)"
-                                class="flex w-full items-center justify-between gap-4 p-4 sm:p-5 text-left transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/50"
-                            >
-                                <span class="text-sm sm:text-base font-semibold text-slate-900 dark:text-white">
-                                    {{ item.pertanyaan }}
-                                </span>
-                                <div
-                                    class="shrink-0 rounded-full p-1 text-slate-400 transition-transform duration-200"
-                                    :class="{ 'rotate-180 text-primary': isFaqOpen(item.id) }"
-                                >
-                                    <ChevronDown class="h-4 w-4" />
-                                </div>
-                            </button>
+                            <ChevronsUpDown class="h-3.5 w-3.5" />
+                            <span>{{ openFaqIds.size === totalFaqsCount ? 'Tutup Semua' : 'Buka Semua' }}</span>
+                        </button>
+                    </div>
+                </div>
 
-                            <div
-                                v-show="isFaqOpen(item.id)"
-                                class="border-t border-slate-100 bg-slate-50/40 p-4 sm:p-5 dark:border-slate-800/80 dark:bg-slate-900/60"
-                            >
-                                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
-                                    {{ item.jawaban }}
+                <div v-if="faq.topics && faq.topics.length > 0" class="space-y-8 pt-1">
+                    <div
+                        v-for="topic in faq.topics"
+                        :key="topic.id"
+                        class="space-y-3"
+                    >
+                        <!-- Header Topik -->
+                        <div class="flex items-center gap-2.5 pb-2 border-b border-border">
+                            <div>
+                                <h3 class="text-base sm:text-lg font-bold text-foreground">
+                                    {{ topic.nama }}
+                                </h3>
+                                <p v-if="topic.deskripsi" class="text-xs text-muted-foreground">
+                                    {{ topic.deskripsi }}
                                 </p>
+                            </div>
+                        </div>
+
+                        <!-- Accordion Item Pertanyaan -->
+                        <div class="space-y-2.5 pt-1">
+                            <div
+                                v-for="item in topic.faqs"
+                                :key="item.id"
+                                class="rounded-xl border border-border bg-card transition-all overflow-hidden shadow-2xs"
+                            >
+                                <button
+                                    type="button"
+                                    @click="toggleFaq(item.id)"
+                                    :aria-expanded="isFaqOpen(item.id)"
+                                    class="flex w-full items-center justify-between gap-4 p-4 sm:p-5 text-left transition-colors hover:bg-muted/50 cursor-pointer"
+                                >
+                                    <span class="text-sm sm:text-base font-semibold text-foreground">
+                                        {{ item.pertanyaan }}
+                                    </span>
+                                    <div
+                                        class="shrink-0 rounded-full p-1 text-muted-foreground transition-transform duration-200"
+                                        :class="{ 'rotate-180 text-primary': isFaqOpen(item.id) }"
+                                    >
+                                        <ChevronDown class="h-4 w-4" />
+                                    </div>
+                                </button>
+
+                                <div
+                                    v-show="isFaqOpen(item.id)"
+                                    class="border-t border-border/60 bg-muted/30 p-4 sm:p-5"
+                                >
+                                    <p class="text-xs sm:text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
+                                        {{ item.jawaban }}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- State Kosong jika tidak ada hasil -->
-            <div
-                v-else
-                class="rounded-2xl border border-slate-200 bg-white p-8 sm:p-12 text-center dark:border-slate-800 dark:bg-slate-900 shadow-sm"
-            >
-                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 mb-4">
-                    <HelpCircle class="h-7 w-7" />
-                </div>
-                <h3 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                    Tidak Ditemukan Pertanyaan yang Sesuai
-                </h3>
-                <p class="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                    {{ searchQuery ? `Kata kunci "${searchQuery}" tidak cocok dengan pertanyaan yang tersedia saat ini.` : 'Belum ada pertanyaan pada topik ini.' }}
-                </p>
-                <div class="mt-5">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        @click="resetAllFilters"
-                    >
-                        Tampilkan Semua Pertanyaan
-                    </Button>
+                <!-- State Kosong jika tidak ada hasil -->
+                <div
+                    v-else
+                    class="rounded-xl border border-dashed border-border bg-card p-12 text-center shadow-2xs space-y-3"
+                >
+                    <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                        <HelpCircle class="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <div>
+                        <h3 class="text-base font-semibold text-foreground">
+                            {{ searchQuery ? 'Tidak Ditemukan Pertanyaan yang Sesuai' : 'Belum Ada Pertanyaan pada Topik Ini' }}
+                        </h3>
+                        <p class="mt-1 text-sm text-muted-foreground max-w-sm mx-auto">
+                            {{ searchQuery ? `Kata kunci "${searchQuery}" tidak cocok dengan pertanyaan yang tersedia saat ini.` : 'Pertanyaan untuk topik ini sedang disiapkan. Silakan pilih topik lainnya.' }}
+                        </p>
+                    </div>
+                    <div class="pt-1">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            @click="resetAllFilters"
+                            class="cursor-pointer"
+                        >
+                            {{ searchQuery ? 'Bersihkan Pencarian' : 'Tampilkan Semua Pertanyaan' }}
+                        </Button>
+                    </div>
                 </div>
             </div>
 
             <!-- Kotak Bantuan WhatsApp Master Trader -->
-            <div class="rounded-2xl border border-blue-100 bg-blue-50/60 p-6 sm:p-8 dark:border-blue-900/40 dark:bg-blue-950/20">
+            <div class="rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-2xs">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div class="flex items-start gap-3.5">
-                        <div class="rounded-xl bg-emerald-600  p-2.5 text-white shadow-md shadow-emerald-500/20">
+                        <div class="rounded-xl bg-emerald-600 p-2.5 text-white shadow-md shadow-emerald-500/20 shrink-0">
                             <MessageCircle class="h-6 w-6" />
                         </div>
                         <div>
-                            <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                            <h3 class="text-base font-bold text-foreground">
                                 Masih Memiliki Pertanyaan Lain?
                             </h3>
-                            <p class="mt-0.5 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-                                Konsultasikan kendala teknis atau pertanyaan khusus Anda langsung dengan Pak Yazid melalui WhatsApp.
+                            <p class="mt-0.5 text-xs sm:text-sm text-muted-foreground">
+                                Konsultasikan kendala teknis atau pertanyaan khusus Anda langsung via WhatsApp resmi YZD Center.
                             </p>
                         </div>
                     </div>
@@ -329,3 +348,25 @@ const resetAllFilters = () => {
         </div>
     </InvestorLayout>
 </template>
+
+<style scoped>
+.topic-scroll-container {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.topic-scroll-container::-webkit-scrollbar {
+    height: 6px;
+}
+.topic-scroll-container::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 9999px;
+}
+.topic-scroll-container::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 9999px;
+}
+.topic-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+}
+</style>
+

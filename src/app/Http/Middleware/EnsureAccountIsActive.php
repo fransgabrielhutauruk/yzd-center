@@ -9,9 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 class EnsureAccountIsActive
 {
     /**
-     * Pastikan akun pengguna sudah aktif sebelum mengakses fitur tertentu.
-     * Jika akun pendaftar belum diverifikasi (status != 'active'),
-     * pengguna hanya diizinkan mengakses halaman verifikasi KYC.
+     * Pastikan akun pengguna tidak dinonaktifkan (is_active) oleh administrator.
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -25,14 +23,6 @@ class EnsureAccountIsActive
             return redirect()->route('login')->withErrors([
                 'login' => 'Akun Anda telah dinonaktifkan oleh administrator. Silakan hubungi admin.',
             ]);
-        }
-
-        if ($user && !$user->isAdmin() && $user->status !== 'active') {
-            if ($request->routeIs('investor.account*') || $request->routeIs('investor.copytrade*')) {
-                return $next($request);
-            }
-
-            return redirect()->route('investor.account')->with('error', 'Akun Anda belum aktif. Harap tunggu atau lengkapi proses verifikasi dokumen dan pendaftaran Copytrade.');
         }
 
         return $next($request);
