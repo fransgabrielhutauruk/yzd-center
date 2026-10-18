@@ -234,9 +234,6 @@ const submit = () => {
                             Rekening Bank Tujuan Transfer
                         </h4>
                     </div>
-                    <span class="text-muted-foreground text-[10px]">
-                        Otomatis dari profil (dapat diedit)
-                    </span>
                 </div>
 
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">

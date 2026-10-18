@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
@@ -41,6 +41,16 @@ const verifyForm = useForm({
     status: '',
     catatan_admin: '',
 });
+
+watch(
+    () => verifyForm.status,
+    (newStatus) => {
+        if (newStatus !== 'rejected') {
+            verifyForm.catatan_admin = '';
+            verifyForm.clearErrors('catatan_admin');
+        }
+    }
+);
 
 const openVerifyModal = (claim) => {
     selectedClaim.value = claim;
@@ -315,12 +325,11 @@ const columns = [
                             </label>
                         </div>
 
-                        <!-- Catatan Admin (Wajib jika tolak) -->
-                        <div class="space-y-1.5">
+                        <!-- Catatan Admin (Hanya muncul jika tolak) -->
+                        <div v-if="verifyForm.status === 'rejected'" class="space-y-1.5">
                             <label for="catatan_admin" class="block text-xs font-semibold text-foreground">
                                 Catatan Instruksi / Alasan Keputusan
-                                <span v-if="verifyForm.status === 'rejected'" class="text-destructive">* (Wajib diisi)</span>
-                                <span v-else class="text-muted-foreground font-normal">(Opsional)</span>
+                                <span class="text-destructive">* (Wajib diisi)</span>
                             </label>
                             <textarea
                                 id="catatan_admin"

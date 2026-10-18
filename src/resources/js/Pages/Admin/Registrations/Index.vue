@@ -273,7 +273,7 @@ const getStatusBadge = (status) => {
                     <div v-if="item.dokumen?.ktp" class="space-y-1">
                         <div
                             :class="[
-                                'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold',
+                                'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold text-nowrap',
                                 getStatusBadge(item.dokumen.ktp.status).bg,
                             ]"
                         >

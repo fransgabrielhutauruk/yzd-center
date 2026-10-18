@@ -196,7 +196,7 @@ const articleColumns = [
 <template>
     <AdminLayout
         title="Pusat Bantuan"
-        subtitle="Kelola kategori topik dan artikel panduan untuk investor."
+        subtitle="Kelola artikel panduan dan kategori topik untuk investor."
         :breadcrumbs="[
             { label: 'Bantuan & Informasi' },
             { label: 'Pusat Bantuan' }

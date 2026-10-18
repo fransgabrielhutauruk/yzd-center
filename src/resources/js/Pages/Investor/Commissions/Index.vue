@@ -306,7 +306,7 @@ const getStatusBadge = (status) => {
                         v-if="exchangeRate?.rate"
                         class="border-border bg-muted/50 text-muted-foreground rounded-lg border px-2.5 py-1 font-mono text-[11px]"
                     >
-                        Kurs Acuan Tier:
+                        Kurs Acuan:
                         <strong class="text-foreground"
                             >$1 = {{ formatIDR(exchangeRate.rate) }}</strong
                         >
@@ -751,7 +751,7 @@ const getStatusBadge = (status) => {
                     :filters="filters"
                     :extra-params="{ tab: 'claims' }"
                     fetch-url="/investor/commissions"
-                    search-placeholder="Cari kode klaim, nama downline, bank..."
+                    search-placeholder="Cari kode klaim, nama downline..."
                     empty-title="Belum Ada Riwayat Klaim Komisi"
                     empty-message="Anda belum pernah mengajukan klaim komisi atau data pencarian tidak ditemukan."
                 >

@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\AkunCopytrade;
+use App\Models\KlaimReferral;
 use App\Models\User;
 use App\Models\UserDokumen;
 use App\Notifications\KycDocumentStatusChangedNotification;
+use App\Notifications\ReferralClaimStatusChangedNotification;
 use App\Services\BalanceService;
 use App\Services\CopytradeService;
 use App\Services\KycService;
@@ -335,5 +337,59 @@ class InAppNotificationTest extends TestCase
         $this->assertEquals(1, $this->investor->unreadNotifications()->count());
 
         Carbon::setTestNow();
+    }
+
+    public function test_referral_claim_rejected_notification_truncates_long_catatan_admin(): void
+    {
+        $affiliator = User::factory()->create([
+            'role'   => 'investor',
+            'status' => 'active',
+        ]);
+
+        $claim = KlaimReferral::create([
+            'affiliator_id' => $affiliator->id,
+            'downline_id'   => $this->investor->id,
+            'alasan'        => 'Klaim referral susulan',
+            'status'        => 'pending',
+        ]);
+
+        $longCatatan = 'Satu dua tiga empat lima enam tujuh delapan sembilan sepuluh sebelas dua-belas tiga-belas empat-belas lima-belas.';
+
+        $affiliator->notify(new ReferralClaimStatusChangedNotification($claim, 'rejected', $longCatatan));
+
+        $this->assertEquals(1, $affiliator->unreadNotifications()->count());
+        $notification = $affiliator->unreadNotifications()->first();
+
+        $this->assertEquals('Klaim Referral Susulan Ditolak', $notification->data['title']);
+        $this->assertEquals('/investor/affiliates?tab=claims', $notification->data['url']);
+        $this->assertEquals($longCatatan, $notification->data['catatan_admin']);
+
+        // Pastikan pesan hanya memuat 10 kata pertama dan diakhiri ...
+        $expectedPreview = 'Satu dua tiga empat lima enam tujuh delapan sembilan sepuluh...';
+        $this->assertStringContainsString("Catatan: {$expectedPreview}", $notification->data['message']);
+        $this->assertStringNotContainsString('sebelas', $notification->data['message']);
+    }
+
+    public function test_referral_claim_rejected_notification_preserves_short_catatan_admin(): void
+    {
+        $affiliator = User::factory()->create([
+            'role'   => 'investor',
+            'status' => 'active',
+        ]);
+
+        $claim = KlaimReferral::create([
+            'affiliator_id' => $affiliator->id,
+            'downline_id'   => $this->investor->id,
+            'alasan'        => 'Klaim referral susulan',
+            'status'        => 'pending',
+        ]);
+
+        $shortCatatan = 'Bukti chat tidak valid.';
+
+        $affiliator->notify(new ReferralClaimStatusChangedNotification($claim, 'rejected', $shortCatatan));
+
+        $notification = $affiliator->unreadNotifications()->first();
+        $this->assertStringContainsString("Catatan: {$shortCatatan}", $notification->data['message']);
+        $this->assertStringNotContainsString('...', $notification->data['message']);
     }
 }

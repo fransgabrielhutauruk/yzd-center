@@ -139,6 +139,16 @@ const verifyForm = useForm({
     from_affiliates: true,
 });
 
+watch(
+    () => verifyForm.status,
+    (newStatus) => {
+        if (newStatus !== 'rejected') {
+            verifyForm.catatan_admin = '';
+            verifyForm.clearErrors('catatan_admin');
+        }
+    }
+);
+
 const openVerifyModal = (claim) => {
     selectedClaim.value = claim;
     verifyForm.status = claim.status === 'pending' ? '' : claim.status;
@@ -566,11 +576,11 @@ const submitVerify = () => {
                             </label>
                         </div>
 
-                        <div class="space-y-1.5">
+                        <!-- Catatan Admin (Hanya muncul jika tolak) -->
+                        <div v-if="verifyForm.status === 'rejected'" class="space-y-1.5">
                             <label for="catatan_admin" class="block text-xs font-semibold text-foreground">
                                 Catatan Instruksi / Alasan Keputusan
-                                <span v-if="verifyForm.status === 'rejected'" class="text-destructive">* (Wajib diisi)</span>
-                                <span v-else class="text-muted-foreground font-normal">(Opsional)</span>
+                                <span class="text-destructive">* (Wajib diisi)</span>
                             </label>
                             <textarea
                                 id="catatan_admin"

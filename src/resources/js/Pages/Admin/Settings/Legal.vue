@@ -111,7 +111,7 @@ const previewHtml = computed(
 <template>
     <AdminLayout
         title="Pengelolaan Konten Legalitas Platform"
-        subtitle="Sesuaikan pasal Syarat & Ketentuan serta Kebijakan Privasi yang berlaku pada sistem."
+        subtitle="Sesuaikan Syarat & Ketentuan serta Kebijakan Privasi yang berlaku pada sistem."
         :breadcrumbs="[
             { label: 'Pengaturan Sistem' },
             { label: 'Konten Legalitas' }

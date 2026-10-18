@@ -5,10 +5,13 @@ namespace App\Notifications;
 use App\Models\KlaimReferral;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Str;
 
 class ReferralClaimStatusChangedNotification extends Notification
 {
     use Queueable;
+
+    public const MAX_CATATAN_WORDS = 10;
 
     public function __construct(
         public KlaimReferral $claim,
@@ -36,21 +39,30 @@ class ReferralClaimStatusChangedNotification extends Notification
             ? 'Klaim Referral Susulan Disetujui'
             : 'Klaim Referral Susulan Ditolak';
 
+        $catatanClean = $this->catatanAdmin
+            ? preg_replace('/\s+/', ' ', trim($this->catatanAdmin))
+            : null;
+
+        $catatanPreview = $catatanClean
+            ? Str::words($catatanClean, self::MAX_CATATAN_WORDS, '...')
+            : null;
+
         $message = $isApproved
             ? "Permohonan klaim referral Anda untuk investor {$downline?->name} (@{$downline?->username}) telah disetujui Administrator."
-            : ($this->catatanAdmin
-                ? "Permohonan klaim referral Anda untuk investor {$downline?->name} ditolak. Catatan: {$this->catatanAdmin}"
+            : ($catatanPreview
+                ? "Permohonan klaim referral Anda untuk investor {$downline?->name} ditolak. Catatan: {$catatanPreview}"
                 : "Permohonan klaim referral Anda untuk investor {$downline?->name} ditolak oleh Administrator.");
 
         return [
-            'type'        => 'referral_claim_status',
-            'title'       => $title,
-            'message'     => $message,
-            'icon'        => $isApproved ? 'check-circle' : 'x-circle',
-            'status'      => $this->status,
-            'claim_id'    => $this->claim->id,
-            'downline_id' => $downline?->id,
-            'url'         => '/investor/affiliates',
+            'type'          => 'referral_claim_status',
+            'title'         => $title,
+            'message'       => $message,
+            'icon'          => $isApproved ? 'check-circle' : 'x-circle',
+            'status'        => $this->status,
+            'claim_id'      => $this->claim->id,
+            'downline_id'   => $downline?->id,
+            'catatan_admin' => $this->catatanAdmin,
+            'url'           => '/investor/affiliates?tab=claims',
         ];
     }
 }

@@ -237,10 +237,10 @@ const faqColumns = [
 
 <template>
     <AdminLayout
-        title="Tanya Jawab (FAQ) & Topik"
-        subtitle="Kelola daftar tanya jawab interaktif tanpa slug yang dikelompokkan berdasarkan topik untuk investor."
+        title="Tanya Jawab (FAQ)"
+        subtitle="Kelola daftar tanya jawab yang dikelompokkan berdasarkan topik."
         :breadcrumbs="[
-            { label: 'Edukasi & Bantuan' },
+            { label: 'Bantuan & Informasi' },
             { label: 'Tanya Jawab (FAQ)' }
         ]"
     >

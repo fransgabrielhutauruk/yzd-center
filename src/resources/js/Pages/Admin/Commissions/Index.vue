@@ -48,7 +48,7 @@ const formatRupiah = (val) => {
 const tableColumns = [
     { key: 'kode_klaim', label: 'Kode / Waktu', sortable: true },
     { key: 'affiliator', label: 'Mitra Affiliator' },
-    { key: 'rincian_downline', label: 'Investor Downline & Tier Akun' },
+    { key: 'rincian_downline', label: 'Investor Downline' },
     { key: 'total_modal', label: 'Total Modal Riil', sortable: true },
     { key: 'nominal_transfer', label: 'Komisi & Konversi Rupiah' },
     { key: 'status', label: 'Status Pencairan', sortable: true },
@@ -127,21 +127,7 @@ const tableColumns = [
                                 {{ item.summary_downlines || `${item.total_downline} Investor` }}
                             </span>
                         </div>
-                        <div class="flex items-center gap-1 flex-wrap">
-                            <span
-                                v-for="(accItem, idx) in item.items.slice(0, 3)"
-                                :key="idx"
-                                class="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground font-mono"
-                            >
-                                {{ accItem.broker }} &bull; Tier {{ accItem.tier_level }} ({{ accItem.persentase_tier }}%)
-                            </span>
-                            <span
-                                v-if="item.items.length > 3"
-                                class="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground font-medium"
-                            >
-                                +{{ item.items.length - 3 }} akun lainnya
-                            </span>
-                        </div>
+
                     </div>
                 </template>
 

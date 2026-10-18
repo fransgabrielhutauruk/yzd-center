@@ -347,7 +347,11 @@ class CopytradeService
 
     private function signedUsd(float $value): string
     {
-        return ($value >= 0 ? '+' : '-') . '$' . number_format(abs($value), 2, '.', ',');
+        if (abs($value) < 0.005) {
+            return '$0.00';
+        }
+
+        return ($value > 0 ? '+' : '-') . '$' . number_format(abs($value), 2, '.', ',');
     }
 
     private function formatActiveDuration($startedAt): string

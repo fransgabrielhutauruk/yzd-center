@@ -114,7 +114,7 @@ const selectClass =
     <Head title="Kelola Copytrade" />
     <AdminLayout
         title="Kelola Copytrade"
-        subtitle="Verifikasi pendaftaran akun trading baru dan pantau akun copytrade yang sedang aktif."
+        subtitle="Verifikasi pendaftaran akun copytrade baru dan pantau akun copytrade yang sedang aktif."
         :breadcrumbs="[{ label: 'Menu Utama' }, { label: 'Kelola Copytrade' }]"
     >
         <div class="space-y-6">
@@ -339,9 +339,6 @@ const selectClass =
                                     ]"
                                     >{{ item.tier_label }}</span
                                 >
-                                <span class="text-muted-foreground text-[11px] text-nowrap">
-                                    {{ item.broker }} ({{ item.tipe_akun }})
-                                </span>
                             </div>
                             <span class="text-foreground font-mono font-bold">{{
                                 item.nomor_akun_trading

@@ -1,6 +1,6 @@
 <script setup>
 import { watch } from 'vue';
-import { FileText, ExternalLink, Server, Loader2 } from 'lucide-vue-next';
+import { Server, Loader2 } from 'lucide-vue-next';
 import AppModal from '@/Components/Common/AppModal.vue';
 import { useCopytradeDetail } from '@/lib/useCopytradeDetail';
 
@@ -21,12 +21,12 @@ watch(
     { immediate: true }
 );
 
-const profitClass = (v) =>
-    v === null || v === undefined
-        ? 'text-muted-foreground'
-        : v >= 0
-          ? 'text-emerald-700 dark:text-emerald-400'
-          : 'text-destructive';
+const profitClass = (v) => {
+    if (v === null || v === undefined) return 'text-muted-foreground';
+    const num = Number(v);
+    if (Math.abs(num) < 0.005) return 'text-muted-foreground';
+    return num > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-destructive';
+};
 </script>
 
 <template>
@@ -164,27 +164,6 @@ const profitClass = (v) =>
                 </div>
             </div>
 
-            <!-- Dokumen -->
-            <div class="bg-card border-border space-y-3 rounded-xl border p-4">
-                <h4
-                    class="text-foreground flex items-center gap-2 text-xs font-bold tracking-wider uppercase"
-                >
-                    <FileText class="text-primary h-4 w-4" />Surat Perjanjian Kemitraan
-                </h4>
-                <a
-                    v-if="copytrade.has_surat_perjanjian && copytrade.surat_perjanjian_url"
-                    :href="copytrade.surat_perjanjian_url"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="bg-background border-border hover:bg-muted text-foreground inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-xs transition-colors"
-                >
-                    Buka Berkas <ExternalLink class="h-3.5 w-3.5" />
-                </a>
-                <p v-else class="text-muted-foreground text-xs">
-                    Terikat pada perjanjian akun sebelumnya (bukan pendaftaran pertama).
-                </p>
-            </div>
-
             <!-- Riwayat saldo (read-only) -->
             <div class="bg-card border-border space-y-3 rounded-xl border p-4">
                 <h4 class="text-foreground text-xs font-bold tracking-wider uppercase">
@@ -229,7 +208,7 @@ const profitClass = (v) =>
                                         profitClass(h.keuntungan_persen),
                                     ]"
                                 >
-                                    {{ h.keuntungan_persen }}%
+                                    {{ Number(h.keuntungan_persen) > 0 ? '+' : '' }}{{ h.keuntungan_persen }}%
                                 </td>
                             </tr>
                         </tbody>

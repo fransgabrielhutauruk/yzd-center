@@ -19,6 +19,7 @@ import {
     Layers,
     LineChart,
     Loader2,
+    Minus,
     PlusCircle,
     ShieldCheck,
     Sparkles,
@@ -88,6 +89,34 @@ const formatUSD = (val) => {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     }).format(val || 0);
+};
+
+const getProfitStatus = (val) => {
+    if (val === null || val === undefined) return 'zero';
+    const num = Number(val);
+    if (Math.abs(num) < 0.005) return 'zero';
+    return num > 0 ? 'positive' : 'negative';
+};
+
+const profitRowClass = (val) => {
+    const status = getProfitStatus(val);
+    if (status === 'positive') return 'text-emerald-700 dark:text-emerald-300';
+    if (status === 'negative') return 'text-destructive';
+    return 'text-muted-foreground';
+};
+
+const profitTooltipClass = (val) => {
+    const status = getProfitStatus(val);
+    if (status === 'positive') return 'text-emerald-600 dark:text-emerald-400';
+    if (status === 'negative') return 'text-rose-600 dark:text-rose-400';
+    return 'text-muted-foreground';
+};
+
+const profitIcon = (val) => {
+    const status = getProfitStatus(val);
+    if (status === 'positive') return ArrowUpRight;
+    if (status === 'negative') return ArrowDownRight;
+    return Minus;
 };
 
 const formatShortDate = (dateStr, fallbackFormatted = '') => {
@@ -1537,25 +1566,17 @@ onMounted(() => {
                                                 hoveredPoint.idx > 0
                                             "
                                             class="mt-1 flex items-center gap-1 text-[10px] font-semibold"
-                                            :class="
-                                                hoveredPoint.profitMoM >= 0
-                                                    ? 'text-emerald-600 dark:text-emerald-400'
-                                                    : 'text-rose-600 dark:text-rose-400'
-                                            "
+                                            :class="profitTooltipClass(hoveredPoint.profitMoM)"
                                         >
                                             <component
-                                                :is="
-                                                    hoveredPoint.profitMoM >= 0
-                                                        ? ArrowUpRight
-                                                        : ArrowDownRight
-                                                "
+                                                :is="profitIcon(hoveredPoint.profitMoM)"
                                                 class="h-3 w-3"
                                             />
                                             <span>
-                                                {{ hoveredPoint.profitMoM >= 0 ? '+' : ''
+                                                {{ Number(hoveredPoint.profitMoM) > 0 ? '+' : ''
                                                 }}{{ formatUSD(hoveredPoint.profitMoM) }} ({{
-                                                    hoveredPoint.profitPct
-                                                }}%) MoM
+                                                    Number(hoveredPoint.profitPct) > 0 ? '+' : ''
+                                                }}{{ hoveredPoint.profitPct }}%) MoM
                                             </span>
                                         </div>
                                     </div>
@@ -1874,24 +1895,21 @@ onMounted(() => {
                                                 <span
                                                     :class="[
                                                         'inline-flex items-center gap-1 font-mono font-bold',
-                                                        rec.keuntungan_nominal >= 0
-                                                            ? 'text-emerald-700 dark:text-emerald-300'
-                                                            : 'text-destructive',
+                                                        profitRowClass(rec.keuntungan_nominal),
                                                     ]"
                                                 >
-                                                    <ArrowUpRight
-                                                        v-if="rec.keuntungan_nominal >= 0"
+                                                    <component
+                                                        :is="profitIcon(rec.keuntungan_nominal)"
                                                         class="h-3 w-3"
                                                     />
-                                                    <ArrowDownRight v-else class="h-3 w-3" />
                                                     <span
-                                                        >{{ rec.keuntungan_nominal >= 0 ? '+' : ''
+                                                        >{{ Number(rec.keuntungan_nominal) > 0 ? '+' : ''
                                                         }}{{
                                                             formatUSD(rec.keuntungan_nominal)
                                                         }}</span
                                                     >
                                                     <span class="text-[10px]"
-                                                        >({{ rec.keuntungan_persen >= 0 ? '+' : ''
+                                                        >({{ Number(rec.keuntungan_persen) > 0 ? '+' : ''
                                                         }}{{ rec.keuntungan_persen }}%)</span
                                                     >
                                                 </span>
@@ -1900,12 +1918,14 @@ onMounted(() => {
                                                 <span
                                                     :class="[
                                                         'font-mono font-semibold',
-                                                        rec.keuntungan_kumulatif >= 0
+                                                        Number(rec.keuntungan_kumulatif) > 0
                                                             ? 'text-foreground'
-                                                            : 'text-destructive',
+                                                            : Number(rec.keuntungan_kumulatif) < 0
+                                                              ? 'text-destructive'
+                                                              : 'text-muted-foreground',
                                                     ]"
                                                 >
-                                                    {{ rec.keuntungan_kumulatif >= 0 ? '+' : ''
+                                                    {{ Number(rec.keuntungan_kumulatif) > 0 ? '+' : ''
                                                     }}{{ formatUSD(rec.keuntungan_kumulatif) }}
                                                     <span class="text-muted-foreground text-[10px]"
                                                         >({{

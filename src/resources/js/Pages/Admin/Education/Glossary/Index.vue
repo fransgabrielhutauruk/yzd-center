@@ -127,7 +127,7 @@ const handleBatchDelete = () => {
         title="Glosarium Istilah Forex"
         subtitle="Kelola kamus istilah teknis, dasar, dan manajemen risiko forex yang ditampilkan kepada investor."
         :breadcrumbs="[
-            { label: 'Edukasi & Bantuan' },
+            { label: 'Bantuan & Informasi' },
             { label: 'Glosarium Forex' }
         ]"
     >

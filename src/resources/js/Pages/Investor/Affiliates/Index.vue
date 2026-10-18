@@ -337,7 +337,7 @@ const claimColumns = [
 <template>
     <InvestorLayout
         title="Jaringan Kemitraan"
-        subtitle="Pantau daftar investor binaan Anda dan ajukan klaim referral susulan."
+        subtitle="Pantau daftar investor binaan Anda & dapat ajukan klaim referral susulan."
         :breadcrumbs="[
             { label: 'Program Afiliasi' },
             { label: 'Jaringan Kemitraan' }
@@ -368,7 +368,7 @@ const claimColumns = [
                     :filters="downlineFilters"
                     :extra-params="{ tab: 'downlines' }"
                     :fetch-url="route('investor.affiliates.index')"
-                    search-placeholder="Cari nama, username, email, atau no. HP downline..."
+                    search-placeholder="Cari nama, username, atau no. HP downline..."
                     empty-title="Belum Ada Downline Terdaftar"
                     empty-message="Belum ada investor yang terhubung dengan kode referral Anda."
                 >

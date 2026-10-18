@@ -47,7 +47,7 @@ const pendingList = computed(() => {
     if (pa.kyc > 0) {
         list.push({
             id: 'kyc',
-            title: 'Verifikasi Pendaftaran KYC',
+            title: 'Verifikasi Pendaftaran',
             desc: 'Berkas identitas & data calon member baru menunggu peninjauan legalitas.',
             count: pa.kyc,
             href: '/admin/registrations',
@@ -60,11 +60,11 @@ const pendingList = computed(() => {
         list.push({
             id: 'copytrade',
             title: 'Verifikasi Akun Copytrade',
-            desc: 'Pengajuan akun trading MT4 baru investor menunggu verifikasi broker.',
+            desc: 'Pengajuan akun copytrade (investasi).',
             count: pa.copytrade,
             href: '/admin/copytrade',
             icon: ArrowLeftRight,
-            unit: 'Akun MT4',
+            unit: 'Akun',
         });
     }
 
@@ -102,7 +102,7 @@ const shortcuts = [
         icon: PlusCircle,
     },
     {
-        label: 'Verifikasi Pendaftaran KYC',
+        label: 'Verifikasi Pendaftaran',
         href: '/admin/registrations',
         icon: BadgeCheck,
     },
@@ -257,7 +257,7 @@ const shortcuts = [
                     <div class="bg-card border-border rounded-2xl border p-4 shadow-xs sm:p-5">
                         <div class="text-muted-foreground flex items-center justify-between gap-1.5 text-xs font-bold">
                             <span class="flex items-center gap-1.5">
-                                <ArrowLeftRight class="h-4 w-4" /> Akun Trading Aktif
+                                <ArrowLeftRight class="h-4 w-4" /> Copytrade (Investasi) Aktif
                             </span>
                         </div>
                         <p class="text-foreground mt-1 font-mono text-xl font-black sm:text-2xl">
@@ -265,7 +265,7 @@ const shortcuts = [
                         </p>
                         <p class="text-muted-foreground mt-0.5 text-[11px] font-medium">
                             <Link href="/admin/copytrade" class="hover:text-primary transition-colors">
-                                Terkoneksi copytrade MT4 &rarr;
+                                Terkoneksi copytrade (investasi) &rarr;
                             </Link>
                         </p>
                     </div>

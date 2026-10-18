@@ -581,9 +581,6 @@ class CommissionClaimService
             $search = trim((string) $filters['search']);
             $query->where(function ($q) use ($search) {
                 $q->where('kode_klaim', 'like', "%{$search}%")
-                    ->orWhere('nama_bank', 'like', "%{$search}%")
-                    ->orWhere('nomor_rekening', 'like', "%{$search}%")
-                    ->orWhere('atas_nama_rekening', 'like', "%{$search}%")
                     ->orWhereHas('affiliator', function ($sub) use ($search) {
                         $sub->where('name', 'like', "%{$search}%")
                             ->orWhere('username', 'like', "%{$search}%")

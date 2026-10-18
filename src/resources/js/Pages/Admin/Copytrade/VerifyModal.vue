@@ -280,38 +280,19 @@ const submit = () => {
                     class="text-foreground flex items-center gap-2 text-xs font-bold tracking-wider uppercase"
                 >
                     <FileText class="text-primary-600 dark:text-primary-400 h-4 w-4" />
-                    <span>Berkas Surat Perjanjian Kemitraan</span>
+                    <span>Berkas Surat Perjanjian</span>
                 </h4>
 
-                <div
+                <a
                     v-if="copytrade.has_surat_perjanjian && copytrade.surat_perjanjian_url"
-                    class="border-border bg-muted/30 flex items-center justify-between rounded-lg border p-3"
+                    :href="copytrade.surat_perjanjian_url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="bg-background border-border hover:bg-muted text-foreground inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-xs transition-colors"
                 >
-                    <div class="flex items-center gap-3">
-                        <div
-                            class="bg-primary-500/10 text-primary-600 dark:text-primary-400 flex h-9 w-9 items-center justify-center rounded-lg"
-                        >
-                            <FileText class="h-5 w-5" />
-                        </div>
-                        <div class="space-y-0.5">
-                            <p class="text-foreground text-xs font-semibold">
-                                Surat_Perjanjian_Kemitraan.pdf
-                            </p>
-                            <p class="text-muted-foreground text-[11px]">
-                                Berkas legalitas bermaterai yang diunggah investor
-                            </p>
-                        </div>
-                    </div>
-                    <a
-                        :href="copytrade.surat_perjanjian_url"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="bg-background border-border hover:bg-muted text-foreground inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-xs transition-colors"
-                    >
-                        <span>Buka Berkas</span>
-                        <ExternalLink class="h-3.5 w-3.5" />
-                    </a>
-                </div>
+                    <span>Buka Berkas</span>
+                    <ExternalLink class="h-3.5 w-3.5" />
+                </a>
 
                 <div
                     v-else

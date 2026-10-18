@@ -24,7 +24,7 @@ class StoreInvitationRequest extends FormRequest
         return [
             'label'          => ['required', 'string', 'max:100'],
             'target_role'    => ['required', 'string', 'in:investor,affiliator'],
-            'kuota_maksimal' => ['required', 'integer', 'min:1', 'max:1000'],
+            'kuota_maksimal' => ['required', 'integer', 'min:1', 'max:10000'],
             'expired_hours'  => ['nullable', 'integer', 'min:0', 'max:8760'],
         ];
     }
