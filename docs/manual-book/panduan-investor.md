@@ -357,7 +357,7 @@ Agar grafik pertumbuhan, perhitungan laba bulanan (*Month-on-Month*), dan indika
 Di bagian paling bawah halaman Portofolio Investasi, terdapat tabel **Riwayat Catatan Saldo & Keuntungan Month-on-Month (MoM)** yang mencatat setiap rekaman saldo secara kronologis:
 - **Tanggal Pencatatan:** Tanggal rekaman saldo.
 - **Saldo MT4 (USD):** Nilai total saldo pada tanggal tersebut.
-- **Keuntungan MoM:** Selisih keuntungan/kerugian dibandingkan catatan saldo tepat satu periode sebelumnya.
+- **Keuntungan MoM:** Selisih keuntungan/kerugian dibandingkan catatan saldo tepat satu periode sebelumnya. Jika keuntungan bernilai positif ditampilkan hijau (`+$...`), jika rugi/drawdown ditampilkan merah (`-$...`), dan jika tidak mengalami perubahan saldo ($0.00) ditampilkan netral (teks abu-abu `$0.00`, persentase `0%`, serta ikon strip datar `—` / `Minus`).
 - **Keuntungan Kumulatif:** Total akumulasi keuntungan/kerugian dibandingkan dengan **Modal Awal** saat akun pertama kali dibuka.
 - **Kolom Aksi (Ikon Pensil & Tempat Sampah):**
   - Klik **Ikon Pensil (`✏️`)** untuk memperbaiki tanggal atau nominal saldo jika terjadi salah ketik.
@@ -454,7 +454,8 @@ Kelompok menu **Bantuan & Edukasi** dirancang agar Anda memahami mekanisme opera
 Menu **Pusat Bantuan** menyajikan kumpulan artikel panduan resmi yang terstruktur:
 1. **Pencarian Cepat:** Ketik kata kunci (misalnya *"copytrade"*, *"komisi"*, atau *"saldo"*) pada bilah pencarian di bagian atas.
 2. **Filter Kategori:** Klik tab kategori (**Semua**, **Panduan Memulai**, **Investasi & Copytrade**, **Keamanan & Privasi**, dll.) untuk menyaring topik.
-3. **Membaca Artikel:** Klik salah satu kartu artikel untuk membuka halaman bacaan lengkap. Di dalam halaman artikel, tersedia **Daftar Isi Sub-Bab** di sisi kanan untuk melompat ke bagian tertentu, serta rekomendasi **Artikel Terkait** di bagian bawah.
+3. **Kartu Artikel Terfokus:** Setiap kartu artikel menampilkan judul jelas, cuplikan ringkasan materi, tanggal pembaruan, dan tombol aksi tanpa elemen badge atau metrik jumlah pembaca agar tampilan bersih dan nyaman dibaca.
+4. **Membaca Artikel Lengkap:** Klik kartu atau tombol **"Baca Selengkapnya"** untuk membuka halaman bacaan lengkap. Di dalam halaman artikel, tersedia **Daftar Isi Sub-Bab** di sisi kanan untuk melompat ke bagian tertentu, serta rekomendasi **Artikel Terkait** di bagian bawah.
 
 ![Halaman Pusat Bantuan Investor](./assets/investor/14-pusat-bantuan.png)
 
@@ -465,8 +466,9 @@ Menu **Pusat Bantuan** menyajikan kumpulan artikel panduan resmi yang terstruktu
 ### 7.2 Tanya Jawab (FAQ)
 Menu **Tanya Jawab (FAQ)** merangkum pertanyaan-pertanyaan yang paling sering diajukan oleh Investor beserta jawaban singkat dan padat:
 1. Gunakan kolom **Cari pertanyaan atau kata kunci** atau klik tab kategori di bawahnya untuk menyaring topik.
-2. Klik pada baris judul pertanyaan untuk membuka (*expand*) kotak jawaban di bawahnya.
-3. Jika pertanyaan Anda belum terjawab di daftar FAQ, klik tombol **"Buka Pusat Bantuan"** pada spanduk di bagian bawah halaman.
+2. **Tampilan Awal Tertutup Rapi:** Saat pertama kali dibuka, seluruh daftar pertanyaan dalam kondisi tertutup rapi (*collapsed*) agar halaman ringkas.
+3. Klik pada baris judul pertanyaan yang ingin Anda baca untuk membuka (*expand*) kotak jawaban di bawahnya, dan klik kembali untuk menutupnya.
+4. Jika pertanyaan Anda belum terjawab di daftar FAQ, klik tombol **"Buka Pusat Bantuan"** pada spanduk di bagian bawah halaman.
 
 ![Halaman Tanya Jawab (FAQ)](./assets/investor/15-tanya-jawab-faq.png)
 
@@ -505,8 +507,10 @@ Sistem YZD Center mengirimkan pemberitahuan otomatis ke dalam akun Anda (*in-app
 
 **Cara Membuka & Mengelola Notifikasi:**
 1. Klik **Ikon Lonceng (`🔔`)** di pojok kanan atas layar untuk melihat daftar singkat notifikasi terbaru. Angka berwarna oranye pada lonceng menunjukkan jumlah pesan yang belum dibaca.
-2. Klik salah satu pesan notifikasi untuk langsung menuju halaman terkait (dan pesan tersebut otomatis ditandai sudah dibaca), atau klik **"Lihat Semua Notifikasi"** untuk membuka halaman **Semua Notifikasi**.
-3. Pada halaman **Semua Notifikasi**, Anda dapat menyaring tab **Semua** atau **Belum Dibaca**, menekan tombol **"Tandai semua dibaca"**, atau menghapus pesan lama dengan menekan **Ikon Tempat Sampah (`🗑️`)**.
+2. Setiap pesan pemberitahuan dirancang ringkas (catatan penjelasan admin dibatasi maksimal 10 kata pada pratinjau pesan agar tampilan tidak terlalu panjang).
+3. Klik salah satu pesan notifikasi untuk langsung menuju ke halaman atau tab spesifik terkait (misalnya menuju tab riwayat klaim atau rincian akun) di mana catatan penjelasan lengkap dapat dibaca secara utuh. Pesan tersebut otomatis ditandai sudah dibaca.
+4. Anda juga dapat menekan tautan **"Lihat Semua Notifikasi"** pada bagian bawah popover lonceng untuk membuka halaman arsip **Semua Notifikasi**.
+5. Pada halaman **Semua Notifikasi**, Anda dapat menyaring tab **Semua** atau **Belum Dibaca**, menekan tombol **"Tandai semua dibaca"**, atau menghapus pesan lama dengan menekan **Ikon Tempat Sampah (`🗑️`)**.
 
 ![Halaman Semua Notifikasi Sistem](./assets/investor/17-notifikasi-in-app.png)
 
