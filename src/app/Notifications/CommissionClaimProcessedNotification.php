@@ -30,7 +30,11 @@ class CommissionClaimProcessedNotification extends Notification
     public function toArray(object $notifiable): array
     {
         $isApproved = $this->action === 'approved_transferred';
-        $formattedTransfer = 'Rp ' . number_format((float) ($this->claim->total_nominal_transfer ?? 0), 0, ',', '.');
+        $nominalTransferIdr = $this->claim->total_nominal_transfer_idr !== null
+            ? (float) $this->claim->total_nominal_transfer_idr
+            : ((float) ($this->claim->total_nominal_transfer ?? 0) * (float) ($this->claim->kurs_konversi_idr ?: 15000));
+
+        $formattedTransfer = 'Rp ' . number_format($nominalTransferIdr, 0, ',', '.');
 
         $title = $isApproved
             ? 'Pencairan Komisi Berhasil Ditransfer'
@@ -41,15 +45,16 @@ class CommissionClaimProcessedNotification extends Notification
             : "Klaim komisi {$this->claim->kode_klaim} ditolak oleh Administrator." . ($this->catatanAdmin ? " Alasan: {$this->catatanAdmin}" : '');
 
         return [
-            'type'                   => 'commission_claim_processed',
-            'title'                  => $title,
-            'message'                => $message,
-            'icon'                   => $isApproved ? 'check-circle' : 'x-circle',
-            'claim_id'               => $this->claim->id,
-            'kode_klaim'             => $this->claim->kode_klaim,
-            'status'                 => $this->action,
-            'total_nominal_transfer' => $this->claim->total_nominal_transfer,
-            'url'                    => '/investor/commissions',
+            'type'                       => 'commission_claim_processed',
+            'title'                      => $title,
+            'message'                    => $message,
+            'icon'                       => $isApproved ? 'check-circle' : 'x-circle',
+            'claim_id'                   => $this->claim->id,
+            'kode_klaim'                 => $this->claim->kode_klaim,
+            'status'                     => $this->action,
+            'total_nominal_transfer'     => $this->claim->total_nominal_transfer,
+            'total_nominal_transfer_idr' => $nominalTransferIdr,
+            'url'                        => '/investor/commissions?tab=claims',
         ];
     }
 }

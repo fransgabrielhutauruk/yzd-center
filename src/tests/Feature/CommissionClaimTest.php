@@ -803,4 +803,53 @@ class CommissionClaimTest extends TestCase
             ->where('eligibleDownlines.2.first_started_at_raw', '2026-04-15')
         );
     }
+
+    public function test_commission_claim_processed_notification_formats_idr_correctly(): void
+    {
+        $claim = KlaimKomisi::create([
+            'kode_klaim'                 => 'CLM-202610-0003',
+            'affiliator_id'              => $this->affiliator->id,
+            'total_downline'             => 1,
+            'total_akun'                 => 1,
+            'total_modal_riil'           => 100,
+            'total_deposit_amount'       => 100,
+            'total_affiliate_commission' => 0.30,
+            'total_nominal_transfer'     => 0.30,
+            'kurs_konversi_idr'          => 15000,
+            'total_nominal_transfer_idr' => 4500,
+            'nama_bank'                  => 'SeaBank',
+            'nomor_rekening'             => '12345678',
+            'atas_nama_rekening'         => 'Affiliator Test',
+            'status'                     => 'approved_transferred',
+        ]);
+
+        $notification = new CommissionClaimProcessedNotification($claim, 'approved_transferred');
+        $data = $notification->toArray($this->affiliator);
+
+        $this->assertEquals('Pencairan Komisi Berhasil Ditransfer', $data['title']);
+        $this->assertStringContainsString('telah dicairkan sebesar Rp 4.500.', $data['message']);
+        $this->assertEquals(4500.0, (float) $data['total_nominal_transfer_idr']);
+    }
+
+    public function test_commission_claim_submitted_notification_formats_modal_in_usd(): void
+    {
+        $claim = KlaimKomisi::create([
+            'kode_klaim'           => 'CLM-202610-0004',
+            'affiliator_id'        => $this->affiliator->id,
+            'total_downline'       => 1,
+            'total_akun'           => 1,
+            'total_modal_riil'     => 100,
+            'total_deposit_amount' => 100,
+            'nama_bank'            => 'BCA',
+            'nomor_rekening'       => '12345678',
+            'atas_nama_rekening'   => 'Affiliator Test',
+            'status'               => 'pending',
+        ]);
+
+        $notification = new CommissionClaimSubmittedNotification($claim);
+        $data = $notification->toArray($this->admin);
+
+        $this->assertEquals('Permohonan Klaim Komisi Baru (90 Hari)', $data['title']);
+        $this->assertStringContainsString('dengan total modal $100.', $data['message']);
+    }
 }

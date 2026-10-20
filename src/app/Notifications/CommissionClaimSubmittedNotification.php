@@ -28,7 +28,8 @@ class CommissionClaimSubmittedNotification extends Notification
     public function toArray(object $notifiable): array
     {
         $affiliator = $this->claim->affiliator;
-        $formattedModal = 'Rp ' . number_format((float) $this->claim->total_modal_riil, 0, ',', '.');
+        $modalNum = (float) $this->claim->total_modal_riil;
+        $formattedModal = '$' . number_format($modalNum, $modalNum == (int) $modalNum ? 0 : 2, '.', ',');
         $downlineCount = $this->claim->total_downline;
         $akunCount = $this->claim->total_akun;
 

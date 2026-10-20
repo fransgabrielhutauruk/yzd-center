@@ -74,7 +74,7 @@ const tableColumns = [
                 :columns="tableColumns"
                 :filters="filters"
                 fetch-url="/admin/commissions"
-                search-placeholder="Cari kode klaim, affiliator, downline, bank..."
+                search-placeholder="Cari kode klaim, affiliator, downline..."
                 empty-title="Tidak Ada Antrean Klaim Komisi"
                 empty-message="Saat ini belum ada permohonan klaim komisi affiliator yang perlu diproses."
             >
@@ -161,9 +161,7 @@ const tableColumns = [
                         <p v-if="item.kurs_konversi_idr" class="text-muted-foreground font-mono text-[10px]">
                             Kurs MT4: {{ formatRupiah(item.kurs_konversi_idr) }}/$1
                         </p>
-                        <p class="text-muted-foreground text-[10px]">
-                            Hak Master: {{ formatUSD(item.total_master_gross_share ?? item.total_profit_master) }}
-                        </p>
+
                     </div>
                     <div v-else-if="item.status === 'rejected'" class="text-rose-700 dark:text-rose-400 text-xs font-medium">
                         Klaim Ditolak
