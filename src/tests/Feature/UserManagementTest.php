@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AkunCopytrade;
+use App\Models\KlaimKomisi;
 use App\Models\RelasiReferral;
 use App\Models\User;
 use App\Models\UserAhliWaris;
@@ -492,5 +493,126 @@ class UserManagementTest extends TestCase
             ->where('stats.inactive_affiliators', 1)
             ->where('stats.inactive_investors', 2)
         );
+    }
+
+    public function test_admin_can_promote_investor_to_affiliator_and_generates_referral_code(): void
+    {
+        $this->assertNull($this->investor->referral_code);
+        $this->assertEquals('investor', $this->investor->role);
+
+        // Simulasi sesi aktif di tabel sessions
+        DB::table('sessions')->insert([
+            'id'            => 'sess_test_investor',
+            'user_id'       => $this->investor->id,
+            'ip_address'    => '127.0.0.1',
+            'user_agent'    => 'PHPUnit',
+            'payload'       => 'test',
+            'last_activity' => time(),
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.users.switch_role', $this->investor->id));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $this->investor->refresh();
+        $this->assertEquals('affiliator', $this->investor->role);
+        $this->assertNotNull($this->investor->referral_code);
+        $this->assertEquals(6, strlen($this->investor->referral_code));
+
+        // Verifikasi sesi dihapus
+        $this->assertDatabaseMissing('sessions', ['id' => 'sess_test_investor']);
+    }
+
+    public function test_admin_can_promote_investor_who_already_had_referral_code_and_preserves_it(): void
+    {
+        $this->investor->referral_code = 'PREV99';
+        $this->investor->save();
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.users.switch_role', $this->investor->id));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $this->investor->refresh();
+        $this->assertEquals('affiliator', $this->investor->role);
+        $this->assertEquals('PREV99', $this->investor->referral_code);
+    }
+
+    public function test_admin_can_demote_affiliator_to_investor_when_no_pending_commission(): void
+    {
+        $this->assertEquals('affiliator', $this->affiliator->role);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.users.switch_role', $this->affiliator->id));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $this->affiliator->refresh();
+        $this->assertEquals('investor', $this->affiliator->role);
+
+        // Verifikasi relasi downline tetap dipertahankan di database
+        $this->assertDatabaseHas('relasi_referral', [
+            'affiliator_id' => $this->affiliator->id,
+            'downline_id'   => $this->investor->id,
+        ]);
+    }
+
+    public function test_admin_cannot_demote_affiliator_with_pending_commission_claim(): void
+    {
+        KlaimKomisi::create([
+            'kode_klaim'                 => 'CLM-PENDING-001',
+            'affiliator_id'              => $this->affiliator->id,
+            'total_downline'             => 1,
+            'total_akun'                 => 1,
+            'total_modal_riil'           => 100,
+            'total_deposit_amount'       => 100,
+            'total_gross_profit'         => 0,
+            'total_master_gross_share'   => 0,
+            'total_master_net_share'     => 0,
+            'total_investor_net_profit'  => 0,
+            'total_affiliate_commission' => 10,
+            'total_profit_master'        => 0,
+            'total_nominal_transfer'     => 10,
+            'kurs_konversi_idr'          => 15000,
+            'total_nominal_transfer_idr' => 150000,
+            'nama_bank'                  => 'BCA',
+            'nomor_rekening'             => '123456789',
+            'atas_nama_rekening'         => 'Test Affiliator',
+            'status'                     => 'pending',
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.users.switch_role', $this->affiliator->id));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+
+        $this->affiliator->refresh();
+        $this->assertEquals('affiliator', $this->affiliator->role);
+    }
+
+    public function test_admin_cannot_switch_role_of_administrator_or_themselves(): void
+    {
+        $anotherAdmin = User::factory()->create([
+            'role'      => 'administrator',
+            'status'    => 'active',
+            'is_active' => true,
+        ]);
+
+        // Coba ubah admin lain
+        $response1 = $this->actingAs($this->admin)
+            ->post(route('admin.users.switch_role', $anotherAdmin->id));
+        $response1->assertRedirect();
+        $response1->assertSessionHas('error');
+
+        // Coba ubah akun sendiri
+        $response2 = $this->actingAs($this->admin)
+            ->post(route('admin.users.switch_role', $this->admin->id));
+        $response2->assertRedirect();
+        $response2->assertSessionHas('error');
     }
 }

@@ -102,6 +102,7 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::get('/users/{id}', [UserController::class, 'show'])->name('users.show');
     Route::post('/users/{id}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle_status');
+    Route::post('/users/{id}/switch-role', [UserController::class, 'switchRole'])->name('users.switch_role');
 
     // Manajemen Tautan Undangan
     Route::get('/invitations', [InvitationController::class, 'index'])->name('invitations.index');

@@ -18,6 +18,7 @@ import {
     CreditCard,
     HeartHandshake,
     ArrowRight,
+    ArrowLeftRight,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -32,6 +33,25 @@ const isConfirmDialogOpen = ref(false);
 const isToggling = ref(false);
 const isKtpModalOpen = ref(false);
 const isAgreementModalOpen = ref(false);
+
+// State Dialog Konfirmasi Alih Peran (Investor <-> Affiliator)
+const isSwitchRoleDialogOpen = ref(false);
+const isSwitchingRole = ref(false);
+
+const handleConfirmSwitchRole = () => {
+    isSwitchingRole.value = true;
+    router.post(
+        route('admin.users.switch_role', props.user.id),
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                isSwitchingRole.value = false;
+                isSwitchRoleDialogOpen.value = false;
+            },
+        }
+    );
+};
 
 const isAgreementPdf = computed(() => {
     if (!props.user?.surat_perjanjian) return false;
@@ -76,6 +96,15 @@ const handleConfirmToggle = () => {
                     :href="route('admin.users.index')"
                     label="Kembali"
                     size="sm"
+                />
+                <AppButton
+                    type="custom"
+                    variant="outline"
+                    size="sm"
+                    :icon="user.role === 'investor' ? UserCheck : ArrowLeftRight"
+                    :label="user.role === 'investor' ? 'Angkat Jadi Affiliator' : 'Ubah Jadi Investor'"
+                    class="border-primary-500/30 text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-950/40"
+                    @click="isSwitchRoleDialogOpen = true"
                 />
                 <AppButton
                     v-if="user.is_active"
@@ -547,6 +576,31 @@ const handleConfirmToggle = () => {
             :loading="isToggling"
             @confirm="handleConfirmToggle"
             @cancel="isConfirmDialogOpen = false"
+        />
+
+        <!-- Dialog Konfirmasi Alih Peran Pengguna (Investor <-> Affiliator) -->
+        <AppConfirmDialog
+            :show="isSwitchRoleDialogOpen"
+            :title="
+                user.role === 'investor'
+                    ? 'Angkat Menjadi Mitra Affiliator?'
+                    : 'Ubah Menjadi Investor Biasa?'
+            "
+            :message="
+                user.role === 'investor'
+                    ? `Apakah Anda yakin ingin mengangkat akun '${user.name}' (@${user.username}) menjadi Mitra Affiliator? Pengguna akan mendapatkan akses ke menu Program Afiliasi dan diterbitkan kode referral unik.`
+                    : `Apakah Anda yakin ingin mengubah akun '${user.name}' (@${user.username}) kembali menjadi Investor biasa? Akses menu Program Afiliasi akan dinonaktifkan.`
+            "
+            :confirm-text="
+                user.role === 'investor'
+                    ? 'Ya, Angkat Jadi Affiliator'
+                    : 'Ya, Ubah Jadi Investor'
+            "
+            cancel-text="Batal"
+            type="warning"
+            :loading="isSwitchingRole"
+            @confirm="handleConfirmSwitchRole"
+            @cancel="isSwitchRoleDialogOpen = false"
         />
 
         <!-- Modal Pratinjau KTP Penuh -->

@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\DB;
 
 class UserService
 {
+    public function __construct(
+        private readonly ReferralService $referralService,
+    ) {}
+
     /**
      * Ambil data pengguna berpaginasi khusus role investor dan affiliator beserta metrik statistik.
      *
@@ -303,6 +307,63 @@ class UserService
             }
 
             return $user;
+        });
+    }
+
+    /**
+     * Alihkan (switch) peran pengguna antara Investor dan Affiliator.
+     * Bila diangkat menjadi Affiliator, otomatis terbitkan kode referral jika belum memiliki.
+     * Bila diubah menjadi Investor, cegah jika terdapat penarikan komisi yang berstatus 'pending'.
+     * Seluruh sesi aktif pengguna akan diputus seketika agar saat login kembali hak akses peran langsung termuat segar.
+     *
+     * @return array{user: User, old_role: string, new_role: string}
+     *
+     * @throws DomainException
+     */
+    public function switchUserRole(int $userId, int $adminId): array
+    {
+        return DB::transaction(function () use ($userId, $adminId): array {
+            /** @var User $user */
+            $user = User::query()->lockForUpdate()->findOrFail($userId);
+
+            if ($user->isAdmin()) {
+                throw new DomainException('Peran akun administrator tidak dapat diubah.');
+            }
+
+            if ($user->id === $adminId) {
+                throw new DomainException('Anda tidak dapat mengubah peran akun Anda sendiri.');
+            }
+
+            $oldRole = $user->role;
+            $newRole = $oldRole === 'investor' ? 'affiliator' : 'investor';
+
+            if ($newRole === 'affiliator') {
+                // Promosi ke Affiliator: terbitkan kode referral baru jika belum ada
+                if (empty($user->referral_code)) {
+                    $user->referral_code = $this->referralService->generateReferralCode($user->name);
+                }
+            } else {
+                // Demosi ke Investor: cegah jika ada pengajuan klaim komisi berstatus pending
+                $hasPendingCommission = $user->klaimKomisiDiajukan()
+                    ->where('status', 'pending')
+                    ->exists();
+
+                if ($hasPendingCommission) {
+                    throw new DomainException('Tidak dapat mengubah peran menjadi Investor karena pengguna masih memiliki pengajuan pencairan komisi yang berstatus Pending. Silakan proses atau tolak pengajuan komisi tersebut terlebih dahulu.');
+                }
+            }
+
+            $user->role = $newRole;
+            $user->save();
+
+            // Putuskan seluruh sesi aktif pengguna agar wajib login ulang dan antarmuka menu barunya sinkron
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+
+            return [
+                'user'     => $user,
+                'old_role' => $oldRole,
+                'new_role' => $newRole,
+            ];
         });
     }
 }

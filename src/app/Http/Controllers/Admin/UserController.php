@@ -58,4 +58,19 @@ class UserController extends Controller
             return back()->with('error', $e->getMessage());
         }
     }
+
+    /**
+     * Alihkan peran pengguna antara Investor dan Affiliator.
+     */
+    public function switchRole(Request $request, int $id): RedirectResponse
+    {
+        try {
+            $result = $this->userService->switchUserRole($id, $request->user()->id);
+            $roleLabel = $result['new_role'] === 'affiliator' ? 'Affiliator' : 'Investor';
+
+            return back()->with('success', "Peran pengguna {$result['user']->name} berhasil diubah menjadi {$roleLabel}.");
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
 }

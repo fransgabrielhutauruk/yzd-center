@@ -5,7 +5,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
 import AppConfirmDialog from '@/Components/Common/AppConfirmDialog.vue';
 import AppTableAction from '@/Components/Common/AppTableAction.vue';
-import { Users, TrendingUp, UserCheck, UserX, CheckCircle2 } from 'lucide-vue-next';
+import { Users, TrendingUp, UserCheck, UserX, CheckCircle2, ArrowLeftRight } from 'lucide-vue-next';
 
 const props = defineProps({
     users: {
@@ -63,6 +63,34 @@ const handleConfirmToggle = () => {
                 isToggling.value = false;
                 isConfirmDialogOpen.value = false;
                 selectedUser.value = null;
+            },
+        }
+    );
+};
+
+// State Konfirmasi Alih Peran (Investor <-> Affiliator)
+const isSwitchRoleDialogOpen = ref(false);
+const userToSwitch = ref(null);
+const isSwitchingRole = ref(false);
+
+const openSwitchRoleConfirm = (user) => {
+    userToSwitch.value = user;
+    isSwitchRoleDialogOpen.value = true;
+};
+
+const handleConfirmSwitchRole = () => {
+    if (!userToSwitch.value) return;
+
+    isSwitchingRole.value = true;
+    router.post(
+        route('admin.users.switch_role', userToSwitch.value.id),
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                isSwitchingRole.value = false;
+                isSwitchRoleDialogOpen.value = false;
+                userToSwitch.value = null;
             },
         }
     );
@@ -318,6 +346,13 @@ const filterByQuick = (type, val) => {
                             :href="route('admin.users.show', item.id)"
                         />
                         <AppTableAction
+                            type="custom"
+                            :icon="item.role === 'investor' ? UserCheck : ArrowLeftRight"
+                            :color="item.role === 'investor' ? 'primary' : 'amber'"
+                            :title="item.role === 'investor' ? 'Angkat Menjadi Affiliator' : 'Ubah Menjadi Investor'"
+                            @click="openSwitchRoleConfirm(item)"
+                        />
+                        <AppTableAction
                             :type="item.is_active ? 'disable' : 'activate'"
                             :title="item.is_active ? 'Nonaktifkan Akses Akun' : 'Aktifkan Kembali Akses Akun'"
                             @click="openToggleConfirm(item)"
@@ -346,6 +381,31 @@ const filterByQuick = (type, val) => {
             :loading="isToggling"
             @confirm="handleConfirmToggle"
             @cancel="isConfirmDialogOpen = false"
+        />
+
+        <!-- Dialog Konfirmasi Alih Peran Pengguna (Investor <-> Affiliator) -->
+        <AppConfirmDialog
+            :show="isSwitchRoleDialogOpen"
+            :title="
+                userToSwitch?.role === 'investor'
+                    ? 'Angkat Menjadi Mitra Affiliator?'
+                    : 'Ubah Menjadi Investor Biasa?'
+            "
+            :message="
+                userToSwitch?.role === 'investor'
+                    ? `Apakah Anda yakin ingin mengangkat akun '${userToSwitch?.name}' (@${userToSwitch?.username}) menjadi Mitra Affiliator? Pengguna akan mendapatkan akses ke menu Program Afiliasi dan diterbitkan kode referral unik.`
+                    : `Apakah Anda yakin ingin mengubah akun '${userToSwitch?.name}' (@${userToSwitch?.username}) kembali menjadi Investor biasa? Akses menu Program Afiliasi akan dinonaktifkan.`
+            "
+            :confirm-text="
+                userToSwitch?.role === 'investor'
+                    ? 'Ya, Angkat Jadi Affiliator'
+                    : 'Ya, Ubah Jadi Investor'
+            "
+            cancel-text="Batal"
+            type="warning"
+            :loading="isSwitchingRole"
+            @confirm="handleConfirmSwitchRole"
+            @cancel="isSwitchRoleDialogOpen = false"
         />
     </AdminLayout>
 </template>
