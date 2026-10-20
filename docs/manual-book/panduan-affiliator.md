@@ -13,6 +13,7 @@
    - [1.2 Peta Perjalanan Pengguna (Alur Hulu ke Hilir Affiliator)](#12-peta-perjalanan-pengguna-alur-hulu-ke-hilir-affiliator)
    - [1.3 Perbedaan Hak Akses Akun Investor Biasa vs Akun Affiliator](#13-perbedaan-hak-akses-akun-investor-biasa-vs-akun-affiliator)
    - [1.4 Tata Letak Layar & Navigasi Khusus Afiliasi](#14-tata-letak-layar--navigasi-khusus-afiliasi)
+   - [1.5 Akses Cepat Aplikasi (Instalasi Semi-PWA di HP & Komputer)](#15-akses-cepat-aplikasi-instalasi-semi-pwa-di-hp--komputer)
 2. [Bab 2: Tautan Referral & Penambahan Investor Binaan (Downline)](#bab-2-tautan-referral--penambahan-investor-binaan-downline)
    - [2.1 Mekanisme Tautan Referral Unik Otomatis](#21-mekanisme-tautan-referral-unik-otomatis)
    - [2.2 Cara Membagikan Tautan & Melacak Status Downline](#22-cara-membagikan-tautan--melacak-status-downline)
@@ -103,6 +104,33 @@ Saat akun Anda telah diangkat sebagai Affiliator oleh Administrator, bilah menu 
 2. **Menu Klaim Komisi (`/investor/commissions`):** Berisi kartu saldo komisi yang dapat dicairkan, kartu skema 4-tier, tombol pengajuan klaim baru, serta tabel riwayat transfer komisi bank.
 
 ![Halaman Dashboard Affiliator](./assets/affiliator/01-dashboard-affiliator.png)
+
+---
+
+### 1.5 Akses Cepat Aplikasi (Instalasi Semi-PWA di HP & Komputer)
+
+Agar Anda dapat memantau pergerakan downline dan mencairkan komisi secara instan kapan saja, portal YZD Center mendukung teknologi **Semi-PWA (*Progressive Web App*)**. Anda dapat memasang ikon aplikasi YZD Center langsung di layar utama (*Home Screen*) ponsel atau *desktop taskbar* tanpa perlu mengunduh file berat dari toko aplikasi (*Play Store / App Store*).
+
+#### Lokasi Tombol Install:
+Tombol **"Install App"** berwarna ungu (*Violet-600*) terletak pada **Top Header** di sebelah kanan atas (di samping lonceng notifikasi, dipisahkan oleh garis pembatas vertikal):
+- **Di Layar Komputer / Laptop (`sm:` ke atas):** Menampilkan tombol ungu dengan ikon panah unduh dan label teks **"Install App"**.
+- **Di Layar Smartphone / Ponsel (`< 640px`):** Menampilkan tombol ikon ungu kotak ringkas (`38x38px`) dengan ikon panah unduh kontras agar bilah navigasi ponsel tetap lega.
+
+#### Panduan Pemasangan Berdasarkan Perangkat:
+1. **Google Chrome / Microsoft Edge (Android & Komputer PC / Mac):**
+   - Klik tombol **"Install App"** di bagian atas layar.
+   - Kotak dialog instalasi resmi peramban akan muncul: *"Install app YZD Center?"*.
+   - Pilih **Install**. Ikon pintasan YZD Center akan langsung dibuat di layar depan HP atau Desktop Anda.
+2. **Apple Safari (iPhone / iPad iOS):**
+   - Klik tombol **"Install App"** pada header.
+   - Jendela panduan interaktif 3 langkah akan terbuka di layar:
+     1. Ketuk tombol **Bagikan (*Share*)** (ikon kotak dengan panah ke atas) pada bilah navigasi bawah Safari.
+     2. Gulir menu ke bawah dan pilih **Tambah ke Layar Utama (*Add to Home Screen*)**.
+     3. Ketuk **Tambah (*Add*)** di sudut kanan atas. Pintasan YZD Center akan langsung muncul di beranda iOS Anda.
+
+> [!TIP]
+> **Tampilan Mandiri Bebas Hambatan (*Standalone Mode*):**  
+> Begitu Anda membuka aplikasi melalui ikon pintasan yang telah dipasang, aplikasi akan berjalan dalam mode layar penuh mandiri (*standalone*) tanpa bilah alamat URL peramban, memberikan pengalaman yang sama cepat dan mulusnya seperti aplikasi bawaan sistem. Tombol "Install App" akan otomatis disembunyikan saat aplikasi dijalankan dalam mode ini.
 
 ---
 

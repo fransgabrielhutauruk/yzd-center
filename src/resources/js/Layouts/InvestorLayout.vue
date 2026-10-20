@@ -26,8 +26,10 @@ import {
     Newspaper,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
+import { usePwaInstall } from '@/composables/usePwaInstall';
 import AppToaster from '@/Components/Common/AppToaster.vue';
 import AppNotificationBell from '@/Components/Common/AppNotificationBell.vue';
+import AppPwaInstallButton from '@/Components/Common/AppPwaInstallButton.vue';
 import AppPageHeader from '@/Components/Common/AppPageHeader.vue';
 import { toast } from 'vue-sonner';
 
@@ -48,6 +50,7 @@ defineProps({
 
 const page = usePage();
 const { isDark, toggleDarkMode } = useDarkMode();
+const { canShowInstallButton } = usePwaInstall();
 
 const isMobileSidebarOpen = ref(false);
 const isUserDropdownOpen = ref(false);
@@ -392,6 +395,15 @@ const logout = () => {
 
                 <!-- Right Header Actions -->
                 <div class="flex items-center gap-2 sm:gap-2.5">
+                    <!-- PWA Install Button -->
+                    <AppPwaInstallButton />
+
+                    <!-- Vertical Divider -->
+                    <div
+                        v-if="canShowInstallButton"
+                        class="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 sm:mx-1"
+                    ></div>
+
                     <!-- In-App Notification Bell Component -->
                     <AppNotificationBell />
 

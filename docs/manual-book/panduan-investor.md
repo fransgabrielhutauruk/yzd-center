@@ -12,6 +12,7 @@
    - [1.1 Tentang Portal Investor YZD Center](#11-tentang-portal-investor-yzd-center)
    - [1.2 Peta Perjalanan Pengguna (Alur Hulu ke Hilir)](#12-peta-perjalanan-pengguna-alur-hulu-ke-hilir)
    - [1.3 Mengenal Tata Letak Layar & Navigasi](#13-mengenal-tata-letak-layar--navigasi)
+   - [1.4 Akses Cepat Aplikasi (Instalasi Semi-PWA di Smartphone & Desktop)](#14-akses-cepat-aplikasi-instalasi-semi-pwa-di-smartphone--desktop)
 2. [Bab 2: Pendaftaran Akun (Via Tautan Undangan) & Masuk ke Sistem](#bab-2-pendaftaran-akun-via-tautan-undangan--masuk-ke-sistem)
    - [2.1 Ketentuan Eksklusif Pendaftaran Berbasis Undangan](#21-ketentuan-eksklusif-pendaftaran-berbasis-undangan)
    - [2.2 Langkah Demi Langkah Pendaftaran Akun Baru](#22-langkah-demi-langkah-pendaftaran-akun-baru)
@@ -92,9 +93,35 @@ Saat masuk ke dalam sistem, layar Anda terbagi menjadi tiga area utama:
    - *(Pada layar ponsel/HP, bilah samping ini dapat dibuka dengan menekan tombol ikon garis tiga `☰` di pojok kiri atas).*
 2. **Bilah Atas (*Header*):**
    - Menampilkan jalur halaman (*breadcrumb*) di sisi kiri.
-   - Menampilkan **Ikon Lonceng Notifikasi** (beserta jumlah pesan belum dibaca), **Tombol Tema Tampilan** (Mode Terang/Gelap), dan **Menu Profil Pengguna** di pojok kanan atas.
+   - Menampilkan **Tombol "Install App"** (untuk akses cepat PWA), garis pembatas vertikal, **Ikon Lonceng Notifikasi** (beserta jumlah pesan belum dibaca), **Tombol Tema Tampilan** (Mode Terang/Gelap), dan **Menu Profil Pengguna** di pojok kanan atas.
 3. **Area Kerja Utama (Tengah):**
    - Menampilkan isi halaman, grafik kinerja, tabel riwayat, serta jendela formulir (*modal*) sesuai menu yang sedang Anda pilih.
+
+---
+
+### 1.4 Akses Cepat Aplikasi (Instalasi Semi-PWA di Smartphone & Desktop)
+
+Untuk memudahkan Anda dalam mengecek performa portofolio dan menginput saldo bulanan tanpa perlu berulang kali membuka peramban web dan mengetik alamat URL, portal YZD Center mendukung teknologi **Semi-PWA (*Progressive Web App*)**. Anda dapat menambahkan ikon aplikasi YZD Center langsung ke layar utama (*Home Screen*) HP atau desktop komputer Anda tanpa perlu mengunduh aplikasi berbayar atau file berukuran besar dari Google Play Store / Apple App Store.
+
+#### Karakteristik & Tampilan Tombol:
+- **Di Layar Komputer / Laptop (`sm:` ke atas):** Tombol solid warna ungu (*Violet-600*) bertuliskan **"Install App"** dengan ikon unduh putih.
+- **Di Layar Smartphone / Ponsel (`< 640px`):** Tombol ikon ungu berukuran `38x38px` yang pas untuk sentuhan jari (*touch target*) tanpa memakan ruang header.
+
+#### Cara Memasang Aplikasi:
+1. **Melalui Browser Chrome / Edge (Android, Windows, atau Mac):**
+   - Klik tombol **"Install App"** di bagian atas layar.
+   - Kotak konfirmasi peramban akan muncul: *"Install app YZD Center?"*.
+   - Pilih **Install**. Ikon pintasan YZD Center akan langsung dibuat di layar beranda ponsel atau taskbar komputer Anda.
+2. **Melalui Browser Safari (iPhone / iPad):**
+   - Klik tombol **"Install App"** di bagian header.
+   - Jendela panduan interaktif 3 langkah akan muncul di layar:
+     1. Ketuk tombol **Bagikan (*Share*)** (ikon kotak panah ke atas di bagian bawah Safari).
+     2. Gulir menu ke bawah lalu pilih opsi **Tambah ke Layar Utama (*Add to Home Screen*)**.
+     3. Ketuk **Tambah (*Add*)** di pojok kanan atas. Pintasan YZD Center akan langsung siap digunakan di layar utama iPhone Anda.
+
+> [!TIP]
+> **Tampilan Mandiri (*Standalone Mode*):**  
+> Saat Anda membuka YZD Center melalui ikon aplikasi yang telah dipasang, aplikasi akan berjalan penuh tanpa bilah alamat URL peramban (layaknya aplikasi *native*). Pada mode ini, tombol "Install App" akan otomatis disembunyikan.
 
 ---
 

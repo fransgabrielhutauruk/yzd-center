@@ -14,6 +14,9 @@ flowchart LR
     C --> D["4. Cairkan Komisi ke Rekening Bank"]
 ```
 
+> 📱 **Tips Akses Cepat (Install App ke Layar Depan HP / Komputer):**  
+> Setelah berhasil login, Anda dapat mengeklik tombol ungu **"Install App"** di bar atas layar (di samping lonceng notifikasi) untuk menambahkan pintasan YZD Center langsung ke layar utama (*Home Screen*) HP atau desktop Anda. Aplikasi akan terbuka penuh layaknya aplikasi bawaan tanpa perlu membuka browser secara manual.
+
 ---
 
 ## Langkah 1: Mengambil & Membagikan Tautan Referral Anda

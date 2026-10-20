@@ -15,6 +15,9 @@ flowchart LR
     D --> E["5. Pantau Untung & BEP"]
 ```
 
+> 📱 **Tips Akses Cepat (Install App ke Layar Depan HP / Komputer):**  
+> Setelah berhasil login, Anda dapat mengeklik tombol ungu **"Install App"** di bilah atas layar (di samping lonceng notifikasi) untuk menambahkan pintasan aplikasi YZD Center langsung ke layar utama (*Home Screen*) HP atau desktop Anda. Aplikasi akan terbuka penuh layaknya aplikasi bawaan tanpa perlu membuka browser secara manual.
+
 ---
 
 ## Langkah 1: Mendaftar Akun Baru (Via Tautan Undangan)

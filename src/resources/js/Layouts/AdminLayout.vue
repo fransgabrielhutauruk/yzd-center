@@ -24,8 +24,10 @@ import {
     KeyRound,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
+import { usePwaInstall } from '@/composables/usePwaInstall';
 import AppToaster from '@/Components/Common/AppToaster.vue';
 import AppNotificationBell from '@/Components/Common/AppNotificationBell.vue';
+import AppPwaInstallButton from '@/Components/Common/AppPwaInstallButton.vue';
 import AppPageHeader from '@/Components/Common/AppPageHeader.vue';
 
 defineProps({
@@ -45,6 +47,7 @@ defineProps({
 
 const page = usePage();
 const { isDark, toggleDarkMode } = useDarkMode();
+const { canShowInstallButton } = usePwaInstall();
 
 const isMobileSidebarOpen = ref(false);
 const isUserDropdownOpen = ref(false);
@@ -406,6 +409,15 @@ const logout = () => {
 
                 <!-- Right Header Actions -->
                 <div class="flex items-center gap-2 sm:gap-2.5">
+                    <!-- PWA Install Button -->
+                    <AppPwaInstallButton />
+
+                    <!-- Vertical Divider -->
+                    <div
+                        v-if="canShowInstallButton"
+                        class="mx-0.5 h-6 w-px bg-slate-200 sm:mx-1 dark:bg-slate-700"
+                    ></div>
+
                     <!-- Notifications Bell Component -->
                     <AppNotificationBell />
 

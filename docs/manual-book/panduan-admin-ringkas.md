@@ -15,6 +15,9 @@ flowchart LR
     D --> E["5. Catat Saldo (Khusus Tgl 1 Awal Bulan)"]
 ```
 
+> 💻 **Tips Akses Cepat Operasional (Install App ke Desktop / Laptop):**  
+> Administrator dapat memasang pintasan portal YZD Center langsung ke Desktop / Taskbar komputer dengan menekan tombol ungu **"Install App"** di bilah atas (header). Sistem akan berjalan dalam jendela mandiri (*standalone window*) tanpa bilah peramban web agar monitoring antrean kerja harian lebih fokus dan cepat.
+
 ---
 
 ## Tugas 1: Memeriksa Antrean Pendaftaran & Verifikasi KTP (KYC)

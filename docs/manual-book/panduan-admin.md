@@ -13,6 +13,7 @@
    - [1.2 Peta Operasional Hulu ke Hilir (Alur Kerja SOP Harian)](#12-peta-operasional-hulu-ke-hilir-alur-kerja-sop-harian)
    - [1.3 Akses Masuk, Sesi Keamanan & Navigasi Antarmuka](#13-akses-masuk-sesi-keamanan--navigasi-antarmuka)
    - [1.4 Dashboard Analitik & Pemantauan Metrik Utama](#14-dashboard-analitik--pemantauan-metrik-utama)
+   - [1.5 Akses Cepat Operasional (Pemasangan Semi-PWA di Desktop & Mobile)](#15-akses-cepat-operasional-pemasangan-semi-pwa-di-desktop--mobile)
 2. [Bab 2: Manajemen Tautan Undangan (Closed-Loop Registration)](#bab-2-manajemen-tautan-undangan-closed-loop-registration)
    - [2.1 Konsep Sistem Registrasi Eksklusif (Closed System)](#21-konsep-sistem-registrasi-eksklusif-closed-system)
    - [2.2 Prosedur Pembuatan Tautan Undangan Baru](#22-prosedur-pembuatan-tautan-undangan-baru)
@@ -122,6 +123,30 @@ Halaman Dashboard (`/admin/dashboard`) menyajikan ringkasan performa sistem seca
 2. **Antrean Pekerjaan Hari Ini (*Action Needed*):**
    - Menampilkan *badge counter* merah/kuning jika terdapat registrasi KTP baru, pengajuan copytrade baru, permohonan klaim referral susulan, atau permintaan pencairan komisi bank yang belum diproses.
 3. **Pintasan Cepat (*Quick Shortcuts*):** Tombol langsung menuju modul antrean verifikasi yang paling membutuhkan perhatian.
+
+---
+
+### 1.5 Akses Cepat Operasional (Pemasangan Semi-PWA di Desktop & Mobile)
+
+Untuk memudahkan tim Administrator dalam merespons antrean verifikasi harian secara cepat tanpa harus membuka peramban web dan mengetik URL secara berulang, portal YZD Center dilengkapi dengan kemampuan **Semi-PWA (*Progressive Web App*)**.
+
+#### Karakteristik & Fitur Tombol Install:
+- **Penempatan:** Terletak di bilah atas (*Top Header*) di sebelah kiri bel notifikasi, dipisahkan secara rapi oleh garis pembatas vertikal (`<!-- Vertical Divider -->`) untuk menghindari salah klik.
+- **Warna & Tampilan:**
+  - **Layar Desktop (`sm:` ke atas):** Tombol solid warna tema korporat ungu (*Violet-600*) dengan teks **"Install App"** dan ikon unduh putih kontras.
+  - **Layar Mobile (`< 640px`):** Tombol kotak ringkas berukuran `38x38px` dengan ikon unduh putih agar bilah navigasi ponsel tetap ringkas.
+- **Sistem Mandiri (*Standalone Window*):** Setelah terpasang, aplikasi administrasi terbuka dalam jendela mandiri tanpa tab peramban dan tanpa bilah URL, sehingga fokus kerja lebih tinggi layaknya aplikasi desktop/native.
+- **Sembunyi Otomatis:** Tombol "Install App" beserta garis pembatasnya akan otomatis disembunyikan ketika portal diakses dari dalam jendela aplikasi yang telah terpasang (*standalone mode*).
+
+#### Prosedur Pemasangan:
+1. **Perangkat Komputer (Google Chrome / Microsoft Edge di Windows atau macOS):**
+   - Klik tombol **"Install App"** di bilah atas antarmuka administrasi.
+   - Pada jendela pop-up peramban, klik tombol konfirmasi **Install**.
+   - Pintasan YZD Center akan langsung dibuat di Desktop dan Taskbar/Dock komputer Anda.
+2. **Perangkat Seluler (Android Chrome / Samsung Internet):**
+   - Klik tombol ikon unduh di header $\rightarrow$ pilih **Install** pada dialog konfirmasi sistem.
+3. **Perangkat Apple iOS (Safari di iPhone / iPad):**
+   - Klik tombol ikon unduh di header $\rightarrow$ ikuti panduan 3 langkah di jendela modal (*Ketuk ikon Share Safari -> Pilih 'Tambah ke Layar Utama' -> Ketuk 'Tambah'*).
 
 ---
 
