@@ -285,8 +285,8 @@ const comparedFields = computed(() => {
                     >
                         <option value="">Semua Tingkat</option>
                         <option value="info">Info</option>
-                        <option value="warning">Peringatan</option>
-                        <option value="critical">Kritis</option>
+                        <option value="warning">Warning</option>
+                        <option value="critical">Critical</option>
                     </select>
 
                     <!-- Filter Tanggal Mulai -->
