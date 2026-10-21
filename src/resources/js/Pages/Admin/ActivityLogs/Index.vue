@@ -219,7 +219,7 @@ const comparedFields = computed(() => {
 <template>
     <AdminLayout
         title="Log Aktivitas Sistem"
-        subtitle="Rekam jejak audit keamanan, mutasi finansial, dan seluruh perubahan data platform YZD Center."
+        subtitle="Rekam jejak audit keamanan dan seluruh perubahan data platform YZD Center."
         :breadcrumbs="[{ label: 'Pengaturan Sistem', href: '#' }, { label: 'Log Aktivitas' }]"
     >
         <Head title="Log Aktivitas Sistem - Admin" />
