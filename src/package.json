@@ -27,6 +27,7 @@
         "@laravel/multiplex": "^0.4.1"
     },
     "dependencies": {
+        "@sentry/vue": "^11.8.0",
         "@tailwindcss/typography": "^0.5.20",
         "@tiptap/core": "^3.31.3",
         "@tiptap/extension-blockquote": "^3.31.3",

@@ -10,8 +10,16 @@ Artisan::command('inspire', function () {
 
 Schedule::command('app:update-usd-exchange-rate')
     ->dailyAt('06:00')
-    ->timezone('Asia/Jakarta');
+    ->timezone('Asia/Jakarta')
+    ->onFailure(function ($e = null) {
+        $exception = $e instanceof Throwable ? $e : new RuntimeException('Scheduled task app:update-usd-exchange-rate gagal');
+        app(\App\Services\Monitoring\TelegramErrorNotifier::class)->notifyScheduleFailure('app:update-usd-exchange-rate', $exception);
+    });
 
 Schedule::command('app:send-balance-recap-reminder')
     ->monthlyOn(1, '07:00')
-    ->timezone('Asia/Jakarta');
+    ->timezone('Asia/Jakarta')
+    ->onFailure(function ($e = null) {
+        $exception = $e instanceof Throwable ? $e : new RuntimeException('Scheduled task app:send-balance-recap-reminder gagal');
+        app(\App\Services\Monitoring\TelegramErrorNotifier::class)->notifyScheduleFailure('app:send-balance-recap-reminder', $exception);
+    });

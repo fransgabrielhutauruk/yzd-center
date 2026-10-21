@@ -33,6 +33,12 @@ return Application::configure(basePath: dirname(__DIR__))
         });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        \Sentry\Laravel\Integration::handles($exceptions);
+
+        $exceptions->report(function (\Throwable $e): void {
+            app(\App\Services\Monitoring\TelegramErrorNotifier::class)->notify($e);
+        })->stop(false);
+
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );

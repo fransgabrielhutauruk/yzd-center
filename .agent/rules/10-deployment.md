@@ -67,6 +67,49 @@ npm run build
 
 ---
 
+## Pemantauan Error Real-Time & Queue Worker (Sentry + Telegram)
+
+Platform mengintegrasikan pemantauan error server (5xx), kegagalan antrean job, dan kegagalan task scheduler:
+
+### 1. Variabel Lingkungan (`.env`)
+```ini
+# Sentry Cloud Error Tracking
+SENTRY_LARAVEL_DSN=https://xxx@yyy.ingest.sentry.io/zzz
+VITE_SENTRY_DSN=https://xxx@yyy.ingest.sentry.io/zzz
+SENTRY_TRACES_SAMPLE_RATE=0
+
+# Telegram Bot Instant Alerting
+MONITORING_TELEGRAM_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+MONITORING_TELEGRAM_CHAT_ID=123456789
+MONITORING_THROTTLE_MINUTES=10
+```
+
+### 2. Konfigurasi Supervisor (Antrean Queue di Server Produksi)
+Buat berkas konfigurasi Supervisor di `/etc/supervisor/conf.d/yzd-worker.conf`:
+```ini
+[program:yzd-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/yzd-center/artisan queue:work database --sleep=3 --tries=3 --max-time=3600 --timeout=90
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+user=www-data
+numprocs=2
+redirect_stderr=true
+stdout_logfile=/var/www/yzd-center/storage/logs/worker.log
+stopwaitsecs=3600
+```
+
+### 3. Perintah Uji Koneksi Pemantauan
+Setelah mendeploy dan mengisi konfigurasi di atas, jalankan perintah uji coba:
+```bash
+php artisan monitoring:test
+```
+Perintah ini akan mengirimkan pesan uji langsung ke bot Telegram dan event ke dashboard Sentry untuk memverifikasi kesiapan pemantauan server tanpa memicu loop atau error aplikasi.
+
+---
+
 ## Larangan Mutlak di Lingkungan Produksi (Production Safety)
 
 - **DILARANG** menyetel `APP_DEBUG=true` di server produksi.
