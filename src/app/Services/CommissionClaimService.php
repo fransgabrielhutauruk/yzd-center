@@ -18,8 +18,14 @@ use Illuminate\Validation\ValidationException;
 class CommissionClaimService
 {
     public function __construct(
-        private readonly ?ExchangeRateService $exchangeRateService = null
+        private readonly ?ExchangeRateService $exchangeRateService = null,
+        private readonly ?AuditLogService $auditLogService = null,
     ) {}
+
+    private function getAuditLogService(): AuditLogService
+    {
+        return $this->auditLogService ?? app(AuditLogService::class);
+    }
 
     /**
      * Ambil informasi kurs USD ke IDR dari ExchangeRateService.
@@ -540,6 +546,27 @@ class CommissionClaimService
                 Notification::send($admins, new CommissionClaimSubmittedNotification($claim));
             }
 
+            // Audit Log: Pengajuan klaim komisi
+            $this->getAuditLogService()->record(
+                kategori: 'komisi_afiliasi',
+                aksi: 'ajukan_klaim_komisi',
+                deskripsi: "Affiliator {$affiliator->name} mengajukan klaim komisi #{$claim->kode_klaim} untuk {$totalDownlines} investor ({$totalAkun} akun trading, total modal: \${$totalModalRiil}).",
+                subject: $claim,
+                perubahan: [
+                    'sesudah' => [
+                        'kode_klaim'         => $claim->kode_klaim,
+                        'total_downline'     => $totalDownlines,
+                        'total_akun'         => $totalAkun,
+                        'total_modal_riil'   => $totalModalRiil,
+                        'nama_bank'          => $namaBank,
+                        'nomor_rekening'     => $nomorRekening,
+                        'atas_nama_rekening' => $atasNama,
+                    ],
+                ],
+                tingkat: 'info',
+                user: $affiliator
+            );
+
             return $claim;
         });
     }
@@ -837,6 +864,30 @@ class CommissionClaimService
                 // Kirim notifikasi in-app ke Affiliator
                 $claim->affiliator->notify(new CommissionClaimProcessedNotification($claim, $status, $catatanAdmin));
 
+                // Audit Log: Pencairan komisi disetujui & ditransfer
+                $this->getAuditLogService()->record(
+                    kategori: 'komisi_afiliasi',
+                    aksi: 'proses_klaim_komisi',
+                    deskripsi: "Administrator {$processor->name} menyelesaikan pencairan komisi #{$claim->kode_klaim} sebesar \${$totalAffiliateCommission} (Rp " . number_format($totalNominalTransferIdr, 0, ',', '.') . ") ke rekening {$claim->nama_bank} - {$claim->nomor_rekening} ({$claim->atas_nama_rekening}).",
+                    subject: $claim,
+                    perubahan: [
+                        'sebelum' => ['status' => 'pending'],
+                        'sesudah' => [
+                            'status'                     => $status,
+                            'total_affiliate_commission' => $totalAffiliateCommission,
+                            'total_nominal_transfer_idr' => $totalNominalTransferIdr,
+                            'kurs_konversi_idr'          => $finalKursIdr,
+                        ],
+                        'meta' => [
+                            'affiliator_id'  => $claim->affiliator_id,
+                            'nama_bank'      => $claim->nama_bank,
+                            'nomor_rekening' => $claim->nomor_rekening,
+                        ],
+                    ],
+                    tingkat: 'critical',
+                    user: $processor
+                );
+
                 return $claim;
             });
         }
@@ -858,6 +909,26 @@ class CommissionClaimService
 
             // Kirim notifikasi in-app ke Affiliator
             $claim->affiliator->notify(new CommissionClaimProcessedNotification($claim, $status, $catatanAdmin));
+
+            // Audit Log: Penolakan klaim komisi
+            $this->getAuditLogService()->record(
+                kategori: 'komisi_afiliasi',
+                aksi: 'proses_klaim_komisi',
+                deskripsi: "Administrator {$processor->name} menolak pengajuan klaim komisi #{$claim->kode_klaim}. Alasan: {$catatanAdmin}",
+                subject: $claim,
+                perubahan: [
+                    'sebelum' => ['status' => 'pending'],
+                    'sesudah' => [
+                        'status'        => $status,
+                        'catatan_admin' => $catatanAdmin,
+                    ],
+                    'meta' => [
+                        'affiliator_id' => $claim->affiliator_id,
+                    ],
+                ],
+                tingkat: 'warning',
+                user: $processor
+            );
 
             return $claim;
         });

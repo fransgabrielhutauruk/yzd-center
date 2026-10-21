@@ -18,6 +18,7 @@ class AuthService
     public function __construct(
         private readonly KycService $kycService,
         private readonly ReferralService $referralService,
+        private readonly AuditLogService $auditLogService,
     ) {}
 
     /**
@@ -29,6 +30,16 @@ class AuthService
 
         $user = User::where($field, $login)->first();
         if ($user && !$user->is_active && Hash::check($password, $user->password)) {
+            $this->auditLogService->record(
+                kategori: 'autentikasi',
+                aksi: 'login_gagal',
+                deskripsi: "Percobaan login ditolak: Akun {$user->name} (@{$user->username}) berstatus nonaktif.",
+                subject: $user,
+                perubahan: ['meta' => ['username' => $login, 'alasan' => 'Akun dinonaktifkan']],
+                tingkat: 'warning',
+                user: $user
+            );
+
             throw ValidationException::withMessages([
                 'login' => 'Akun Anda telah dinonaktifkan oleh administrator. Silakan hubungi admin.',
             ]);
@@ -125,6 +136,30 @@ class AuthService
             }
 
             $invitation->increment('total_terpakai');
+
+            // Audit Log: Pendaftaran akun baru
+            $this->auditLogService->record(
+                kategori: 'autentikasi',
+                aksi: 'register',
+                deskripsi: "Pendaftaran akun baru {$user->name} (@{$user->username}) sebagai {$user->role} via undangan.",
+                subject: $user,
+                perubahan: [
+                    'sesudah' => [
+                        'name'     => $user->name,
+                        'username' => $user->username,
+                        'email'    => $user->email,
+                        'role'     => $user->role,
+                        'status'   => $user->status,
+                        'nik'      => substr((string) $user->nik, 0, 6) . '******' . substr((string) $user->nik, -4),
+                    ],
+                    'meta' => [
+                        'invitation_token' => substr($invitation->token, 0, 8) . '...',
+                        'referral_code'    => $data['referral_code'] ?? null,
+                    ],
+                ],
+                tingkat: 'info',
+                user: $user
+            );
 
             // Kirim notifikasi in-app ke seluruh administrator
             $admins = User::where('role', 'administrator')->get();

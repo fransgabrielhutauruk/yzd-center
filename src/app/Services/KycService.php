@@ -17,6 +17,7 @@ class KycService
 {
     public function __construct(
         private readonly DocumentQualityService $qualityService,
+        private readonly AuditLogService $auditLogService,
     ) {}
 
     /**
@@ -102,6 +103,24 @@ class KycService
 
         $this->syncUserStatus($user);
 
+        // Audit Log: Unggah ulang dokumen KYC
+        $this->auditLogService->record(
+            kategori: 'kyc_dokumen',
+            aksi: 'unggah_ulang_kyc',
+            deskripsi: "Pengguna {$user->name} (@{$user->username}) mengunggah ulang dokumen {$type}.",
+            subject: $existing,
+            perubahan: [
+                'sesudah' => [
+                    'tipe_dokumen'       => $type,
+                    'file_name'          => $file->getClientOriginalName(),
+                    'file_size'          => $file->getSize(),
+                    'is_quality_warning' => $quality['is_quality_warning'],
+                ],
+            ],
+            tingkat: 'info',
+            user: $user
+        );
+
         // Notifikasi ke seluruh administrator
         $admins = User::where('role', 'administrator')->get();
         if ($admins->isNotEmpty()) {
@@ -129,6 +148,9 @@ class KycService
         }
 
         return DB::transaction(function () use ($dokumen, $status, $catatanAdmin, $verifier): UserDokumen {
+            $sebelumStatus = $dokumen->status;
+            $sebelumCatatan = $dokumen->catatan_admin;
+
             $dokumen->update([
                 'status'        => $status,
                 'catatan_admin' => $status === 'revision_needed' ? $catatanAdmin : null,
@@ -139,6 +161,32 @@ class KycService
             $user = $dokumen->user;
 
             $this->syncUserStatus($user);
+
+            // Audit Log: Verifikasi dokumen KYC oleh admin
+            $statusLabel = $status === 'approved' ? 'Disetujui' : 'Perlu Revisi';
+            $this->auditLogService->record(
+                kategori: 'kyc_dokumen',
+                aksi: 'verifikasi_kyc',
+                deskripsi: "Administrator {$verifier->name} memverifikasi dokumen {$dokumen->tipe_dokumen} milik {$user->name} dengan status '{$statusLabel}'." . ($status === 'revision_needed' ? " Catatan: {$catatanAdmin}" : ''),
+                subject: $dokumen,
+                perubahan: [
+                    'sebelum' => [
+                        'status'        => $sebelumStatus,
+                        'catatan_admin' => $sebelumCatatan,
+                    ],
+                    'sesudah' => [
+                        'status'        => $status,
+                        'catatan_admin' => $status === 'revision_needed' ? $catatanAdmin : null,
+                    ],
+                    'meta' => [
+                        'user_id'      => $user->id,
+                        'user_name'    => $user->name,
+                        'tipe_dokumen' => $dokumen->tipe_dokumen,
+                    ],
+                ],
+                tingkat: $status === 'revision_needed' ? 'warning' : 'info',
+                user: $verifier
+            );
 
             // Kirim notifikasi in-app ke investor
             $user->notify(new KycDocumentStatusChangedNotification($dokumen, $status, $catatanAdmin));

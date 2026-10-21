@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Services\AuditLogService;
 use App\Services\AuthService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ class AuthenticatedSessionController extends Controller
 {
     public function __construct(
         private readonly AuthService $authService,
+        private readonly AuditLogService $auditLogService,
     ) {}
 
     /**
@@ -45,6 +47,15 @@ class AuthenticatedSessionController extends Controller
         if (!$this->authService->authenticate($login, $password, $remember)) {
             $request->hitRateLimit();
 
+            // Audit Log: Percobaan login gagal
+            $this->auditLogService->record(
+                kategori: 'autentikasi',
+                aksi: 'login_gagal',
+                deskripsi: "Percobaan login gagal untuk identitas: '{$login}'. Kata sandi atau username/email tidak cocok.",
+                perubahan: ['meta' => ['login' => $login]],
+                tingkat: 'warning'
+            );
+
             if ($request->isRateLimited()) {
                 event(new \Illuminate\Auth\Events\Lockout($request));
                 $seconds = $request->availableIn();
@@ -63,6 +74,19 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = $request->user();
+
+        // Audit Log: Login berhasil
+        if ($user) {
+            $this->auditLogService->record(
+                kategori: 'autentikasi',
+                aksi: 'login',
+                deskripsi: "Pengguna {$user->name} (@{$user->username}) berhasil masuk ke sistem.",
+                subject: $user,
+                tingkat: 'info',
+                user: $user
+            );
+        }
+
         if ($user && $user->isAdmin()) {
             return redirect()->intended(route('admin.dashboard'));
         }
@@ -75,6 +99,20 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
+        // Audit Log: Logout
+        if ($user) {
+            $this->auditLogService->record(
+                kategori: 'autentikasi',
+                aksi: 'logout',
+                deskripsi: "Pengguna {$user->name} (@{$user->username}) telah keluar dari sistem.",
+                subject: $user,
+                tingkat: 'info',
+                user: $user
+            );
+        }
+
         $this->authService->logout();
 
         return redirect()->route('login')->with('success', 'Anda telah berhasil keluar.');

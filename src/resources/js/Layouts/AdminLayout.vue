@@ -22,6 +22,7 @@ import {
     Network,
     SquarePlay,
     KeyRound,
+    History,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import { usePwaInstall } from '@/composables/usePwaInstall';
@@ -239,6 +240,12 @@ const navSections = [
     {
         title: 'Pengaturan Sistem',
         items: [
+            {
+                label: 'Log Aktivitas',
+                href: '/admin/activity-logs',
+                icon: History,
+                routeName: 'admin.activity_logs.index',
+            },
             {
                 label: 'Konten Legalitas',
                 href: '/admin/settings/legal',

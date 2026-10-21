@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\VerifyCopytradeRequest;
 use App\Models\AkunCopytrade;
+use App\Services\AuditLogService;
 use App\Services\CopytradeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +16,8 @@ use Inertia\Response;
 class CopytradeController extends Controller
 {
     public function __construct(
-        private readonly CopytradeService $copytradeService
+        private readonly CopytradeService $copytradeService,
+        private readonly AuditLogService $auditLogService,
     ) {}
 
     /**
@@ -60,9 +62,23 @@ class CopytradeController extends Controller
     /**
      * Detail akun (JSON) untuk modal: kredensial tier 3 dan riwayat saldo. Tidak boleh di-cache.
      */
-    public function detail(int $id): JsonResponse
+    public function detail(Request $request, int $id): JsonResponse
     {
-        $akun = AkunCopytrade::findOrFail($id);
+        $akun = AkunCopytrade::with('user')->findOrFail($id);
+        $user = $request->user();
+
+        // Audit Log: Akses kredensial MT4/VPS Tier 3 oleh Admin
+        if ($user && $user->isAdmin() && $akun->tier === 'tier_3') {
+            $this->auditLogService->record(
+                kategori: 'copytrade',
+                aksi: 'lihat_kredensial_mt4',
+                deskripsi: "Administrator {$user->name} melihat kredensial MT4/VPS untuk akun Tier 3 #{$akun->nomor_akun_trading}.",
+                subject: $akun,
+                tingkat: 'warning',
+                user: $user,
+                withCooldown: true
+            );
+        }
 
         return response()
             ->json($this->copytradeService->getAccountDetail($akun))

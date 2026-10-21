@@ -15,6 +15,10 @@ use Illuminate\Support\Str;
 
 class EducationService
 {
+    public function __construct(
+        private readonly AuditLogService $auditLogService,
+    ) {}
+
     // =========================================================================
     // 1. Logika Glosarium (Investor & Admin)
     // =========================================================================
@@ -94,19 +98,63 @@ class EducationService
             ];
 
             if ($item) {
+                $dataSebelum = [
+                    'istilah'  => $item->istilah,
+                    'definisi' => $item->definisi,
+                ];
+
                 $item->update($payload);
+
+                $this->auditLogService->record(
+                    kategori: 'edukasi_pengaturan',
+                    aksi: 'kelola_edukasi',
+                    deskripsi: "Memperbarui istilah glosarium: {$item->istilah}",
+                    subject: $item,
+                    perubahan: [
+                        'sebelum' => $dataSebelum,
+                        'sesudah' => $payload,
+                    ],
+                    user: $user,
+                );
 
                 return $item;
             }
 
             $payload['created_by'] = $user?->id;
 
-            return EdukasiGlosarium::create($payload);
+            $newItem = EdukasiGlosarium::create($payload);
+
+            $this->auditLogService->record(
+                kategori: 'edukasi_pengaturan',
+                aksi: 'kelola_edukasi',
+                deskripsi: "Menambahkan istilah glosarium: {$newItem->istilah}",
+                subject: $newItem,
+                perubahan: [
+                    'sesudah' => $payload,
+                ],
+                user: $user,
+            );
+
+            return $newItem;
         });
     }
 
     public function deleteGlossaryItem(EdukasiGlosarium $item): void
     {
+        $this->auditLogService->record(
+            kategori: 'edukasi_pengaturan',
+            aksi: 'kelola_edukasi',
+            deskripsi: "Menghapus istilah glosarium: {$item->istilah}",
+            subject: $item,
+            perubahan: [
+                'sebelum' => [
+                    'istilah'  => $item->istilah,
+                    'definisi' => $item->definisi,
+                ],
+            ],
+            tingkat: 'warning',
+        );
+
         $item->delete();
     }
 
@@ -350,19 +398,72 @@ class EducationService
             ];
 
             if ($article) {
+                $dataSebelum = [
+                    'kategori_id'  => $article->kategori_id,
+                    'judul'        => $article->judul,
+                    'is_published' => (bool) $article->is_published,
+                ];
+
                 $article->update($payload);
+
+                $this->auditLogService->record(
+                    kategori: 'edukasi_pengaturan',
+                    aksi: 'kelola_edukasi',
+                    deskripsi: "Memperbarui artikel panduan: {$article->judul}",
+                    subject: $article,
+                    perubahan: [
+                        'sebelum' => $dataSebelum,
+                        'sesudah' => [
+                            'kategori_id'  => $article->kategori_id,
+                            'judul'        => $article->judul,
+                            'is_published' => (bool) $article->is_published,
+                        ],
+                    ],
+                    user: $user,
+                );
 
                 return $article;
             }
 
             $payload['created_by'] = $user?->id;
 
-            return PanduanBantuan::create($payload);
+            $newArticle = PanduanBantuan::create($payload);
+
+            $this->auditLogService->record(
+                kategori: 'edukasi_pengaturan',
+                aksi: 'kelola_edukasi',
+                deskripsi: "Menambahkan artikel panduan: {$newArticle->judul}",
+                subject: $newArticle,
+                perubahan: [
+                    'sesudah' => [
+                        'kategori_id'  => $newArticle->kategori_id,
+                        'judul'        => $newArticle->judul,
+                        'is_published' => (bool) $newArticle->is_published,
+                    ],
+                ],
+                user: $user,
+            );
+
+            return $newArticle;
         });
     }
 
     public function deleteArticle(PanduanBantuan $article): void
     {
+        $this->auditLogService->record(
+            kategori: 'edukasi_pengaturan',
+            aksi: 'kelola_edukasi',
+            deskripsi: "Menghapus artikel panduan: {$article->judul}",
+            subject: $article,
+            perubahan: [
+                'sebelum' => [
+                    'kategori_id' => $article->kategori_id,
+                    'judul'       => $article->judul,
+                ],
+            ],
+            tingkat: 'warning',
+        );
+
         $article->delete();
     }
 
@@ -608,18 +709,71 @@ class EducationService
     public function manageFaq(array $data, ?EdukasiFaq $faq = null, ?User $user = null): EdukasiFaq
     {
         if ($faq) {
+            $dataSebelum = [
+                'topik_id'   => $faq->topik_id,
+                'pertanyaan' => $faq->pertanyaan,
+                'jawaban'    => $faq->jawaban,
+            ];
+
             $faq->update($data);
+
+            $this->auditLogService->record(
+                kategori: 'edukasi_pengaturan',
+                aksi: 'kelola_edukasi',
+                deskripsi: "Memperbarui FAQ: {$faq->pertanyaan}",
+                subject: $faq,
+                perubahan: [
+                    'sebelum' => $dataSebelum,
+                    'sesudah' => [
+                        'topik_id'   => $faq->topik_id,
+                        'pertanyaan' => $faq->pertanyaan,
+                        'jawaban'    => $faq->jawaban,
+                    ],
+                ],
+                user: $user,
+            );
 
             return $faq;
         }
 
         $data['created_by'] = $user?->id;
 
-        return EdukasiFaq::create($data);
+        $newFaq = EdukasiFaq::create($data);
+
+        $this->auditLogService->record(
+            kategori: 'edukasi_pengaturan',
+            aksi: 'kelola_edukasi',
+            deskripsi: "Menambahkan FAQ: {$newFaq->pertanyaan}",
+            subject: $newFaq,
+            perubahan: [
+                'sesudah' => [
+                    'topik_id'   => $newFaq->topik_id,
+                    'pertanyaan' => $newFaq->pertanyaan,
+                    'jawaban'    => $newFaq->jawaban,
+                ],
+            ],
+            user: $user,
+        );
+
+        return $newFaq;
     }
 
     public function deleteFaq(EdukasiFaq $faq): void
     {
+        $this->auditLogService->record(
+            kategori: 'edukasi_pengaturan',
+            aksi: 'kelola_edukasi',
+            deskripsi: "Menghapus FAQ: {$faq->pertanyaan}",
+            subject: $faq,
+            perubahan: [
+                'sebelum' => [
+                    'topik_id'   => $faq->topik_id,
+                    'pertanyaan' => $faq->pertanyaan,
+                ],
+            ],
+            tingkat: 'warning',
+        );
+
         $faq->delete();
     }
 

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AdminAffiliateController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminReferralClaimController;
@@ -136,6 +137,10 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     // Pengaturan Dokumen Legalitas (Terms & Privacy)
     Route::get('/settings/legal', [LegalContentController::class, 'index'])->name('settings.legal');
     Route::post('/settings/legal', [LegalContentController::class, 'update'])->name('settings.legal.update');
+
+    // Audit Log Aktivitas Sistem
+    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity_logs.index');
+    Route::get('/activity-logs/export', [ActivityLogController::class, 'export'])->name('activity_logs.export');
 
     // Edukasi & Bantuan (Modul 06)
     Route::get('/education/glossary', [EducationGlossaryController::class, 'index'])->name('education.glossary.index');

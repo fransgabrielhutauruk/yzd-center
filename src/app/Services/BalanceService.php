@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\DB;
 class BalanceService
 {
     public function __construct(
-        protected ExchangeRateService $exchangeRateService
+        protected ExchangeRateService $exchangeRateService,
+        protected AuditLogService $auditLogService,
     ) {}
 
     /**
@@ -70,6 +71,24 @@ class BalanceService
             // Rekalkulasi data record setelah tanggal ini (jika input disisipkan di antara tanggal)
             $this->recalculateAccountBalances($akun);
 
+            // Audit Log: Pencatatan saldo
+            $this->auditLogService->record(
+                kategori: 'copytrade',
+                aksi: 'catat_saldo',
+                deskripsi: "Pencatatan saldo copytrade #{$akun->nomor_akun_trading} per tanggal {$tanggal} sebesar \${$balance}.",
+                subject: $record,
+                perubahan: [
+                    'sesudah' => [
+                        'tanggal_pencatatan' => $tanggal,
+                        'balance'            => $balance,
+                        'keuntungan_nominal' => round($keuntunganNominal, 2),
+                        'keuntungan_persen'  => round($keuntunganPersen, 2),
+                    ],
+                ],
+                tingkat: 'info',
+                user: $user
+            );
+
             return $record->fresh();
         });
     }
@@ -84,6 +103,12 @@ class BalanceService
             $tanggal = Carbon::parse($data['tanggal_pencatatan'])->toDateString();
             $balance = (float) $data['balance'];
 
+            $sebelum = [
+                'tanggal_pencatatan' => (string) $record->tanggal_pencatatan,
+                'balance'            => (float) $record->balance,
+                'catatan'            => $record->catatan,
+            ];
+
             $record->update([
                 'tanggal_pencatatan' => $tanggal,
                 'balance'            => $balance,
@@ -91,6 +116,23 @@ class BalanceService
             ]);
 
             $this->recalculateAccountBalances($akun);
+
+            // Audit Log: Ubah saldo
+            $this->auditLogService->record(
+                kategori: 'copytrade',
+                aksi: 'ubah_saldo',
+                deskripsi: "Pembaruan catatan saldo copytrade #{$akun->nomor_akun_trading} per tanggal {$tanggal} menjadi \${$balance}.",
+                subject: $record,
+                perubahan: [
+                    'sebelum' => $sebelum,
+                    'sesudah' => [
+                        'tanggal_pencatatan' => $tanggal,
+                        'balance'            => $balance,
+                        'catatan'            => $record->catatan,
+                    ],
+                ],
+                tingkat: 'info'
+            );
 
             return $record->fresh();
         });
@@ -103,8 +145,27 @@ class BalanceService
     {
         DB::transaction(function () use ($record) {
             $akun = $record->akunCopytrade;
+
+            $sebelum = [
+                'tanggal_pencatatan' => (string) $record->tanggal_pencatatan,
+                'balance'            => (float) $record->balance,
+                'catatan'            => $record->catatan,
+            ];
+
             $record->delete();
             $this->recalculateAccountBalances($akun);
+
+            // Audit Log: Hapus saldo
+            $this->auditLogService->record(
+                kategori: 'copytrade',
+                aksi: 'hapus_saldo',
+                deskripsi: "Penghapusan catatan saldo copytrade #{$akun->nomor_akun_trading} per tanggal {$sebelum['tanggal_pencatatan']} (saldo: \${$sebelum['balance']}).",
+                subject: $akun,
+                perubahan: [
+                    'sebelum' => $sebelum,
+                ],
+                tingkat: 'warning'
+            );
         });
     }
 

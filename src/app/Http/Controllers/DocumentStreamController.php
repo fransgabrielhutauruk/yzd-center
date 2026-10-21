@@ -3,12 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\UserDokumen;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentStreamController extends Controller
 {
+    public function __construct(
+        private readonly AuditLogService $auditLogService,
+    ) {}
+
     /**
      * Tampilkan (stream) berkas privat terotentikasi.
      */
@@ -24,6 +29,18 @@ class DocumentStreamController extends Controller
 
         if (!Storage::disk('local')->exists($dokumen->file_path)) {
             abort(404, 'Berkas fisik tidak ditemukan di penyimpanan server.');
+        }
+
+        if ($user->isAdmin()) {
+            $this->auditLogService->record(
+                kategori: 'kyc_dokumen',
+                aksi: 'lihat_dokumen',
+                deskripsi: "Administrator {$user->name} melihat berkas {$dokumen->tipe_dokumen} milik pengguna #{$dokumen->user_id}.",
+                subject: $dokumen,
+                tingkat: 'info',
+                user: $user,
+                withCooldown: true
+            );
         }
 
         return Storage::disk('local')->response(
@@ -67,6 +84,18 @@ class DocumentStreamController extends Controller
             }
         }
 
+        if ($user->isAdmin()) {
+            $this->auditLogService->record(
+                kategori: 'komisi_afiliasi',
+                aksi: 'lihat_dokumen',
+                deskripsi: "Administrator {$user->name} melihat bukti percakapan klaim referral #{$claim->id}.",
+                subject: $claim,
+                tingkat: 'info',
+                user: $user,
+                withCooldown: true
+            );
+        }
+
         return Storage::disk('local')->response(
             $path,
             basename($path),
@@ -105,6 +134,18 @@ class DocumentStreamController extends Controller
             } else {
                 abort(404, 'Berkas fisik surat perjanjian tidak ditemukan di penyimpanan server.');
             }
+        }
+
+        if ($user->isAdmin()) {
+            $this->auditLogService->record(
+                kategori: 'copytrade',
+                aksi: 'lihat_dokumen',
+                deskripsi: "Administrator {$user->name} melihat berkas surat perjanjian copytrade akun #{$akun->id}.",
+                subject: $akun,
+                tingkat: 'info',
+                user: $user,
+                withCooldown: true
+            );
         }
 
         return Storage::disk('local')->response(
@@ -147,6 +188,18 @@ class DocumentStreamController extends Controller
             }
         }
 
+        if ($user->isAdmin()) {
+            $this->auditLogService->record(
+                kategori: 'komisi_afiliasi',
+                aksi: 'lihat_dokumen',
+                deskripsi: "Administrator {$user->name} melihat berkas bukti modal klaim komisi #{$claim->id}.",
+                subject: $claim,
+                tingkat: 'info',
+                user: $user,
+                withCooldown: true
+            );
+        }
+
         return Storage::disk('local')->response(
             $path,
             basename($path),
@@ -185,6 +238,18 @@ class DocumentStreamController extends Controller
             } else {
                 abort(404, 'Berkas bukti transfer tidak ditemukan di penyimpanan server.');
             }
+        }
+
+        if ($user->isAdmin()) {
+            $this->auditLogService->record(
+                kategori: 'komisi_afiliasi',
+                aksi: 'lihat_dokumen',
+                deskripsi: "Administrator {$user->name} melihat berkas bukti transfer bank klaim komisi #{$claim->id}.",
+                subject: $claim,
+                tingkat: 'info',
+                user: $user,
+                withCooldown: true
+            );
         }
 
         return Storage::disk('local')->response(

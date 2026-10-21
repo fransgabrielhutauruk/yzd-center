@@ -9,6 +9,10 @@ use Illuminate\Support\Str;
 
 class InvitationService
 {
+    public function __construct(
+        private readonly AuditLogService $auditLogService,
+    ) {}
+
     /**
      * Ambil daftar tautan undangan terpaginasi dengan pencarian dan filter server-side.
      *
@@ -156,7 +160,7 @@ class InvitationService
                 $expiredAt = now()->addHours($hours);
             }
 
-            return Invitation::create([
+            $invitation = Invitation::create([
                 'token'          => $token,
                 'label'          => $data['label'],
                 'target_role'    => $data['target_role'] ?? 'investor',
@@ -166,6 +170,26 @@ class InvitationService
                 'expired_at'     => $expiredAt,
                 'created_by'     => $creator?->username ?? $creator?->email,
             ]);
+
+            // Audit Log: Pembuatan tautan undangan
+            $this->auditLogService->record(
+                kategori: 'undangan',
+                aksi: 'buat_undangan',
+                deskripsi: "Administrator {$creator?->name} menerbitkan tautan undangan baru '{$invitation->label}' (peran: {$invitation->target_role}, kuota: {$invitation->kuota_maksimal}).",
+                subject: $invitation,
+                perubahan: [
+                    'sesudah' => [
+                        'label'          => $invitation->label,
+                        'target_role'    => $invitation->target_role,
+                        'kuota_maksimal' => $invitation->kuota_maksimal,
+                        'expired_at'     => $invitation->expired_at ? (string) $invitation->expired_at : null,
+                    ],
+                ],
+                tingkat: 'info',
+                user: $creator
+            );
+
+            return $invitation;
         });
     }
 
@@ -227,6 +251,23 @@ class InvitationService
     public function deleteInvitation(int $invitationId): void
     {
         $invitation = Invitation::findOrFail($invitationId);
+
+        // Audit Log: Hapus undangan
+        $this->auditLogService->record(
+            kategori: 'undangan',
+            aksi: 'hapus_undangan',
+            deskripsi: "Penghapusan tautan undangan '{$invitation->label}' (#{$invitation->invitation_id}).",
+            subject: $invitation,
+            perubahan: [
+                'sebelum' => [
+                    'label'          => $invitation->label,
+                    'target_role'    => $invitation->target_role,
+                    'total_terpakai' => $invitation->total_terpakai,
+                ],
+            ],
+            tingkat: 'warning'
+        );
+
         $invitation->delete();
     }
 
@@ -238,6 +279,22 @@ class InvitationService
     public function batchDeleteInvitations(array $invitationIds): int
     {
         return DB::transaction(function () use ($invitationIds): int {
+            $count = Invitation::whereIn('invitation_id', $invitationIds)->count();
+
+            // Audit Log: Hapus undangan massal
+            $this->auditLogService->record(
+                kategori: 'undangan',
+                aksi: 'hapus_undangan',
+                deskripsi: "Penghapusan massal {$count} tautan undangan.",
+                perubahan: [
+                    'meta' => [
+                        'invitation_ids' => $invitationIds,
+                        'count'          => $count,
+                    ],
+                ],
+                tingkat: 'warning'
+            );
+
             return Invitation::whereIn('invitation_id', $invitationIds)->delete();
         });
     }

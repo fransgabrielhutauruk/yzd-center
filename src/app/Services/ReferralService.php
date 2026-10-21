@@ -19,6 +19,10 @@ use Illuminate\Validation\ValidationException;
 
 class ReferralService
 {
+    public function __construct(
+        private readonly AuditLogService $auditLogService,
+    ) {}
+
     /**
      * Generate kode referral unik untuk affiliator baru.
      * Format: 3 huruf nama (dibersihkan dan kapital) + 3 karakter alfanumerik kapital (total 6 karakter).
@@ -242,6 +246,23 @@ class ReferralService
                 'status'          => 'pending',
             ]);
 
+            // Audit Log: Pengajuan klaim referral susulan
+            $this->auditLogService->record(
+                kategori: 'komisi_afiliasi',
+                aksi: 'ajukan_klaim_referral',
+                deskripsi: "Affiliator {$affiliator->name} (@{$affiliator->username}) mengajukan klaim referral susulan untuk investor {$downline->name} (@{$downline->username}).",
+                subject: $claim,
+                perubahan: [
+                    'sesudah' => [
+                        'affiliator_id' => $affiliator->id,
+                        'downline_id'   => $downline->id,
+                        'alasan'        => trim($alasan),
+                    ],
+                ],
+                tingkat: 'info',
+                user: $affiliator
+            );
+
             // Kirim notifikasi in-app ke seluruh administrator
             $admins = User::where('role', 'administrator')->get();
             if ($admins->isNotEmpty()) {
@@ -268,6 +289,8 @@ class ReferralService
                     'status' => 'Permohonan klaim ini sudah pernah diproses sebelumnya.',
                 ]);
             }
+
+            $sebelumStatus = $lockedClaim->status;
 
             if ($status === 'approved') {
                 // Pastikan downline belum memiliki upline
@@ -340,6 +363,28 @@ class ReferralService
                     new ReferralClaimStatusChangedNotification($lockedClaim, 'rejected', $catatanAdmin)
                 );
             }
+
+            // Audit Log: Verifikasi klaim referral susulan oleh admin
+            $statusLabel = $status === 'approved' ? 'Disetujui' : 'Ditolak';
+            $this->auditLogService->record(
+                kategori: 'komisi_afiliasi',
+                aksi: 'verifikasi_klaim_referral',
+                deskripsi: "Administrator {$admin->name} memverifikasi klaim referral #{$lockedClaim->id} dengan status '{$statusLabel}'." . ($status === 'rejected' ? " Alasan: {$catatanAdmin}" : ''),
+                subject: $lockedClaim,
+                perubahan: [
+                    'sebelum' => ['status' => $sebelumStatus],
+                    'sesudah' => [
+                        'status'        => $status,
+                        'catatan_admin' => $status === 'rejected' ? $catatanAdmin : null,
+                    ],
+                    'meta' => [
+                        'affiliator_id' => $lockedClaim->affiliator_id,
+                        'downline_id'   => $lockedClaim->downline_id,
+                    ],
+                ],
+                tingkat: $status === 'rejected' ? 'warning' : 'info',
+                user: $admin
+            );
 
             return $lockedClaim->fresh(['affiliator', 'downline', 'reviewer']);
         });

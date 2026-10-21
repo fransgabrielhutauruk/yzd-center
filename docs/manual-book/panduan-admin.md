@@ -54,6 +54,13 @@
    - [8.2 Manajemen Topik & Butir Pertanyaan FAQ Interaktif](#82-manajemen-topik--butir-pertanyaan-faq-interaktif)
    - [8.3 Manajemen Glosarium Istilah](#83-manajemen-glosarium-istilah)
    - [8.4 Pembaruan Dokumen Legalitas (Syarat & Ketentuan serta Kebijakan Privasi)](#84-pembaruan-dokumen-legalitas-syarat--ketentuan-serta-kebijakan-privasi)
+9. [Bab 9: Pemantauan Audit & Log Aktivitas Sistem (Activity Logs)](#bab-9-pemantauan-audit--log-aktivitas-sistem-activity-logs)
+   - [9.1 Konsep & Arsitektur Jejak Audit Imutabel (Immutable Audit Trail)](#91-konsep--arsitektur-jejak-audit-imutabel-immutable-audit-trail)
+   - [9.2 Akses Menu, Filter Multi-Kriteria & Pencarian Log](#92-akses-menu-filter-multi-kriteria--pencarian-log)
+   - [9.3 Rincian Rekam Perubahan Atribut (Audit Diff: Sebelum vs Sesudah)](#93-rincian-rekam-perubahan-atribut-audit-diff-sebelum-vs-sesudah)
+   - [9.4 Penyamaran Otomatis Data Sensitif & Kredensial (Data Masking)](#94-penyamaran-otomatis-data-sensitif--kredensial-data-masking)
+   - [9.5 Ekspor Jejak Audit ke Dokumen Spreadsheet (Format Excel .XLSX)](#95-ekspor-jejak-audit-ke-dokumen-spreadsheet-format-excel-xlsx)
+10. [Ringkasan Standar Mutu Administrator (Operational SLA)](#ringkasan-standar-mutu-administrator-operational-sla)
 
 ---
 
@@ -69,6 +76,7 @@ Tanggung jawab utama Administrator mencakup:
 4. **Validasi Kemitraan & Klaim Referral:** Memverifikasi permohonan klaim susulan affiliator secara adil berdasarkan bukti percakapan yang sah.
 5. **Eksekusi Pembayaran Finansial (*Payout Reconciliation*):** Memvalidasi klaim komisi berjenjang (*4-Tier*) dan mentransfer hak affiliator melalui bank resmi secara tepat waktu.
 6. **Pemeliharaan Konten:** Mengelola materi edukasi, pusat bantuan, tanya jawab, dan kebijakan legalitas platform.
+7. **Audit & Jejak Rekam Sistem (*Activity & Security Audit*):** Memantau rekam jejak operasional, riwayat mutasi data sensitif, dan log perubahan atribut melalui audit trail imutabel.
 
 ---
 
@@ -102,9 +110,10 @@ flowchart TD
 1. **Akses Portal:** Masuk melalui alamat [http://localhost:8000/login](http://localhost:8000/login) menggunakan *username* atau *email* berhak akses Administrator.
 2. **Keamanan Sesi:** Portal dilengkapi sistem *rate limiting*, proteksi CSRF, dan pemutusan sesi otomatis jika pengguna tidak aktif.
 3. **Bilah Navigasi Samping (*Sidebar*):** 
-   - **Menu Utama:** Dashboard, Tautan Undangan, Verifikasi Pendaftaran, Kelola Copytrade.
+   - **Menu Utama:** Dashboard, Tautan Undangan, Verifikasi Pendaftaran, Kelola Copytrade, Pengguna.
    - **Manajemen Afiliasi:** Jaringan Kemitraan (dan Klaim Referral), Pencairan Komisi.
-   - **Manajemen Sistem:** Manajemen Pengguna, Materi Bantuan, Tanya Jawab (FAQ), Glosarium, Pengaturan Legalitas, Ganti Password.
+   - **Bantuan & Informasi:** Pusat Bantuan, Tanya Jawab (FAQ), Glosarium Forex.
+   - **Pengaturan Sistem:** Log Aktivitas (Audit Trail), Konten Legalitas, Ganti Password.
 4. **Header Navigasi Atas:** Berisi tombol menu ponsel, tombol perkecil *sidebar*, tombol *toggle* tema gelap/terang (*Dark/Light Mode*), bel notifikasi sistem *real-time*, dan menu profil administrator.
 
 ---
@@ -594,6 +603,100 @@ Dokumen legalitas platform diakses oleh publik dan pengguna saat registrasi.
 
 ---
 
+## Bab 9: Pemantauan Audit & Log Aktivitas Sistem (Activity Logs)
+
+### 9.1 Konsep & Arsitektur Jejak Audit Imutabel (Immutable Audit Trail)
+Setiap tindakan operasional penting yang dilakukan oleh pengguna maupun administrator di dalam platform YZD Center dicatat secara otomatis ke dalam **Log Aktivitas (*Audit Trail*)**. Modul ini dirancang untuk menjamin transparansi menyeluruh, akuntabilitas hukum (*regulatory compliance*), kemudahan investigasi forensik saat terjadi anomali transaksi atau perubahan kredensial, serta mencegah penyangkalan tindakan (*non-repudiation*).
+
+#### Prinsip Utama Arsitektur Log Aktivitas:
+1. **Sifat Imutabel (*Append-Only & Read-Only*):** Rekaman log dilindungi dengan proteksi ketat di tingkat model data Eloquent dan basis data MySQL. Log yang telah tersimpan **dilarang keras dan tidak dapat diubah (*update*) maupun dihapus (*delete*)** oleh siapa pun, termasuk oleh Administrator Utama (*Super User*) sekalipun demi menjamin integritas hukum audit.
+2. **Pencatatan Konteks Lengkap (*Rich Context Capture*):** Setiap peristiwa secara otomatis mengabadikan metadata kontekstual:
+   - **Identitas Pelaku (*Actor*):** Nama lengkap, *username*, dan peran pengguna saat aksi dilakukan (*Administrator*, *Investor*, *Affiliator*, atau *Tamu / Sistem*).
+   - **Waktu Presisi (*Timestamp*):** Waktu kejadian terperinci dalam zona waktu WIB (format: `DD MMMM YYYY, HH:mm:ss WIB`) beserta kalkulasi waktu relatif (*contoh: "5 menit yang lalu"*).
+   - **Jejak Jaringan & Perangkat:** Alamat IP asli pelaku serta identifikasi peramban (*User Agent*) dan sistem operasi yang diringkas secara ramah (*contoh: "Chrome di Windows"*).
+   - **Entitas Subjek (*Morph Subject*):** Menautkan langsung objek data yang mengalami perubahan (misalnya: `App\Models\User #14`, `App\Models\AkunCopytrade #3`, `App\Models\KlaimReferral #8`).
+3. **Klasifikasi Tingkat Kepentingan (*Severity Levels*):**
+   - 🔵 **Info (Informasi Normal):** Aktivitas operasional standar harian seperti masuk sistem (*login*), pendaftaran akun baru, pembuatan tautan undangan, penambahan glosarium istilah, atau publikasi artikel edukasi.
+   - 🟡 **Peringatan (*Warning*):** Tindakan yang memerlukan perhatian pengawasan atau mitigasi operasional, seperti penolakan pendaftaran/KTP, penolakan klaim referral susulan, penolakan pencairan komisi, atau penonaktifan sementara (*suspend*) akun pengguna.
+   - 🔴 **Tindakan Kritis (*Critical*):** Operasi finansial dan integritas sistem berisiko tinggi, seperti pencatatan/pembaruan saldo bulanan akun copytrade, persetujuan transfer bank pencairan komisi bernilai besar, konfigurasi kredensial MT4/VPS, modifikasi kata sandi pengguna, atau penghapusan permanen token undangan.
+
+---
+
+### 9.2 Akses Menu, Filter Multi-Kriteria & Pencarian Log
+Administrator dapat mengawasi seluruh lalu lintas aktivitas platform melalui antarmuka tabel interaktif:
+
+1. **Akses Menu:** Buka bilah navigasi samping (*sidebar*) $\rightarrow$ kelompok **Pengaturan Sistem** $\rightarrow$ pilih **Log Aktivitas** (`/admin/activity-logs`).
+2. **Filter Multi-Kriteria Interaktif:**
+   Di atas tabel data, tersedia bilah filter terintegrasi yang menyaring data secara instan tanpa memuat ulang (*refresh*) peramban:
+   - **Rentang Tanggal (Dari & Sampai):** Membatasi penyelidikan log pada periode hari/minggu tertentu (misalnya tanggal 1 s/d 5 saat audit saldo bulanan).
+   - **Kategori Aktivitas:** Memfilter log berdasarkan modul sistem:
+     - `Autentikasi` (Login, Logout, Ganti Password)
+     - `Copytrade` (Pengajuan, Verifikasi Akun, Input Saldo Bulanan)
+     - `Keuangan` (Pengajuan Komisi, Persetujuan Payout, Transfer Bank)
+     - `Referral` (Klaim Susulan, Persetujuan Jaringan)
+     - `Pengguna` (Registrasi, KYC, Alih Peran/Role Switching, Suspend)
+     - `Konten` (Artikel Bantuan, FAQ, Glosarium, Kebijakan Legal)
+     - `Sistem` (Tautan Undangan, Konfigurasi Platform)
+   - **Aksi Spesifik:** Memilih aksi spesifik secara presisi (contoh: `buat_undangan`, `hapus_undangan`, `verifikasi_kyc`, `tolak_klaim_komisi`, `catat_saldo`).
+   - **Peran Pelaku (*Actor Role*):** Menampilkan aktivitas berdasarkan peran pengguna dengan kode warna badge yang konsisten di seluruh platform:
+     - **Administrator:** Abu-abu Slate (`slate-700 / slate-300`)
+     - **Investor:** Biru Kontras (`blue-700 / blue-300`)
+     - **Affiliator:** Ungu (*Violet*) (`purple-700 / purple-300`)
+     - **Tamu / Sistem:** Abu-abu Netral (*Muted*)
+   - **Tingkat Kepentingan (*Severity*):** Memfilter khusus log *Info*, *Peringatan (Warning)*, atau *Tindakan Kritis (Critical)*.
+   - **Bilah Pencarian Cepat (*Search Box*):** Mengetikkan kata kunci nama pelaku, username, deskripsi kejadian, alamat IP, atau ID subjek.
+   - **Tombol Reset Filter:** Menghapus seluruh kriteria pencarian dan mengembalikan tabel ke daftar kronologis lengkap.
+
+---
+
+### 9.3 Rincian Rekam Perubahan Atribut (Audit Diff: Sebelum vs Sesudah)
+Untuk setiap operasi pembaruan data (*update*) maupun penghapusan (*delete*), sistem menyediakan visualisasi komparasi nilai atribut secara transparan:
+
+1. Klik tombol **"Lihat Detail Log"** (ikon mata) pada kolom paling kanan baris tabel yang bersangkutan.
+2. Jendela pop-up modal **Rincian Audit Log** akan terbuka, menampilkan:
+   - Identitas pelaku lengkap dengan avatar/inisial, peran, waktu kejadian, kategori, aksi, serta alamat IP dan peramban.
+   - Target subjek yang dipengaruhi (misal: `App\Models\UndanganPendaftaran #12`).
+   - Kotak **Deskripsi Aktivitas** yang memuat narasi bahasa manusia mengenai apa yang terjadi.
+3. **Pemeriksaan Rekam Data Perubahan (Audit Diff):**
+   - **Tabel Komparasi Atribut Terstruktur (*Structured Field Diff*):** Sistem menyusun tabel 3 kolom:
+     - **Field / Kolom:** Nama atribut data yang berubah (contoh: `status`, `saldo`, `label`, `kuota`, `target_role`).
+     - **Data Sebelum:** Nilai atribut sebelum tindakan dilakukan, diberi penanda badge merah/rose (*Soft Red*).
+     - **Data Sesudah:** Nilai atribut setelah tindakan berhasil diterapkan, diberi penanda badge hijau/emerald (*Soft Green*). Baris atribut yang mengalami perubahan nilai otomatis disorot dengan warna kuning lembut (*amber highlight*).
+     - *Kondisi Khusus Hapus Data (Delete Action):* Pada aktivitas penghapusan, data rekaman historis yang dihapus ditampilkan seutuhnya di kolom **Data Sebelum**, sedangkan kolom **Data Sesudah** akan berisi tanda strip (`-`).
+   - **Tampilan JSON Mentah (*Raw JSON Payload*):** Untuk kebutuhan audit teknis tingkat lanjut, klik tombol **"Lihat JSON Mentah"**. Sistem akan membuka blok kode terformat (*code block*) dengan penataan vertikal memanjang ke bawah dan bilah gulir (*scrollbar*) yang rapi, menampilkan struktur data asli tanpa risiko pemotongan teks.
+
+---
+
+### 9.4 Penyamaran Otomatis Data Sensitif & Kredensial (Data Masking)
+Platform YZD Center menerapkan standar keamanan data perbankan dan perlindungan privasi berlapis (*Defense-in-Depth*).
+
+Untuk mencegah kebocoran informasi kredensial rahasia pada layar audit antarmuka maupun pada berkas laporan unduhan:
+- **Penyamaran Rekursif (*Recursive Sensitive Masking*):** Mesin audit internal (`AuditLogService`) secara otomatis memeriksa seluruh struktur array perubahan data sebelum disimpan ke basis data.
+- Setiap kunci atau atribut yang terindikasi sebagai data sensitif, seperti:
+  - `password`, `kata_sandi`, `password_confirmation`, `current_password`
+  - `master_password`, `investor_password` (kredensial login akun MetaTrader 4)
+  - `pin`, `vps_pin` (PIN server VPS trading)
+  - `token`, `remember_token`, `api_token`
+  - `nomor_rekening`, `nomor_kartu` (rekening bank pribadi)
+- Secara otomatis nilainya disamarkan (*masked*) menjadi teks pengganti tetap: **`[TERENKRIPSI/RAHASIA]`**.
+- Dengan mekanisme ini, baik administrator operasional maupun staf yang memeriksa riwayat log audit tidak akan pernah dapat melihat kata sandi asli maupun kredensial akun trading milik investor.
+
+---
+
+### 9.5 Ekspor Jejak Audit ke Dokumen Spreadsheet (Format Excel .XLSX)
+Untuk kebutuhan pelaporan berkala kepada pimpinan perusahaan, pemeriksaan auditor eksternal, atau arsip kepatuhan regulasi finansial, data log aktivitas dapat diunduh langsung dalam format spreadsheet resmi:
+
+1. Tentukan rentang data melalui filter di atas tabel (misalnya menyaring Kategori *Keuangan* sepanjang bulan berjalan), atau biarkan tanpa filter untuk mengunduh seluruh rekaman.
+2. Klik tombol **"Ekspor XLSX"** berikon spreadsheet di sisi kanan atas tabel.
+3. Peramban akan seketika mengunduh dokumen Microsoft Excel dengan format nama otomatis: `log_aktivitas_yzd_YYYY-MM-DD.xlsx`.
+4. **Karakteristik & Optimasi Lembar Kerja Excel:**
+   - **Format File:** Standar murni OpenXML Spreadsheet (`.xlsx`), kompatibel penuh dengan Microsoft Excel 2016+, Microsoft 365, Google Sheets, dan LibreOffice Calc.
+   - **Penerapan Teks Melipat Otomatis (*Auto-Wrap Text*):** Seluruh sel dengan teks panjang (seperti deskripsi peristiwa dan rincian perubahan) telah disetel dengan atribut `wrapText="1"` aktif. Teks tidak akan terpotong dan tidak menutupi sel di sebelahnya.
+   - **Monospace Font untuk Kolom JSON:** Kolom *Rincian Perubahan (JSON)* diformat menggunakan font monospace (*Consolas*) terstruktur memanjang ke bawah sehingga data teknis tersaji rapi dan mudah dibaca.
+   - **Penyesuaian Lebar Kolom & Tinggi Baris Proporsional:** Lembar kerja dirancang agar pengguna dapat langsung membuka dan meninjau data tanpa perlu melakukan pelebaran kolom atau pemformatan tinggi baris secara manual.
+
+---
+
 ## Ringkasan Standar Mutu Administrator (Operational SLA)
 
 Untuk memastikan keunggulan layanan operasional YZD Center, seluruh tim Administrator berpegang pada Service Level Agreement (SLA) berikut:
@@ -605,6 +708,7 @@ Untuk memastikan keunggulan layanan operasional YZD Center, seluruh tim Administ
 | **Verifikasi Permohonan Klaim Referral Susulan** | Maksimal **1x24 Jam** kerja | 🟡 Sedang |
 | **Pencairan & Transfer Bank Komisi Afiliasi** | Maksimal **1x24 Jam** kerja | 🔴 Tinggi |
 | **Pembaruan Saldo Bulanan Akun Copytrade** | Setiap tanggal **1 s/d 2 awal bulan** | 🟡 Terjadwal |
+| **Audit & Peninjauan Log Aktivitas Kritis** | Pemantauan harian & investigasi seketika saat anomali terdeteksi | 🔴 Tinggi |
 
 ---
 *Buku Panduan Operasional Administrator YZD Center — Hak Cipta Dilindungi Undang-Undang.*

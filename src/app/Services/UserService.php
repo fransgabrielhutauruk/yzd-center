@@ -11,6 +11,7 @@ class UserService
 {
     public function __construct(
         private readonly ReferralService $referralService,
+        private readonly AuditLogService $auditLogService,
     ) {}
 
     /**
@@ -298,6 +299,7 @@ class UserService
                 throw new DomainException('Anda tidak dapat mengubah status akun Anda sendiri.');
             }
 
+            $sebelumActive = $user->is_active;
             $user->is_active = !$user->is_active;
             $user->save();
 
@@ -305,6 +307,22 @@ class UserService
             if (!$user->is_active) {
                 DB::table('sessions')->where('user_id', $user->id)->delete();
             }
+
+            // Audit Log: Ubah status pengguna (aktif/nonaktif)
+            $admin = User::find($adminId);
+            $statusLabel = $user->is_active ? 'diaktifkan' : 'dinonaktifkan (suspend)';
+            $this->auditLogService->record(
+                kategori: 'pengguna',
+                aksi: 'ubah_status_user',
+                deskripsi: "Administrator {$admin?->name} mengubah status akun {$user->name} (@{$user->username}) menjadi {$statusLabel}.",
+                subject: $user,
+                perubahan: [
+                    'sebelum' => ['is_active' => $sebelumActive],
+                    'sesudah' => ['is_active' => $user->is_active],
+                ],
+                tingkat: $user->is_active ? 'info' : 'warning',
+                user: $admin
+            );
 
             return $user;
         });
@@ -358,6 +376,21 @@ class UserService
 
             // Putuskan seluruh sesi aktif pengguna agar wajib login ulang dan antarmuka menu barunya sinkron
             DB::table('sessions')->where('user_id', $user->id)->delete();
+
+            // Audit Log: Alih peran pengguna
+            $admin = User::find($adminId);
+            $this->auditLogService->record(
+                kategori: 'pengguna',
+                aksi: 'ubah_peran_user',
+                deskripsi: "Administrator {$admin?->name} mengubah peran pengguna {$user->name} (@{$user->username}) dari " . ucfirst($oldRole) . " menjadi " . ucfirst($newRole) . ".",
+                subject: $user,
+                perubahan: [
+                    'sebelum' => ['role' => $oldRole],
+                    'sesudah' => ['role' => $newRole, 'referral_code' => $user->referral_code],
+                ],
+                tingkat: 'critical',
+                user: $admin
+            );
 
             return [
                 'user'     => $user,

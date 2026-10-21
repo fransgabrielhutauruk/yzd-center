@@ -17,6 +17,10 @@ use PhpOffice\PhpWord\TemplateProcessor;
 
 class CopytradeService
 {
+    public function __construct(
+        private readonly AuditLogService $auditLogService,
+    ) {}
+
     /**
      * Tambah akun copytrade baru untuk investor.
      *
@@ -102,6 +106,25 @@ class CopytradeService
 
             $akun = AkunCopytrade::create($akunData);
 
+            // Audit Log: Pengajuan akun copytrade baru
+            $this->auditLogService->record(
+                kategori: 'copytrade',
+                aksi: 'ajukan_copytrade',
+                deskripsi: "Investor {$user->name} mendaftarkan akun copytrade baru (#{$akun->nomor_akun_trading}, {$akun->broker}, {$akun->tier}, \${$akun->modal_riil}).",
+                subject: $akun,
+                perubahan: [
+                    'sesudah' => [
+                        'tier'               => $akun->tier,
+                        'broker'             => $akun->broker,
+                        'tipe_akun'          => $akun->tipe_akun,
+                        'nomor_akun_trading' => $akun->nomor_akun_trading,
+                        'modal_riil'         => $akun->modal_riil,
+                    ],
+                ],
+                tingkat: 'info',
+                user: $user
+            );
+
             // Kirim notifikasi database in-app ke seluruh administrator
             $admins = User::where('role', 'administrator')->get();
             if ($admins->isNotEmpty()) {
@@ -130,12 +153,37 @@ class CopytradeService
         }
 
         return DB::transaction(function () use ($akun, $status, $catatanAdmin, $verifier): AkunCopytrade {
+            $sebelumStatus = $akun->status;
+
             $akun->update([
                 'status'        => $status,
                 'catatan_admin' => $status === 'active' ? ($catatanAdmin ?: null) : $catatanAdmin,
                 'verified_by'   => $verifier->id,
                 'verified_at'   => now(),
             ]);
+
+            // Audit Log: Verifikasi akun copytrade
+            $statusLabel = $status === 'active' ? 'Disetujui (Aktif)' : 'Ditolak';
+            $this->auditLogService->record(
+                kategori: 'copytrade',
+                aksi: 'verifikasi_copytrade',
+                deskripsi: "Administrator {$verifier->name} memverifikasi akun copytrade #{$akun->nomor_akun_trading} milik {$akun->user->name} dengan status '{$statusLabel}'." . ($status === 'rejected' ? " Alasan: {$catatanAdmin}" : ''),
+                subject: $akun,
+                perubahan: [
+                    'sebelum' => ['status' => $sebelumStatus],
+                    'sesudah' => [
+                        'status'        => $status,
+                        'catatan_admin' => $status === 'rejected' ? $catatanAdmin : null,
+                    ],
+                    'meta' => [
+                        'nomor_akun_trading' => $akun->nomor_akun_trading,
+                        'broker'             => $akun->broker,
+                        'modal_riil'         => $akun->modal_riil,
+                    ],
+                ],
+                tingkat: $status === 'rejected' ? 'warning' : 'critical',
+                user: $verifier
+            );
 
             if ($status === 'active') {
                 UserDokumen::where('user_id', $akun->user_id)
