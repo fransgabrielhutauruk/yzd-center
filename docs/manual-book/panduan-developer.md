@@ -43,9 +43,10 @@ flowchart TD
 ```
 
 ### Karakteristik & Perilaku Sistem:
-- **Sentry Cloud:** Digunakan untuk investigasi mendalam (*stack trace*, berkas, nomor baris, riwayat navigasi *breadcrumbs*, dan *release version*).
-- **Telegram Alerting:** Digunakan untuk notifikasi darurat langsung ke perangkat seluler developer saat terjadi insiden fatal 5xx.
-- **Throttling (10 Menit):** Mencegah banjir notifikasi Telegram jika terjadi loop error yang berulang dalam rentang waktu singkat.
+- **Telegram sebagai Titik Masuk Utama (*Single Source of Alert*):** Pesan Telegram cukup memuat ringkasan singkat: nama galat, rute URL & method, status pengguna, waktu kejadian, dan tautan langsung (*deep link*) ke insiden Sentry terkait.
+- **Sentry Hanya Dibuka Saat Dibutuhkan:** Ketika ada notifikasi masuk di Telegram, Anda cukup mengklik tautan tersebut untuk melompat ke dasbor Sentry guna memeriksa *stack trace*, rekam jejak tombol yang ditekan pengguna (*breadcrumbs*), dan nomor baris kode yang bermasalah.
+- **Bebas Notifikasi Ganda (Anti-Spam Email):** Notifikasi email insiden di Sentry dinonaktifkan sehingga kotak masuk surel Anda tetap bersih dan tidak terdistraksi.
+- **Throttling (10 Menit):** Mencegah banjir notifikasi Telegram jika terjadi loop error yang berulang dalam rentang waktu singkat (1 pesan / jenis error / 10 menit).
 - **Zero Request-Lag:** Pengiriman HTTP ke bot Telegram dieksekusi secara asinkron melalui antrean worker (`SendTelegramAlertJob`) sehingga tidak memperlambat waktu respon user.
 - **Mode Diam (Safe NO-OP):** Jika kredensial Sentry atau Telegram belum diatur di `.env`, sistem otomatis berjalan dalam mode *silent* tanpa melempar error tambahan apapun.
 
@@ -118,6 +119,13 @@ Anda memiliki dua opsi untuk pelacakan error di frontend (Vue 3 / Inertia):
 - **Opsi Praktis (Direkomendasikan):** Gunakan DSN yang sama dengan backend. Isi variabel `VITE_SENTRY_DSN` dengan nilai yang sama dengan `SENTRY_LARAVEL_DSN`.
 - **Opsi Terpisah:** Buat project baru di Sentry dengan memilih platform **Vue**, lalu isi DSN-nya ke `VITE_SENTRY_DSN`.
 
+### Langkah 4: Matikan Notifikasi Email Insiden di Sentry (Pencegahan Notifikasi Ganda)
+Agar alur kerja tetap rapi dan tidak terdistraksi notifikasi ganda:
+1. Buka dasbor Sentry $\rightarrow$ klik avatar profil Anda di kiri bawah $\rightarrow$ pilih **User Settings** (atau **Preferences**).
+2. Masuk ke menu **Notifications**.
+3. Matikan opsi **Workflow / Alerts email** untuk setiap issue baru (set ke *Never* atau nonaktifkan toggle notifikasi email).
+4. Dengan begitu, kotak masuk surel Anda tidak akan dibanjiri pesan setiap kali sistem mendeteksi galat, dan notifikasi insiden terpusat 100% pada bot Telegram.
+
 ---
 
 ## 4. Konfigurasi Environment (`.env`) & Variabel Acuan
@@ -139,6 +147,9 @@ LOG_LEVEL=debug
 SENTRY_LARAVEL_DSN=https://a1b2c3d4e5f6@o123456.ingest.sentry.io/7890123
 VITE_SENTRY_DSN=https://a1b2c3d4e5f6@o123456.ingest.sentry.io/7890123
 SENTRY_TRACES_SAMPLE_RATE=0
+
+# Slug organisasi Sentry (untuk tautan langsung Telegram -> Sentry issue)
+SENTRY_ORGANIZATION_SLUG=frans-gabriel-hutauruk
 
 # =========================================================================
 # NOTIFIKASI ERROR INSTAN TELEGRAM BOT

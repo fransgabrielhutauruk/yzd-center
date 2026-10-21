@@ -18,6 +18,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Sentry Organization Slug (Untuk Deep-Link Telegram ke Sentry)
+    |--------------------------------------------------------------------------
+    |
+    | Digunakan untuk menyertakan tautan langsung ke insiden Sentry di dalam
+    | pesan notifikasi Telegram (contoh: https://{org_slug}.sentry.io/issues/).
+    |
+    */
+    'sentry_org_slug' => env('SENTRY_ORGANIZATION_SLUG'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Throttle Window (Menit)
     |--------------------------------------------------------------------------
     |

@@ -83,6 +83,16 @@ class DocumentSecurityTest extends TestCase
 
         // Admin bisa mengakses
         $this->actingAs($admin)->get("/documents/{$dokumen->id}")->assertOk();
+
+        // Pastikan audit log tercatat dengan menyebut username target (@username) tanpa duplikasi Administrator
+        $this->assertDatabaseHas('log_aktivitas', [
+            'user_id'      => $admin->id,
+            'kategori'     => 'kyc_dokumen',
+            'aksi'         => 'lihat_dokumen',
+            'deskripsi'    => \App\Services\AuditLogService::formatActor($admin) . " melihat berkas ktp milik @{$owner->username}.",
+            'subject_type' => $dokumen->getMorphClass(),
+            'subject_id'   => $dokumen->id,
+        ]);
     }
 
     public function test_admin_can_update_legal_content_and_version(): void

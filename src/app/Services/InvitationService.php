@@ -172,10 +172,11 @@ class InvitationService
             ]);
 
             // Audit Log: Pembuatan tautan undangan
+            $actor = AuditLogService::formatActor($creator);
             $this->auditLogService->record(
                 kategori: 'undangan',
                 aksi: 'buat_undangan',
-                deskripsi: "Administrator {$creator?->name} menerbitkan tautan undangan baru '{$invitation->label}' (peran: {$invitation->target_role}, kuota: {$invitation->kuota_maksimal}).",
+                deskripsi: "{$actor} menerbitkan tautan undangan baru '{$invitation->label}' (peran: {$invitation->target_role}, kuota: {$invitation->kuota_maksimal}).",
                 subject: $invitation,
                 perubahan: [
                     'sesudah' => [

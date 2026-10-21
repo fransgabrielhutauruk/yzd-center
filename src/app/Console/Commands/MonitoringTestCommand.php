@@ -58,6 +58,11 @@ class MonitoringTestCommand extends Command
                     $env = strtoupper((string) config('app.env', 'LOCAL'));
                     $time = now()->timezone('Asia/Jakarta')->format('d M Y, H:i:s T');
 
+                    $orgSlug = config('monitoring.sentry_org_slug');
+                    $sentryUrl = !empty($orgSlug)
+                        ? "https://{$orgSlug}.sentry.io/issues/"
+                        : 'https://sentry.io/issues/';
+
                     $testMessage = implode("\n", [
                         "✅ <b>[{$env}] Uji Coba Monitoring YZD Center</b>",
                         '',
@@ -66,6 +71,8 @@ class MonitoringTestCommand extends Command
                         '',
                         "<b>Waktu Uji:</b> {$time}",
                         '<b>Trigger:</b> <code>php artisan monitoring:test</code>',
+                        '',
+                        "🔍 <a href=\"{$sentryUrl}\"><b>Buka Dasbor Sentry &rarr;</b></a>",
                     ]);
 
                     SendTelegramAlertJob::dispatchSync($testMessage);

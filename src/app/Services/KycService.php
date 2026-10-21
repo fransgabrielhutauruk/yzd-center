@@ -164,10 +164,12 @@ class KycService
 
             // Audit Log: Verifikasi dokumen KYC oleh admin
             $statusLabel = $status === 'approved' ? 'Disetujui' : 'Perlu Revisi';
+            $actor = AuditLogService::formatActor($verifier);
+            $target = AuditLogService::formatTargetUser($user, $dokumen->user_id);
             $this->auditLogService->record(
                 kategori: 'kyc_dokumen',
                 aksi: 'verifikasi_kyc',
-                deskripsi: "Administrator {$verifier->name} memverifikasi dokumen {$dokumen->tipe_dokumen} milik {$user->name} dengan status '{$statusLabel}'." . ($status === 'revision_needed' ? " Catatan: {$catatanAdmin}" : ''),
+                deskripsi: "{$actor} memverifikasi dokumen {$dokumen->tipe_dokumen} milik {$target} dengan status '{$statusLabel}'." . ($status === 'revision_needed' ? " Catatan: {$catatanAdmin}" : ''),
                 subject: $dokumen,
                 perubahan: [
                     'sebelum' => [

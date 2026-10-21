@@ -366,10 +366,14 @@ class ReferralService
 
             // Audit Log: Verifikasi klaim referral susulan oleh admin
             $statusLabel = $status === 'approved' ? 'Disetujui' : 'Ditolak';
+            $lockedClaim->loadMissing(['affiliator', 'downline']);
+            $actor = AuditLogService::formatActor($admin);
+            $affiliatorTag = AuditLogService::formatTargetUser($lockedClaim->affiliator, $lockedClaim->affiliator_id);
+            $downlineTag = $lockedClaim->downline?->username ? " untuk investor @{$lockedClaim->downline->username}" : '';
             $this->auditLogService->record(
                 kategori: 'komisi_afiliasi',
                 aksi: 'verifikasi_klaim_referral',
-                deskripsi: "Administrator {$admin->name} memverifikasi klaim referral #{$lockedClaim->id} dengan status '{$statusLabel}'." . ($status === 'rejected' ? " Alasan: {$catatanAdmin}" : ''),
+                deskripsi: "{$actor} memverifikasi klaim referral milik {$affiliatorTag}{$downlineTag} dengan status '{$statusLabel}'." . ($status === 'rejected' ? " Alasan: {$catatanAdmin}" : ''),
                 subject: $lockedClaim,
                 perubahan: [
                     'sebelum' => ['status' => $sebelumStatus],

@@ -63,7 +63,7 @@ const columns = [
     { key: 'waktu', label: 'Waktu & Perangkat', sortable: false },
     { key: 'user', label: 'Pengguna', sortable: false },
     { key: 'kategori', label: 'Kategori & Aksi', sortable: false },
-    { key: 'deskripsi', label: 'Aktivitas & Subjek', sortable: false },
+    { key: 'deskripsi', label: 'Aktivitas', sortable: false },
     { key: 'tingkat', label: 'Tingkat', sortable: false, align: 'center' },
     { key: 'actions', label: 'Rincian', align: 'center' },
 ];
@@ -391,13 +391,6 @@ const comparedFields = computed(() => {
                         <p class="text-foreground text-xs leading-relaxed">
                             {{ item.deskripsi }}
                         </p>
-                        <div
-                            v-if="item.subject_type"
-                            class="text-muted-foreground bg-muted/50 border-border/60 inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-mono text-[11px]"
-                        >
-                            <span>{{ item.subject_type }}</span>
-                            <span v-if="item.subject_id">#{{ item.subject_id }}</span>
-                        </div>
                     </div>
                 </template>
 

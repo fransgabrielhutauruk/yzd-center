@@ -187,6 +187,50 @@ class TelegramErrorNotifier
             "<b>Waktu:</b> {$time}",
         ];
 
+        // Tautan Langsung ke Sentry Dashboard / Insiden Terkait
+        $sentryUrl = $this->buildSentryUrl($context);
+        if ($sentryUrl) {
+            $lines[] = '';
+            $lines[] = "🔍 <a href=\"{$sentryUrl}\"><b>Buka Detail Insiden di Sentry</b></a>";
+        }
+
         return implode("\n", $lines);
+    }
+
+    /**
+     * Susun tautan langsung ke insiden Sentry untuk kemudahan navigasi developer.
+     *
+     * @param array<string, mixed> $context
+     */
+    protected function buildSentryUrl(array $context): ?string
+    {
+        $orgSlug = (string) config('monitoring.sentry_org_slug');
+
+        // Dapatkan Event ID dari context atau dari Sentry SDK Hub
+        $eventId = $context['sentry_event_id'] ?? null;
+        if (!$eventId && class_exists(\Sentry\SentrySdk::class)) {
+            $lastId = \Sentry\SentrySdk::getCurrentHub()->getLastEventId();
+            if ($lastId) {
+                $eventId = (string) $lastId;
+            }
+        }
+
+        if (!empty($orgSlug)) {
+            if (!empty($eventId)) {
+                return "https://{$orgSlug}.sentry.io/issues/?query={$eventId}";
+            }
+
+            return "https://{$orgSlug}.sentry.io/issues/";
+        }
+
+        if (!empty($eventId)) {
+            return "https://sentry.io/issues/?query={$eventId}";
+        }
+
+        if (!empty(config('sentry.dsn'))) {
+            return 'https://sentry.io/issues/';
+        }
+
+        return null;
     }
 }

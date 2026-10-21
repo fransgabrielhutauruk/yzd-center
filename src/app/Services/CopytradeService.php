@@ -164,10 +164,12 @@ class CopytradeService
 
             // Audit Log: Verifikasi akun copytrade
             $statusLabel = $status === 'active' ? 'Disetujui (Aktif)' : 'Ditolak';
+            $actor = AuditLogService::formatActor($verifier);
+            $target = AuditLogService::formatTargetUser($akun->user, $akun->user_id);
             $this->auditLogService->record(
                 kategori: 'copytrade',
                 aksi: 'verifikasi_copytrade',
-                deskripsi: "Administrator {$verifier->name} memverifikasi akun copytrade #{$akun->nomor_akun_trading} milik {$akun->user->name} dengan status '{$statusLabel}'." . ($status === 'rejected' ? " Alasan: {$catatanAdmin}" : ''),
+                deskripsi: "{$actor} memverifikasi akun copytrade #{$akun->nomor_akun_trading} milik {$target} dengan status '{$statusLabel}'." . ($status === 'rejected' ? " Alasan: {$catatanAdmin}" : ''),
                 subject: $akun,
                 perubahan: [
                     'sebelum' => ['status' => $sebelumStatus],

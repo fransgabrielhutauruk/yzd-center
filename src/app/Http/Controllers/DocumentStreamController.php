@@ -19,7 +19,7 @@ class DocumentStreamController extends Controller
      */
     public function show(Request $request, int $id): StreamedResponse
     {
-        $dokumen = UserDokumen::findOrFail($id);
+        $dokumen = UserDokumen::with('user')->findOrFail($id);
         $user = $request->user();
 
         // Otorisasi: Hanya Admin atau Pemilik Dokumen yang dapat mengakses
@@ -32,10 +32,13 @@ class DocumentStreamController extends Controller
         }
 
         if ($user->isAdmin()) {
+            $actor = AuditLogService::formatActor($user);
+            $targetUser = AuditLogService::formatTargetUser($dokumen->user, $dokumen->user_id);
+
             $this->auditLogService->record(
                 kategori: 'kyc_dokumen',
                 aksi: 'lihat_dokumen',
-                deskripsi: "Administrator {$user->name} melihat berkas {$dokumen->tipe_dokumen} milik pengguna #{$dokumen->user_id}.",
+                deskripsi: "{$actor} melihat berkas {$dokumen->tipe_dokumen} milik {$targetUser}.",
                 subject: $dokumen,
                 tingkat: 'info',
                 user: $user,
@@ -61,7 +64,7 @@ class DocumentStreamController extends Controller
      */
     public function showClaimProof(Request $request, int $id): StreamedResponse
     {
-        $claim = \App\Models\KlaimReferral::findOrFail($id);
+        $claim = \App\Models\KlaimReferral::with(['affiliator', 'downline'])->findOrFail($id);
         $user = $request->user();
 
         // Otorisasi: Hanya Admin atau Affiliator pemohon yang dapat mengakses
@@ -85,10 +88,14 @@ class DocumentStreamController extends Controller
         }
 
         if ($user->isAdmin()) {
+            $actor = AuditLogService::formatActor($user);
+            $affiliatorTag = AuditLogService::formatTargetUser($claim->affiliator, $claim->affiliator_id);
+            $downlineTag = $claim->downline?->username ? " untuk investor @{$claim->downline->username}" : '';
+
             $this->auditLogService->record(
                 kategori: 'komisi_afiliasi',
                 aksi: 'lihat_dokumen',
-                deskripsi: "Administrator {$user->name} melihat bukti percakapan klaim referral #{$claim->id}.",
+                deskripsi: "{$actor} melihat bukti percakapan klaim referral milik {$affiliatorTag}{$downlineTag}.",
                 subject: $claim,
                 tingkat: 'info',
                 user: $user,
@@ -114,7 +121,7 @@ class DocumentStreamController extends Controller
      */
     public function showCopytradeAgreement(Request $request, int $id): StreamedResponse
     {
-        $akun = \App\Models\AkunCopytrade::findOrFail($id);
+        $akun = \App\Models\AkunCopytrade::with('user')->findOrFail($id);
         $user = $request->user();
 
         // Otorisasi: Hanya Admin atau Investor pemilik akun yang dapat mengakses
@@ -137,10 +144,13 @@ class DocumentStreamController extends Controller
         }
 
         if ($user->isAdmin()) {
+            $actor = AuditLogService::formatActor($user);
+            $targetUser = AuditLogService::formatTargetUser($akun->user, $akun->user_id);
+
             $this->auditLogService->record(
                 kategori: 'copytrade',
                 aksi: 'lihat_dokumen',
-                deskripsi: "Administrator {$user->name} melihat berkas surat perjanjian copytrade akun #{$akun->id}.",
+                deskripsi: "{$actor} melihat berkas surat perjanjian copytrade akun {$akun->nomor_akun_trading} milik {$targetUser}.",
                 subject: $akun,
                 tingkat: 'info',
                 user: $user,
@@ -166,7 +176,7 @@ class DocumentStreamController extends Controller
      */
     public function showCommissionProof(Request $request, int $id): StreamedResponse
     {
-        $claim = \App\Models\KlaimKomisi::findOrFail($id);
+        $claim = \App\Models\KlaimKomisi::with('affiliator')->findOrFail($id);
         $user = $request->user();
 
         // Otorisasi: Hanya Admin atau Affiliator pemohon yang dapat mengakses
@@ -189,10 +199,13 @@ class DocumentStreamController extends Controller
         }
 
         if ($user->isAdmin()) {
+            $actor = AuditLogService::formatActor($user);
+            $affiliatorTag = AuditLogService::formatTargetUser($claim->affiliator, $claim->affiliator_id);
+
             $this->auditLogService->record(
                 kategori: 'komisi_afiliasi',
                 aksi: 'lihat_dokumen',
-                deskripsi: "Administrator {$user->name} melihat berkas bukti modal klaim komisi #{$claim->id}.",
+                deskripsi: "{$actor} melihat berkas bukti modal klaim komisi {$claim->kode_klaim} milik {$affiliatorTag}.",
                 subject: $claim,
                 tingkat: 'info',
                 user: $user,
@@ -218,7 +231,7 @@ class DocumentStreamController extends Controller
      */
     public function showCommissionReceipt(Request $request, int $id): StreamedResponse
     {
-        $claim = \App\Models\KlaimKomisi::findOrFail($id);
+        $claim = \App\Models\KlaimKomisi::with('affiliator')->findOrFail($id);
         $user = $request->user();
 
         // Otorisasi: Hanya Admin atau Affiliator pemohon yang dapat mengakses
@@ -241,10 +254,13 @@ class DocumentStreamController extends Controller
         }
 
         if ($user->isAdmin()) {
+            $actor = AuditLogService::formatActor($user);
+            $affiliatorTag = AuditLogService::formatTargetUser($claim->affiliator, $claim->affiliator_id);
+
             $this->auditLogService->record(
                 kategori: 'komisi_afiliasi',
                 aksi: 'lihat_dokumen',
-                deskripsi: "Administrator {$user->name} melihat berkas bukti transfer bank klaim komisi #{$claim->id}.",
+                deskripsi: "{$actor} melihat berkas bukti transfer bank klaim komisi {$claim->kode_klaim} milik {$affiliatorTag}.",
                 subject: $claim,
                 tingkat: 'info',
                 user: $user,

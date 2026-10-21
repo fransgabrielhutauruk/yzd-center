@@ -310,11 +310,13 @@ class UserService
 
             // Audit Log: Ubah status pengguna (aktif/nonaktif)
             $admin = User::find($adminId);
+            $actor = AuditLogService::formatActor($admin);
+            $target = AuditLogService::formatTargetUser($user, $user->id);
             $statusLabel = $user->is_active ? 'diaktifkan' : 'dinonaktifkan (suspend)';
             $this->auditLogService->record(
                 kategori: 'pengguna',
                 aksi: 'ubah_status_user',
-                deskripsi: "Administrator {$admin?->name} mengubah status akun {$user->name} (@{$user->username}) menjadi {$statusLabel}.",
+                deskripsi: "{$actor} mengubah status akun {$user->name} ({$target}) menjadi {$statusLabel}.",
                 subject: $user,
                 perubahan: [
                     'sebelum' => ['is_active' => $sebelumActive],
@@ -379,10 +381,12 @@ class UserService
 
             // Audit Log: Alih peran pengguna
             $admin = User::find($adminId);
+            $actor = AuditLogService::formatActor($admin);
+            $target = AuditLogService::formatTargetUser($user, $user->id);
             $this->auditLogService->record(
                 kategori: 'pengguna',
                 aksi: 'ubah_peran_user',
-                deskripsi: "Administrator {$admin?->name} mengubah peran pengguna {$user->name} (@{$user->username}) dari " . ucfirst($oldRole) . " menjadi " . ucfirst($newRole) . ".",
+                deskripsi: "{$actor} mengubah peran pengguna {$user->name} ({$target}) dari " . ucfirst($oldRole) . " menjadi " . ucfirst($newRole) . ".",
                 subject: $user,
                 perubahan: [
                     'sebelum' => ['role' => $oldRole],

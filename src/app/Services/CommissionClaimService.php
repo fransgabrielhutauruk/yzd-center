@@ -865,10 +865,12 @@ class CommissionClaimService
                 $claim->affiliator->notify(new CommissionClaimProcessedNotification($claim, $status, $catatanAdmin));
 
                 // Audit Log: Pencairan komisi disetujui & ditransfer
+                $actor = AuditLogService::formatActor($processor);
+                $affiliatorTag = AuditLogService::formatTargetUser($claim->affiliator, $claim->affiliator_id);
                 $this->getAuditLogService()->record(
                     kategori: 'komisi_afiliasi',
                     aksi: 'proses_klaim_komisi',
-                    deskripsi: "Administrator {$processor->name} menyelesaikan pencairan komisi #{$claim->kode_klaim} sebesar \${$totalAffiliateCommission} (Rp " . number_format($totalNominalTransferIdr, 0, ',', '.') . ") ke rekening {$claim->nama_bank} - {$claim->nomor_rekening} ({$claim->atas_nama_rekening}).",
+                    deskripsi: "{$actor} menyelesaikan pencairan komisi {$claim->kode_klaim} milik {$affiliatorTag} sebesar \${$totalAffiliateCommission} (Rp " . number_format($totalNominalTransferIdr, 0, ',', '.') . ") ke rekening {$claim->nama_bank} - {$claim->nomor_rekening} ({$claim->atas_nama_rekening}).",
                     subject: $claim,
                     perubahan: [
                         'sebelum' => ['status' => 'pending'],
@@ -911,10 +913,12 @@ class CommissionClaimService
             $claim->affiliator->notify(new CommissionClaimProcessedNotification($claim, $status, $catatanAdmin));
 
             // Audit Log: Penolakan klaim komisi
+            $actor = AuditLogService::formatActor($processor);
+            $affiliatorTag = AuditLogService::formatTargetUser($claim->affiliator, $claim->affiliator_id);
             $this->getAuditLogService()->record(
                 kategori: 'komisi_afiliasi',
                 aksi: 'proses_klaim_komisi',
-                deskripsi: "Administrator {$processor->name} menolak pengajuan klaim komisi #{$claim->kode_klaim}. Alasan: {$catatanAdmin}",
+                deskripsi: "{$actor} menolak pengajuan klaim komisi {$claim->kode_klaim} milik {$affiliatorTag}. Alasan: {$catatanAdmin}",
                 subject: $claim,
                 perubahan: [
                     'sebelum' => ['status' => 'pending'],

@@ -84,6 +84,43 @@ class AuditLogService
     ];
 
     /**
+     * Format label representatif aktor/pelaku audit.
+     * Mencegah duplikasi kata jika nama pengguna sudah mengandung kata 'Admin' (contoh: 'Administrator').
+     */
+    public static function formatActor(?User $user): string
+    {
+        if (!$user) {
+            return 'Sistem';
+        }
+
+        $name = trim($user->name ?? '');
+        $title = preg_match('/admin/i', $name) ? $name : "Administrator {$name}";
+
+        return $title;
+    }
+
+    /**
+     * Format label representatif subjek pengguna.
+     * Memprioritaskan username (@username) agar mudah dibaca oleh admin tanpa perlu merujuk ID database.
+     */
+    public static function formatTargetUser(?User $user, ?int $fallbackId = null): string
+    {
+        if (!$user) {
+            return $fallbackId ? "pengguna #{$fallbackId}" : 'pengguna';
+        }
+
+        if (!empty($user->username)) {
+            return "@{$user->username}";
+        }
+
+        if (!empty($user->name)) {
+            return $user->name;
+        }
+
+        return $fallbackId ? "pengguna #{$fallbackId}" : 'pengguna';
+    }
+
+    /**
      * Mencatat jejak audit log aktivitas secara aman dan tersanitasi.
      *
      * @param array<string, mixed>|null $perubahan

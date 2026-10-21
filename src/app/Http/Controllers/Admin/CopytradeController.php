@@ -69,10 +69,13 @@ class CopytradeController extends Controller
 
         // Audit Log: Akses kredensial MT4/VPS Tier 3 oleh Admin
         if ($user && $user->isAdmin() && $akun->tier === 'tier_3') {
+            $actor = AuditLogService::formatActor($user);
+            $targetUser = AuditLogService::formatTargetUser($akun->user, $akun->user_id);
+
             $this->auditLogService->record(
                 kategori: 'copytrade',
                 aksi: 'lihat_kredensial_mt4',
-                deskripsi: "Administrator {$user->name} melihat kredensial MT4/VPS untuk akun Tier 3 #{$akun->nomor_akun_trading}.",
+                deskripsi: "{$actor} melihat kredensial MT4/VPS untuk akun Tier 3 #{$akun->nomor_akun_trading} milik {$targetUser}.",
                 subject: $akun,
                 tingkat: 'warning',
                 user: $user,
