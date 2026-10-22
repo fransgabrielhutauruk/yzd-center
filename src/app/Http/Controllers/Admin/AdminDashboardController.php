@@ -20,7 +20,7 @@ class AdminDashboardController extends Controller
     {
         // 1. Antrean butuh tindakan (permohonan tertunda)
         $pendingKyc = User::query()
-            ->whereIn('role', ['investor', 'affiliator'])
+            ->where('role', 'member')
             ->where('status', '!=', 'active')
             ->count();
 
@@ -37,11 +37,14 @@ class AdminDashboardController extends Controller
             ->count();
 
         // 2. Metrik ekosistem
-        $investorCount = User::where('role', 'investor')->count();
-        $activeInvestorCount = User::where('role', 'investor')->where('is_active', true)->count();
+        $memberCount = User::where('role', 'member')->count();
+        $activeMemberCount = User::where('role', 'member')->where('is_active', true)->count();
 
-        $affiliatorCount = User::where('role', 'affiliator')->count();
-        $activeAffiliatorCount = User::where('role', 'affiliator')->where('is_active', true)->count();
+        $activeInvestorCount = User::activeInvestors()->count();
+        $investorCount = User::where('role', 'member')->whereHas('akunCopytrade')->count();
+
+        $activeAffiliatorCount = User::activeAffiliators()->count();
+        $affiliatorCount = User::where('role', 'member')->whereHas('relasiDownlines')->count();
 
         $activeCopytradeCount = AkunCopytrade::where('status', 'active')->count();
         $activeInviteCount = Invitation::query()->active()->count();
@@ -55,6 +58,8 @@ class AdminDashboardController extends Controller
                 'total'             => $pendingKyc + $pendingCopytrade + $pendingReferralClaims + $pendingCommissionClaims,
             ],
             'stats' => [
+                'member_count'            => $memberCount,
+                'active_member_count'     => $activeMemberCount,
                 'investor_count'          => $investorCount,
                 'active_investor_count'   => $activeInvestorCount,
                 'affiliator_count'        => $affiliatorCount,

@@ -62,7 +62,7 @@ class ReferralClaimStatusChangedNotification extends Notification
             'claim_id'      => $this->claim->id,
             'downline_id'   => $downline?->id,
             'catatan_admin' => $this->catatanAdmin,
-            'url'           => '/investor/affiliates?tab=claims',
+            'url'           => '/member/affiliates?tab=claims',
         ];
     }
 }

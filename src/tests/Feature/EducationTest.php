@@ -35,8 +35,8 @@ class EducationTest extends TestCase
         ]);
 
         $this->investor = User::factory()->create([
-            'role'   => 'investor',
-            'status' => 'pending', // Bahkan pending investor dapat mengakses edukasi & kalkulator
+            'role'   => 'member',
+            'status' => 'pending', // Bahkan pending member dapat mengakses edukasi & kalkulator
         ]);
     }
 
@@ -54,11 +54,11 @@ class EducationTest extends TestCase
 
         // Default: urut abjad (Drawdown duluan sebelum Lot)
         $responseAll = $this->actingAs($this->investor)
-            ->get(route('investor.education.glossary'));
+            ->get(route('member.education.glossary'));
 
         $responseAll->assertStatus(200);
         $responseAll->assertInertia(fn ($page) => $page
-            ->component('Investor/Education/Glossary')
+            ->component('Member/Education/Glossary')
             ->has('glossary.items', 2)
             ->where('glossary.items.0.istilah', 'Drawdown')
             ->where('glossary.items.1.istilah', 'Lot')
@@ -66,11 +66,11 @@ class EducationTest extends TestCase
 
         // Filter huruf D
         $response = $this->actingAs($this->investor)
-            ->get(route('investor.education.glossary', ['huruf' => 'D']));
+            ->get(route('member.education.glossary', ['huruf' => 'D']));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Education/Glossary')
+            ->component('Member/Education/Glossary')
             ->has('glossary.items', 1)
             ->where('glossary.items.0.istilah', 'Drawdown')
         );
@@ -90,22 +90,22 @@ class EducationTest extends TestCase
 
         // Mencari nama istilah "Pip" -> ditemukan
         $response = $this->actingAs($this->investor)
-            ->get(route('investor.education.glossary', ['search' => 'Pip']));
+            ->get(route('member.education.glossary', ['search' => 'Pip']));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Education/Glossary')
+            ->component('Member/Education/Glossary')
             ->has('glossary.items', 1)
             ->where('glossary.items.0.istilah', 'Pip')
         );
 
         // Mencari kata "selisih" (yang hanya ada di definisi) -> tidak ditemukan karena search hanya nama istilah
         $responseDef = $this->actingAs($this->investor)
-            ->get(route('investor.education.glossary', ['search' => 'selisih']));
+            ->get(route('member.education.glossary', ['search' => 'selisih']));
 
         $responseDef->assertStatus(200);
         $responseDef->assertInertia(fn ($page) => $page
-            ->component('Investor/Education/Glossary')
+            ->component('Member/Education/Glossary')
             ->has('glossary.items', 0)
         );
     }
@@ -150,11 +150,11 @@ class EducationTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->investor)
-            ->get(route('investor.education.help', ['kategori' => 'panduan-broker']));
+            ->get(route('member.education.help', ['kategori' => 'panduan-broker']));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Education/HelpCenter')
+            ->component('Member/Education/HelpCenter')
             ->has('help.categories', 2)
             ->where('help.active_slug', 'panduan-broker')
             ->has('help.articles', 1)
@@ -192,11 +192,11 @@ class EducationTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->investor)
-            ->get(route('investor.education.help'));
+            ->get(route('member.education.help'));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Education/HelpCenter')
+            ->component('Member/Education/HelpCenter')
             ->where('help.active_slug', 'all')
             ->where('help.total_articles_count', 2)
             ->has('help.articles', 2)
@@ -223,11 +223,11 @@ class EducationTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->investor)
-            ->get(route('investor.education.article', ['slug' => 'panduan-surat-perjanjian']));
+            ->get(route('member.education.article', ['slug' => 'panduan-surat-perjanjian']));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Education/ArticleDetail')
+            ->component('Member/Education/ArticleDetail')
             ->where('article.judul', 'Panduan Surat Perjanjian')
             ->where('article.views_count', 6)
         );
@@ -251,11 +251,11 @@ class EducationTest extends TestCase
         Cache::forget(ExchangeRateService::CACHE_KEY);
 
         $response = $this->actingAs($this->investor)
-            ->get(route('investor.education.calculator'));
+            ->get(route('member.education.calculator'));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Education/Calculator')
+            ->component('Member/Education/Calculator')
             ->where('presets.default_initial_capital', 500)
             ->where('presets.default_monthly_profit_rate', 5)
             ->where('presets.default_duration_years', 5)
@@ -531,13 +531,13 @@ class EducationTest extends TestCase
 
     public function test_unauthenticated_user_cannot_access_education_pages(): void
     {
-        $response = $this->get(route('investor.education.calculator'));
+        $response = $this->get(route('member.education.calculator'));
         $response->assertRedirect(route('login'));
 
         $responseAdmin = $this->get(route('admin.education.glossary.index'));
         $responseAdmin->assertRedirect(route('login'));
 
-        $responseFaq = $this->get(route('investor.education.faq'));
+        $responseFaq = $this->get(route('member.education.faq'));
         $responseFaq->assertRedirect(route('login'));
     }
 
@@ -568,11 +568,11 @@ class EducationTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->investor)
-            ->get(route('investor.education.faq'));
+            ->get(route('member.education.faq'));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Education/Faq')
+            ->component('Member/Education/Faq')
             ->has('faq.topics', 1)
             ->where('faq.topics.0.nama', 'Legalitas & Keamanan')
             ->has('faq.topics.0.faqs', 1)
@@ -610,7 +610,7 @@ class EducationTest extends TestCase
 
         // Filter per Topik B
         $responseTopic = $this->actingAs($this->investor)
-            ->get(route('investor.education.faq', ['topik_id' => $topicB->id]));
+            ->get(route('member.education.faq', ['topik_id' => $topicB->id]));
 
         $responseTopic->assertStatus(200);
         $responseTopic->assertInertia(fn ($page) => $page
@@ -620,7 +620,7 @@ class EducationTest extends TestCase
 
         // Filter per Search
         $responseSearch = $this->actingAs($this->investor)
-            ->get(route('investor.education.faq', ['search' => 'Topik A']));
+            ->get(route('member.education.faq', ['search' => 'Topik A']));
 
         $responseSearch->assertStatus(200);
         $responseSearch->assertInertia(fn ($page) => $page

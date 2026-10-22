@@ -42,10 +42,9 @@ class ActivityLogController extends Controller
             'kategoriOptions' => AuditLogService::KATEGORI_LABELS,
             'aksiOptions'     => AuditLogService::AKSI_LABELS,
             'roleOptions'     => [
-                'admin'      => 'Administrator',
-                'investor'   => 'Investor',
-                'affiliator' => 'Affiliator',
-                'guest'      => 'Tamu / Sistem',
+                'admin'  => 'Administrator',
+                'member' => 'Member',
+                'guest'  => 'Tamu / Sistem',
             ],
             'tingkatOptions' => [
                 'info'     => 'Info',

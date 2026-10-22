@@ -28,7 +28,7 @@ class KycVerificationTest extends TestCase
 
         $this->admin = User::factory()->create(['role' => 'administrator', 'status' => 'active']);
         $this->investor = User::factory()->create([
-            'role'   => 'investor',
+            'role'   => 'member',
             'status' => 'pending',
         ]);
 
@@ -109,7 +109,7 @@ class KycVerificationTest extends TestCase
 
         $file = UploadedFile::fake()->image('ktp_baru.jpg');
 
-        $response = $this->actingAs($this->investor)->post("/investor/account/reupload/ktp", [
+        $response = $this->actingAs($this->investor)->post("/member/account/reupload/ktp", [
             'file' => $file,
         ]);
 
@@ -130,7 +130,7 @@ class KycVerificationTest extends TestCase
 
         $file = UploadedFile::fake()->image('ktp_baru.jpg');
 
-        $response = $this->actingAs($this->investor)->post('/investor/account/reupload/ktp', [
+        $response = $this->actingAs($this->investor)->post('/member/account/reupload/ktp', [
             'file' => $file,
         ]);
 
@@ -148,7 +148,7 @@ class KycVerificationTest extends TestCase
 
         $file = UploadedFile::fake()->image('ktp_baru.jpg');
 
-        $response = $this->actingAs($this->investor)->post('/investor/account/reupload/ktp', [
+        $response = $this->actingAs($this->investor)->post('/member/account/reupload/ktp', [
             'file' => $file,
         ]);
 
@@ -198,7 +198,7 @@ class KycVerificationTest extends TestCase
 
         // Investor 2 is active (already approved)
         $approvedInvestor = User::factory()->create([
-            'role'   => 'investor',
+            'role'   => 'member',
             'status' => 'active',
         ]);
         UserDokumen::create([

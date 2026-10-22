@@ -37,7 +37,7 @@ class MonthlyBalanceRecapReminderNotification extends Notification
             'icon'    => 'calendar',
             'month'   => $this->month,
             'year'    => $this->year,
-            'url'     => '/investor/investments#kinerja-dan-riwayat-akun',
+            'url'     => '/member/investments#kinerja-dan-riwayat-akun',
         ];
     }
 }

@@ -29,7 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return route('admin.dashboard');
             }
 
-            return route('investor.dashboard');
+            return route('member.dashboard');
         });
     })
     ->withExceptions(function (Exceptions $exceptions): void {

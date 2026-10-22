@@ -10,17 +10,24 @@ if (!function_exists('is_admin')) {
     }
 }
 
+if (!function_exists('is_member')) {
+    function is_member(): bool
+    {
+        return Auth::check() && Auth::user()->role === 'member';
+    }
+}
+
 if (!function_exists('is_investor')) {
     function is_investor(): bool
     {
-        return Auth::check() && in_array(Auth::user()->role, ['investor', 'affiliator'], true);
+        return is_member();
     }
 }
 
 if (!function_exists('is_affiliator')) {
     function is_affiliator(): bool
     {
-        return Auth::check() && Auth::user()->role === 'affiliator';
+        return Auth::check() && Auth::user()->isAffiliatorLabel();
     }
 }
 

@@ -26,7 +26,7 @@ class InvestorFinancialTest extends TestCase
         ]);
 
         $this->investor = User::factory()->create([
-            'role'      => 'investor',
+            'role'      => 'member',
             'status'    => 'active',
             'is_active' => true,
         ]);
@@ -64,11 +64,11 @@ class InvestorFinancialTest extends TestCase
     public function test_investor_can_access_calculator_page(): void
     {
         $response = $this->actingAs($this->investor)
-            ->get(route('investor.education.calculator'));
+            ->get(route('member.education.calculator'));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Education/Calculator')
+            ->component('Member/Education/Calculator')
             ->has('presets')
             ->where('presets.default_initial_capital', 500)
             ->where('presets.default_monthly_profit_rate', 5)
@@ -93,7 +93,7 @@ class InvestorFinancialTest extends TestCase
 
         // Input 1: Tanggal 1 Februari 2026 -> Saldo $105 (keuntungan dari modal awal $100 adalah $5 / 5%)
         $response1 = $this->actingAs($this->investor)
-            ->post(route('investor.copytrade.balance.store'), [
+            ->post(route('member.copytrade.balance.store'), [
                 'akun_copytrade_id'  => $akun->id,
                 'tanggal_pencatatan' => '2026-02-01',
                 'balance'            => 105.00,
@@ -114,7 +114,7 @@ class InvestorFinancialTest extends TestCase
 
         // Input 2: Tanggal 1 Maret 2026 -> Saldo $110.25 (keuntungan dari bulan lalu $105 adalah $5.25 / 5%)
         $response2 = $this->actingAs($this->investor)
-            ->post(route('investor.copytrade.balance.store'), [
+            ->post(route('member.copytrade.balance.store'), [
                 'akun_copytrade_id'  => $akun->id,
                 'tanggal_pencatatan' => '2026-03-01',
                 'balance'            => 110.25,
@@ -153,19 +153,19 @@ class InvestorFinancialTest extends TestCase
 
         // Verifikasi rute legasi copytrade.balance.index mengarah ke investments
         $legacyResponse = $this->actingAs($this->investor)
-            ->get(route('investor.copytrade.balance.index'));
-        $legacyResponse->assertRedirect(route('investor.investments.index'));
+            ->get(route('member.copytrade.balance.index'));
+        $legacyResponse->assertRedirect(route('member.investments.index'));
 
         // Akses halaman terpadu dengan filter periode bebas: 6 bulan terakhir
         $response = $this->actingAs($this->investor)
-            ->get(route('investor.investments.index', [
+            ->get(route('member.investments.index', [
                 'account_id' => $akun->id,
                 'period'     => '6m',
             ]));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Investments/Index')
+            ->component('Member/Investments/Index')
             ->has('accounts', 1)
             ->where('selected_account_id', $akun->id)
             ->has('summary')
@@ -178,7 +178,7 @@ class InvestorFinancialTest extends TestCase
         // Akses dengan filter periode 1, 2, 3, 4 tahun
         foreach (['1y' => '1 Tahun Terakhir', '2y' => '2 Tahun Terakhir', '3y' => '3 Tahun Terakhir', '4y' => '4 Tahun Terakhir'] as $period => $label) {
             $resp = $this->actingAs($this->investor)
-                ->get(route('investor.investments.index', [
+                ->get(route('member.investments.index', [
                     'account_id' => $akun->id,
                     'period'     => $period,
                 ]));
@@ -208,7 +208,7 @@ class InvestorFinancialTest extends TestCase
         ]);
 
         $this->actingAs($this->investor)
-            ->post(route('investor.copytrade.balance.store'), [
+            ->post(route('member.copytrade.balance.store'), [
                 'akun_copytrade_id'  => $akun->id,
                 'tanggal_pencatatan' => '2026-02-01',
                 'balance'            => 105.00,
@@ -218,7 +218,7 @@ class InvestorFinancialTest extends TestCase
         $this->assertNotNull($record);
 
         $deleteResponse = $this->actingAs($this->investor)
-            ->delete(route('investor.copytrade.balance.destroy', $record->id));
+            ->delete(route('member.copytrade.balance.destroy', $record->id));
 
         $deleteResponse->assertRedirect();
         $this->assertDatabaseMissing('riwayat_balance_copytrade', [

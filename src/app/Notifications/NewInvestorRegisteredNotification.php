@@ -29,8 +29,8 @@ class NewInvestorRegisteredNotification extends Notification
     {
         return [
             'type'      => 'new_investor_registered',
-            'title'     => 'Pendaftaran Investor Baru',
-            'message'   => "Investor baru {$this->registeredUser->name} (@{$this->registeredUser->username}) telah mendaftar dan menunggu verifikasi pendaftaran.",
+            'title'     => 'Pendaftaran Member Baru',
+            'message'   => "Member baru {$this->registeredUser->name} (@{$this->registeredUser->username}) telah mendaftar dan menunggu verifikasi pendaftaran.",
             'icon'      => 'user-plus',
             'user_id'   => $this->registeredUser->id,
             'user_name' => $this->registeredUser->name,

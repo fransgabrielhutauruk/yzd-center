@@ -32,7 +32,6 @@ const props = defineProps({
 // Definisi Kolom Tabel
 const columns = [
     { key: 'label', label: 'Label Kegiatan', sortable: true },
-    { key: 'target_role', label: 'Hak Akses', sortable: true },
     { key: 'total_terpakai', label: 'Penggunaan Kuota', sortable: true },
     { key: 'expired_at', label: 'Masa Berlaku', sortable: true },
     { key: 'status_key', label: 'Status' },
@@ -45,7 +44,6 @@ const isCreateModalOpen = ref(false);
 
 const form = useForm({
     label: '',
-    target_role: 'investor',
     kuota_maksimal: 1,
     expired_hours: 24,
 });
@@ -53,7 +51,6 @@ const form = useForm({
 const openCreateModal = () => {
     form.reset();
     form.clearErrors();
-    form.target_role = 'investor';
     form.kuota_maksimal = 1;
     form.expired_hours = 24;
     isCreateModalOpen.value = true;
@@ -263,20 +260,6 @@ const getStatusBadgeClass = (statusKey) => {
                     </span>
                 </template>
 
-                <!-- Custom Column: Hak Akses / Role -->
-                <template #column-target_role="{ item }">
-                    <span
-                        :class="[
-                            'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold shadow-2xs',
-                            item.target_role === 'affiliator'
-                                ? 'border-purple-500/20 bg-purple-500/10 text-purple-600 dark:text-purple-400'
-                                : 'border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400',
-                        ]"
-                    >
-                        {{ item.target_role_label }}
-                    </span>
-                </template>
-
                 <!-- Custom Column: Penggunaan Kuota -->
                 <template #column-total_terpakai="{ item }">
                     <div class="space-y-1">
@@ -388,56 +371,6 @@ const getStatusBadgeClass = (statusKey) => {
                     <p v-if="form.errors.label" class="text-destructive text-xs font-medium">
                         {{ form.errors.label }}
                     </p>
-                </div>
-
-                <!-- Target Peran (Role) -->
-                <div class="space-y-1.5">
-                    <label class="text-foreground block text-xs font-semibold">
-                        Hak Akses / Peran Target <span class="text-destructive">*</span>
-                    </label>
-                    <div class="grid grid-cols-2 gap-3">
-                        <label
-                            :class="[
-                                'flex cursor-pointer items-center gap-2.5 rounded-xl border p-3 transition-all',
-                                form.target_role === 'investor'
-                                    ? 'border-primary-600 bg-primary-500/10 text-foreground ring-primary-600 font-semibold ring-1'
-                                    : 'border-input hover:bg-muted/50 hover:text-foreground text-muted-foreground',
-                            ]"
-                        >
-                            <input
-                                v-model="form.target_role"
-                                type="radio"
-                                value="investor"
-                                class="sr-only"
-                            />
-                            <Users class="h-4 w-4 flex-shrink-0 text-blue-600 dark:text-blue-400" />
-                            <div class="text-xs">
-                                <p class="text-foreground">Investor</p>
-                            </div>
-                        </label>
-
-                        <label
-                            :class="[
-                                'flex cursor-pointer items-center gap-2.5 rounded-xl border p-3 transition-all',
-                                form.target_role === 'affiliator'
-                                    ? 'border-primary-600 bg-primary-500/10 text-foreground ring-primary-600 font-semibold ring-1'
-                                    : 'border-input hover:bg-muted/50 hover:text-foreground text-muted-foreground',
-                            ]"
-                        >
-                            <input
-                                v-model="form.target_role"
-                                type="radio"
-                                value="affiliator"
-                                class="sr-only"
-                            />
-                            <UserCheck
-                                class="h-4 w-4 flex-shrink-0 text-purple-600 dark:text-purple-400"
-                            />
-                            <div class="text-xs">
-                                <p class="text-foreground">Affiliator</p>
-                            </div>
-                        </label>
-                    </div>
                 </div>
 
                 <!-- Grid: Kuota & Masa Berlaku -->

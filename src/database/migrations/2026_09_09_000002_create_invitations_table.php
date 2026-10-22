@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id('invitation_id');
             $table->string('token', 64)->unique();
             $table->string('label');
-            $table->string('target_role')->default('investor'); // investor | affiliator
             $table->unsignedInteger('kuota_maksimal')->default(1);
             $table->unsignedInteger('total_terpakai')->default(0);
             $table->boolean('is_active')->default(true);
@@ -31,7 +30,6 @@ return new class extends Migration
             // Indexes
             $table->index('is_active');
             $table->index('expired_at');
-            $table->index('target_role');
         });
     }
 

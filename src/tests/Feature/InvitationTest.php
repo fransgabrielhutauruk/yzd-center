@@ -13,7 +13,7 @@ class InvitationTest extends TestCase
 
     private User $admin;
 
-    private User $investor;
+    private User $member;
 
     protected function setUp(): void
     {
@@ -25,8 +25,8 @@ class InvitationTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->investor = User::factory()->create([
-            'role'      => 'investor',
+        $this->member = User::factory()->create([
+            'role'      => 'member',
             'status'    => 'active',
             'is_active' => true,
         ]);
@@ -41,7 +41,7 @@ class InvitationTest extends TestCase
 
     public function test_non_admin_cannot_access_invitations_index(): void
     {
-        $response = $this->actingAs($this->investor)
+        $response = $this->actingAs($this->member)
             ->get(route('admin.invitations.index'));
 
         $response->assertForbidden();
@@ -50,9 +50,8 @@ class InvitationTest extends TestCase
     public function test_admin_can_view_invitations_index(): void
     {
         Invitation::create([
-            'token'          => 'token-investor-test-123',
-            'label'          => 'Undangan Seminar Investor',
-            'target_role'    => 'investor',
+            'token'          => 'token-member-test-123',
+            'label'          => 'Undangan Seminar Member',
             'kuota_maksimal' => 5,
             'total_terpakai' => 0,
             'is_active'      => true,
@@ -72,7 +71,6 @@ class InvitationTest extends TestCase
     {
         $payload = [
             'label'          => 'Undangan Batch Webinar',
-            'target_role'    => 'affiliator',
             'kuota_maksimal' => 10,
             'expired_hours'  => 48,
         ];
@@ -84,7 +82,6 @@ class InvitationTest extends TestCase
 
         $this->assertDatabaseHas('invitations', [
             'label'          => 'Undangan Batch Webinar',
-            'target_role'    => 'affiliator',
             'kuota_maksimal' => 10,
         ]);
     }
@@ -94,7 +91,6 @@ class InvitationTest extends TestCase
         $invitation = Invitation::create([
             'token'          => 'token-delete-single-1',
             'label'          => 'Undangan Single Delete',
-            'target_role'    => 'investor',
             'kuota_maksimal' => 1,
             'total_terpakai' => 0,
             'is_active'      => true,
@@ -115,7 +111,6 @@ class InvitationTest extends TestCase
         $inv1 = Invitation::create([
             'token'          => 'token-batch-delete-1',
             'label'          => 'Undangan Batch 1',
-            'target_role'    => 'investor',
             'kuota_maksimal' => 1,
             'total_terpakai' => 0,
             'is_active'      => true,
@@ -124,7 +119,6 @@ class InvitationTest extends TestCase
         $inv2 = Invitation::create([
             'token'          => 'token-batch-delete-2',
             'label'          => 'Undangan Batch 2',
-            'target_role'    => 'affiliator',
             'kuota_maksimal' => 2,
             'total_terpakai' => 0,
             'is_active'      => true,
@@ -133,7 +127,6 @@ class InvitationTest extends TestCase
         $inv3 = Invitation::create([
             'token'          => 'token-batch-keep-3',
             'label'          => 'Undangan Tetap Ada',
-            'target_role'    => 'investor',
             'kuota_maksimal' => 5,
             'total_terpakai' => 0,
             'is_active'      => true,
@@ -173,13 +166,12 @@ class InvitationTest extends TestCase
         $inv = Invitation::create([
             'token'          => 'token-unauthorized-batch',
             'label'          => 'Undangan Unauthorized',
-            'target_role'    => 'investor',
             'kuota_maksimal' => 1,
             'total_terpakai' => 0,
             'is_active'      => true,
         ]);
 
-        $response = $this->actingAs($this->investor)
+        $response = $this->actingAs($this->member)
             ->delete(route('admin.invitations.batch_destroy'), [
                 'ids' => [$inv->invitation_id],
             ]);

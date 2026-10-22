@@ -30,7 +30,7 @@ class UserFactory extends Factory
             'email'             => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password'          => static::$password ??= Hash::make('password'),
-            'role'              => 'investor',
+            'role'              => 'member',
             'phone'             => '0812' . fake()->numerify('########'),
             'nik'               => fake()->numerify('3201############'),
             'alamat'            => fake()->address(),
@@ -74,12 +74,30 @@ class UserFactory extends Factory
     }
 
     /**
-     * Indicate that the user is an affiliator.
+     * Indicate that the user has a member role.
+     */
+    public function member(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'member',
+        ]);
+    }
+
+    /**
+     * Backward-compatible helper: alias to member.
+     */
+    public function investor(): static
+    {
+        return $this->member();
+    }
+
+    /**
+     * Indicate that the user is an affiliator (has referral code).
      */
     public function affiliator(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role'          => 'affiliator',
+            'role'          => 'member',
             'referral_code' => 'AFF' . fake()->numerify('####'),
         ]);
     }

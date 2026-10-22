@@ -23,7 +23,6 @@ class StoreInvitationRequest extends FormRequest
     {
         return [
             'label'          => ['required', 'string', 'max:100'],
-            'target_role'    => ['required', 'string', 'in:investor,affiliator'],
             'kuota_maksimal' => ['required', 'integer', 'min:1', 'max:10000'],
             'expired_hours'  => ['nullable', 'integer', 'min:0', 'max:8760'],
         ];
@@ -38,8 +37,6 @@ class StoreInvitationRequest extends FormRequest
     {
         return [
             'label.required'          => 'Label atau nama acara tautan wajib diisi.',
-            'target_role.required'    => 'Target peran pendaftar wajib dipilih.',
-            'target_role.in'          => 'Target peran harus berupa Investor atau Affiliator.',
             'kuota_maksimal.required' => 'Batas kuota pendaftar wajib diisi.',
             'kuota_maksimal.min'      => 'Batas kuota minimal 1 pendaftar.',
         ];

@@ -6,6 +6,7 @@ use App\Models\AkunCopytrade;
 use App\Models\Invitation;
 use App\Models\KlaimKomisi;
 use App\Models\KlaimReferral;
+use App\Models\RelasiReferral;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -47,24 +48,35 @@ class AdminDashboardTest extends TestCase
 
     public function test_admin_dashboard_accurately_computes_pending_queues_and_ecosystem_stats(): void
     {
-        // 1. Pending KYC User (1 investor status pending_review)
+        // 1. Pending KYC User (1 member status pending_review)
         $pendingInvestor = User::factory()->create([
-            'role'      => 'investor',
+            'role'      => 'member',
             'status'    => 'pending_review',
             'is_active' => false,
         ]);
 
-        // 2. Active Investor (1 investor status active)
+        // 2. Active Investor (1 member status active)
         $activeInvestor = User::factory()->create([
-            'role'      => 'investor',
+            'role'      => 'member',
             'status'    => 'active',
             'is_active' => true,
         ]);
 
-        // 3. Active Affiliator (1 affiliator status active)
-        $activeAffiliator = User::factory()->affiliator()->create([
-            'status'    => 'active',
-            'is_active' => true,
+        // 3. Active Affiliator (1 member status active dengan referral code)
+        $activeAffiliator = User::factory()->create([
+            'role'          => 'member',
+            'status'        => 'active',
+            'is_active'     => true,
+            'referral_code' => 'AFF123',
+        ]);
+
+        // Hubungkan investor sebagai downline aktif dari affiliator
+        RelasiReferral::create([
+            'affiliator_id' => $activeAffiliator->id,
+            'downline_id'   => $activeInvestor->id,
+            'status'        => 'active',
+            'sumber'        => 'link_otomatis',
+            'joined_at'     => now(),
         ]);
 
         // 4. Pending Copytrade (1 akun pending)
@@ -106,7 +118,7 @@ class AdminDashboardTest extends TestCase
         ]);
 
         // 7. Pending Commission Claim (1 tiket klaim komisi pending)
-        $claim = KlaimKomisi::create([
+        KlaimKomisi::create([
             'kode_klaim'         => KlaimKomisi::generateKodeKlaim(),
             'affiliator_id'      => $activeAffiliator->id,
             'total_downline'     => 1,
@@ -121,8 +133,7 @@ class AdminDashboardTest extends TestCase
         // 8. Invitations (1 aktif, 1 expired/inaktif)
         Invitation::create([
             'token'          => 'inv_active_1234567890',
-            'label'          => 'Undangan Investor Aktif',
-            'target_role'    => 'investor',
+            'label'          => 'Undangan Member Aktif',
             'kuota_maksimal' => 5,
             'total_terpakai' => 0,
             'is_active'      => true,
@@ -131,8 +142,7 @@ class AdminDashboardTest extends TestCase
 
         Invitation::create([
             'token'          => 'inv_expired_1234567890',
-            'label'          => 'Undangan Investor Inaktif',
-            'target_role'    => 'investor',
+            'label'          => 'Undangan Member Inaktif',
             'kuota_maksimal' => 5,
             'total_terpakai' => 0,
             'is_active'      => false,
@@ -149,7 +159,7 @@ class AdminDashboardTest extends TestCase
             ->where('pending_actions.referral_claims', 1)
             ->where('pending_actions.commission_claims', 1)
             ->where('pending_actions.total', 4)
-            ->where('stats.investor_count', 2)
+            ->where('stats.investor_count', 1) // $activeInvestor yang punya akunCopytrade
             ->where('stats.active_investor_count', 1)
             ->where('stats.affiliator_count', 1)
             ->where('stats.active_affiliator_count', 1)
@@ -160,10 +170,13 @@ class AdminDashboardTest extends TestCase
 
     public function test_non_admin_cannot_access_admin_dashboard(): void
     {
-        $investor = User::factory()->create(['role' => 'investor', 'status' => 'active']);
+        $member = User::factory()->create([
+            'role'      => 'member',
+            'status'    => 'active',
+            'is_active' => true,
+        ]);
 
-        $response = $this->actingAs($investor)->get(route('admin.dashboard'));
-
+        $response = $this->actingAs($member)->get(route('admin.dashboard'));
         $response->assertForbidden();
     }
 }

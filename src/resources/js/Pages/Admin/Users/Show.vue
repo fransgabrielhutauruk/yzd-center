@@ -34,25 +34,6 @@ const isToggling = ref(false);
 const isKtpModalOpen = ref(false);
 const isAgreementModalOpen = ref(false);
 
-// State Dialog Konfirmasi Alih Peran (Investor <-> Affiliator)
-const isSwitchRoleDialogOpen = ref(false);
-const isSwitchingRole = ref(false);
-
-const handleConfirmSwitchRole = () => {
-    isSwitchingRole.value = true;
-    router.post(
-        route('admin.users.switch_role', props.user.id),
-        {},
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                isSwitchingRole.value = false;
-                isSwitchRoleDialogOpen.value = false;
-            },
-        }
-    );
-};
-
 const isAgreementPdf = computed(() => {
     if (!props.user?.surat_perjanjian) return false;
     const sp = props.user.surat_perjanjian;
@@ -98,15 +79,6 @@ const handleConfirmToggle = () => {
                     size="sm"
                 />
                 <AppButton
-                    type="custom"
-                    variant="outline"
-                    size="sm"
-                    :icon="user.role === 'investor' ? UserCheck : ArrowLeftRight"
-                    :label="user.role === 'investor' ? 'Angkat Jadi Affiliator' : 'Ubah Jadi Investor'"
-                    class="border-primary-500/30 text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-950/40"
-                    @click="isSwitchRoleDialogOpen = true"
-                />
-                <AppButton
                     v-if="user.is_active"
                     type="custom"
                     variant="destructive"
@@ -149,19 +121,21 @@ const handleConfirmToggle = () => {
                                     {{ user.name }}
                                 </h1>
 
-                                <!-- Role Badge -->
-                                <span
-                                    v-if="user.role === 'affiliator'"
-                                    class="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300"
-                                >
-                                    Affiliator
-                                </span>
-                                <span
-                                    v-else
-                                    class="inline-flex items-center rounded-md border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-700 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-300"
-                                >
-                                    Investor
-                                </span>
+                                <!-- Derived Labels Badges -->
+                                <div class="flex flex-wrap gap-1.5">
+                                    <span
+                                        v-for="lbl in (user.derived_labels || [user.role === 'administrator' ? 'Administrator' : 'Member'])"
+                                        :key="lbl"
+                                        :class="[
+                                            'inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold',
+                                            lbl === 'Affiliator' ? 'border border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300' :
+                                            lbl === 'Investor' ? 'border border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-300' :
+                                            'border border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                                        ]"
+                                    >
+                                        {{ lbl }}
+                                    </span>
+                                </div>
 
                                 <!-- Status Akses Badge -->
                                 <span
@@ -576,31 +550,6 @@ const handleConfirmToggle = () => {
             :loading="isToggling"
             @confirm="handleConfirmToggle"
             @cancel="isConfirmDialogOpen = false"
-        />
-
-        <!-- Dialog Konfirmasi Alih Peran Pengguna (Investor <-> Affiliator) -->
-        <AppConfirmDialog
-            :show="isSwitchRoleDialogOpen"
-            :title="
-                user.role === 'investor'
-                    ? 'Angkat Menjadi Mitra Affiliator?'
-                    : 'Ubah Menjadi Investor Biasa?'
-            "
-            :message="
-                user.role === 'investor'
-                    ? `Apakah Anda yakin ingin mengangkat akun '${user.name}' (@${user.username}) menjadi Mitra Affiliator? Pengguna akan mendapatkan akses ke menu Program Afiliasi dan diterbitkan kode referral unik.`
-                    : `Apakah Anda yakin ingin mengubah akun '${user.name}' (@${user.username}) kembali menjadi Investor biasa? Akses menu Program Afiliasi akan dinonaktifkan.`
-            "
-            :confirm-text="
-                user.role === 'investor'
-                    ? 'Ya, Angkat Jadi Affiliator'
-                    : 'Ya, Ubah Jadi Investor'
-            "
-            cancel-text="Batal"
-            type="warning"
-            :loading="isSwitchingRole"
-            @confirm="handleConfirmSwitchRole"
-            @cancel="isSwitchRoleDialogOpen = false"
         />
 
         <!-- Modal Pratinjau KTP Penuh -->

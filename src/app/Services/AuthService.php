@@ -84,10 +84,7 @@ class AuthService
                 ]);
             }
 
-            $referralCode = null;
-            if ($invitation->target_role === 'affiliator') {
-                $referralCode = $this->referralService->generateReferralCode($data['name']);
-            }
+            $referralCode = $this->referralService->generateReferralCode($data['name']);
 
             $terms = KontenLegal::getTerms();
             $termsVersion = $terms?->versi ?? 'v1.0';
@@ -103,7 +100,7 @@ class AuthService
                 'tempat_lahir'    => $data['tempat_lahir'],
                 'tanggal_lahir'   => $data['tanggal_lahir'],
                 'pekerjaan'       => $data['pekerjaan'],
-                'role'            => $invitation->target_role,
+                'role'            => 'member',
                 'status'          => 'pending',
                 'referral_code'   => $referralCode,
                 'is_active'       => true,
@@ -141,7 +138,7 @@ class AuthService
             $this->auditLogService->record(
                 kategori: 'autentikasi',
                 aksi: 'register',
-                deskripsi: "Pendaftaran akun baru {$user->name} (@{$user->username}) sebagai {$user->role} via undangan.",
+                deskripsi: "Pendaftaran akun baru {$user->name} (@{$user->username}) via undangan.",
                 subject: $user,
                 perubahan: [
                     'sesudah' => [

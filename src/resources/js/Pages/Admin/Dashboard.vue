@@ -30,6 +30,8 @@ const props = defineProps({
     stats: {
         type: Object,
         default: () => ({
+            member_count: 0,
+            active_member_count: 0,
             investor_count: 0,
             active_investor_count: 0,
             affiliator_count: 0,
@@ -219,53 +221,53 @@ const shortcuts = [
                 </h2>
 
                 <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                    <!-- Kartu 1: Total Investor -->
+                    <!-- Kartu 1: Total Member -->
                     <div class="bg-card border-border rounded-2xl border p-4 shadow-xs sm:p-5">
                         <div class="text-muted-foreground flex items-center justify-between gap-1.5 text-xs font-bold">
                             <span class="flex items-center gap-1.5">
-                                <Users class="h-4 w-4" /> Total Investor
+                                <Users class="h-4 w-4" /> Total Member
                             </span>
                         </div>
                         <p class="text-foreground mt-1 font-mono text-xl font-black sm:text-2xl">
-                            {{ stats.investor_count }}
+                            {{ stats.member_count }}
                         </p>
                         <p class="text-muted-foreground mt-0.5 text-[11px] font-medium">
                             <Link href="/admin/users" class="hover:text-primary transition-colors">
-                                {{ stats.active_investor_count }} anggota aktif &rarr;
+                                {{ stats.active_member_count }} member terverifikasi &rarr;
                             </Link>
                         </p>
                     </div>
 
-                    <!-- Kartu 2: Total Affiliator -->
+                    <!-- Kartu 2: Investor Aktif -->
                     <div class="bg-card border-border rounded-2xl border p-4 shadow-xs sm:p-5">
                         <div class="text-muted-foreground flex items-center justify-between gap-1.5 text-xs font-bold">
                             <span class="flex items-center gap-1.5">
-                                <UserCheck class="h-4 w-4" /> Total Affiliator
+                                <ArrowLeftRight class="h-4 w-4" /> Investor Aktif
                             </span>
                         </div>
                         <p class="text-foreground mt-1 font-mono text-xl font-black sm:text-2xl">
-                            {{ stats.affiliator_count }}
-                        </p>
-                        <p class="text-muted-foreground mt-0.5 text-[11px] font-medium">
-                            <Link href="/admin/affiliates" class="hover:text-primary transition-colors">
-                                {{ stats.active_affiliator_count }} mitra aktif &rarr;
-                            </Link>
-                        </p>
-                    </div>
-
-                    <!-- Kartu 3: Akun Trading Aktif -->
-                    <div class="bg-card border-border rounded-2xl border p-4 shadow-xs sm:p-5">
-                        <div class="text-muted-foreground flex items-center justify-between gap-1.5 text-xs font-bold">
-                            <span class="flex items-center gap-1.5">
-                                <ArrowLeftRight class="h-4 w-4" /> Copytrade (Investasi) Aktif
-                            </span>
-                        </div>
-                        <p class="text-foreground mt-1 font-mono text-xl font-black sm:text-2xl">
-                            {{ stats.active_copytrade_count }}
+                            {{ stats.active_investor_count }}
                         </p>
                         <p class="text-muted-foreground mt-0.5 text-[11px] font-medium">
                             <Link href="/admin/copytrade" class="hover:text-primary transition-colors">
-                                Terkoneksi copytrade (investasi) &rarr;
+                                {{ stats.active_copytrade_count }} akun copytrade &rarr;
+                            </Link>
+                        </p>
+                    </div>
+
+                    <!-- Kartu 3: Affiliator Aktif -->
+                    <div class="bg-card border-border rounded-2xl border p-4 shadow-xs sm:p-5">
+                        <div class="text-muted-foreground flex items-center justify-between gap-1.5 text-xs font-bold">
+                            <span class="flex items-center gap-1.5">
+                                <UserCheck class="h-4 w-4" /> Affiliator Aktif
+                            </span>
+                        </div>
+                        <p class="text-foreground mt-1 font-mono text-xl font-black sm:text-2xl">
+                            {{ stats.active_affiliator_count }}
+                        </p>
+                        <p class="text-muted-foreground mt-0.5 text-[11px] font-medium">
+                            <Link href="/admin/affiliates" class="hover:text-primary transition-colors">
+                                Mitra jaringan aktif &rarr;
                             </Link>
                         </p>
                     </div>

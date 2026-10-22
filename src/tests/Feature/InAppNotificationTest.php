@@ -35,7 +35,7 @@ class InAppNotificationTest extends TestCase
         ]);
 
         $this->investor = User::factory()->create([
-            'role'   => 'investor',
+            'role'   => 'member',
             'status' => 'pending',
         ]);
     }
@@ -235,7 +235,7 @@ class InAppNotificationTest extends TestCase
         $this->assertEquals(1, $this->investor->unreadNotifications()->count());
         $notification = $this->investor->unreadNotifications()->first();
         $this->assertEquals('Akun Copy Trade Valid & Aktif', $notification->data['title']);
-        $this->assertEquals('/investor/investments', $notification->data['url']);
+        $this->assertEquals('/member/investments', $notification->data['url']);
         $this->assertEquals('check-circle', $notification->data['icon']);
         $this->assertEquals('active', $notification->data['status']);
     }
@@ -267,7 +267,7 @@ class InAppNotificationTest extends TestCase
         $this->assertEquals(1, $this->investor->unreadNotifications()->count());
         $notification = $this->investor->unreadNotifications()->first();
         $this->assertEquals('Akun Copy Trade Ditolak', $notification->data['title']);
-        $this->assertEquals('/investor/investments', $notification->data['url']);
+        $this->assertEquals('/member/investments', $notification->data['url']);
         $this->assertEquals('x-circle', $notification->data['icon']);
         $this->assertEquals('rejected', $notification->data['status']);
         $this->assertStringContainsString('Nomor akun MT4 salah.', $notification->data['message']);
@@ -300,7 +300,7 @@ class InAppNotificationTest extends TestCase
         $notification = $this->investor->unreadNotifications()->first();
         $this->assertEquals('balance_recap_reminder', $notification->data['type']);
         $this->assertEquals('Waktunya Rekapitulasi Saldo Tanggal 1!', $notification->data['title']);
-        $this->assertEquals('/investor/investments#kinerja-dan-riwayat-akun', $notification->data['url']);
+        $this->assertEquals('/member/investments#kinerja-dan-riwayat-akun', $notification->data['url']);
         $this->assertEquals('calendar', $notification->data['icon']);
 
         // Pastikan tidak dikirim berulang (idempotent / tidak duplikat)
@@ -342,7 +342,7 @@ class InAppNotificationTest extends TestCase
     public function test_referral_claim_rejected_notification_truncates_long_catatan_admin(): void
     {
         $affiliator = User::factory()->create([
-            'role'   => 'investor',
+            'role'   => 'member',
             'status' => 'active',
         ]);
 
@@ -361,7 +361,7 @@ class InAppNotificationTest extends TestCase
         $notification = $affiliator->unreadNotifications()->first();
 
         $this->assertEquals('Klaim Referral Susulan Ditolak', $notification->data['title']);
-        $this->assertEquals('/investor/affiliates?tab=claims', $notification->data['url']);
+        $this->assertEquals('/member/affiliates?tab=claims', $notification->data['url']);
         $this->assertEquals($longCatatan, $notification->data['catatan_admin']);
 
         // Pastikan pesan hanya memuat 10 kata pertama dan diakhiri ...
@@ -373,7 +373,7 @@ class InAppNotificationTest extends TestCase
     public function test_referral_claim_rejected_notification_preserves_short_catatan_admin(): void
     {
         $affiliator = User::factory()->create([
-            'role'   => 'investor',
+            'role'   => 'member',
             'status' => 'active',
         ]);
 

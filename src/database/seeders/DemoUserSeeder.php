@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\AkunCopytrade;
 use App\Models\RelasiReferral;
 use App\Models\User;
 use App\Models\UserAhliWaris;
@@ -23,7 +24,7 @@ class DemoUserSeeder extends Seeder
                 'name'              => 'Affiliator Demo',
                 'email'             => 'affiliator@example.com',
                 'password'          => Hash::make('affiliator'),
-                'role'              => 'affiliator',
+                'role'              => 'member',
                 'status'            => 'active',
                 'is_active'         => true,
                 'email_verified_at' => now(),
@@ -71,7 +72,7 @@ class DemoUserSeeder extends Seeder
                 'name'              => 'Investor Demo',
                 'email'             => 'investor@example.com',
                 'password'          => Hash::make('investor'),
-                'role'              => 'investor',
+                'role'              => 'member',
                 'status'            => 'active',
                 'is_active'         => true,
                 'email_verified_at' => now(),
@@ -112,7 +113,28 @@ class DemoUserSeeder extends Seeder
             ]
         );
 
-        // 3. Relasi Referral: Investor terdaftar di bawah jaringan Affiliator Demo
+        // Akun Copytrade Aktif untuk Investor Demo (agar memiliki label turunan Investor)
+        AkunCopytrade::updateOrCreate(
+            [
+                'user_id'            => $investor->id,
+                'nomor_akun_trading' => 'MT4-DEMO-INV',
+            ],
+            [
+                'tier'               => 'tier_1',
+                'broker'             => 'HFM',
+                'tipe_akun'          => 'cent',
+                'server_broker'      => 'HFMarkets-Live',
+                'modal_riil'         => 1000.00,
+                'tanggal_mulai'      => now()->subMonths(2)->toDateString(),
+                'nama_bank'          => 'BCA',
+                'nomor_rekening'     => '1234567890',
+                'atas_nama_rekening' => 'Investor Demo',
+                'status'             => 'active',
+                'verified_at'        => now(),
+            ]
+        );
+
+        // 3. Relasi Referral: Investor terdaftar di bawah jaringan Affiliator Demo (agar Affiliator memiliki label turunan Affiliator)
         RelasiReferral::updateOrCreate(
             [
                 'affiliator_id' => $affiliator->id,
@@ -122,6 +144,55 @@ class DemoUserSeeder extends Seeder
                 'sumber'    => 'link_otomatis',
                 'joined_at' => now(),
                 'status'    => 'active',
+            ]
+        );
+
+        // 4. Akun Member Demo Polos (username: member, password: member)
+        // Belum memiliki akun copytrade dan belum memiliki downline
+        $member = User::updateOrCreate(
+            ['username' => 'member'],
+            [
+                'name'              => 'Member Demo',
+                'email'             => 'member@example.com',
+                'password'          => Hash::make('member'),
+                'role'              => 'member',
+                'status'            => 'active',
+                'is_active'         => true,
+                'email_verified_at' => now(),
+                'terms_agreed_at'   => now(),
+                'referral_code'     => 'MBR-DEMO',
+                'nik'               => '3201010101900003',
+                'phone'             => '081234567800',
+                'alamat'            => 'Jl. Asia Afrika No. 10, Bandung',
+                'tempat_lahir'      => 'Bandung',
+                'tanggal_lahir'     => '1995-01-01',
+                'pekerjaan'         => 'Karyawan Swasta',
+            ]
+        );
+
+        UserAhliWaris::updateOrCreate(
+            ['user_id' => $member->id],
+            [
+                'nama'              => 'Rina Astuti',
+                'hubungan_keluarga' => 'Saudara Kandung',
+                'no_hp'             => '081234567801',
+                'alamat'            => 'Jl. Asia Afrika No. 10, Bandung',
+            ]
+        );
+
+        UserDokumen::updateOrCreate(
+            [
+                'user_id'      => $member->id,
+                'tipe_dokumen' => 'ktp',
+            ],
+            [
+                'file_name'     => 'ktp_member.jpg',
+                'file_path'     => 'dokumen/ktp_member.jpg',
+                'mime_type'     => 'image/jpeg',
+                'file_size'     => 102400,
+                'status'        => 'approved',
+                'catatan_admin' => 'Dokumen KTP diverifikasi sistem.',
+                'verified_at'   => now(),
             ]
         );
     }

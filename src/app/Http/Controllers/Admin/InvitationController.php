@@ -21,7 +21,7 @@ class InvitationController extends Controller
      */
     public function index(Request $request): Response
     {
-        $filters = $request->only(['search', 'status', 'role', 'sort_by', 'sort_direction', 'per_page']);
+        $filters = $request->only(['search', 'status', 'sort_by', 'sort_direction', 'per_page']);
 
         return Inertia::render('Admin/Invitations/Index', [
             'invitations' => $this->invitationService->getPaginatedInvitations($filters),

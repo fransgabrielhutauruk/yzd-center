@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('username')->unique()->nullable();
             $table->string('email')->unique();
-            $table->string('role')->default('investor');
+            $table->string('role')->default('member')->comment('administrator | member');
             $table->string('status', 30)->default('pending');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');

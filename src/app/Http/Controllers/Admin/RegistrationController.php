@@ -35,7 +35,7 @@ class RegistrationController extends Controller
         $sortDirection = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
 
         $baseQuery = User::query()
-            ->whereIn('role', ['investor', 'affiliator'])
+            ->where('role', 'member')
             ->where('status', '!=', 'active');
 
         $counts = [
@@ -94,6 +94,7 @@ class RegistrationController extends Controller
                     'tanggal_lahir'   => $user->tanggal_lahir ? tanggal_indo($user->tanggal_lahir) : null,
                     'pekerjaan'       => $user->pekerjaan,
                     'role'            => $user->role,
+                    'derived_labels'  => $user->getDerivedLabels(),
                     'status'          => $user->status,
                     'created_at'      => tanggal_waktu_indo($user->created_at),
                     'created_at_date' => $user->created_at ? tanggal_indo($user->created_at) : '-',

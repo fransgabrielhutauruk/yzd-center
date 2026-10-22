@@ -39,17 +39,17 @@ class UserService
             $sortField = 'created_at';
         }
 
-        // Basis query: Khusus role investor dan affiliator (Opsi B)
-        $baseQuery = User::query()->whereIn('role', ['investor', 'affiliator']);
+        // Basis query: Khusus role member
+        $baseQuery = User::query()->where('role', 'member');
 
         $stats = [
             'total_users'          => (clone $baseQuery)->count(),
-            'total_investors'      => (clone $baseQuery)->where('role', 'investor')->where('is_active', true)->count(),
-            'total_affiliators'    => (clone $baseQuery)->where('role', 'affiliator')->where('is_active', true)->count(),
+            'total_investors'      => User::activeInvestors()->count(),
+            'total_affiliators'    => User::activeAffiliators()->count(),
             'total_active'         => (clone $baseQuery)->where('is_active', true)->count(),
             'total_inactive'       => (clone $baseQuery)->where('is_active', false)->count(),
-            'inactive_investors'   => (clone $baseQuery)->where('role', 'investor')->where('is_active', false)->count(),
-            'inactive_affiliators' => (clone $baseQuery)->where('role', 'affiliator')->where('is_active', false)->count(),
+            'inactive_investors'   => (clone $baseQuery)->where('is_active', false)->whereHas('akunCopytrade')->count(),
+            'inactive_affiliators' => (clone $baseQuery)->where('is_active', false)->whereHas('relasiDownlines')->count(),
         ];
 
         $query = (clone $baseQuery)->with([
@@ -74,8 +74,13 @@ class UserService
             });
         }
 
-        if (in_array($roleFilter, ['investor', 'affiliator'], true)) {
-            $query->where('role', $roleFilter);
+        if ($roleFilter === 'investor') {
+            $query->whereHas('akunCopytrade', fn ($q) => $q->where('status', 'active'));
+        } elseif ($roleFilter === 'affiliator') {
+            $query->whereHas('relasiDownlines.downline', fn ($q) => $q->where('is_active', true));
+        } elseif ($roleFilter === 'member') {
+            $query->whereDoesntHave('akunCopytrade', fn ($q) => $q->where('status', 'active'))
+                ->whereDoesntHave('relasiDownlines.downline', fn ($q) => $q->where('is_active', true));
         }
 
         if ($statusFilter !== '' && in_array($statusFilter, ['pending', 'active'], true)) {
@@ -107,6 +112,7 @@ class UserService
                     'nik'                     => $user->nik,
                     'avatar'                  => $user->avatar,
                     'role'                    => $user->role,
+                    'derived_labels'          => $user->getDerivedLabels(),
                     'status'                  => $user->status,
                     'is_active'               => (bool) $user->is_active,
                     'referral_code'           => $user->referral_code,
@@ -116,7 +122,7 @@ class UserService
                     'copytrade_count'         => $user->akunCopytrades->count(),
                     'active_copytrade_count'  => (int) ($user->active_copytrade_count ?? $user->akunCopytrades->where('status', 'active')->count()),
                     'pending_copytrade_count' => $user->akunCopytrades->where('status', 'pending')->count(),
-                    'downlines_count'         => $user->role === 'affiliator' ? $user->relasiDownlines->count() : 0,
+                    'downlines_count'         => $user->relasiDownlines->count(),
                     'upline'                  => $user->relasiUpline?->affiliator ? [
                         'name'          => $user->relasiUpline->affiliator->name,
                         'username'      => $user->relasiUpline->affiliator->username,
@@ -149,7 +155,7 @@ class UserService
     {
         /** @var User $user */
         $user = User::query()
-            ->whereIn('role', ['investor', 'affiliator'])
+            ->where('role', 'member')
             ->with([
                 'ahliWaris',
                 'dokumen',
@@ -210,22 +216,19 @@ class UserService
                 ];
             });
 
-        $downlines = [];
-        if ($user->role === 'affiliator') {
-            $downlines = $user->relasiDownlines->sortByDesc('joined_at')->values()->map(function ($rel) {
-                return [
-                    'id'              => $rel->downline?->id,
-                    'name'            => $rel->downline?->name ?? 'Pengguna',
-                    'username'        => $rel->downline?->username ?? '-',
-                    'email'           => $rel->downline?->email ?? '-',
-                    'phone'           => $rel->downline?->phone ?? '-',
-                    'status'          => $rel->downline?->status ?? 'pending',
-                    'is_active'       => (bool) ($rel->downline?->is_active ?? true),
-                    'joined_at'       => $rel->joined_at ? tanggal_waktu_indo($rel->joined_at, true) : '-',
-                    'joined_at_short' => $rel->joined_at ? tanggal_singkat($rel->joined_at) : '-',
-                ];
-            })->all();
-        }
+        $downlines = $user->relasiDownlines->sortByDesc('joined_at')->values()->map(function ($rel) {
+            return [
+                'id'              => $rel->downline?->id,
+                'name'            => $rel->downline?->name ?? 'Pengguna',
+                'username'        => $rel->downline?->username ?? '-',
+                'email'           => $rel->downline?->email ?? '-',
+                'phone'           => $rel->downline?->phone ?? '-',
+                'status'          => $rel->downline?->status ?? 'pending',
+                'is_active'       => (bool) ($rel->downline?->is_active ?? true),
+                'joined_at'       => $rel->joined_at ? tanggal_waktu_indo($rel->joined_at, true) : '-',
+                'joined_at_short' => $rel->joined_at ? tanggal_singkat($rel->joined_at) : '-',
+            ];
+        })->all();
 
         return [
             'id'              => $user->id,
@@ -240,6 +243,7 @@ class UserService
             'pekerjaan'       => $user->pekerjaan ?? '-',
             'avatar'          => $user->avatar,
             'role'            => $user->role,
+            'derived_labels'  => $user->getDerivedLabels(),
             'status'          => $user->status,
             'is_active'       => (bool) $user->is_active,
             'referral_code'   => $user->referral_code ?? '-',
@@ -327,80 +331,6 @@ class UserService
             );
 
             return $user;
-        });
-    }
-
-    /**
-     * Alihkan (switch) peran pengguna antara Investor dan Affiliator.
-     * Bila diangkat menjadi Affiliator, otomatis terbitkan kode referral jika belum memiliki.
-     * Bila diubah menjadi Investor, cegah jika terdapat penarikan komisi yang berstatus 'pending'.
-     * Seluruh sesi aktif pengguna akan diputus seketika agar saat login kembali hak akses peran langsung termuat segar.
-     *
-     * @return array{user: User, old_role: string, new_role: string}
-     *
-     * @throws DomainException
-     */
-    public function switchUserRole(int $userId, int $adminId): array
-    {
-        return DB::transaction(function () use ($userId, $adminId): array {
-            /** @var User $user */
-            $user = User::query()->lockForUpdate()->findOrFail($userId);
-
-            if ($user->isAdmin()) {
-                throw new DomainException('Peran akun administrator tidak dapat diubah.');
-            }
-
-            if ($user->id === $adminId) {
-                throw new DomainException('Anda tidak dapat mengubah peran akun Anda sendiri.');
-            }
-
-            $oldRole = $user->role;
-            $newRole = $oldRole === 'investor' ? 'affiliator' : 'investor';
-
-            if ($newRole === 'affiliator') {
-                // Promosi ke Affiliator: terbitkan kode referral baru jika belum ada
-                if (empty($user->referral_code)) {
-                    $user->referral_code = $this->referralService->generateReferralCode($user->name);
-                }
-            } else {
-                // Demosi ke Investor: cegah jika ada pengajuan klaim komisi berstatus pending
-                $hasPendingCommission = $user->klaimKomisiDiajukan()
-                    ->where('status', 'pending')
-                    ->exists();
-
-                if ($hasPendingCommission) {
-                    throw new DomainException('Tidak dapat mengubah peran menjadi Investor karena pengguna masih memiliki pengajuan pencairan komisi yang berstatus Pending. Silakan proses atau tolak pengajuan komisi tersebut terlebih dahulu.');
-                }
-            }
-
-            $user->role = $newRole;
-            $user->save();
-
-            // Putuskan seluruh sesi aktif pengguna agar wajib login ulang dan antarmuka menu barunya sinkron
-            DB::table('sessions')->where('user_id', $user->id)->delete();
-
-            // Audit Log: Alih peran pengguna
-            $admin = User::find($adminId);
-            $actor = AuditLogService::formatActor($admin);
-            $target = AuditLogService::formatTargetUser($user, $user->id);
-            $this->auditLogService->record(
-                kategori: 'pengguna',
-                aksi: 'ubah_peran_user',
-                deskripsi: "{$actor} mengubah peran pengguna {$user->name} ({$target}) dari " . ucfirst($oldRole) . " menjadi " . ucfirst($newRole) . ".",
-                subject: $user,
-                perubahan: [
-                    'sebelum' => ['role' => $oldRole],
-                    'sesudah' => ['role' => $newRole, 'referral_code' => $user->referral_code],
-                ],
-                tingkat: 'critical',
-                user: $admin
-            );
-
-            return [
-                'user'     => $user,
-                'old_role' => $oldRole,
-                'new_role' => $newRole,
-            ];
         });
     }
 }

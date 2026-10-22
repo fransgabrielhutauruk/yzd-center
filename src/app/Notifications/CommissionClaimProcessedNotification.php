@@ -54,7 +54,7 @@ class CommissionClaimProcessedNotification extends Notification
             'status'                     => $this->action,
             'total_nominal_transfer'     => $this->claim->total_nominal_transfer,
             'total_nominal_transfer_idr' => $nominalTransferIdr,
-            'url'                        => '/investor/commissions?tab=claims',
+            'url'                        => '/member/commissions?tab=claims',
         ];
     }
 }

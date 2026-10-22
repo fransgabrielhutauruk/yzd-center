@@ -36,7 +36,7 @@ class ActivityLogTest extends TestCase
         $this->investor = User::factory()->create([
             'name'      => 'Investor User',
             'username'  => 'investor01',
-            'role'      => 'investor',
+            'role'      => 'member',
             'status'    => 'active',
             'is_active' => true,
         ]);
@@ -44,7 +44,7 @@ class ActivityLogTest extends TestCase
         $this->affiliator = User::factory()->create([
             'name'      => 'Affiliator User',
             'username'  => 'affiliator01',
-            'role'      => 'affiliator',
+            'role'      => 'member',
             'status'    => 'active',
             'is_active' => true,
         ]);

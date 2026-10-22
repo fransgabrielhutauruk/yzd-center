@@ -97,27 +97,23 @@ const exportXlsx = () => {
     window.location.href = `/admin/activity-logs/export?${params.toString()}`;
 };
 
-// Helper Gaya & Label Peran Pengguna (Investor: Biru, Affiliator: Ungu)
+// Helper Gaya & Label Peran Pengguna (Administrator, Member, Guest)
 const getRoleBadgeClass = (role) => {
     const normalized = (role || '').toLowerCase();
-    if (normalized === 'investor') {
-        return 'border border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/50 dark:text-blue-300';
-    }
-    if (normalized === 'affiliator') {
-        return 'border border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-950/50 dark:text-purple-300';
-    }
     if (normalized === 'administrator' || normalized === 'admin') {
         return 'border border-slate-200 bg-slate-100 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200';
+    }
+    if (normalized === 'member') {
+        return 'border border-primary-200 bg-primary-50 text-primary-700 dark:border-primary-800 dark:bg-primary-950/50 dark:text-primary-300';
     }
     return 'border border-border bg-muted text-muted-foreground';
 };
 
 const getRoleLabel = (role) => {
     const normalized = (role || '').toLowerCase();
-    if (normalized === 'investor') return 'INVESTOR';
-    if (normalized === 'affiliator') return 'AFFILIATOR';
     if (normalized === 'administrator' || normalized === 'admin') return 'ADMINISTRATOR';
-    return role ? role.toUpperCase() : 'GUEST';
+    if (normalized === 'member') return 'MEMBER';
+    return 'GUEST';
 };
 
 // Helper Format Nilai untuk Modal Perubahan

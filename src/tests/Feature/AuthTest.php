@@ -34,7 +34,7 @@ class AuthTest extends TestCase
         ]);
 
         $this->assertAuthenticatedAs($user);
-        $response->assertRedirect(route('investor.dashboard'));
+        $response->assertRedirect(route('member.dashboard'));
     }
 
     public function test_users_can_authenticate_using_username(): void
@@ -42,7 +42,7 @@ class AuthTest extends TestCase
         $user = User::factory()->create([
             'username' => 'investor_pro',
             'password' => bcrypt('password123'),
-            'role'     => 'investor',
+            'role'     => 'member',
         ]);
 
         $response = $this->post('/login', [
@@ -51,7 +51,7 @@ class AuthTest extends TestCase
         ]);
 
         $this->assertAuthenticatedAs($user);
-        $response->assertRedirect(route('investor.dashboard'));
+        $response->assertRedirect(route('member.dashboard'));
     }
 
     public function test_admin_is_redirected_to_admin_dashboard_after_login(): void
@@ -177,7 +177,6 @@ class AuthTest extends TestCase
         $invitation = Invitation::create([
             'token'          => 'tokenreginvestor123456789012345',
             'label'          => 'Investor Batch A',
-            'target_role'    => 'investor',
             'kuota_maksimal' => 3,
             'total_terpakai' => 0,
             'is_active'      => true,
@@ -210,7 +209,7 @@ class AuthTest extends TestCase
         $this->assertGuest();
         $user = User::where('username', 'budisantoso99')->firstOrFail();
         $this->assertEquals('budisantoso99', $user->username);
-        $this->assertEquals('investor', $user->role);
+        $this->assertEquals('member', $user->role);
         $this->assertEquals('pending', $user->status);
         $this->assertEquals('Surabaya', $user->tempat_lahir);
         $this->assertEquals('1988-08-17', $user->tanggal_lahir->format('Y-m-d'));
@@ -238,7 +237,6 @@ class AuthTest extends TestCase
         $invitation = Invitation::create([
             'token'          => 'tokenregaffiliator1234567890123',
             'label'          => 'Affiliator Batch A',
-            'target_role'    => 'affiliator',
             'kuota_maksimal' => 2,
             'total_terpakai' => 0,
             'is_active'      => true,
@@ -278,7 +276,7 @@ class AuthTest extends TestCase
 
         $this->assertGuest();
         $user = User::where('username', 'rudimitra')->firstOrFail();
-        $this->assertEquals('affiliator', $user->role);
+        $this->assertEquals('member', $user->role);
         $this->assertEquals('pending', $user->status);
         $this->assertNotNull($user->referral_code);
         $this->assertEquals(6, strlen($user->referral_code));
@@ -295,7 +293,6 @@ class AuthTest extends TestCase
         $invitation = Invitation::create([
             'token'          => 'expiredforreg123456789012345678',
             'label'          => 'Expired Batch',
-            'target_role'    => 'investor',
             'kuota_maksimal' => 5,
             'total_terpakai' => 0,
             'is_active'      => true,
@@ -358,7 +355,6 @@ class AuthTest extends TestCase
         Invitation::create([
             'token'          => 'tokenbatchalpha123456789012345',
             'label'          => 'Batch Alpha Khusus',
-            'target_role'    => 'investor',
             'kuota_maksimal' => 5,
             'total_terpakai' => 0,
             'is_active'      => true,
@@ -367,7 +363,6 @@ class AuthTest extends TestCase
         Invitation::create([
             'token'          => 'tokenbatchbeta1234567890123456',
             'label'          => 'Batch Beta Umum',
-            'target_role'    => 'affiliator',
             'kuota_maksimal' => 10,
             'total_terpakai' => 0,
             'is_active'      => true,
@@ -382,13 +377,13 @@ class AuthTest extends TestCase
             ->where('invitations.data.0.label', 'Batch Alpha Khusus')
         );
 
-        $roleResponse = $this->actingAs($admin)->get('/admin/invitations?role=affiliator');
+        $searchResponse = $this->actingAs($admin)->get('/admin/invitations?search=Beta');
 
-        $roleResponse->assertStatus(200);
-        $roleResponse->assertInertia(fn ($page) => $page
+        $searchResponse->assertStatus(200);
+        $searchResponse->assertInertia(fn ($page) => $page
             ->component('Admin/Invitations/Index')
             ->has('invitations.data', 1)
-            ->where('invitations.data.0.target_role', 'affiliator')
+            ->where('invitations.data.0.label', 'Batch Beta Umum')
         );
     }
 
@@ -414,7 +409,6 @@ class AuthTest extends TestCase
 
         $response = $this->actingAs($admin)->post('/admin/invitations', [
             'label'          => 'Undangan Seminar Investor',
-            'target_role'    => 'investor',
             'kuota_maksimal' => 10,
             'expired_hours'  => 48,
         ]);
@@ -422,7 +416,6 @@ class AuthTest extends TestCase
         $response->assertRedirect(route('admin.invitations.index'));
         $this->assertDatabaseHas('invitations', [
             'label'          => 'Undangan Seminar Investor',
-            'target_role'    => 'investor',
             'kuota_maksimal' => 10,
         ]);
     }
@@ -470,19 +463,19 @@ class AuthTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_investor_can_view_investor_dashboard(): void
+    public function test_member_can_view_member_dashboard(): void
     {
-        $investor = User::factory()->create(['role' => 'investor']);
+        $member = User::factory()->create(['role' => 'member']);
 
-        $response = $this->actingAs($investor)->get('/investor/dashboard');
+        $response = $this->actingAs($member)->get('/member/dashboard');
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page->component('Investor/InvestorDashboard'));
+        $response->assertInertia(fn ($page) => $page->component('Member/Dashboard'));
     }
 
-    public function test_guest_cannot_view_investor_dashboard(): void
+    public function test_guest_cannot_view_member_dashboard(): void
     {
-        $response = $this->get('/investor/dashboard');
+        $response = $this->get('/member/dashboard');
 
         $response->assertRedirect('/login');
     }
@@ -503,13 +496,13 @@ class AuthTest extends TestCase
         $response->assertRedirect(route('admin.dashboard'));
     }
 
-    public function test_authenticated_investor_accessing_root_is_redirected_to_investor_dashboard(): void
+    public function test_authenticated_member_accessing_root_is_redirected_to_member_dashboard(): void
     {
-        $investor = User::factory()->create(['role' => 'investor']);
+        $member = User::factory()->create(['role' => 'member']);
 
-        $response = $this->actingAs($investor)->get('/');
+        $response = $this->actingAs($member)->get('/');
 
-        $response->assertRedirect(route('investor.dashboard'));
+        $response->assertRedirect(route('member.dashboard'));
     }
 
     public function test_authenticated_admin_accessing_login_is_redirected_to_admin_dashboard(): void
@@ -521,58 +514,58 @@ class AuthTest extends TestCase
         $response->assertRedirect(route('admin.dashboard'));
     }
 
-    public function test_authenticated_investor_accessing_login_is_redirected_to_investor_dashboard(): void
+    public function test_authenticated_member_accessing_login_is_redirected_to_member_dashboard(): void
     {
-        $investor = User::factory()->create(['role' => 'investor']);
+        $member = User::factory()->create(['role' => 'member']);
 
-        $response = $this->actingAs($investor)->get('/login');
+        $response = $this->actingAs($member)->get('/login');
 
-        $response->assertRedirect(route('investor.dashboard'));
+        $response->assertRedirect(route('member.dashboard'));
     }
 
-    public function test_unverified_investor_is_redirected_to_dashboard_after_login(): void
+    public function test_unverified_member_is_redirected_to_dashboard_after_login(): void
     {
-        $investor = User::factory()->pending()->create([
-            'email'    => 'pending_investor@example.com',
+        $member = User::factory()->pending()->create([
+            'email'    => 'pending_member@example.com',
             'password' => bcrypt('password123'),
         ]);
 
         $response = $this->post('/login', [
-            'login'    => 'pending_investor@example.com',
+            'login'    => 'pending_member@example.com',
             'password' => 'password123',
         ]);
 
-        $this->assertAuthenticatedAs($investor);
-        $response->assertRedirect(route('investor.dashboard'));
+        $this->assertAuthenticatedAs($member);
+        $response->assertRedirect(route('member.dashboard'));
     }
 
-    public function test_unverified_investor_can_access_dashboard(): void
+    public function test_unverified_member_can_access_dashboard(): void
     {
-        $investor = User::factory()->pending()->create();
+        $member = User::factory()->pending()->create();
 
-        $response = $this->actingAs($investor)->get('/investor/dashboard');
+        $response = $this->actingAs($member)->get('/member/dashboard');
 
         $response->assertOk();
-        $response->assertInertia(fn ($page) => $page->component('Investor/InvestorDashboard'));
+        $response->assertInertia(fn ($page) => $page->component('Member/Dashboard'));
     }
 
-    public function test_unverified_investor_accessing_root_is_redirected_to_dashboard(): void
+    public function test_unverified_member_accessing_root_is_redirected_to_dashboard(): void
     {
-        $investor = User::factory()->pending()->create();
+        $member = User::factory()->pending()->create();
 
-        $response = $this->actingAs($investor)->get('/');
+        $response = $this->actingAs($member)->get('/');
 
-        $response->assertRedirect(route('investor.dashboard'));
+        $response->assertRedirect(route('member.dashboard'));
     }
 
-    public function test_unverified_investor_can_access_account_page(): void
+    public function test_unverified_member_can_access_account_page(): void
     {
-        $investor = User::factory()->pending()->create();
+        $member = User::factory()->pending()->create();
 
-        $response = $this->actingAs($investor)->get('/investor/account');
+        $response = $this->actingAs($member)->get('/member/account');
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page->component('Investor/Account/Index'));
+        $response->assertInertia(fn ($page) => $page->component('Member/Account/Index'));
     }
 
     public function test_login_rate_limiting_locks_out_after_five_failed_attempts(): void

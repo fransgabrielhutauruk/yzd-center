@@ -17,7 +17,6 @@ class Invitation extends Model
     protected $fillable = [
         'token',
         'label',
-        'target_role',
         'kuota_maksimal',
         'total_terpakai',
         'is_active',

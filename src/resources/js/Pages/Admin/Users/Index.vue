@@ -5,7 +5,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
 import AppConfirmDialog from '@/Components/Common/AppConfirmDialog.vue';
 import AppTableAction from '@/Components/Common/AppTableAction.vue';
-import { Users, TrendingUp, UserCheck, UserX, CheckCircle2, ArrowLeftRight } from 'lucide-vue-next';
+import { Users, TrendingUp, UserCheck, UserX } from 'lucide-vue-next';
 
 const props = defineProps({
     users: {
@@ -34,7 +34,7 @@ const props = defineProps({
 const columns = [
     { key: 'created_at_date', label: 'Terdaftar', sortable: true },
     { key: 'name', label: 'Pengguna', sortable: true },
-    { key: 'role', label: 'Peran', sortable: true },
+    { key: 'role', label: 'Label / Peran', sortable: false },
     { key: 'copytrade_count', label: 'Investasi / Copytrade', sortable: true },
     { key: 'is_active', label: 'Status Akses', sortable: true },
     { key: 'actions', label: 'Aksi', align: 'center' },
@@ -63,34 +63,6 @@ const handleConfirmToggle = () => {
                 isToggling.value = false;
                 isConfirmDialogOpen.value = false;
                 selectedUser.value = null;
-            },
-        }
-    );
-};
-
-// State Konfirmasi Alih Peran (Investor <-> Affiliator)
-const isSwitchRoleDialogOpen = ref(false);
-const userToSwitch = ref(null);
-const isSwitchingRole = ref(false);
-
-const openSwitchRoleConfirm = (user) => {
-    userToSwitch.value = user;
-    isSwitchRoleDialogOpen.value = true;
-};
-
-const handleConfirmSwitchRole = () => {
-    if (!userToSwitch.value) return;
-
-    isSwitchingRole.value = true;
-    router.post(
-        route('admin.users.switch_role', userToSwitch.value.id),
-        {},
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                isSwitchingRole.value = false;
-                isSwitchRoleDialogOpen.value = false;
-                userToSwitch.value = null;
             },
         }
     );
@@ -128,7 +100,7 @@ const filterByQuick = (type, val) => {
     <Head title="Manajemen Pengguna" />
     <AdminLayout
         title="Manajemen Pengguna"
-        subtitle="Pusat kendali pengguna untuk memantau investor dan affiliator, serta mengelola izin akses sistem."
+        subtitle="Pusat kendali akun pengguna untuk memantau member, portofolio investasi, jaringan kemitraan, dan mengelola izin akses sistem."
         :breadcrumbs="[{ label: 'Menu Utama' }, { label: 'Manajemen Pengguna' }]"
     >
         <div class="space-y-6">
@@ -146,7 +118,7 @@ const filterByQuick = (type, val) => {
                 >
                     <div class="flex items-center justify-between">
                         <span class="text-primary-700 dark:text-primary-300 text-xs font-semibold"
-                            >Semua Pengguna</span
+                            >Semua Member</span
                         >
                         <Users class="text-primary-600 dark:text-primary-400 h-4 w-4" />
                     </div>
@@ -167,7 +139,7 @@ const filterByQuick = (type, val) => {
                 >
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-semibold text-sky-700 dark:text-sky-300"
-                            >Total Investor Aktif</span
+                            >Investor Aktif</span
                         >
                         <TrendingUp class="h-4 w-4 text-sky-600 dark:text-sky-400" />
                     </div>
@@ -188,7 +160,7 @@ const filterByQuick = (type, val) => {
                 >
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-semibold text-indigo-700 dark:text-indigo-300"
-                            >Total Affiliator Aktif</span
+                            >Affiliator Aktif</span
                         >
                         <UserCheck class="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                     </div>
@@ -237,7 +209,7 @@ const filterByQuick = (type, val) => {
             >
                 <!-- Filter Slot: Dropdown Peran & Akses -->
                 <template #filters="{ applyFilters }">
-                    <!-- Filter Peran (Role) -->
+                    <!-- Filter Label / Peran -->
                     <select
                         :value="filters.role || ''"
                         @change="
@@ -245,9 +217,10 @@ const filterByQuick = (type, val) => {
                         "
                         class="bg-background border-input focus:ring-primary-500 min-h-[38px] w-full rounded-lg border px-3 py-1.5 text-xs font-medium focus:ring-2 focus:outline-none sm:w-auto"
                     >
-                        <option value="">Semua Peran</option>
-                        <option value="investor">Investor</option>
-                        <option value="affiliator">Affiliator</option>
+                        <option value="">Semua Label</option>
+                        <option value="investor">Investor (Copytrade Aktif)</option>
+                        <option value="affiliator">Affiliator (Downline Aktif)</option>
+                        <option value="member">Member (Belum Ada Copytrade & Downline)</option>
                     </select>
 
                     <!-- Filter Status Akses Akun -->
@@ -294,20 +267,22 @@ const filterByQuick = (type, val) => {
                     </div>
                 </template>
 
-                <!-- Kolom 3: Peran -->
+                <!-- Kolom 3: Label / Peran Turunan -->
                 <template #column-role="{ item }">
-                    <span
-                        v-if="item.role === 'affiliator'"
-                        class="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300"
-                    >
-                        Affiliator
-                    </span>
-                    <span
-                        v-else
-                        class="inline-flex items-center rounded-md border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-300"
-                    >
-                        Investor
-                    </span>
+                    <div class="flex flex-wrap gap-1">
+                        <span
+                            v-for="lbl in (item.derived_labels || [item.role === 'administrator' ? 'Administrator' : 'Member'])"
+                            :key="lbl"
+                            :class="[
+                                'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold',
+                                lbl === 'Affiliator' ? 'border border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300' :
+                                lbl === 'Investor' ? 'border border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-300' :
+                                'border border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                            ]"
+                        >
+                            {{ lbl }}
+                        </span>
+                    </div>
                 </template>
 
                 <!-- Kolom 4: Investasi / Copytrade (Hanya Akun Aktif) -->
@@ -346,13 +321,6 @@ const filterByQuick = (type, val) => {
                             :href="route('admin.users.show', item.id)"
                         />
                         <AppTableAction
-                            type="custom"
-                            :icon="item.role === 'investor' ? UserCheck : ArrowLeftRight"
-                            :color="item.role === 'investor' ? 'primary' : 'amber'"
-                            :title="item.role === 'investor' ? 'Angkat Menjadi Affiliator' : 'Ubah Menjadi Investor'"
-                            @click="openSwitchRoleConfirm(item)"
-                        />
-                        <AppTableAction
                             :type="item.is_active ? 'disable' : 'activate'"
                             :title="item.is_active ? 'Nonaktifkan Akses Akun' : 'Aktifkan Kembali Akses Akun'"
                             @click="openToggleConfirm(item)"
@@ -381,31 +349,6 @@ const filterByQuick = (type, val) => {
             :loading="isToggling"
             @confirm="handleConfirmToggle"
             @cancel="isConfirmDialogOpen = false"
-        />
-
-        <!-- Dialog Konfirmasi Alih Peran Pengguna (Investor <-> Affiliator) -->
-        <AppConfirmDialog
-            :show="isSwitchRoleDialogOpen"
-            :title="
-                userToSwitch?.role === 'investor'
-                    ? 'Angkat Menjadi Mitra Affiliator?'
-                    : 'Ubah Menjadi Investor Biasa?'
-            "
-            :message="
-                userToSwitch?.role === 'investor'
-                    ? `Apakah Anda yakin ingin mengangkat akun '${userToSwitch?.name}' (@${userToSwitch?.username}) menjadi Mitra Affiliator? Pengguna akan mendapatkan akses ke menu Program Afiliasi dan diterbitkan kode referral unik.`
-                    : `Apakah Anda yakin ingin mengubah akun '${userToSwitch?.name}' (@${userToSwitch?.username}) kembali menjadi Investor biasa? Akses menu Program Afiliasi akan dinonaktifkan.`
-            "
-            :confirm-text="
-                userToSwitch?.role === 'investor'
-                    ? 'Ya, Angkat Jadi Affiliator'
-                    : 'Ya, Ubah Jadi Investor'
-            "
-            cancel-text="Batal"
-            type="warning"
-            :loading="isSwitchingRole"
-            @confirm="handleConfirmSwitchRole"
-            @cancel="isSwitchRoleDialogOpen = false"
         />
     </AdminLayout>
 </template>

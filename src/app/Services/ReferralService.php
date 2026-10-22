@@ -59,13 +59,13 @@ class ReferralService
 
         return User::query()
             ->where('referral_code', $cleanCode)
-            ->where('role', 'affiliator')
+            ->where('role', 'member')
             ->where('is_active', true)
             ->first();
     }
 
     /**
-     * Hubungkan investor (downline) ke affiliator (upline).
+     * Hubungkan member (downline) ke affiliator/member (upline).
      */
     public function attachDownline(User $affiliator, User $downline, string $sumber = 'link_otomatis'): RelasiReferral
     {
@@ -76,9 +76,24 @@ class ReferralService
                 ]);
             }
 
+            // Anti-Circular Referral: Cegah siklus referral melingkar
+            $currentUpline = $affiliator;
+            while ($currentUpline) {
+                $parentRelasi = RelasiReferral::where('downline_id', $currentUpline->id)->first();
+                if (!$parentRelasi) {
+                    break;
+                }
+                if ($parentRelasi->affiliator_id === $downline->id) {
+                    throw ValidationException::withMessages([
+                        'referral_code' => 'Pendaftaran relasi referral ditolak karena menimbulkan siklus referral melingkar.',
+                    ]);
+                }
+                $currentUpline = User::find($parentRelasi->affiliator_id);
+            }
+
             if ($downline->hasUpline()) {
                 throw ValidationException::withMessages([
-                    'referral_code' => 'Investor ini sudah terikat dengan mitra affiliator lain.',
+                    'referral_code' => 'Member ini sudah terikat dengan mitra affiliator lain.',
                 ]);
             }
 
@@ -99,19 +114,33 @@ class ReferralService
     }
 
     /**
-     * Ambil daftar investor yang memenuhi syarat untuk diklaim susulan oleh Affiliator.
+     * Ambil daftar member yang memenuhi syarat untuk diklaim susulan oleh Affiliator.
      * Syarat:
-     * 1. Peran investor (bukan admin atau diri sendiri).
+     * 1. Peran member (bukan admin atau diri sendiri).
      * 2. Belum memiliki upline di relasi_referral.
      * 3. Tidak sedang memiliki klaim referral berstatus 'pending'.
+     * 4. Tidak berada di dalam garis upline pengklaim (anti-circular).
      *
      * @return Collection<int, User>
      */
     public function getEligibleDownlinesForClaim(User $affiliator): Collection
     {
+        // Kumpulkan seluruh ID upline dari $affiliator untuk dicegah (anti-circular)
+        $ancestorIds = [];
+        $currentUpline = $affiliator;
+        while ($currentUpline) {
+            $parentRelasi = RelasiReferral::where('downline_id', $currentUpline->id)->first();
+            if (!$parentRelasi) {
+                break;
+            }
+            $ancestorIds[] = $parentRelasi->affiliator_id;
+            $currentUpline = User::find($parentRelasi->affiliator_id);
+        }
+
         return User::query()
-            ->where('role', 'investor')
+            ->where('role', 'member')
             ->where('id', '!=', $affiliator->id)
+            ->when(!empty($ancestorIds), fn ($q) => $q->whereNotIn('id', $ancestorIds))
             ->whereDoesntHave('relasiUpline')
             ->whereDoesntHave('klaimReferralSebagaiDownline', function ($q) {
                 $q->where('status', 'pending');
@@ -136,7 +165,7 @@ class ReferralService
         if (!$user) {
             return [
                 'valid'   => false,
-                'message' => "Investor dengan username '{$username}' tidak ditemukan dalam sistem.",
+                'message' => "Member dengan username '{$username}' tidak ditemukan dalam sistem.",
             ];
         }
 
@@ -147,11 +176,27 @@ class ReferralService
             ];
         }
 
-        if ($user->role !== 'investor') {
+        if ($user->role !== 'member') {
             return [
                 'valid'   => false,
-                'message' => 'Akun tersebut bukan akun Investor yang dapat diklaim sebagai downline.',
+                'message' => 'Akun tersebut bukan akun Member yang dapat diklaim sebagai downline.',
             ];
+        }
+
+        // Cek siklus referral (anti-circular)
+        $currentUpline = $affiliator;
+        while ($currentUpline) {
+            $parentRelasi = RelasiReferral::where('downline_id', $currentUpline->id)->first();
+            if (!$parentRelasi) {
+                break;
+            }
+            if ($parentRelasi->affiliator_id === $user->id) {
+                return [
+                    'valid'   => false,
+                    'message' => 'Akun tersebut tidak dapat diklaim karena berada dalam garis silsilah upline Anda.',
+                ];
+            }
+            $currentUpline = User::find($parentRelasi->affiliator_id);
         }
 
         $downline = $user;
@@ -159,7 +204,7 @@ class ReferralService
         if ($downline->hasUpline()) {
             return [
                 'valid'   => false,
-                'message' => 'Investor ini sudah terdaftar di bawah mitra affiliator lain.',
+                'message' => 'Member ini sudah terdaftar di bawah mitra affiliator lain.',
             ];
         }
 
@@ -171,13 +216,13 @@ class ReferralService
         if ($hasPendingClaim) {
             return [
                 'valid'   => false,
-                'message' => 'Permohonan klaim untuk investor ini sedang dalam proses peninjauan Administrator.',
+                'message' => 'Permohonan klaim untuk member ini sedang dalam proses peninjauan Administrator.',
             ];
         }
 
         return [
             'valid'    => true,
-            'message'  => 'Investor valid dan dapat diajukan untuk klaim susulan.',
+            'message'  => 'Member valid dan dapat diajukan untuk klaim susulan.',
             'downline' => [
                 'id'               => $downline->id,
                 'name'             => $downline->name,
@@ -196,7 +241,7 @@ class ReferralService
     {
         return DB::transaction(function () use ($affiliator, $downlineId, $buktiChat, $alasan): KlaimReferral {
             $downline = User::query()
-                ->where('role', 'investor')
+                ->where('role', 'member')
                 ->where('id', $downlineId)
                 ->lockForUpdate()
                 ->first();
@@ -213,9 +258,24 @@ class ReferralService
                 ]);
             }
 
+            // Anti-Circular Referral check
+            $currentUpline = $affiliator;
+            while ($currentUpline) {
+                $parentRelasi = RelasiReferral::where('downline_id', $currentUpline->id)->first();
+                if (!$parentRelasi) {
+                    break;
+                }
+                if ($parentRelasi->affiliator_id === $downline->id) {
+                    throw ValidationException::withMessages([
+                        'downline_id' => 'Klaim referral ditolak karena menimbulkan siklus referral melingkar.',
+                    ]);
+                }
+                $currentUpline = User::find($parentRelasi->affiliator_id);
+            }
+
             if ($downline->hasUpline()) {
                 throw ValidationException::withMessages([
-                    'downline_id' => 'Investor ini telah terdaftar resmi di bawah mitra affiliator lain.',
+                    'downline_id' => 'Member ini telah terdaftar resmi di bawah mitra affiliator lain.',
                 ]);
             }
 
@@ -569,9 +629,7 @@ class ReferralService
      */
     public function getAllAffiliatesSummary(array $filters, string $pageName = 'page'): LengthAwarePaginator
     {
-        $query = User::query()
-            ->where('role', 'affiliator')
-            ->where('is_active', true)
+        $query = User::activeAffiliators()
             ->with(['relasiDownlines' => function ($q) {
                 $q->whereHas('downline', fn ($sub) => $sub->where('is_active', true))
                     ->with(['downline.akunCopytrades'])

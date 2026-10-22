@@ -47,7 +47,7 @@ class CopytradeAccountStatusChangedNotification extends Notification
             'status'             => $this->status,
             'copytrade_id'       => $this->akun->id,
             'nomor_akun_trading' => $this->akun->nomor_akun_trading,
-            'url'                => '/investor/investments',
+            'url'                => '/member/investments',
         ];
     }
 }

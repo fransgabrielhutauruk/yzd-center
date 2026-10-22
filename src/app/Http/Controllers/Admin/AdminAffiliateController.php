@@ -31,7 +31,7 @@ class AdminAffiliateController extends Controller
             'claim_per_page',
         ]);
 
-        $totalAffiliators = User::where('role', 'affiliator')->where('is_active', true)->count();
+        $totalAffiliators = User::activeAffiliators()->count();
         $totalDownlines = RelasiReferral::whereHas('downline', fn ($q) => $q->where('is_active', true))->count();
         $pendingClaimsCount = KlaimReferral::where('status', 'pending')->count();
 

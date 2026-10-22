@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { Head, Link, usePage, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import InvestorLayout from '@/Layouts/InvestorLayout.vue';
+import MemberLayout from '@/Layouts/MemberLayout.vue';
 import AppButton from '@/Components/Common/AppButton.vue';
 import {
     Bell,
@@ -38,7 +38,7 @@ const isProcessing = ref(false);
 // Pilih layout secara dinamis berdasarkan peran pengguna
 const userRole = computed(() => page.props.auth?.user?.role);
 const layoutComponent = computed(() => {
-    return userRole.value === 'administrator' ? AdminLayout : InvestorLayout;
+    return userRole.value === 'administrator' ? AdminLayout : MemberLayout;
 });
 
 const unreadCount = computed(() => page.props.notifications?.unread_count || 0);

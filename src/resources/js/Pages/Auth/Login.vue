@@ -288,7 +288,7 @@ const submit = () => {
 
                 <!-- Judul & Pengantar -->
                 <div class="space-y-1.5">
-                    <h3 class="text-foreground text-xl font-bold">Pendaftaran Berhasil Dikirim!</h3>
+                    <h3 class="text-foreground text-xl font-bold">Pendaftaran Berhasil Dilakukan!</h3>
                     <p
                         class="text-muted-foreground mx-auto max-w-md text-xs leading-relaxed sm:text-sm"
                     >
@@ -296,23 +296,13 @@ const submit = () => {
                         <strong class="text-foreground">{{
                             registrationData?.name || 'Investor'
                         }}</strong
-                        >. Data akun Anda telah berhasil terkirim ke sistem
+                        >. Data akun Anda telah berhasil terdaftar ke sistem
                         <strong class="text-foreground">YZD Center</strong>.
                     </p>
                 </div>
 
                 <!-- Detail Rincian Akun & Status -->
                 <div class="border-border/80 bg-muted/60 space-y-3 rounded-xl border p-4 text-left">
-                    <div class="border-border/60 flex items-center justify-between border-b pb-2.5">
-                        <span class="text-muted-foreground text-xs">Status Pendaftaran:</span>
-                        <span
-                            class="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400"
-                        >
-                            <Clock class="h-3.5 w-3.5 animate-pulse" />
-                            Menunggu Verifikasi
-                        </span>
-                    </div>
-
                     <div
                         v-if="registrationData?.username"
                         class="flex items-center justify-between text-xs"

@@ -33,20 +33,20 @@ class CopytradeTest extends TestCase
         ]);
 
         $this->investor = User::factory()->create([
-            'role'   => 'investor',
+            'role'   => 'member',
             'status' => 'active',
         ]);
     }
 
     public function test_investor_can_view_copytrade_page(): void
     {
-        $redirectResponse = $this->actingAs($this->investor)->get('/investor/copytrade');
-        $redirectResponse->assertRedirect(route('investor.investments.index'));
+        $redirectResponse = $this->actingAs($this->investor)->get('/member/copytrade');
+        $redirectResponse->assertRedirect(route('member.investments.index'));
 
-        $response = $this->actingAs($this->investor)->get(route('investor.investments.index'));
+        $response = $this->actingAs($this->investor)->get(route('member.investments.index'));
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Investments/Index')
+            ->component('Member/Investments/Index')
             ->has('consolidated')
             ->has('accounts')
         );
@@ -65,7 +65,7 @@ class CopytradeTest extends TestCase
             // dokumen_perjanjian sengaja dikosongkan
         ];
 
-        $response = $this->actingAs($this->investor)->post('/investor/copytrade', $payload);
+        $response = $this->actingAs($this->investor)->post('/member/copytrade', $payload);
 
         $response->assertSessionHasErrors('dokumen_perjanjian');
     }
@@ -87,9 +87,9 @@ class CopytradeTest extends TestCase
             'dokumen_perjanjian'    => $file,
         ];
 
-        $response = $this->actingAs($this->investor)->post('/investor/copytrade', $payload);
+        $response = $this->actingAs($this->investor)->post('/member/copytrade', $payload);
 
-        $response->assertRedirect(route('investor.investments.index'));
+        $response->assertRedirect(route('member.investments.index'));
         $this->assertDatabaseHas('akun_copytrade', [
             'user_id'            => $this->investor->id,
             'tier'               => 'tier_1',
@@ -136,9 +136,9 @@ class CopytradeTest extends TestCase
             'atas_nama_rekening'    => 'Investor Tester',
         ];
 
-        $response = $this->actingAs($this->investor)->post('/investor/copytrade', $payload);
+        $response = $this->actingAs($this->investor)->post('/member/copytrade', $payload);
 
-        $response->assertRedirect(route('investor.investments.index'));
+        $response->assertRedirect(route('member.investments.index'));
         $this->assertDatabaseHas('akun_copytrade', [
             'user_id'            => $this->investor->id,
             'tier'               => 'tier_2',
@@ -159,7 +159,7 @@ class CopytradeTest extends TestCase
             'atas_nama_rekening'    => 'Investor Tester',
         ];
 
-        $response = $this->actingAs($this->investor)->post('/investor/copytrade', $payload);
+        $response = $this->actingAs($this->investor)->post('/member/copytrade', $payload);
 
         $response->assertSessionHasErrors('modal_riil');
     }
@@ -177,7 +177,7 @@ class CopytradeTest extends TestCase
             // server_broker, master_password, investor_password sengaja kosong
         ];
 
-        $response = $this->actingAs($this->investor)->post('/investor/copytrade', $payload);
+        $response = $this->actingAs($this->investor)->post('/member/copytrade', $payload);
 
         $response->assertSessionHasErrors(['server_broker', 'master_password', 'investor_password']);
     }
@@ -200,9 +200,9 @@ class CopytradeTest extends TestCase
             'dokumen_perjanjian'    => $file,
         ];
 
-        $response = $this->actingAs($this->investor)->post('/investor/copytrade', $payload);
+        $response = $this->actingAs($this->investor)->post('/member/copytrade', $payload);
 
-        $response->assertRedirect(route('investor.investments.index'));
+        $response->assertRedirect(route('member.investments.index'));
 
         $akun = AkunCopytrade::where('nomor_akun_trading', '99887766')->first();
         $this->assertNotNull($akun);
@@ -459,26 +459,26 @@ class CopytradeTest extends TestCase
         ]);
 
         // 1. Dokumen yang ditolak / belum disetujui TIDAK ditampilkan pada halaman account
-        $response = $this->actingAs($this->investor)->get('/investor/account');
+        $response = $this->actingAs($this->investor)->get('/member/account');
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Account/Index')
+            ->component('Member/Account/Index')
             ->where('dokumen.perjanjian', null)
         );
 
         // 2. Fungsional pengubahan / unggah ulang surat perjanjian di halaman account ditiadakan (404)
         $fileBaru = UploadedFile::fake()->create('surat_perjanjian_revisi.pdf', 600, 'application/pdf');
-        $reuploadResponse = $this->actingAs($this->investor)->post('/investor/account/reupload/perjanjian', [
+        $reuploadResponse = $this->actingAs($this->investor)->post('/member/account/reupload/perjanjian', [
             'file' => $fileBaru,
         ]);
         $reuploadResponse->assertStatus(404);
 
         // 3. Hanya dokumen perjanjian yang telah berstatus approved yang ditampilkan
         $dokumen->update(['status' => 'approved', 'verified_at' => now(), 'verified_by' => $this->admin->id]);
-        $responseApproved = $this->actingAs($this->investor)->get('/investor/account');
+        $responseApproved = $this->actingAs($this->investor)->get('/member/account');
         $responseApproved->assertStatus(200);
         $responseApproved->assertInertia(fn ($page) => $page
-            ->component('Investor/Account/Index')
+            ->component('Member/Account/Index')
             ->where('dokumen.perjanjian.status', 'approved')
             ->where('dokumen.perjanjian.file_name', 'surat_perjanjian.pdf')
         );
@@ -512,12 +512,12 @@ class CopytradeTest extends TestCase
         $adminResponse = $this->actingAs($this->admin)->get("/documents/copytrade/{$akun->id}");
         $adminResponse->assertStatus(200);
 
-        // Investor lain dilarang mengakses berkas (403 Forbidden)
-        $otherInvestor = User::factory()->create([
-            'role'   => 'investor',
+        // Member lain dilarang mengakses berkas (403 Forbidden)
+        $otherMember = User::factory()->create([
+            'role'   => 'member',
             'status' => 'active',
         ]);
-        $otherResponse = $this->actingAs($otherInvestor)->get("/documents/copytrade/{$akun->id}");
+        $otherResponse = $this->actingAs($otherMember)->get("/documents/copytrade/{$akun->id}");
         $otherResponse->assertStatus(403);
     }
 
@@ -545,7 +545,7 @@ class CopytradeTest extends TestCase
             'atas_nama_rekening'    => $this->investor->name,
         ];
 
-        $response = $this->actingAs($this->investor)->get('/investor/copytrade/template-perjanjian/tier_1?' . http_build_query($params));
+        $response = $this->actingAs($this->investor)->get('/member/copytrade/template-perjanjian/tier_1?' . http_build_query($params));
 
         $response->assertStatus(200);
         $this->assertStringContainsString('Surat_Perjanjian_Kemitraan_TIER1_', $response->headers->get('content-disposition'));

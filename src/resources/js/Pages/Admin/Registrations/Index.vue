@@ -52,7 +52,7 @@ const props = defineProps({
 // Kolom Tabel AppDataTable
 const columns = [
     { key: 'created_at', label: 'Terdaftar', sortable: true },
-    { key: 'name', label: 'Investor / Afiliator', sortable: true },
+    { key: 'name', label: 'Member', sortable: true },
     { key: 'nik', label: 'NIK & Kontak' },
     { key: 'upline', label: 'Upline / Referral' },
     { key: 'dokumen_ktp', label: 'Status Verifikasi' },
@@ -214,21 +214,7 @@ const getStatusBadge = (status) => {
                 <!-- Custom Column: Investor Name & Username -->
                 <template #column-name="{ item }">
                     <div class="min-w-[140px] space-y-0.5">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-foreground text-xs font-bold">{{ item.name }}</span>
-                            <span
-                                v-if="item.role === 'affiliator'"
-                                class="py-0.2 inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-1.5 text-[9px] font-semibold text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300"
-                            >
-                                Affiliator
-                            </span>
-                            <span
-                                v-else
-                                class="py-0.2 inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-1.5 text-[9px] font-semibold text-sky-700 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-300"
-                            >
-                                Investor
-                            </span>
-                        </div>
+                        <span class="text-foreground text-xs font-bold">{{ item.name }}</span>
                         <div
                             class="text-muted-foreground flex flex-wrap items-center gap-1 text-[11px]"
                         >
@@ -321,12 +307,6 @@ const getStatusBadge = (status) => {
                                     <span class="text-muted-foreground text-xs font-normal">
                                         @{{ selectedInvestor.username }}
                                     </span>
-                                    <span
-                                        v-if="selectedInvestor.role === 'affiliator'"
-                                        class="border-primary-500/30 bg-primary-500/10 text-primary-700 dark:text-primary-300 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold"
-                                    >
-                                        Affiliator
-                                    </span>
                                 </div>
                                 <p class="text-muted-foreground text-xs">
                                     {{ selectedInvestor.email }} &bull; {{ selectedInvestor.phone }}
@@ -358,7 +338,7 @@ const getStatusBadge = (status) => {
                                 <div>
                                     <span
                                         class="text-muted-foreground block text-[10px] font-semibold uppercase"
-                                        >Kelahiran</span
+                                        >Tempat, Tanggal Lahir</span
                                     >
                                     <p class="text-foreground text-xs">
                                         {{
@@ -374,7 +354,7 @@ const getStatusBadge = (status) => {
                                 <div>
                                     <span
                                         class="text-muted-foreground block text-[10px] font-semibold uppercase"
-                                        >Pekerjaan</span
+                                        >Pekerjaan / Sumber Dana</span
                                     >
                                     <p class="text-foreground text-xs">
                                         {{ selectedInvestor.pekerjaan || '-' }}
@@ -411,7 +391,7 @@ const getStatusBadge = (status) => {
                                 <div>
                                     <span
                                         class="text-muted-foreground block text-[10px] font-semibold uppercase"
-                                        >Hubungan Keluarga</span
+                                        >Hubungan</span
                                     >
                                     <p class="text-foreground text-xs">
                                         {{ selectedInvestor.ahli_waris.hubungan_keluarga }}
@@ -463,7 +443,7 @@ const getStatusBadge = (status) => {
                                 <div>
                                     <span
                                         class="text-muted-foreground block text-[10px] font-semibold uppercase"
-                                        >Referral Affiliator</span
+                                        >Referral / Upline</span
                                     >
                                     <p
                                         v-if="selectedInvestor.upline"
@@ -753,7 +733,7 @@ const getStatusBadge = (status) => {
 
                     <!-- State Jika Foto KTP Belum Diunggah -->
                     <div v-else class="text-muted-foreground py-10 text-center text-xs italic">
-                        Dokumen Foto KTP belum diunggah oleh investor.
+                        Dokumen Foto KTP belum diunggah oleh calon member.
                     </div>
                 </div>
             </div>

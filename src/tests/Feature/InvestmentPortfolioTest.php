@@ -28,7 +28,7 @@ class InvestmentPortfolioTest extends TestCase
         ]);
 
         $this->investor = User::factory()->create([
-            'role'      => 'investor',
+            'role'      => 'member',
             'status'    => 'active',
             'is_active' => true,
         ]);
@@ -37,11 +37,11 @@ class InvestmentPortfolioTest extends TestCase
     public function test_investor_can_view_unified_investments_portfolio_page(): void
     {
         $response = $this->actingAs($this->investor)
-            ->get(route('investor.investments.index'));
+            ->get(route('member.investments.index'));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Investments/Index')
+            ->component('Member/Investments/Index')
             ->has('consolidated')
             ->has('accounts')
             ->where('consolidated.total_accounts', 0)
@@ -53,7 +53,7 @@ class InvestmentPortfolioTest extends TestCase
         $file = UploadedFile::fake()->create('surat_perjanjian.pdf', 500, 'application/pdf');
 
         $response = $this->actingAs($this->investor)
-            ->post(route('investor.investments.store'), [
+            ->post(route('member.investments.store'), [
                 'tier_investasi'        => 'tier_1',
                 'nomor_akun_trading'    => 'MT4-889900',
                 'modal_riil'            => 150.00,
@@ -64,7 +64,7 @@ class InvestmentPortfolioTest extends TestCase
                 'dokumen_perjanjian'    => $file,
             ]);
 
-        $response->assertRedirect(route('investor.investments.index'));
+        $response->assertRedirect(route('member.investments.index'));
         $this->assertDatabaseHas('akun_copytrade', [
             'user_id'            => $this->investor->id,
             'tier'               => 'tier_1',
@@ -92,14 +92,14 @@ class InvestmentPortfolioTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->investor)
-            ->post(route('investor.investments.balance.store'), [
+            ->post(route('member.investments.balance.store'), [
                 'akun_copytrade_id'  => $akun->id,
                 'tanggal_pencatatan' => '2026-02-01',
                 'balance'            => 108.00,
                 'catatan'            => 'Bulan Februari profit $8',
             ]);
 
-        $response->assertRedirect(route('investor.investments.index', ['account_id' => $akun->id]));
+        $response->assertRedirect(route('member.investments.index', ['account_id' => $akun->id]));
         $this->assertDatabaseHas('riwayat_balance_copytrade', [
             'akun_copytrade_id'    => $akun->id,
             'balance'              => 108.00,
@@ -162,11 +162,11 @@ class InvestmentPortfolioTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->investor)
-            ->get(route('investor.investments.index'));
+            ->get(route('member.investments.index'));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Investments/Index')
+            ->component('Member/Investments/Index')
             ->where('consolidated.total_accounts', 2)
             ->where('consolidated.active_accounts_count', 2)
             ->where('consolidated.total_initial_capital', fn ($val) => (float) $val === 300100.0)
@@ -202,9 +202,9 @@ class InvestmentPortfolioTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->investor)
-            ->delete(route('investor.investments.balance.destroy', $rec->id));
+            ->delete(route('member.investments.balance.destroy', $rec->id));
 
-        $response->assertRedirect(route('investor.investments.index', ['account_id' => $akun->id]));
+        $response->assertRedirect(route('member.investments.index', ['account_id' => $akun->id]));
         $this->assertDatabaseMissing('riwayat_balance_copytrade', [
             'id' => $rec->id,
         ]);
@@ -213,17 +213,17 @@ class InvestmentPortfolioTest extends TestCase
     public function test_legacy_copytrade_routes_redirect_to_investments_page(): void
     {
         $resp1 = $this->actingAs($this->investor)
-            ->get(route('investor.copytrade.index'));
-        $resp1->assertRedirect(route('investor.investments.index'));
+            ->get(route('member.copytrade.index'));
+        $resp1->assertRedirect(route('member.investments.index'));
 
         $resp2 = $this->actingAs($this->investor)
-            ->get(route('investor.copytrade.balance.index'));
-        $resp2->assertRedirect(route('investor.investments.index'));
+            ->get(route('member.copytrade.balance.index'));
+        $resp2->assertRedirect(route('member.investments.index'));
     }
 
     public function test_unauthenticated_user_cannot_access_investments(): void
     {
-        $response = $this->get(route('investor.investments.index'));
+        $response = $this->get(route('member.investments.index'));
         $response->assertRedirect(route('login'));
     }
 
@@ -261,7 +261,7 @@ class InvestmentPortfolioTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->investor)
-            ->get(route('investor.investments.index'));
+            ->get(route('member.investments.index'));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
@@ -288,7 +288,7 @@ class InvestmentPortfolioTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->investor)
-            ->get(route('investor.investments.index'));
+            ->get(route('member.investments.index'));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
@@ -320,7 +320,7 @@ class InvestmentPortfolioTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->investor)
-            ->post(route('investor.investments.balance.store'), [
+            ->post(route('member.investments.balance.store'), [
                 'akun_copytrade_id'  => $pendingAccount->id,
                 'tanggal_pencatatan' => '2026-02-01',
                 'balance'            => 105.00,
@@ -339,7 +339,7 @@ class InvestmentPortfolioTest extends TestCase
 
         // Modal $50 (di bawah $100) harus BERHASIL didaftarkan untuk Tier 1
         $responseSuccess = $this->actingAs($this->investor)
-            ->post(route('investor.investments.store'), [
+            ->post(route('member.investments.store'), [
                 'tier_investasi'        => 'tier_1',
                 'nomor_akun_trading'    => 'MT4-TIER1-50',
                 'modal_riil'            => 50.00,
@@ -350,7 +350,7 @@ class InvestmentPortfolioTest extends TestCase
                 'dokumen_perjanjian'    => $file,
             ]);
 
-        $responseSuccess->assertRedirect(route('investor.investments.index'));
+        $responseSuccess->assertRedirect(route('member.investments.index'));
         $this->assertDatabaseHas('akun_copytrade', [
             'nomor_akun_trading' => 'MT4-TIER1-50',
             'modal_riil'         => 50.00,
@@ -359,7 +359,7 @@ class InvestmentPortfolioTest extends TestCase
 
         // Modal $5,000 (tidak boleh untuk Tier 1, karena harus di bawah $5,000)
         $responseFail = $this->actingAs($this->investor)
-            ->post(route('investor.investments.store'), [
+            ->post(route('member.investments.store'), [
                 'tier_investasi'        => 'tier_1',
                 'nomor_akun_trading'    => 'MT4-TIER1-5000',
                 'modal_riil'            => 5000.00,
@@ -376,7 +376,7 @@ class InvestmentPortfolioTest extends TestCase
     {
         // Modal $4,999 (di bawah $5,000) harus gagal di Tier 2
         $responseUnder = $this->actingAs($this->investor)
-            ->post(route('investor.investments.store'), [
+            ->post(route('member.investments.store'), [
                 'tier_investasi'        => 'tier_2',
                 'nomor_akun_trading'    => 'MT4-TIER2-UNDER',
                 'modal_riil'            => 4999.00,
@@ -389,7 +389,7 @@ class InvestmentPortfolioTest extends TestCase
 
         // Modal $300,001 (di atas $300,000) harus gagal di Tier 2
         $responseOver = $this->actingAs($this->investor)
-            ->post(route('investor.investments.store'), [
+            ->post(route('member.investments.store'), [
                 'tier_investasi'        => 'tier_2',
                 'nomor_akun_trading'    => 'MT4-TIER2-OVER',
                 'modal_riil'            => 300001.00,
@@ -403,7 +403,7 @@ class InvestmentPortfolioTest extends TestCase
         // Modal $10,000 (valid range $5,000 s/d $300,000) harus berhasil
         $file = UploadedFile::fake()->create('surat.pdf', 200, 'application/pdf');
         $responseValid = $this->actingAs($this->investor)
-            ->post(route('investor.investments.store'), [
+            ->post(route('member.investments.store'), [
                 'tier_investasi'        => 'tier_2',
                 'nomor_akun_trading'    => 'MT4-TIER2-VALID',
                 'modal_riil'            => 10000.00,
@@ -413,7 +413,7 @@ class InvestmentPortfolioTest extends TestCase
                 'atas_nama_rekening'    => 'Investor Test',
                 'dokumen_perjanjian'    => $file,
             ]);
-        $responseValid->assertRedirect(route('investor.investments.index'));
+        $responseValid->assertRedirect(route('member.investments.index'));
         $this->assertDatabaseHas('akun_copytrade', [
             'nomor_akun_trading' => 'MT4-TIER2-VALID',
             'tier'               => 'tier_2',
@@ -424,7 +424,7 @@ class InvestmentPortfolioTest extends TestCase
     {
         // Modal $299,999 (di bawah $300,000) harus gagal di Tier 3
         $responseUnder = $this->actingAs($this->investor)
-            ->post(route('investor.investments.store'), [
+            ->post(route('member.investments.store'), [
                 'tier_investasi'        => 'tier_3',
                 'nomor_akun_trading'    => 'MT4-TIER3-UNDER',
                 'modal_riil'            => 299999.00,
@@ -441,7 +441,7 @@ class InvestmentPortfolioTest extends TestCase
         // Modal $300,000 (tepat minimal) harus berhasil di Tier 3
         $file = UploadedFile::fake()->create('surat.pdf', 200, 'application/pdf');
         $responseValid = $this->actingAs($this->investor)
-            ->post(route('investor.investments.store'), [
+            ->post(route('member.investments.store'), [
                 'tier_investasi'        => 'tier_3',
                 'nomor_akun_trading'    => 'MT4-TIER3-VALID',
                 'modal_riil'            => 300000.00,
@@ -454,7 +454,7 @@ class InvestmentPortfolioTest extends TestCase
                 'investor_password'     => 'InvestorSecret456',
                 'dokumen_perjanjian'    => $file,
             ]);
-        $responseValid->assertRedirect(route('investor.investments.index'));
+        $responseValid->assertRedirect(route('member.investments.index'));
         $this->assertDatabaseHas('akun_copytrade', [
             'nomor_akun_trading' => 'MT4-TIER3-VALID',
             'tier'               => 'tier_3',
@@ -466,7 +466,7 @@ class InvestmentPortfolioTest extends TestCase
         // 1. Akun pertama: mendaftar dengan bank & berkas perjanjian
         $file = UploadedFile::fake()->create('perjanjian_awal.pdf', 300, 'application/pdf');
         $resp1 = $this->actingAs($this->investor)
-            ->post(route('investor.investments.store'), [
+            ->post(route('member.investments.store'), [
                 'tier_investasi'        => 'tier_1',
                 'nomor_akun_trading'    => 'MT4-ACC-FIRST',
                 'modal_riil'            => 1000.00,
@@ -476,19 +476,19 @@ class InvestmentPortfolioTest extends TestCase
                 'atas_nama_rekening'    => 'Investor Pertama',
                 'dokumen_perjanjian'    => $file,
             ]);
-        $resp1->assertRedirect(route('investor.investments.index'));
+        $resp1->assertRedirect(route('member.investments.index'));
         $firstAccount = AkunCopytrade::where('nomor_akun_trading', 'MT4-ACC-FIRST')->firstOrFail();
 
         // 2. Akun kedua: mendaftar TANPA mengirim bank dan TANPA mengirim surat perjanjian (karena field disembunyikan)
         $resp2 = $this->actingAs($this->investor)
-            ->post(route('investor.investments.store'), [
+            ->post(route('member.investments.store'), [
                 'tier_investasi'        => 'tier_2',
                 'nomor_akun_trading'    => 'MT4-ACC-SECOND',
                 'modal_riil'            => 15000.00,
                 'tanggal_mulai_trading' => '2026-03-01',
                 // nama_bank, nomor_rekening, atas_nama_rekening, dokumen_perjanjian tidak dikirim
             ]);
-        $resp2->assertRedirect(route('investor.investments.index'));
+        $resp2->assertRedirect(route('member.investments.index'));
 
         // 3. Pastikan akun kedua berhasil tersimpan dan mewarisi data bank & perjanjian dari akun sebelumnya
         $secondAccount = AkunCopytrade::where('nomor_akun_trading', 'MT4-ACC-SECOND')->firstOrFail();
@@ -513,7 +513,7 @@ class InvestmentPortfolioTest extends TestCase
         ];
 
         $response = $this->actingAs($this->investor)
-            ->get(route('investor.investments.template', ['tier' => 'tier_3']) . '?' . http_build_query($params));
+            ->get(route('member.investments.template', ['tier' => 'tier_3']) . '?' . http_build_query($params));
 
         $response->assertStatus(200);
         $this->assertStringContainsString('Surat_Perjanjian_Kemitraan_TIER3_', $response->headers->get('content-disposition'));
@@ -573,7 +573,7 @@ class InvestmentPortfolioTest extends TestCase
             'pertumbuhan_kumulatif_persen' => 25,
         ]);
 
-        $response = $this->actingAs($this->investor)->get(route('investor.investments.index', [
+        $response = $this->actingAs($this->investor)->get(route('member.investments.index', [
             'account_id' => $akun->id,
             'period'     => 'custom',
             'start_date' => '2026-05',
@@ -608,7 +608,7 @@ class InvestmentPortfolioTest extends TestCase
         ]);
 
         // Halaman portofolio: akun ditolak hilang dari list (accounts kosong) & has_existing = false
-        $response = $this->actingAs($this->investor)->get(route('investor.investments.index'));
+        $response = $this->actingAs($this->investor)->get(route('member.investments.index'));
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->has('accounts', 0)
@@ -627,7 +627,7 @@ class InvestmentPortfolioTest extends TestCase
         ];
 
         $this->actingAs($this->investor)
-            ->post(route('investor.investments.store'), $payloadWithoutDoc)
+            ->post(route('member.investments.store'), $payloadWithoutDoc)
             ->assertSessionHasErrors('dokumen_perjanjian');
 
         // Pengajuan ulang dengan dokumen perjanjian berhasil
@@ -635,8 +635,8 @@ class InvestmentPortfolioTest extends TestCase
         $payloadWithDoc = array_merge($payloadWithoutDoc, ['dokumen_perjanjian' => $file]);
 
         $this->actingAs($this->investor)
-            ->post(route('investor.investments.store'), $payloadWithDoc)
-            ->assertRedirect(route('investor.investments.index'));
+            ->post(route('member.investments.store'), $payloadWithDoc)
+            ->assertRedirect(route('member.investments.index'));
 
         $this->assertDatabaseHas('akun_copytrade', [
             'user_id'            => $this->investor->id,
@@ -650,7 +650,7 @@ class InvestmentPortfolioTest extends TestCase
         // 1. Akun pertama pending
         $file = UploadedFile::fake()->create('surat_perjanjian.pdf', 500, 'application/pdf');
         $this->actingAs($this->investor)
-            ->post(route('investor.investments.store'), [
+            ->post(route('member.investments.store'), [
                 'tier_investasi'        => 'tier_1',
                 'nomor_akun_trading'    => 'PENDING-1',
                 'modal_riil'            => 100.00,
@@ -660,10 +660,10 @@ class InvestmentPortfolioTest extends TestCase
                 'atas_nama_rekening'    => 'Investor Test',
                 'dokumen_perjanjian'    => $file,
             ])
-            ->assertRedirect(route('investor.investments.index'));
+            ->assertRedirect(route('member.investments.index'));
 
         // Portofolio sekarang memiliki 1 akun pending, has_existing = true
-        $response = $this->actingAs($this->investor)->get(route('investor.investments.index'));
+        $response = $this->actingAs($this->investor)->get(route('member.investments.index'));
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->has('accounts', 1)
@@ -672,7 +672,7 @@ class InvestmentPortfolioTest extends TestCase
 
         // Pengajuan akun kedua sekaligus tanpa dokumen perjanjian HARUS BERHASIL
         $this->actingAs($this->investor)
-            ->post(route('investor.investments.store'), [
+            ->post(route('member.investments.store'), [
                 'tier_investasi'        => 'tier_2',
                 'nomor_akun_trading'    => 'PENDING-2',
                 'modal_riil'            => 5000.00,
@@ -681,7 +681,7 @@ class InvestmentPortfolioTest extends TestCase
                 'nomor_rekening'        => '12345',
                 'atas_nama_rekening'    => 'Investor Test',
             ])
-            ->assertRedirect(route('investor.investments.index'));
+            ->assertRedirect(route('member.investments.index'));
 
         $this->assertDatabaseHas('akun_copytrade', [
             'user_id'            => $this->investor->id,
@@ -722,14 +722,14 @@ class InvestmentPortfolioTest extends TestCase
 
         // Update tanggal menjadi 2026-02-15 dan saldo 115.00
         $response = $this->actingAs($this->investor)
-            ->put(route('investor.investments.balance.update', $record->id), [
+            ->put(route('member.investments.balance.update', $record->id), [
                 'akun_copytrade_id'  => $akun->id,
                 'tanggal_pencatatan' => '2026-02-15',
                 'balance'            => 115.00,
                 'catatan'            => 'Catatan diperbarui',
             ]);
 
-        $response->assertRedirect(route('investor.investments.index', ['account_id' => $akun->id]));
+        $response->assertRedirect(route('member.investments.index', ['account_id' => $akun->id]));
         $response->assertSessionHas('success');
 
         // Pastikan TIDAK membuat baris baru (tetap tepat 1 record)
@@ -783,7 +783,7 @@ class InvestmentPortfolioTest extends TestCase
 
         // Coba ubah record1 ke tanggal record2 (2026-03-01)
         $response = $this->actingAs($this->investor)
-            ->put(route('investor.investments.balance.update', $record1->id), [
+            ->put(route('member.investments.balance.update', $record1->id), [
                 'akun_copytrade_id'  => $akun->id,
                 'tanggal_pencatatan' => '2026-03-01',
                 'balance'            => 112.00,
@@ -821,7 +821,7 @@ class InvestmentPortfolioTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->investor)
-            ->put(route('investor.investments.balance.update', $otherRecord->id), [
+            ->put(route('member.investments.balance.update', $otherRecord->id), [
                 'akun_copytrade_id'  => $otherAkun->id,
                 'tanggal_pencatatan' => '2026-02-15',
                 'balance'            => 115.00,

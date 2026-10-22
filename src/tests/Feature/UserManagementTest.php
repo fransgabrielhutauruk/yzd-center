@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\AkunCopytrade;
-use App\Models\KlaimKomisi;
 use App\Models\RelasiReferral;
 use App\Models\User;
 use App\Models\UserAhliWaris;
@@ -34,19 +33,38 @@ class UserManagementTest extends TestCase
         ]);
 
         $this->affiliator = User::factory()->create([
-            'role'          => 'affiliator',
+            'role'          => 'member',
             'status'        => 'active',
             'is_active'     => true,
             'referral_code' => 'AFF-TOP',
         ]);
 
         $this->investor = User::factory()->create([
-            'role'      => 'investor',
-            'status'    => 'active',
-            'is_active' => true,
+            'role'          => 'member',
+            'status'        => 'active',
+            'is_active'     => true,
+            'referral_code' => 'INV-001',
         ]);
 
-        // Hubungkan investor di bawah affiliator
+        // Berikan akun copytrade aktif pada $this->investor agar berlabel 'Investor'
+        AkunCopytrade::create([
+            'user_id'            => $this->investor->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'Exness',
+            'tipe_akun'          => 'Standard',
+            'nomor_akun_trading' => '99887766',
+            'server_broker'      => 'Exness-Real10',
+            'master_password'    => 'secret123',
+            'investor_password'  => 'invpass123',
+            'modal_riil'         => 5000.00,
+            'status'             => 'active',
+            'tanggal_mulai'      => now()->toDateString(),
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => $this->investor->name,
+        ]);
+
+        // Hubungkan investor di bawah affiliator agar $this->affiliator berlabel 'Affiliator'
         RelasiReferral::create([
             'affiliator_id' => $this->affiliator->id,
             'downline_id'   => $this->investor->id,
@@ -65,7 +83,7 @@ class UserManagementTest extends TestCase
         $responseDetail->assertRedirect('/login');
     }
 
-    public function test_investor_and_affiliator_cannot_access_user_management(): void
+    public function test_regular_member_cannot_access_user_management(): void
     {
         $response = $this->actingAs($this->investor)
             ->get(route('admin.users.index'));
@@ -78,7 +96,7 @@ class UserManagementTest extends TestCase
 
     public function test_admin_can_view_users_list_and_excludes_administrators(): void
     {
-        $anotherAdmin = User::factory()->create([
+        User::factory()->create([
             'name'      => 'Another Super Admin',
             'role'      => 'administrator',
             'status'    => 'active',
@@ -91,7 +109,7 @@ class UserManagementTest extends TestCase
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Users/Index')
-            ->has('users.data', 2) // Hanya investor dan affiliator (Opsi B)
+            ->has('users.data', 2) // Hanya member (investor & affiliator)
             ->where('stats.total_users', 2)
             ->where('stats.total_investors', 1)
             ->where('stats.total_affiliators', 1)
@@ -104,7 +122,7 @@ class UserManagementTest extends TestCase
 
     public function test_admin_can_filter_users_by_role_status_and_search(): void
     {
-        // Filter by role: investor
+        // Filter by derived role: investor
         $responseRole = $this->actingAs($this->admin)
             ->get(route('admin.users.index', ['role' => 'investor']));
 
@@ -115,7 +133,7 @@ class UserManagementTest extends TestCase
             ->where('users.data.0.id', $this->investor->id)
         );
 
-        // Filter by role: affiliator
+        // Filter by derived role: affiliator
         $responseAff = $this->actingAs($this->admin)
             ->get(route('admin.users.index', ['role' => 'affiliator']));
 
@@ -140,7 +158,6 @@ class UserManagementTest extends TestCase
 
     public function test_admin_can_view_complete_user_detail_page(): void
     {
-        // Lengkapi data ahli waris, KTP, dan akun copytrade
         UserAhliWaris::create([
             'user_id'           => $this->investor->id,
             'nama'              => 'Budi Waris',
@@ -160,22 +177,9 @@ class UserManagementTest extends TestCase
             'verified_at'  => now(),
         ]);
 
-        AkunCopytrade::create([
-            'user_id'               => $this->investor->id,
-            'tier'                  => 'tier_1',
-            'broker'                => 'Exness',
-            'tipe_akun'             => 'Standard',
-            'nomor_akun_trading'    => '99887766',
-            'server_broker'         => 'Exness-Real10',
-            'master_password'       => 'secret123',
-            'investor_password'     => 'invpass123',
-            'modal_riil'            => 5000.00,
-            'status'                => 'active',
+        // Tambah surat perjanjian path pada akun copytrade yang sudah dibuat di setUp
+        $this->investor->akunCopytrades()->first()->update([
             'surat_perjanjian_path' => 'documents/agreements/surat.pdf',
-            'tanggal_mulai'         => now()->toDateString(),
-            'nama_bank'             => 'BCA',
-            'nomor_rekening'        => '1234567890',
-            'atas_nama_rekening'    => $this->investor->name,
         ]);
 
         // Buat akun copytrade yang masih pending verifikasi admin
@@ -201,6 +205,7 @@ class UserManagementTest extends TestCase
             ->component('Admin/Users/Show')
             ->where('user.id', $this->investor->id)
             ->where('user.name', $this->investor->name)
+            ->where('user.role', 'member')
             ->where('user.ahli_waris.nama', 'Budi Waris')
             ->where('user.ktp.file_name', 'ktp_investor.jpg')
             ->where('user.surat_perjanjian.preview_url', '/documents/copytrade/' . AkunCopytrade::first()->id)
@@ -251,7 +256,7 @@ class UserManagementTest extends TestCase
         $user = User::factory()->create([
             'email'     => 'inactive@example.com',
             'password'  => Hash::make($password),
-            'role'      => 'investor',
+            'role'      => 'member',
             'status'    => 'active',
             'is_active' => false,
         ]);
@@ -268,14 +273,13 @@ class UserManagementTest extends TestCase
     public function test_deactivated_user_with_active_session_is_logged_out_by_middleware(): void
     {
         $user = User::factory()->create([
-            'role'      => 'investor',
+            'role'      => 'member',
             'status'    => 'active',
-            'is_active' => false, // akun dinonaktifkan
+            'is_active' => false,
         ]);
 
-        // User mencoba mengakses halaman yang dilindungi middleware
         $response = $this->actingAs($user)
-            ->get(route('investor.dashboard'));
+            ->get(route('member.dashboard'));
 
         $response->assertRedirect('/login');
         $response->assertSessionHasErrors(['login']);
@@ -306,7 +310,7 @@ class UserManagementTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Users/Show')
             ->where('user.id', $this->affiliator->id)
-            ->where('user.role', 'affiliator')
+            ->where('user.role', 'member')
             ->where('user.referral_code', 'AFF-TOP')
             ->has('user.downlines', 1)
             ->where('user.downlines.0.id', $this->investor->id)
@@ -349,21 +353,6 @@ class UserManagementTest extends TestCase
             'tier'               => 'tier_1',
             'broker'             => 'Exness',
             'tipe_akun'          => 'Standard',
-            'nomor_akun_trading' => '11112222',
-            'server_broker'      => 'Exness-Real1',
-            'modal_riil'         => 1000.00,
-            'status'             => 'active',
-            'tanggal_mulai'      => now()->toDateString(),
-            'nama_bank'          => 'BCA',
-            'nomor_rekening'     => '1234567890',
-            'atas_nama_rekening' => $this->investor->name,
-        ]);
-
-        AkunCopytrade::create([
-            'user_id'            => $this->investor->id,
-            'tier'               => 'tier_1',
-            'broker'             => 'Exness',
-            'tipe_akun'          => 'Standard',
             'nomor_akun_trading' => '33334444',
             'server_broker'      => 'Exness-Real1',
             'modal_riil'         => 2000.00,
@@ -392,22 +381,7 @@ class UserManagementTest extends TestCase
 
     public function test_admin_can_sort_users_by_copytrade_count(): void
     {
-        // Investor memiliki 2 akun aktif copytrade
-        AkunCopytrade::create([
-            'user_id'            => $this->investor->id,
-            'tier'               => 'tier_1',
-            'broker'             => 'Exness',
-            'tipe_akun'          => 'Standard',
-            'nomor_akun_trading' => '55556666',
-            'server_broker'      => 'Exness-Real1',
-            'modal_riil'         => 1000.00,
-            'status'             => 'active',
-            'tanggal_mulai'      => now()->toDateString(),
-            'nama_bank'          => 'BCA',
-            'nomor_rekening'     => '1234567890',
-            'atas_nama_rekening' => $this->investor->name,
-        ]);
-
+        // Investor menambah 1 akun aktif copytrade lagi (total 2 akun)
         AkunCopytrade::create([
             'user_id'            => $this->investor->id,
             'tier'               => 'tier_1',
@@ -456,26 +430,67 @@ class UserManagementTest extends TestCase
 
     public function test_admin_users_stats_exclude_inactive_from_investor_and_affiliator_counts(): void
     {
-        // Buat 1 affiliator nonaktif tambahan
-        User::factory()->create([
-            'role'      => 'affiliator',
+        // Buat 1 member nonaktif yang punya downline
+        $inactiveAff = User::factory()->create([
+            'role'      => 'member',
             'status'    => 'active',
             'is_active' => false,
         ]);
+        $subUser = User::factory()->create(['role' => 'member', 'is_active' => true]);
+        RelasiReferral::create([
+            'affiliator_id' => $inactiveAff->id,
+            'downline_id'   => $subUser->id,
+            'status'        => 'active',
+            'sumber'        => 'link_otomatis',
+            'joined_at'     => now(),
+        ]);
 
-        // Buat 2 investor nonaktif tambahan
-        User::factory()->count(2)->create([
-            'role'      => 'investor',
+        // Buat 2 member nonaktif dengan copytrade
+        $inactiveInv1 = User::factory()->create([
+            'role'      => 'member',
             'status'    => 'active',
             'is_active' => false,
+        ]);
+        AkunCopytrade::create([
+            'user_id'            => $inactiveInv1->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'Exness',
+            'tipe_akun'          => 'Standard',
+            'nomor_akun_trading' => '990011',
+            'modal_riil'         => 1000,
+            'status'             => 'active',
+            'tanggal_mulai'      => now(),
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => $inactiveInv1->name,
+        ]);
+
+        $inactiveInv2 = User::factory()->create([
+            'role'      => 'member',
+            'status'    => 'active',
+            'is_active' => false,
+        ]);
+        AkunCopytrade::create([
+            'user_id'            => $inactiveInv2->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'Exness',
+            'tipe_akun'          => 'Standard',
+            'nomor_akun_trading' => '990022',
+            'modal_riil'         => 1000,
+            'status'             => 'active',
+            'tanggal_mulai'      => now(),
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => $inactiveInv2->name,
         ]);
 
         // Total awal: 1 active investor, 1 active affiliator
-        // Sekarang ada tambahan: 1 inactive affiliator, 2 inactive investor
-        // Total users = 5 (2 aktif + 3 nonaktif)
+        // Tambahan: 1 subUser aktif (belum punya copytrade/downline), 1 inactiveAff, 2 inactiveInv
+        // Total users = 2 awal + 1 subUser + 1 inactiveAff + 2 inactiveInv = 6
         // Total investors (hanya aktif) = 1
         // Total affiliators (hanya aktif) = 1
-        // Total inactive = 3 (1 affiliator + 2 investor)
+        // Total active = 3
+        // Total inactive = 3
         // Inactive affiliators = 1
         // Inactive investors = 2
 
@@ -485,134 +500,61 @@ class UserManagementTest extends TestCase
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Users/Index')
-            ->where('stats.total_users', 5)
+            ->where('stats.total_users', 6)
             ->where('stats.total_investors', 1)
             ->where('stats.total_affiliators', 1)
-            ->where('stats.total_active', 2)
+            ->where('stats.total_active', 3)
             ->where('stats.total_inactive', 3)
             ->where('stats.inactive_affiliators', 1)
             ->where('stats.inactive_investors', 2)
         );
     }
 
-    public function test_admin_can_promote_investor_to_affiliator_and_generates_referral_code(): void
+    public function test_switch_role_route_is_removed_and_returns_404(): void
     {
-        $this->assertNull($this->investor->referral_code);
-        $this->assertEquals('investor', $this->investor->role);
-
-        // Simulasi sesi aktif di tabel sessions
-        DB::table('sessions')->insert([
-            'id'            => 'sess_test_investor',
-            'user_id'       => $this->investor->id,
-            'ip_address'    => '127.0.0.1',
-            'user_agent'    => 'PHPUnit',
-            'payload'       => 'test',
-            'last_activity' => time(),
-        ]);
-
         $response = $this->actingAs($this->admin)
-            ->post(route('admin.users.switch_role', $this->investor->id));
+            ->post("/admin/users/{$this->investor->id}/switch-role");
 
-        $response->assertRedirect();
-        $response->assertSessionHas('success');
-
-        $this->investor->refresh();
-        $this->assertEquals('affiliator', $this->investor->role);
-        $this->assertNotNull($this->investor->referral_code);
-        $this->assertEquals(6, strlen($this->investor->referral_code));
-
-        // Verifikasi sesi dihapus
-        $this->assertDatabaseMissing('sessions', ['id' => 'sess_test_investor']);
+        $response->assertStatus(404);
     }
 
-    public function test_admin_can_promote_investor_who_already_had_referral_code_and_preserves_it(): void
+    public function test_user_derived_labels_are_dynamically_calculated(): void
     {
-        $this->investor->referral_code = 'PREV99';
-        $this->investor->save();
-
-        $response = $this->actingAs($this->admin)
-            ->post(route('admin.users.switch_role', $this->investor->id));
-
-        $response->assertRedirect();
-        $response->assertSessionHas('success');
-
-        $this->investor->refresh();
-        $this->assertEquals('affiliator', $this->investor->role);
-        $this->assertEquals('PREV99', $this->investor->referral_code);
-    }
-
-    public function test_admin_can_demote_affiliator_to_investor_when_no_pending_commission(): void
-    {
-        $this->assertEquals('affiliator', $this->affiliator->role);
-
-        $response = $this->actingAs($this->admin)
-            ->post(route('admin.users.switch_role', $this->affiliator->id));
-
-        $response->assertRedirect();
-        $response->assertSessionHas('success');
-
-        $this->affiliator->refresh();
-        $this->assertEquals('investor', $this->affiliator->role);
-
-        // Verifikasi relasi downline tetap dipertahankan di database
-        $this->assertDatabaseHas('relasi_referral', [
-            'affiliator_id' => $this->affiliator->id,
-            'downline_id'   => $this->investor->id,
-        ]);
-    }
-
-    public function test_admin_cannot_demote_affiliator_with_pending_commission_claim(): void
-    {
-        KlaimKomisi::create([
-            'kode_klaim'                 => 'CLM-PENDING-001',
-            'affiliator_id'              => $this->affiliator->id,
-            'total_downline'             => 1,
-            'total_akun'                 => 1,
-            'total_modal_riil'           => 100,
-            'total_deposit_amount'       => 100,
-            'total_gross_profit'         => 0,
-            'total_master_gross_share'   => 0,
-            'total_master_net_share'     => 0,
-            'total_investor_net_profit'  => 0,
-            'total_affiliate_commission' => 10,
-            'total_profit_master'        => 0,
-            'total_nominal_transfer'     => 10,
-            'kurs_konversi_idr'          => 15000,
-            'total_nominal_transfer_idr' => 150000,
-            'nama_bank'                  => 'BCA',
-            'nomor_rekening'             => '123456789',
-            'atas_nama_rekening'         => 'Test Affiliator',
-            'status'                     => 'pending',
-        ]);
-
-        $response = $this->actingAs($this->admin)
-            ->post(route('admin.users.switch_role', $this->affiliator->id));
-
-        $response->assertRedirect();
-        $response->assertSessionHas('error');
-
-        $this->affiliator->refresh();
-        $this->assertEquals('affiliator', $this->affiliator->role);
-    }
-
-    public function test_admin_cannot_switch_role_of_administrator_or_themselves(): void
-    {
-        $anotherAdmin = User::factory()->create([
-            'role'      => 'administrator',
+        // 1. Member polos tanpa copytrade dan downline
+        $plainMember = User::factory()->create([
+            'role'      => 'member',
             'status'    => 'active',
             'is_active' => true,
         ]);
+        $this->assertEquals(['Member'], $plainMember->getDerivedLabels());
+        $this->assertFalse($plainMember->isInvestorLabel());
+        $this->assertFalse($plainMember->isAffiliatorLabel());
 
-        // Coba ubah admin lain
-        $response1 = $this->actingAs($this->admin)
-            ->post(route('admin.users.switch_role', $anotherAdmin->id));
-        $response1->assertRedirect();
-        $response1->assertSessionHas('error');
+        // 2. Member dengan akun copytrade aktif
+        $this->assertTrue($this->investor->isInvestorLabel());
+        $this->assertEquals(['Investor'], $this->investor->getDerivedLabels());
 
-        // Coba ubah akun sendiri
-        $response2 = $this->actingAs($this->admin)
-            ->post(route('admin.users.switch_role', $this->admin->id));
-        $response2->assertRedirect();
-        $response2->assertSessionHas('error');
+        // 3. Member dengan downline aktif
+        $this->assertTrue($this->affiliator->isAffiliatorLabel());
+        $this->assertEquals(['Affiliator'], $this->affiliator->getDerivedLabels());
+
+        // 4. Member dengan keduanya (Investor & Affiliator)
+        AkunCopytrade::create([
+            'user_id'            => $this->affiliator->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'Exness',
+            'tipe_akun'          => 'Standard',
+            'nomor_akun_trading' => '88889999',
+            'modal_riil'         => 3000,
+            'status'             => 'active',
+            'tanggal_mulai'      => now(),
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => $this->affiliator->name,
+        ]);
+        $this->affiliator->refresh();
+        $this->assertTrue($this->affiliator->isInvestorLabel());
+        $this->assertTrue($this->affiliator->isAffiliatorLabel());
+        $this->assertEquals(['Investor', 'Affiliator'], $this->affiliator->getDerivedLabels());
     }
 }

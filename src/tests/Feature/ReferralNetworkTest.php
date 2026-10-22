@@ -49,7 +49,7 @@ class ReferralNetworkTest extends TestCase
             'name'      => 'Budi Santoso',
             'email'     => 'budi@test.com',
             'username'  => 'budisantoso',
-            'role'      => 'investor',
+            'role'      => 'member',
             'status'    => 'active',
             'is_active' => true,
         ]);
@@ -276,11 +276,11 @@ class ReferralNetworkTest extends TestCase
             'status'             => 'pending',
         ]);
 
-        $response = $this->actingAs($this->affiliator)->get(route('investor.affiliates.index'));
+        $response = $this->actingAs($this->affiliator)->get(route('member.affiliates.index'));
 
         $response->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->component('Investor/Affiliates/Index')
+                ->component('Member/Affiliates/Index')
                 ->has('stats')
                 ->has('downlines.data', 1)
                 ->where('stats.referral_code', 'ABI8K2')
@@ -290,31 +290,31 @@ class ReferralNetworkTest extends TestCase
             );
     }
 
-    public function test_non_affiliator_cannot_access_affiliate_portal(): void
+    public function test_all_members_can_access_affiliate_portal(): void
     {
-        $response = $this->actingAs($this->investor)->get(route('investor.affiliates.index'));
+        $response = $this->actingAs($this->investor)->get(route('member.affiliates.index'));
 
-        $response->assertForbidden();
+        $response->assertOk();
     }
 
     public function test_affiliator_can_submit_referral_claim_with_proof_and_reason(): void
     {
         // Investor tanpa upline
         $unlinkedInvestor = User::factory()->create([
-            'role'      => 'investor',
+            'role'      => 'member',
             'status'    => 'active',
             'is_active' => true,
         ]);
 
         $chatProof = UploadedFile::fake()->image('chat_wa.png', 720, 1280);
 
-        $response = $this->actingAs($this->affiliator)->post(route('investor.affiliates.claims.store'), [
+        $response = $this->actingAs($this->affiliator)->post(route('member.affiliates.claims.store'), [
             'downline_id' => $unlinkedInvestor->id,
             'bukti_chat'  => $chatProof,
             'alasan'      => 'Investor lupa memasukkan kode referral saya saat mendaftar kemarin sore.',
         ]);
 
-        $response->assertRedirect(route('investor.affiliates.index'));
+        $response->assertRedirect(route('member.affiliates.index'));
         $response->assertSessionHas('success');
 
         $this->assertDatabaseHas('klaim_referral', [
@@ -330,17 +330,17 @@ class ReferralNetworkTest extends TestCase
     public function test_affiliator_can_submit_referral_claim_without_proof_file(): void
     {
         $unlinkedInvestor = User::factory()->create([
-            'role'      => 'investor',
+            'role'      => 'member',
             'status'    => 'active',
             'is_active' => true,
         ]);
 
-        $response = $this->actingAs($this->affiliator)->post(route('investor.affiliates.claims.store'), [
+        $response = $this->actingAs($this->affiliator)->post(route('member.affiliates.claims.store'), [
             'downline_id' => $unlinkedInvestor->id,
             'alasan'      => 'Investor kenalan langsung offline tanpa chat WhatsApp.',
         ]);
 
-        $response->assertRedirect(route('investor.affiliates.index'));
+        $response->assertRedirect(route('member.affiliates.index'));
         $response->assertSessionHas('success');
 
         $this->assertDatabaseHas('klaim_referral', [
@@ -354,20 +354,20 @@ class ReferralNetworkTest extends TestCase
     public function test_affiliator_can_submit_referral_claim_with_pdf_proof(): void
     {
         $unlinkedInvestor = User::factory()->create([
-            'role'      => 'investor',
+            'role'      => 'member',
             'status'    => 'active',
             'is_active' => true,
         ]);
 
         $pdfProof = UploadedFile::fake()->create('dokumen_chat.pdf', 500, 'application/pdf');
 
-        $response = $this->actingAs($this->affiliator)->post(route('investor.affiliates.claims.store'), [
+        $response = $this->actingAs($this->affiliator)->post(route('member.affiliates.claims.store'), [
             'downline_id' => $unlinkedInvestor->id,
             'bukti_chat'  => $pdfProof,
             'alasan'      => 'Bukti percakapan dilampirkan dalam format PDF.',
         ]);
 
-        $response->assertRedirect(route('investor.affiliates.index'));
+        $response->assertRedirect(route('member.affiliates.index'));
         $response->assertSessionHas('success');
 
         $claim = KlaimReferral::where('downline_id', $unlinkedInvestor->id)->firstOrFail();
@@ -379,19 +379,19 @@ class ReferralNetworkTest extends TestCase
     public function test_affiliator_can_submit_referral_claim_with_long_reason_exceeding_1000_chars(): void
     {
         $unlinkedInvestor = User::factory()->create([
-            'role'      => 'investor',
+            'role'      => 'member',
             'status'    => 'active',
             'is_active' => true,
         ]);
 
         $longReason = str_repeat('Ini adalah kronologi detail perkenalan offline yang sangat panjang. ', 50); // ~3500 chars
 
-        $response = $this->actingAs($this->affiliator)->post(route('investor.affiliates.claims.store'), [
+        $response = $this->actingAs($this->affiliator)->post(route('member.affiliates.claims.store'), [
             'downline_id' => $unlinkedInvestor->id,
             'alasan'      => $longReason,
         ]);
 
-        $response->assertRedirect(route('investor.affiliates.index'));
+        $response->assertRedirect(route('member.affiliates.index'));
         $response->assertSessionHas('success');
 
         $this->assertDatabaseHas('klaim_referral', [
@@ -408,12 +408,12 @@ class ReferralNetworkTest extends TestCase
         $validInvestor = User::factory()->create([
             'username'  => 'caloninvestor',
             'name'      => 'Calon Investor',
-            'role'      => 'investor',
+            'role'      => 'member',
             'status'    => 'active',
             'is_active' => true,
         ]);
 
-        $responseValid = $this->actingAs($this->affiliator)->getJson(route('investor.affiliates.check_downline', [
+        $responseValid = $this->actingAs($this->affiliator)->getJson(route('member.affiliates.check_downline', [
             'username' => '@caloninvestor',
         ]));
         $responseValid->assertOk()
@@ -427,7 +427,7 @@ class ReferralNetworkTest extends TestCase
             ]);
 
         // 2. Username tidak ditemukan
-        $responseNotFound = $this->actingAs($this->affiliator)->getJson(route('investor.affiliates.check_downline', [
+        $responseNotFound = $this->actingAs($this->affiliator)->getJson(route('member.affiliates.check_downline', [
             'username' => 'tidakadauser',
         ]));
         $responseNotFound->assertStatus(422)
@@ -437,7 +437,7 @@ class ReferralNetworkTest extends TestCase
         $this->assertStringContainsString('tidak ditemukan', $responseNotFound->json('message'));
 
         // 3. User bukan investor (misal admin)
-        $responseInvalidRole = $this->actingAs($this->affiliator)->getJson(route('investor.affiliates.check_downline', [
+        $responseInvalidRole = $this->actingAs($this->affiliator)->getJson(route('member.affiliates.check_downline', [
             'username' => $this->admin->username,
         ]));
         $responseInvalidRole->assertStatus(422)
@@ -446,7 +446,7 @@ class ReferralNetworkTest extends TestCase
             ]);
 
         // 4. Cek username diri sendiri
-        $responseSelf = $this->actingAs($this->affiliator)->getJson(route('investor.affiliates.check_downline', [
+        $responseSelf = $this->actingAs($this->affiliator)->getJson(route('member.affiliates.check_downline', [
             'username' => $this->affiliator->username,
         ]));
         $responseSelf->assertStatus(422)
@@ -463,13 +463,13 @@ class ReferralNetworkTest extends TestCase
             'joined_at'     => now(),
             'status'        => 'active',
         ]);
-        $responseHasUpline = $this->actingAs($this->affiliator)->getJson(route('investor.affiliates.check_downline', [
+        $responseHasUpline = $this->actingAs($this->affiliator)->getJson(route('member.affiliates.check_downline', [
             'username' => $this->investor->username,
         ]));
         $responseHasUpline->assertStatus(422)
             ->assertJson([
                 'valid'   => false,
-                'message' => 'Investor ini sudah terdaftar di bawah mitra affiliator lain.',
+                'message' => 'Member ini sudah terdaftar di bawah mitra affiliator lain.',
             ]);
     }
 
@@ -487,7 +487,7 @@ class ReferralNetworkTest extends TestCase
 
         $chatProof = UploadedFile::fake()->image('chat.jpg', 600, 800);
 
-        $response = $this->actingAs($this->affiliator)->post(route('investor.affiliates.claims.store'), [
+        $response = $this->actingAs($this->affiliator)->post(route('member.affiliates.claims.store'), [
             'downline_id' => $this->investor->id,
             'bukti_chat'  => $chatProof,
             'alasan'      => 'Klaim investor yang sudah punya upline.',
@@ -512,7 +512,7 @@ class ReferralNetworkTest extends TestCase
             'status'          => 'pending',
         ]);
 
-        $response = $this->actingAs($this->affiliator)->post(route('investor.affiliates.claims.store'), [
+        $response = $this->actingAs($this->affiliator)->post(route('member.affiliates.claims.store'), [
             'downline_id' => $this->investor->id,
             'bukti_chat'  => $chatProof,
             'alasan'      => 'Klaim kedua untuk orang yang sama.',
@@ -613,7 +613,7 @@ class ReferralNetworkTest extends TestCase
 
         // Buat downline yang tidak aktif (!is_active) -> tidak boleh masuk hitungan total_downlines
         $inactiveInvestor = User::factory()->create([
-            'role'      => 'investor',
+            'role'      => 'member',
             'status'    => 'pending',
             'is_active' => false,
         ]);
@@ -744,17 +744,17 @@ class ReferralNetworkTest extends TestCase
         Notification::fake();
 
         $unlinkedInvestor = User::factory()->create([
-            'role'      => 'investor',
+            'role'      => 'member',
             'status'    => 'active',
             'is_active' => true,
         ]);
 
-        $response = $this->actingAs($this->affiliator)->post(route('investor.affiliates.claims.store'), [
+        $response = $this->actingAs($this->affiliator)->post(route('member.affiliates.claims.store'), [
             'downline_id' => $unlinkedInvestor->id,
             'alasan'      => 'Investor lupa memasukkan kode referral saya saat registrasi.',
         ]);
 
-        $response->assertRedirect(route('investor.affiliates.index'));
+        $response->assertRedirect(route('member.affiliates.index'));
 
         Notification::assertSentTo(
             $this->admin,
@@ -811,7 +811,7 @@ class ReferralNetworkTest extends TestCase
             'name'      => 'Siti Rahma',
             'username'  => 'sitirahma',
             'email'     => 'siti@test.com',
-            'role'      => 'investor',
+            'role'      => 'member',
             'status'    => 'active',
             'is_active' => true,
         ]);
@@ -824,7 +824,7 @@ class ReferralNetworkTest extends TestCase
         ]);
 
         // 1. Search on downlines should not filter claims
-        $response1 = $this->actingAs($this->affiliator)->get(route('investor.affiliates.index', [
+        $response1 = $this->actingAs($this->affiliator)->get(route('member.affiliates.index', [
             'search' => 'budi',
         ]));
         $response1->assertOk()->assertInertia(fn ($page) => $page
@@ -834,7 +834,7 @@ class ReferralNetworkTest extends TestCase
         );
 
         // 2. Search on claims should not filter downlines
-        $response2 = $this->actingAs($this->affiliator)->get(route('investor.affiliates.index', [
+        $response2 = $this->actingAs($this->affiliator)->get(route('member.affiliates.index', [
             'claim_search' => 'siti',
         ]));
         $response2->assertOk()->assertInertia(fn ($page) => $page
@@ -844,7 +844,7 @@ class ReferralNetworkTest extends TestCase
         );
 
         // 3. Status filter on claims does not wipe downlines and activeTab is respected
-        $response3 = $this->actingAs($this->affiliator)->get(route('investor.affiliates.index', [
+        $response3 = $this->actingAs($this->affiliator)->get(route('member.affiliates.index', [
             'claim_status' => 'pending',
             'tab'          => 'claims',
         ]));
@@ -854,5 +854,62 @@ class ReferralNetworkTest extends TestCase
             ->has('claims.data', 1)
             ->has('downlines.data', 1)
         );
+    }
+
+    public function test_anti_circular_referral_prevents_direct_and_indirect_loops(): void
+    {
+        $referralService = app(\App\Services\ReferralService::class);
+
+        $userA = User::factory()->create(['role' => 'member', 'referral_code' => 'REFA01']);
+        $userB = User::factory()->create(['role' => 'member', 'referral_code' => 'REFB02']);
+        $userC = User::factory()->create(['role' => 'member', 'referral_code' => 'REFC03']);
+
+        // A -> B
+        $relAB = $referralService->attachDownline($userA, $userB);
+        $this->assertInstanceOf(\App\Models\RelasiReferral::class, $relAB);
+
+        // B -> C
+        $relBC = $referralService->attachDownline($userB, $userC);
+        $this->assertInstanceOf(\App\Models\RelasiReferral::class, $relBC);
+
+        // B -> A (Siklus langsung 2 arah: A -> B -> A) wajib melempar ValidationException!
+        try {
+            $referralService->attachDownline($userB, $userA);
+            $this->fail('Harusnya melempar ValidationException karena circular referral langsung.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->assertStringContainsString('siklus referral', $e->getMessage());
+        }
+
+        // C -> A (Siklus multi-level: A -> B -> C -> A) wajib melempar ValidationException!
+        try {
+            $referralService->attachDownline($userC, $userA);
+            $this->fail('Harusnya melempar ValidationException karena circular referral bertingkat.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->assertStringContainsString('siklus referral', $e->getMessage());
+        }
+    }
+
+    public function test_anti_circular_referral_endpoint_rejects_upline_ancestor(): void
+    {
+        $referralService = app(\App\Services\ReferralService::class);
+
+        $userA = User::factory()->create(['role' => 'member', 'username' => 'ancestorupline', 'referral_code' => 'REFA99']);
+        $userB = User::factory()->create(['role' => 'member', 'username' => 'middlemember', 'referral_code' => 'REFB99']);
+        $userC = User::factory()->create(['role' => 'member', 'username' => 'leafmember', 'referral_code' => 'REFC99']);
+
+        // A -> B -> C
+        $referralService->attachDownline($userA, $userB);
+        $referralService->attachDownline($userB, $userC);
+
+        // C mencoba mengecek A (yang merupakan kakek upline)
+        $response = $this->actingAs($userC)->getJson(route('member.affiliates.check_downline', [
+            'username' => 'ancestorupline',
+        ]));
+
+        $response->assertStatus(422)
+            ->assertJson([
+                'valid' => false,
+            ]);
+        $this->assertStringContainsString('upline', strtolower($response->json('message')));
     }
 }

@@ -31,10 +31,10 @@ class NewDownlineRegisteredNotification extends Notification
         return [
             'type'        => 'new_downline_registered',
             'title'       => 'Downline Baru Terhubung',
-            'message'     => "Investor {$this->downline->name} (@{$this->downline->username}) telah bergabung ke jaringan kemitraan Anda.",
+            'message'     => "Member {$this->downline->name} (@{$this->downline->username}) telah bergabung ke jaringan kemitraan Anda.",
             'icon'        => 'user-plus',
             'downline_id' => $this->downline->id,
-            'url'         => '/investor/affiliates',
+            'url'         => '/member/affiliates',
         ];
     }
 }

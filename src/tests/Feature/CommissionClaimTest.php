@@ -49,12 +49,12 @@ class CommissionClaimTest extends TestCase
         ]);
 
         $this->affiliator = User::factory()->create([
-            'role'   => 'affiliator',
+            'role'   => 'member',
             'status' => 'active',
         ]);
 
         $this->downline = User::factory()->create([
-            'role'   => 'investor',
+            'role'   => 'member',
             'status' => 'active',
         ]);
 
@@ -70,11 +70,11 @@ class CommissionClaimTest extends TestCase
 
     public function test_affiliator_can_view_commission_dashboard_and_claims_list(): void
     {
-        $response = $this->actingAs($this->affiliator)->get('/investor/commissions');
+        $response = $this->actingAs($this->affiliator)->get('/member/commissions');
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Commissions/Index')
+            ->component('Member/Commissions/Index')
             ->has('stats')
             ->has('claims')
             ->has('filters')
@@ -102,11 +102,11 @@ class CommissionClaimTest extends TestCase
             'status'             => 'active',
         ]);
 
-        $response = $this->actingAs($this->affiliator)->get('/investor/commissions');
+        $response = $this->actingAs($this->affiliator)->get('/member/commissions');
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Commissions/Index')
+            ->component('Member/Commissions/Index')
             ->where('eligibleDownlines.0.is_eligible', false)
             ->where('eligibleDownlines.0.active_days', 45)
             ->where('eligibleDownlines.0.target_days', 91)
@@ -132,11 +132,11 @@ class CommissionClaimTest extends TestCase
             'status'             => 'active',
         ]);
 
-        $response = $this->actingAs($this->affiliator)->get('/investor/commissions');
+        $response = $this->actingAs($this->affiliator)->get('/member/commissions');
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Commissions/Index')
+            ->component('Member/Commissions/Index')
             ->where('eligibleDownlines.0.is_eligible', true)
             ->where('eligibleDownlines.0.first_started_at', '01 April 2026')
             ->where('eligibleDownlines.0.period_end_date', '01 Juli 2026')
@@ -204,11 +204,11 @@ class CommissionClaimTest extends TestCase
             'status'             => 'active',
         ]);
 
-        $response = $this->actingAs($this->affiliator)->get('/investor/commissions');
+        $response = $this->actingAs($this->affiliator)->get('/member/commissions');
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Commissions/Index')
+            ->component('Member/Commissions/Index')
             ->where('eligibleDownlines.0.has_multi_copytrade', true)
             ->where('eligibleDownlines.0.jumlah_akun', 2)
             ->where('eligibleDownlines.0.total_modal_riil', 103000) // $100,000 + $3,000 = $103,000 (Akun 3 di luar periode 3 bulan tidak dihitung)
@@ -288,7 +288,7 @@ class CommissionClaimTest extends TestCase
 
         // Downline 2 (mulai 1 April 2026 -> 91 hari, memiliki 1 akun modal $22,000 = Rp 352 Juta -> Tier 3 30%)
         $downline2 = User::factory()->create([
-            'role'   => 'investor',
+            'role'   => 'member',
             'status' => 'active',
         ]);
         RelasiReferral::create([
@@ -312,14 +312,14 @@ class CommissionClaimTest extends TestCase
             'status'             => 'active',
         ]);
 
-        $response = $this->actingAs($this->affiliator)->post('/investor/commissions', [
+        $response = $this->actingAs($this->affiliator)->post('/member/commissions', [
             'downline_ids'       => [$this->downline->id, $downline2->id],
             'nama_bank'          => 'BCA',
             'nomor_rekening'     => '7788990011',
             'atas_nama_rekening' => 'Affiliator YZD',
         ]);
 
-        $response->assertRedirect('/investor/commissions');
+        $response->assertRedirect('/member/commissions');
         $response->assertSessionHas('success');
 
         // VERIFIKASI TEPAT 1 ROW TIKET KLAIM DI DATABASE
@@ -398,7 +398,7 @@ class CommissionClaimTest extends TestCase
             'persentase_tier'    => 30,
         ]);
 
-        $response = $this->actingAs($this->affiliator)->post('/investor/commissions', [
+        $response = $this->actingAs($this->affiliator)->post('/member/commissions', [
             'downline_ids'       => [$this->downline->id],
             'nama_bank'          => 'BCA',
             'nomor_rekening'     => '7788990011',
@@ -669,7 +669,7 @@ class CommissionClaimTest extends TestCase
         Storage::disk('local')->put('commission_claims/transfers/sample_receipt.jpg', 'fake-image-content');
 
         $otherUser = User::factory()->create([
-            'role'   => 'investor',
+            'role'   => 'member',
             'status' => 'active',
         ]);
 
@@ -758,7 +758,7 @@ class CommissionClaimTest extends TestCase
         ]);
 
         // Downline 2: mulai copytrade lebih awal (1 Maret 2026)
-        $downlineEarlier = User::factory()->create(['role' => 'investor', 'status' => 'active']);
+        $downlineEarlier = User::factory()->create(['role' => 'member', 'status' => 'active']);
         RelasiReferral::create([
             'affiliator_id' => $this->affiliator->id,
             'downline_id'   => $downlineEarlier->id,
@@ -781,7 +781,7 @@ class CommissionClaimTest extends TestCase
         ]);
 
         // Downline 3: belum ada copytrade sama sekali
-        $downlineNoCopytrade = User::factory()->create(['role' => 'investor', 'status' => 'active']);
+        $downlineNoCopytrade = User::factory()->create(['role' => 'member', 'status' => 'active']);
         RelasiReferral::create([
             'affiliator_id' => $this->affiliator->id,
             'downline_id'   => $downlineNoCopytrade->id,
@@ -790,11 +790,11 @@ class CommissionClaimTest extends TestCase
             'joined_at'     => '2026-05-01',
         ]);
 
-        $response = $this->actingAs($this->affiliator)->get('/investor/commissions');
+        $response = $this->actingAs($this->affiliator)->get('/member/commissions');
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->component('Investor/Commissions/Index')
+            ->component('Member/Commissions/Index')
             ->where('eligibleDownlines.0.id', $downlineNoCopytrade->id)
             ->where('eligibleDownlines.0.first_started_at_raw', null)
             ->where('eligibleDownlines.1.id', $downlineEarlier->id)

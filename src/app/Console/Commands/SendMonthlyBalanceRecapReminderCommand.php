@@ -30,7 +30,7 @@ class SendMonthlyBalanceRecapReminderCommand extends Command
         $this->info('Memeriksa investor yang memerlukan pengingat rekapitulasi saldo...');
 
         $users = User::query()
-            ->whereIn('role', ['investor', 'affiliator'])
+            ->where('role', 'member')
             ->where('status', 'active')
             ->whereHas('akunCopytrade', fn ($q) => $q->where('status', 'active'))
             ->get();

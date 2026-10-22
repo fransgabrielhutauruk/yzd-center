@@ -61,7 +61,7 @@ class RegisterRequest extends FormRequest
                 $code = strtoupper(trim((string) $this->input('referral_code')));
                 $affiliatorExists = \App\Models\User::query()
                     ->where('referral_code', $code)
-                    ->where('role', 'affiliator')
+                    ->where('role', 'member')
                     ->where('is_active', true)
                     ->exists();
 

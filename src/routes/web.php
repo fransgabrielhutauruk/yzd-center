@@ -18,13 +18,13 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DocumentStreamController;
-use App\Http\Controllers\Investor\AccountController;
-use App\Http\Controllers\Investor\AffiliateNetworkController;
-use App\Http\Controllers\Investor\CommissionClaimController as InvestorCommissionClaimController;
-use App\Http\Controllers\Investor\EducationController as InvestorEducationController;
-use App\Http\Controllers\Investor\InvestmentPortfolioController;
-use App\Http\Controllers\Investor\InvestorDashboardController;
-use App\Http\Controllers\Investor\PasswordController as InvestorPasswordController;
+use App\Http\Controllers\Member\AccountController;
+use App\Http\Controllers\Member\AffiliateNetworkController;
+use App\Http\Controllers\Member\CommissionClaimController as MemberCommissionClaimController;
+use App\Http\Controllers\Member\DashboardController as MemberDashboardController;
+use App\Http\Controllers\Member\EducationController as MemberEducationController;
+use App\Http\Controllers\Member\InvestmentPortfolioController;
+use App\Http\Controllers\Member\PasswordController as MemberPasswordController;
 use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -44,7 +44,7 @@ Route::get('/', function () {
             return redirect()->route('admin.dashboard');
         }
 
-        return redirect()->route('investor.dashboard');
+        return redirect()->route('member.dashboard');
     }
 
     return redirect()->route('login');
@@ -99,11 +99,10 @@ Route::middleware('auth')->prefix('notifications')->name('notifications.')->grou
 Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
-    // Manajemen Pengguna (Investor & Affiliator)
+    // Manajemen Pengguna (Member)
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::get('/users/{id}', [UserController::class, 'show'])->name('users.show');
     Route::post('/users/{id}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle_status');
-    Route::post('/users/{id}/switch-role', [UserController::class, 'switchRole'])->name('users.switch_role');
 
     // Manajemen Tautan Undangan
     Route::get('/invitations', [InvitationController::class, 'index'])->name('invitations.index');
@@ -173,30 +172,30 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::delete('/education/faq/topics/{id}', [FaqController::class, 'destroyTopic'])->name('education.faq.topics.destroy');
 });
 
-// Portal Investor & Afiliator
-Route::middleware(['auth', 'role:investor,affiliator'])->prefix('investor')->name('investor.')->group(function () {
+// Portal Member
+Route::middleware(['auth', 'role:member'])->prefix('member')->name('member.')->group(function () {
     // Fitur yang mewajibkan akun sudah berstatus active
     Route::middleware('ensure.active')->group(function () {
-        Route::get('/dashboard', [InvestorDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard', [MemberDashboardController::class, 'index'])->name('dashboard');
 
-        // Jaringan Kemitraan & Klaim Susulan (Khusus Affiliator)
+        // Jaringan Kemitraan & Klaim Susulan
         Route::get('/affiliates', [AffiliateNetworkController::class, 'index'])->name('affiliates.index');
         Route::post('/affiliates/claims', [AffiliateNetworkController::class, 'storeClaim'])->name('affiliates.claims.store');
         Route::get('/affiliates/eligible-downlines', [AffiliateNetworkController::class, 'eligibleDownlines'])->name('affiliates.eligible_downlines');
         Route::get('/affiliates/check-downline', [AffiliateNetworkController::class, 'checkDownline'])->name('affiliates.check_downline');
 
-        // Klaim Komisi Afiliasi (Khusus Affiliator - Modul 05)
-        Route::get('/commissions', [InvestorCommissionClaimController::class, 'index'])->name('commissions.index');
-        Route::post('/commissions', [InvestorCommissionClaimController::class, 'store'])->name('commissions.store');
-        Route::get('/commissions/eligible-downlines', [InvestorCommissionClaimController::class, 'eligibleDownlines'])->name('commissions.eligible_downlines');
+        // Klaim Komisi Afiliasi
+        Route::get('/commissions', [MemberCommissionClaimController::class, 'index'])->name('commissions.index');
+        Route::post('/commissions', [MemberCommissionClaimController::class, 'store'])->name('commissions.store');
+        Route::get('/commissions/eligible-downlines', [MemberCommissionClaimController::class, 'eligibleDownlines'])->name('commissions.eligible_downlines');
     });
 
-    // Informasi Akun & Unggah Ulang Berkas Verifikasi (Selalu dapat diakses oleh investor/afiliator)
+    // Informasi Akun & Unggah Ulang Berkas Verifikasi (Selalu dapat diakses oleh member)
     Route::get('/account', [AccountController::class, 'index'])->name('account');
     Route::post('/account/reupload/{type}', [AccountController::class, 'reupload'])->name('account.reupload');
 
-    // Ganti Password Investor/Affiliator
-    Route::get('/account/password', [InvestorPasswordController::class, 'index'])->name('account.password');
+    // Ganti Password Member
+    Route::get('/account/password', [MemberPasswordController::class, 'index'])->name('account.password');
 
     // Portofolio Investasi (Terpadu: Akun Trading Tier 1/2/3, Kinerja Saldo & BEP)
     Route::get('/investments', [InvestmentPortfolioController::class, 'index'])->name('investments.index');
@@ -207,18 +206,18 @@ Route::middleware(['auth', 'role:investor,affiliator'])->prefix('investor')->nam
     Route::match(['get', 'post'], '/investments/template-perjanjian/{tier}', [InvestmentPortfolioController::class, 'downloadTemplate'])->name('investments.template');
 
     // Backward compatibility redirects & route aliases
-    Route::get('/copytrade', fn () => redirect()->route('investor.investments.index'))->name('copytrade.index');
-    Route::get('/copytrade/balance', fn () => redirect()->route('investor.investments.index'))->name('copytrade.balance.index');
+    Route::get('/copytrade', fn () => redirect()->route('member.investments.index'))->name('copytrade.index');
+    Route::get('/copytrade/balance', fn () => redirect()->route('member.investments.index'))->name('copytrade.balance.index');
     Route::post('/copytrade', [InvestmentPortfolioController::class, 'storeAccount'])->name('copytrade.store');
     Route::post('/copytrade/balance', [InvestmentPortfolioController::class, 'storeBalance'])->name('copytrade.balance.store');
     Route::put('/copytrade/balance/{id}', [InvestmentPortfolioController::class, 'updateBalance'])->name('copytrade.balance.update');
     Route::delete('/copytrade/balance/{id}', [InvestmentPortfolioController::class, 'destroyBalance'])->name('copytrade.balance.destroy');
     Route::match(['get', 'post'], '/copytrade/template-perjanjian/{tier}', [InvestmentPortfolioController::class, 'downloadTemplate'])->name('copytrade.template');
 
-    // Edukasi, Pusat Bantuan & Kalkulator Proyeksi (Modul 06 - Selalu dapat diakses)
-    Route::get('/education/glossary', [InvestorEducationController::class, 'glossary'])->name('education.glossary');
-    Route::get('/education/help', [InvestorEducationController::class, 'help'])->name('education.help');
-    Route::get('/education/help/{slug}', [InvestorEducationController::class, 'article'])->name('education.article');
-    Route::get('/education/faq', [InvestorEducationController::class, 'faq'])->name('education.faq');
-    Route::get('/education/calculator', [InvestorEducationController::class, 'calculator'])->name('education.calculator');
+    // Edukasi, Pusat Bantuan & Kalkulator Proyeksi (Selalu dapat diakses)
+    Route::get('/education/glossary', [MemberEducationController::class, 'glossary'])->name('education.glossary');
+    Route::get('/education/help', [MemberEducationController::class, 'help'])->name('education.help');
+    Route::get('/education/help/{slug}', [MemberEducationController::class, 'article'])->name('education.article');
+    Route::get('/education/faq', [MemberEducationController::class, 'faq'])->name('education.faq');
+    Route::get('/education/calculator', [MemberEducationController::class, 'calculator'])->name('education.calculator');
 });

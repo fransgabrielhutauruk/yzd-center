@@ -165,4 +165,23 @@ class User extends Authenticatable
     {
         return $this->relasiUpline?->affiliator;
     }
+
+    public function scopeMembers(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('role', 'member');
+    }
+
+    public function scopeActiveAffiliators(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('role', 'member')
+            ->where('is_active', true)
+            ->whereHas('relasiDownlines.downline', fn ($q) => $q->where('is_active', true));
+    }
+
+    public function scopeActiveInvestors(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('role', 'member')
+            ->where('is_active', true)
+            ->whereHas('akunCopytrade', fn ($q) => $q->where('status', 'active'));
+    }
 }
