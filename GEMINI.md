@@ -29,10 +29,14 @@ Untuk menjaga kecepatan respon agentic tanpa mengorbankan mutu:
 
 ---
 
-## 2. Kebijakan Git (Zero Auto-Commit / Push)
+## 2. Kebijakan Git & Branching (develop & main)
+- **Branch Aktif Utama (`develop`):** Pengerjaan sehari-hari (fitur, bugfix, refactor) langsung di-commit & push ke branch `develop` (*Trunk-based on develop*) setelah disetujui.
+- **Branch Produksi Terkunci (`main`):** Branch `main` khusus lingkungan produksi. **DILARANG** direct commit atau push langsung ke `main`.
+- **Merge ke `main` (Rilis Produksi):** Merge dari `develop` ke `main` **HANYA** dilakukan saat ada perintah eksplisit dari USER. Menggunakan `git merge --no-ff develop` dan disematkan Git Tag versi SemVer (misal: `v1.0.1`).
+- **Semua Perbaikan via `develop`:** Termasuk perbaikan darurat / hotfix produksi, selalu kerjakan dan uji di `develop` terlebih dahulu sebelum di-merge ke `main`.
 - **DILARANG OTOMATIS COMMIT DAN PUSH:** Jangan pernah jalankan `git commit` maupun `git push` tanpa persetujuan eksplisit dari USER.
 - **Pengecekan Kode Duplikat:** Sebelum meminta izin commit, pastikan `git diff` bersih dari tag duplikat, pesan validasi berulang, atau residu teks AI.
-- **Trunk-Based:** Commit langsung ke `main` menggunakan format *Conventional Commits* (`feat(...)`, `fix(...)`, dll.).
+- **Conventional Commits:** Gunakan format standar (`feat(...)`, `fix(...)`, dll.).
 
 ---
 

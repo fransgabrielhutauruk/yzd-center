@@ -14,7 +14,7 @@ Sebelum menjalankan aksi-aksi di bawah ini, agent **harus** menguraikan rencana 
 
 | Aksi | Contoh Skenario |
 |---|---|
-| **Git Commit & Git Push** | `git commit`, `git push origin main` |
+| **Git Commit & Git Push** | `git commit`, `git push origin develop` (atau `origin main` saat rilis) |
 | **Menghapus file / direktori** | Menghapus controller, model, migration, atau file dokumentasi |
 | **Menimpa file kritikal** | Mengganti isi `GEMINI.md`, `SRS.md`, konfigurasi environment |
 | **Operasi Database Destruktif** | `migrate:fresh`, `TRUNCATE TABLE`, `DROP TABLE` |
