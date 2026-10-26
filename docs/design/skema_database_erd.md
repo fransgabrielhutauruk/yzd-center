@@ -445,6 +445,32 @@ Menyimpan pasal-pasal perlindungan hukum dan penafian risiko yang dapat diubah d
 
 ---
 
+### 3.15 Tabel `profit_master_posts` & `profit_master_post_images` (Materi Promosi Profit Master)
+Menyimpan materi publikasi rekap profit Master Trader beserta lampiran foto bukti performa untuk disalin/dibagikan oleh member & afiliator.
+- **Model Laravel:** `App\Models\ProfitMasterPost`, `App\Models\ProfitMasterPostImage`
+
+#### Tabel `profit_master_posts`
+| Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
+|---|---|---|---|
+| `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik postingan materi promosi. |
+| `caption` | `TEXT` | `NOT NULL` | Teks materi promosi/arahan (maks. 20.000 karakter). |
+| `created_by` | `BIGINT UNSIGNED` | `FK -> users.id, CASCADE` | ID Administrator yang menerbitkan materi. |
+| `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE, INDEX(created_at)` | Timestamps & Index untuk feed kronologis. |
+
+#### Tabel `profit_master_post_images`
+| Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
+|---|---|---|---|
+| `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik foto bukti. |
+| `post_id` | `BIGINT UNSIGNED` | `FK -> profit_master_posts.id, CASCADE` | Relasi ke post materi promosi. |
+| `file_path` | `VARCHAR(255)` | `NOT NULL` | Path berkas privat di disk `local` (`profit_master/{id}/...`). |
+| `file_name` | `VARCHAR(255)` | `NOT NULL` | Nama asli berkas gambar. |
+| `file_size` | `INT UNSIGNED` | `DEFAULT 0` | Ukuran berkas dalam bytes. |
+| `mime_type` | `VARCHAR(255)` | `NOT NULL` | MIME type gambar (mis. `image/png`). |
+| `urutan` | `SMALLINT UNSIGNED` | `DEFAULT 0` | Urutan tampil foto di galeri. |
+| `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
+
+---
+
 ## 4. Strategi Indexing & Optimasi Database
 
 Untuk memastikan performa kencang di VPS Hostinger (1 vCPU, 4GB RAM), index berikut dipasang:

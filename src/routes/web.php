@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\FaqController;
 use App\Http\Controllers\Admin\HelpCenterController;
 use App\Http\Controllers\Admin\InvitationController;
 use App\Http\Controllers\Admin\LegalContentController;
+use App\Http\Controllers\Admin\ProfitMasterController as AdminProfitMasterController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Admin\Settings\PasswordController as AdminPasswordController;
 use App\Http\Controllers\Admin\UserController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\Member\DashboardController as MemberDashboardController
 use App\Http\Controllers\Member\EducationController as MemberEducationController;
 use App\Http\Controllers\Member\InvestmentPortfolioController;
 use App\Http\Controllers\Member\PasswordController as MemberPasswordController;
+use App\Http\Controllers\Member\ProfitMasterController as MemberProfitMasterController;
 use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -87,6 +89,9 @@ Route::get('/documents/commissions/{id}/proof', [DocumentStreamController::class
 Route::get('/documents/commissions/{id}/receipt', [DocumentStreamController::class, 'showCommissionReceipt'])
     ->middleware('auth')
     ->name('documents.commission_receipt');
+Route::get('/documents/profit-master/{id}', [DocumentStreamController::class, 'showProfitImage'])
+    ->middleware('auth')
+    ->name('documents.profit_image');
 
 // Notifikasi In-App (Terotentikasi)
 Route::middleware('auth')->prefix('notifications')->name('notifications.')->group(function () {
@@ -132,6 +137,13 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     // Pencairan Komisi Afiliasi (Modul 05)
     Route::get('/commissions', [AdminCommissionClaimController::class, 'index'])->name('commissions.index');
     Route::post('/commissions/{id}/process', [AdminCommissionClaimController::class, 'process'])->name('commissions.process');
+
+    // Materi Promosi (Profit Master)
+    Route::get('/profit-master', [AdminProfitMasterController::class, 'index'])->name('profit_master.index');
+    Route::get('/profit-master/feed', [AdminProfitMasterController::class, 'feed'])->name('profit_master.feed');
+    Route::post('/profit-master', [AdminProfitMasterController::class, 'store'])->name('profit_master.store');
+    Route::match(['put', 'patch', 'post'], '/profit-master/{post}', [AdminProfitMasterController::class, 'update'])->name('profit_master.update');
+    Route::delete('/profit-master/{post}', [AdminProfitMasterController::class, 'destroy'])->name('profit_master.destroy');
 
     // Pengaturan Dokumen Legalitas (Terms & Privacy)
     Route::get('/settings/legal', [LegalContentController::class, 'index'])->name('settings.legal');
@@ -213,6 +225,10 @@ Route::middleware(['auth', 'role:member'])->prefix('member')->name('member.')->g
     Route::put('/copytrade/balance/{id}', [InvestmentPortfolioController::class, 'updateBalance'])->name('copytrade.balance.update');
     Route::delete('/copytrade/balance/{id}', [InvestmentPortfolioController::class, 'destroyBalance'])->name('copytrade.balance.destroy');
     Route::match(['get', 'post'], '/copytrade/template-perjanjian/{tier}', [InvestmentPortfolioController::class, 'downloadTemplate'])->name('copytrade.template');
+
+    // Materi Promosi (Profit Master) - Selalu dapat diakses oleh semua member
+    Route::get('/profit-master', [MemberProfitMasterController::class, 'index'])->name('profit_master.index');
+    Route::get('/profit-master/feed', [MemberProfitMasterController::class, 'feed'])->name('profit_master.feed');
 
     // Edukasi, Pusat Bantuan & Kalkulator Proyeksi (Selalu dapat diakses)
     Route::get('/education/glossary', [MemberEducationController::class, 'glossary'])->name('education.glossary');

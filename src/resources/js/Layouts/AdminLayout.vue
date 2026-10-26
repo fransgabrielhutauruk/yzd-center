@@ -23,6 +23,7 @@ import {
     SquarePlay,
     KeyRound,
     History,
+    TrendingUp,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import { usePwaInstall } from '@/composables/usePwaInstall';
@@ -211,6 +212,12 @@ const navSections = [
                 href: '/admin/commissions',
                 icon: Banknote,
                 routeName: 'admin.commissions.index',
+            },
+            {
+                label: 'Materi Promosi',
+                href: '/admin/profit-master',
+                icon: TrendingUp,
+                routeName: 'admin.profit_master.index',
             },
         ],
     },

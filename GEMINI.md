@@ -49,7 +49,14 @@ Untuk menjaga kecepatan respon agentic tanpa mengorbankan mutu:
 
 ## 4. Standar UI Ekosistem & Frontend
 - **Toast Tunggal:** Flash message controller (`with('success', ...)`) ditangkap otomatis oleh `AppToaster.vue`. Dilarang menduplikasi `toast.success()` di callback Inertia.
-- **Komponen Ekosistem:** Wajib gunakan `AppDataTable.vue` (wajib `paramPrefix` jika multi-tab, format tanggal ringkas `tanggal_singkat_waktu`), `AppModal.vue` (zero layout shift), `AppConfirmDialog.vue`, Button `@/Components/ui/button`, dan ikon `lucide-vue-next`.
+- **Komponen Ekosistem:** Wajib memprioritaskan komponen terpadu yang sudah ada di `@/Components/Common/` (*No Reinventing the Wheel*):
+  - `AppButton.vue`: Wajib digunakan untuk seluruh tombol aksi, tombol header/toolbar, tombol navigasi/link Inertia, tombol form submit/batal, dan tombol ber-state loading/icon (dengan preset `type="create"|"add"|"save"|"submit"|"cancel"|"back"|"export"|"custom"`). Dilarang membuat tag `<button>` mentah jika `AppButton` dapat digunakan.
+  - `AppDataTable.vue`: Wajib untuk tabel data (wajib `paramPrefix` jika multi-tab, format tanggal ringkas `tanggal_singkat_waktu`).
+  - `AppModal.vue`: Wajib untuk formulir modal & pop-up rincian (zero layout shift).
+  - `AppConfirmDialog.vue`: Wajib untuk dialog konfirmasi aksi berisiko/destruktif (hapus, batalkan, nonaktifkan).
+  - `AppTableAction.vue`: Wajib untuk tombol aksi baris di dalam tabel data.
+  - `AppPageHeader.vue`: Wajib untuk breadcrumb dan judul halaman.
+  - Ikon: Wajib dari `lucide-vue-next`.
 - **Mobile-First & Anti-Hover:** Fitur harus utuh di HP (360px–430px, touch target >= 36-44px). Dilarang menyembunyikan filter (`hidden md:...`). Dilarang bergantung pada hover untuk teks terpotong (sediakan tombol baca/modal).
 - **Anti-Low Contrast:** Standar WCAG AA (teks solid, status badge kontras tinggi, kontras terjaga saat hover, seimbang Light & Dark mode).
 - **Anti-AI Slop:** Bebas gradien neon/purple glow, bebas animasi liar, bebas copywriting klise AI, bebas div soup.
@@ -62,5 +69,5 @@ Untuk menjaga kecepatan respon agentic tanpa mengorbankan mutu:
 - **Validasi Kolom TEXT:** Batas validasi form untuk kolom `TEXT` database wajib memadai (hingga `max:20000`).
 - **Streaming Aman:** Berkas sensitif (KTP, perjanjian, bukti transfer) dialirkan via `DocumentStreamController` dengan cek otorisasi kepemilikan/admin.
 - **Enkripsi Kredensial:** Password MT4 dan VPS menggunakan Eloquent cast `'encrypted'`.
-- **Single Source Migrasi (Ubah Langsung di Sumber Create):** Dilarang membuat file migrasi alter (`add_..._to_..._table` atau `update_...`). Setiap penambahan atau perubahan skema tabel wajib dimodifikasi langsung pada file migrasi sumbernya (`create_{nama_tabel}_table.php`) lalu disinkronkan dengan `php artisan migrate:fresh --seed`.
+- **Migrasi Skema Produksi (File Migrasi Baru / Zero Data Loss):** Karena aplikasi telah berada di fase produksi, **DILARANG** mengubah file migrasi `create` yang sudah pernah berjalan atau mengeksekusi `migrate:fresh`. Setiap penambahan/modifikasi kolom, tabel baru, atau penyesuaian index wajib dibuatkan **file migrasi baru** (`artisan make:migration add_..._to_..._table` atau `alter_...`) dengan fungsi `up()` dan `down()` yang simetris, lalu dijalankan menggunakan `php artisan migrate`.
 - **Sinkronisasi 4-Titik:** Setiap penambahan field formulir disinkronkan di FormRequest, Model/Migration, Frontend (`useForm`), DevTool (`DevRegisterAutoFill.vue`), dan Feature Tests.

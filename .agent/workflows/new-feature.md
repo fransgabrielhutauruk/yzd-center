@@ -21,11 +21,16 @@ Checklist ini wajib diikuti setiap kali membangun fitur atau modul baru dari tah
 ## Tahap 3: Database & Skema Eloquent
 - [ ] **Buat File Migrasi:**
   ```powershell
+  # Jika membuat tabel baru:
   & "C:\laragon\bin\php\php-8.3.12-nts-Win32-vs16-x64\php.exe" artisan make:migration create_{table}_table
+
+  # Jika menambah kolom pada tabel yang sudah ada (fase produksi):
+  & "C:\laragon\bin\php\php-8.3.12-nts-Win32-vs16-x64\php.exe" artisan make:migration add_{kolom}_to_{table}_table --table={table}
   ```
 - [ ] Gunakan primary key `$table->id()`.
 - [ ] Gunakan `decimal(15, 2)` untuk seluruh nilai uang/keuangan.
 - [ ] Pasang index untuk kolom yang sering difilter (`status`, `user_id`, `created_at`).
+- [ ] Implementasikan `up()` dan `down()` yang simetris (zero data loss).
 - [ ] Jalankan migrasi:
   ```powershell
   & "C:\laragon\bin\php\php-8.3.12-nts-Win32-vs16-x64\php.exe" artisan migrate
@@ -57,7 +62,7 @@ Checklist ini wajib diikuti setiap kali membangun fitur atau modul baru dari tah
   - Manfaatkan `AppDataTable.vue` dengan `paramPrefix` jika ada tabel multi-tab.
   - Gunakan `AppModal.vue` untuk formulir (bebas pergeseran layout / *zero layout shift*).
   - Gunakan `AppConfirmDialog.vue` untuk aksi destruktif.
-  - Gunakan Button dari `@/Components/ui/button`.
+  - Gunakan `AppButton.vue` (`@/Components/Common/AppButton.vue`) untuk seluruh tombol aksi, toolbar, submit, batal, dan navigasi (dengan preset `create`, `save`, `cancel`, `custom`).
   - Gunakan ikon dari `lucide-vue-next`.
 - [ ] **Mobile-First & Feature Parity:** Pastikan seluruh filter dan aksi dapat digunakan nyaman pada layar ponsel (360px – 430px) tanpa disembunyikan.
 - [ ] **Anti-Hover Dependency:** Jangan sembunyikan teks penting di balik tooltip/hover; sediakan tombol buka atau modal rincian.

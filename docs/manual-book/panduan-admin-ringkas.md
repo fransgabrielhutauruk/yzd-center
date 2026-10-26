@@ -5,14 +5,15 @@ Panduan praktis ini dirancang sebagai rujukan cepat kerja harian bagi tim **Admi
 
 ---
 
-## 📌 Alur Cepat 5 Langkah Kerja Harian Administrator
+## 📌 Alur Cepat Langkah Kerja Administrator
 
 ```mermaid
 flowchart LR
     A["1. Cek Antrean Pendaftaran KTP"] --> B["2. Verifikasi Akun Copytrade & MT4"]
     B --> C["3. Tinjau Klaim Susulan Affiliator"]
     C --> D["4. Transfer & Upload Bukti Komisi Bank"]
-    D --> E["5. Catat Saldo (Khusus Tgl 1 Awal Bulan)"]
+    D --> E["5. Terbitkan Materi Promosi Profit"]
+    E --> F["6. Catat Saldo (Tgl 1 Awal Bulan)"]
 ```
 
 > 💻 **Tips Akses Cepat Operasional (Install App ke Desktop / Laptop):**  
@@ -76,6 +77,17 @@ flowchart LR
 
 ---
 
+## Tugas 5: Menerbitkan Materi Promosi (Profit Master)
+
+Untuk mendukung aktivitas promosi mitra afiliator dan memotivasi seluruh member:
+1. Buka menu **Materi Promosi** (`/admin/profit-master`).
+2. Klik tombol **"Buat Post"** atau kotak *"Bagikan materi promosi profit baru..."*.
+3. Tuliskan teks caption promosi (capaian profit, pair trading, rekap performa).
+4. Pilih 1 atau beberapa foto screenshot bukti profit/withdraw (JPG, PNG, WEBP maks. 10 MB/foto — dikompresi otomatis di latar belakang).
+5. Klik **"Terbitkan Sekarang"**. Materi akan langsung tampil di feed seluruh member.
+
+---
+
 ## Tugas Berkala: Pencatatan Saldo Bulanan Akun Copytrade (Setiap Tanggal 1)
 
 1. Pada tanggal 1 setiap awal bulan, buka tab **Kelola Copytrade** $\rightarrow$ **Akun Aktif**.
@@ -106,6 +118,7 @@ Jika ada Investor lama yang ingin menjadi Mitra Affiliator (atau sebaliknya):
 | **09:00 WIB** | Verifikasi pendaftaran KTP baru & terbitkan tautan undangan | `/admin/registrations`<br>`/admin/invitations` | < 1 Jam |
 | **11:00 WIB** | Validasi akun copytrade baru & input kredensial MT4/VPS | `/admin/copytrade` | < 2 Jam |
 | **14:00 WIB** | Audit dan putuskan klaim referral susulan affiliator | `/admin/affiliates?tab=claims` | < 24 Jam |
+| **15:00 WIB** | Publikasikan update materi promosi profit Master Trader | `/admin/profit-master` | Fleksibel |
 | **16:00 WIB** | Eksekusi transfer bank komisi affiliator & unggah bukti | `/admin/commissions` | < 24 Jam |
 | **Tgl 1 Awal Bulan** | Input saldo bulanan seluruh akun aktif investor | `/admin/copytrade?tab=aktif` | 1–2 Hari |
 

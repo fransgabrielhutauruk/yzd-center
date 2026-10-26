@@ -5,13 +5,14 @@ Panduan ini ditujukan bagi Anda selaku **Mitra Affiliator** yang ingin mengajak 
 
 ---
 
-## 📌 Alur Cepat 4 Langkah Affiliator
+## 📌 Alur Cepat Langkah Affiliator
 
 ```mermaid
 flowchart LR
-    A["1. Salin Tautan Referral"] --> B["2. Pantau Investor Binaan"]
-    B --> C["3. Klaim Susulan (Jika Lupa Link)"]
-    C --> D["4. Cairkan Komisi ke Rekening Bank"]
+    A["1. Ambil Materi Promosi & Link"] --> B["2. Bagikan ke Media Sosial / WA"]
+    B --> C["3. Pantau Investor Binaan"]
+    C --> D["4. Klaim Susulan (Jika Lupa Link)"]
+    D --> E["5. Cairkan Komisi ke Rekening Bank"]
 ```
 
 > 📱 **Tips Akses Cepat (Install App ke Layar Depan HP / Komputer):**  
@@ -19,13 +20,17 @@ flowchart LR
 
 ---
 
-## Langkah 1: Mengambil & Membagikan Tautan Referral Anda
+## Langkah 1: Mengambil Materi Promosi & Tautan Referral
 
 1. Masuk ke Portal YZD Center: [http://localhost:8000/login](http://localhost:8000/login).
-2. Di bilah menu sebelah kiri, buka kelompok menu **Program Afiliasi** $\rightarrow$ klik **Jaringan Kemitraan**.
-3. Pada kartu paling atas, Anda akan melihat kotak **Tautan Referral Anda**:
-   - Klik tombol **"Salin Tautan"**.
-   - Kirimkan tautan tersebut ke calon investor melalui WhatsApp, Telegram, atau media sosial.
+2. **Ambil Materi Promosi Resmi:**
+   - Buka menu **Materi Promosi** (`/member/profit-master`).
+   - Pilih postingan pencapaian profit Master Trader yang ingin dibagikan.
+   - Klik **"Salin Caption"** untuk menyalin teks promosi, dan klik **"Unduh"** atau tombol **"Bagikan"** untuk mengirimkan langsung via WhatsApp / media sosial.
+3. **Sematkan Tautan Referral Anda:**
+   - Buka menu **Jaringan Kemitraan** (`/member/affiliates`).
+   - Pada kartu paling atas, klik tombol **"Salin Tautan"** pada kotak **Tautan Referral Anda**.
+   - Tempelkan tautan ini di akhir teks materi promosi Anda.
 4. Ketika calon investor mengeklik tautan tersebut dan mendaftar, mereka akan otomatis tercatat sebagai investor binaan (*downline*) Anda.
 
 ---
@@ -97,6 +102,7 @@ Komisi dihitung berdasarkan setiap akun trading aktif binaan Anda dengan kurs re
 
 | Tugas Mitra | Frekuensi | Menu di Portal |
 | :--- | :--- | :--- |
+| Ambil Bahan Materi Promosi & Bukti Profit | Setiap Hari / Rutin | Materi Promosi |
 | Bagikan Tautan Referral ke Calon Investor | Setiap Saat | Jaringan Kemitraan |
 | Cek Apakah Downline Sudah Mengaktifkan MT4 | 1–2 Hari Sekali | Tab Daftar Downline |
 | Ajukan Klaim Susulan jika ada yang terlewat | Sesuai Kebutuhan | Tombol "Ajukan Klaim Susulan" |

@@ -21,17 +21,20 @@ Gunakan perintah artisan melalui PHP 8.3 Laragon:
 ```powershell
 # Untuk tabel baru:
 & "C:\laragon\bin\php\php-8.3.12-nts-Win32-vs16-x64\php.exe" artisan make:migration create_{nama_tabel}_table
+
+# Untuk penambahan kolom / modifikasi tabel yang sudah ada (fase produksi):
+& "C:\laragon\bin\php\php-8.3.12-nts-Win32-vs16-x64\php.exe" artisan make:migration add_{kolom}_to_{tabel}_table --table={nama_tabel}
 ```
 
 > [!IMPORTANT]
-> **Prinsip Single Source of Truth (DILARANG Alter Migration):**
-> Jangan pernah membuat file migrasi alter (`add_{kolom}_to_{tabel}_table` atau `update_...`). Setiap penambahan kolom atau modifikasi skema tabel **wajib diubah langsung pada file sumber `create_{nama_tabel}_table.php`**, lalu lakukan sinkronisasi basis data dengan:
-> `& "C:\laragon\bin\php\php-8.3.12-nts-Win32-vs16-x64\php.exe" artisan migrate:fresh --seed`
+> **Kebijakan Migrasi Fase Produksi (File Migrasi Baru & Zero Data Loss):**
+> Karena aplikasi telah berada di fase produksi, **DILARANG KERAS** memodifikasi file migrasi `create` yang sudah berjalan atau menjalankan `migrate:fresh`. Setiap penambahan atau perubahan skema tabel **wajib membuat file migrasi baru** (`add_..._to_..._table`) dengan implementasi fungsi `up()` dan `down()` yang simetris, lalu dijalankan menggunakan `php artisan migrate`.
 
 ---
 
-## 3. Checklist Isi File Migrasi Sumber
+## 3. Checklist Isi File Migrasi
 
+### A. Jika Membuat Tabel Baru (`create`)
 - [ ] Primary key: `$table->id();`
 - [ ] Relasi foreign key: `$table->foreignId('user_id')->constrained('users')->cascadeOnDelete();`
 - [ ] Presisi desimal finansial: `$table->decimal('nominal_deposit', 15, 2);`
@@ -41,13 +44,19 @@ Gunakan perintah artisan melalui PHP 8.3 Laragon:
 - [ ] Index performa query: `$table->index('status');`, `$table->index('created_at');`
 - [ ] Method `down()`: `$table->dropIfExists('{nama_tabel}');`
 
+### B. Jika Mengubah / Menambah Kolom Tabel yang Sudah Ada (`alter`)
+- [ ] Kolom baru nullable atau memiliki nilai default (agar tidak memecah baris data yang sudah ada).
+- [ ] Posisi penempatan kolom teratur (gunakan `->after('kolom_sebelumnya')`).
+- [ ] Method `down()` simetris: wajib melakukan rollback kolom/index dengan benar (contoh: `$table->dropColumn('nama_kolom');`, `$table->dropIndex(['nama_kolom']);`).
+- [ ] Uji rollback lokal sebelum push: `artisan migrate:rollback --step=1` lalu `artisan migrate`.
+
 ---
 
 ## 4. Eksekusi & Validasi Migrasi
 
 ```powershell
-# Jalankan migrasi dan seeding ulang:
-& "C:\laragon\bin\php\php-8.3.12-nts-Win32-vs16-x64\php.exe" artisan migrate:fresh --seed
+# Jalankan migrasi baru (Zero Data Loss):
+& "C:\laragon\bin\php\php-8.3.12-nts-Win32-vs16-x64\php.exe" artisan migrate
 
 # Periksa status migrasi:
 & "C:\laragon\bin\php\php-8.3.12-nts-Win32-vs16-x64\php.exe" artisan migrate:status

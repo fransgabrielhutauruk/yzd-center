@@ -6,15 +6,18 @@
 - Gunakan Eloquent ORM secara konsisten. Hindari query SQL mentah (`DB::raw`) kecuali untuk kalkulasi agregasi kompleks yang sangat mendesak.
 - **Pencegahan N+1 Query:** Selalu lakukan *eager loading* (`with(['affiliator', 'downline'])`) saat mengambil data koleksi untuk tabel atau daftar.
 - **Presisi Nilai Finansial:** Nilai uang (deposit, komisi, profit, estimasi modal) disimpan menggunakan tipe data `DECIMAL(15, 2)`. **DILARANG** menggunakan tipe data `FLOAT` atau `DOUBLE` karena rentan terhadap galat pembulatan biner.
-- **Single Source of Truth Migrasi (Ubah Langsung di Sumber Create):**
-  - **DILARANG** membuat file alter migration (`add_{kolom}_to_{tabel}_table.php` atau `update_...`).
-  - Setiap penambahan kolom, perubahan tipe data, atau penyesuaian index wajib diubah langsung pada file migrasi sumbernya (`create_{nama_tabel}_table.php`).
-  - Setelah memodifikasi file sumber, sinkronkan basis data lokal menggunakan:
-    `& "C:\laragon\bin\php\php-8.3.12-nts-Win32-vs16-x64\php.exe" artisan migrate:fresh --seed`
+- **Kebijakan Migrasi Fase Produksi (File Migrasi Baru & Zero Data Loss):**
+  - Aplikasi telah berada di fase produksi. **DILARANG KERAS** memodifikasi file migrasi sumber yang telah berjalan (`create_{nama_tabel}_table.php`) dan **DILARANG** menjalankan `migrate:fresh` yang dapat menghapus data pengguna.
+  - Setiap penambahan kolom, perubahan tipe data, penambahan tabel baru, atau penyesuaian index **wajib membuat file migrasi baru** (misal: `add_{kolom}_to_{tabel}_table.php` atau `create_{nama_tabel}_table.php`).
+  - Setiap file migrasi baru wajib memiliki implementasi `up()` dan `down()` yang simetris dan aman untuk rollback.
+  - Eksekusi migrasi selalu menggunakan:
+    `& "C:\laragon\bin\php\php-8.3.12-nts-Win32-vs16-x64\php.exe" artisan migrate`
 
 ---
 
 ## Template Migration Standar
+
+### 1. Migrasi Pembuatan Tabel Baru (`create`)
 
 ```php
 <?php
@@ -72,6 +75,35 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('klaim_komisi');
+    }
+};
+```
+
+### 2. Migrasi Modifikasi / Penambahan Kolom (`alter`)
+
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('klaim_komisi', function (Blueprint $table): void {
+            $table->string('catatan_revisi', 500)->nullable()->after('catatan_admin');
+            $table->index('processed_at');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('klaim_komisi', function (Blueprint $table): void {
+            $table->dropIndex(['processed_at']);
+            $table->dropColumn('catatan_revisi');
+        });
     }
 };
 ```

@@ -48,6 +48,7 @@ class AuditLogService
         'pengguna'           => 'Manajemen Pengguna',
         'undangan'           => 'Tautan Undangan',
         'edukasi_pengaturan' => 'Edukasi & Legal',
+        'profit_master'      => 'Materi Promosi',
     ];
 
     /**
@@ -81,6 +82,9 @@ class AuditLogService
         'kelola_edukasi'            => 'Pembaruan Materi Bantuan',
         'ubah_konten_legal'         => 'Pembaruan Dokumen Legal',
         'ekspor_audit_log'          => 'Ekspor Log Aktivitas',
+        'buat_profit_master'        => 'Penerbitan Materi Promosi',
+        'ubah_profit_master'        => 'Pembaruan Materi Promosi',
+        'hapus_profit_master'       => 'Penghapusan Materi Promosi',
     ];
 
     /**
