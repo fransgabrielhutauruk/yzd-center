@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             KontenLegalSeeder::class,
             PengaturanMasterSeeder::class,
             EdukasiDanBantuanSeeder::class,
+            TiketBantuanSeeder::class,
         ]);
     }
 }

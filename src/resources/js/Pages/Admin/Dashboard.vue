@@ -14,6 +14,7 @@ import {
     PlusCircle,
     CheckCircle2,
     Clock,
+    LifeBuoy,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -24,6 +25,7 @@ const props = defineProps({
             copytrade: 0,
             referral_claims: 0,
             commission_claims: 0,
+            tickets: 0,
             total: 0,
         }),
     },
@@ -91,6 +93,18 @@ const pendingList = computed(() => {
             href: '/admin/commissions',
             icon: Banknote,
             unit: 'Tiket Klaim',
+        });
+    }
+
+    if (pa.tickets > 0) {
+        list.push({
+            id: 'tickets',
+            title: 'Tiket Bantuan & Kendala',
+            desc: 'Laporan kendala member menunggu tanggapan atau penanganan.',
+            count: pa.tickets,
+            href: '/admin/tickets?status=open',
+            icon: LifeBuoy,
+            unit: 'Tiket',
         });
     }
 

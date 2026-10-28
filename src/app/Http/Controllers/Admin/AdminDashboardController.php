@@ -7,6 +7,7 @@ use App\Models\AkunCopytrade;
 use App\Models\Invitation;
 use App\Models\KlaimKomisi;
 use App\Models\KlaimReferral;
+use App\Models\TiketBantuan;
 use App\Models\User;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -36,6 +37,10 @@ class AdminDashboardController extends Controller
             ->where('status', 'pending')
             ->count();
 
+        $pendingTickets = TiketBantuan::query()
+            ->butuhResponsAdmin()
+            ->count();
+
         // 2. Metrik ekosistem
         $memberCount = User::where('role', 'member')->count();
         $activeMemberCount = User::where('role', 'member')->where('is_active', true)->count();
@@ -55,7 +60,8 @@ class AdminDashboardController extends Controller
                 'copytrade'         => $pendingCopytrade,
                 'referral_claims'   => $pendingReferralClaims,
                 'commission_claims' => $pendingCommissionClaims,
-                'total'             => $pendingKyc + $pendingCopytrade + $pendingReferralClaims + $pendingCommissionClaims,
+                'tickets'           => $pendingTickets,
+                'total'             => $pendingKyc + $pendingCopytrade + $pendingReferralClaims + $pendingCommissionClaims + $pendingTickets,
             ],
             'stats' => [
                 'member_count'            => $memberCount,

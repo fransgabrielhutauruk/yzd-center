@@ -19,6 +19,7 @@ import {
     Layers,
     Newspaper,
     TrendingUp,
+    LifeBuoy,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import { usePwaInstall } from '@/composables/usePwaInstall';
@@ -228,6 +229,12 @@ const navSections = computed(() => {
                     href: '/member/education/help',
                     icon: Newspaper,
                     routeName: 'member.education.help',
+                },
+                {
+                    label: 'Tiket Bantuan',
+                    href: '/member/tickets',
+                    icon: LifeBuoy,
+                    routeName: 'member.tickets.index',
                 },
                 {
                     label: 'Tanya Jawab (FAQ)',

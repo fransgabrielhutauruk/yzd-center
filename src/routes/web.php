@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\LegalContentController;
 use App\Http\Controllers\Admin\ProfitMasterController as AdminProfitMasterController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Admin\Settings\PasswordController as AdminPasswordController;
+use App\Http\Controllers\Admin\TiketBantuanController as AdminTiketBantuanController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ChangePasswordController;
@@ -27,6 +28,7 @@ use App\Http\Controllers\Member\EducationController as MemberEducationController
 use App\Http\Controllers\Member\InvestmentPortfolioController;
 use App\Http\Controllers\Member\PasswordController as MemberPasswordController;
 use App\Http\Controllers\Member\ProfitMasterController as MemberProfitMasterController;
+use App\Http\Controllers\Member\TiketBantuanController as MemberTiketBantuanController;
 use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -92,6 +94,9 @@ Route::get('/documents/commissions/{id}/receipt', [DocumentStreamController::cla
 Route::get('/documents/profit-master/{id}', [DocumentStreamController::class, 'showProfitImage'])
     ->middleware('auth')
     ->name('documents.profit_image');
+Route::get('/documents/tickets/{id}', [DocumentStreamController::class, 'showTiketAttachment'])
+    ->middleware('auth')
+    ->name('documents.ticket_attachment');
 
 // Notifikasi In-App (Terotentikasi)
 Route::middleware('auth')->prefix('notifications')->name('notifications.')->group(function () {
@@ -144,6 +149,12 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::post('/profit-master', [AdminProfitMasterController::class, 'store'])->name('profit_master.store');
     Route::match(['put', 'patch', 'post'], '/profit-master/{post}', [AdminProfitMasterController::class, 'update'])->name('profit_master.update');
     Route::delete('/profit-master/{post}', [AdminProfitMasterController::class, 'destroy'])->name('profit_master.destroy');
+
+    // Tiket Bantuan & Pelaporan Kendala
+    Route::get('/tickets', [AdminTiketBantuanController::class, 'index'])->name('tickets.index');
+    Route::get('/tickets/{ticket}', [AdminTiketBantuanController::class, 'show'])->name('tickets.show');
+    Route::post('/tickets/{ticket}/replies', [AdminTiketBantuanController::class, 'reply'])->name('tickets.reply');
+    Route::patch('/tickets/{ticket}/status', [AdminTiketBantuanController::class, 'updateStatus'])->name('tickets.status');
 
     // Pengaturan Dokumen Legalitas (Terms & Privacy)
     Route::get('/settings/legal', [LegalContentController::class, 'index'])->name('settings.legal');
@@ -229,6 +240,15 @@ Route::middleware(['auth', 'role:member'])->prefix('member')->name('member.')->g
     // Materi Promosi (Profit Master) - Selalu dapat diakses oleh semua member
     Route::get('/profit-master', [MemberProfitMasterController::class, 'index'])->name('profit_master.index');
     Route::get('/profit-master/feed', [MemberProfitMasterController::class, 'feed'])->name('profit_master.feed');
+
+    // Tiket Bantuan & Pelaporan Kendala (Dapat diakses seluruh member, termasuk pending KYC)
+    Route::get('/tickets', [MemberTiketBantuanController::class, 'index'])->name('tickets.index');
+    Route::get('/tickets/create', [MemberTiketBantuanController::class, 'create'])->name('tickets.create');
+    Route::post('/tickets', [MemberTiketBantuanController::class, 'store'])->name('tickets.store');
+    Route::get('/tickets/{ticket}', [MemberTiketBantuanController::class, 'show'])->name('tickets.show');
+    Route::post('/tickets/{ticket}/replies', [MemberTiketBantuanController::class, 'reply'])->name('tickets.reply');
+    Route::post('/tickets/{ticket}/resolve', [MemberTiketBantuanController::class, 'resolve'])->name('tickets.resolve');
+    Route::post('/tickets/{ticket}/reopen', [MemberTiketBantuanController::class, 'reopen'])->name('tickets.reopen');
 
     // Edukasi, Pusat Bantuan & Kalkulator Proyeksi (Selalu dapat diakses)
     Route::get('/education/glossary', [MemberEducationController::class, 'glossary'])->name('education.glossary');

@@ -109,6 +109,9 @@ Pada halaman **Dashboard** dan **Portofolio Investasi**, Anda dapat melihat lapo
 
 ## 🛠️ Fitur Pendukung yang Perlu Anda Ketahui
 
+- **Tiket Bantuan & Kendala (Bantuan & Edukasi):**  
+  Mengalami kendala akun, deposit MT4, atau pertanyaan seputar copytrade? Buka menu **Tiket Bantuan** $\rightarrow$ klik **"Buat Tiket Baru"**. Anda dapat mengunggah foto bukti kendala dan berdiskusi langsung dengan tim admin melalui percakapan resmi.
+
 - **Kalkulator Proyeksi (Menu Utama):**  
   Ingin tahu simulasi modal Anda jika berkembang selama 1 hingga 5 tahun ke depan? Buka menu **Kalkulator Proyeksi**, masukkan rencana modal Anda, lalu geser persentase estimasi keuntungan untuk melihat tabel simulasi tahunan.
 - **Pusat Bantuan & FAQ (Bantuan & Edukasi):**  

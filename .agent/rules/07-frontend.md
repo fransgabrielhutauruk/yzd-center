@@ -22,6 +22,13 @@ Dilarang membuat ulang komponen dasar secara mentah (*No Reinventing the Wheel*)
   - `type="back"`: Untuk tombol Kembali ke halaman sebelumnya (varian ghost, ikon ArrowLeft).
   - `type="export"`: Untuk tombol Ekspor data Excel/CSV (varian outline, ikon Download).
   - `type="custom"`: Untuk tombol aksi khusus dengan fleksibilitas `variant`, `size`, `icon`, dan `label`.
+- **Anti-Ikon Duplikat (Wajib Tag Ringkas/Self-Closing):**
+  - Seluruh preset `type` di atas sudah otomatis menyertakan ikon bawaan (`Plus`, `Check`, `X`, `ArrowLeft`, `Download`) dan label standar.
+  - **DILARANG** memasukkan elemen ikon manual (`<Plus ...>`, `<ArrowLeft ...>`, dll.) ke dalam slot default `<AppButton>` saat preset `type` digunakan, karena akan menghasilkan 2 elemen `<svg>` duplikat/redundant di UI.
+  - Gunakan prop `label="..."` untuk mengubah teks tombol (misal: `<AppButton type="create" label="Buat Tiket Baru" />`).
+  - Gunakan prop `:icon="CustomIcon"` jika ingin mengganti ikon preset (misal: tombol kirim pesan: `<AppButton type="submit" submit :icon="Send" label="Kirim Tiket" />`).
+  - Gunakan `:icon="false"` jika ingin menggunakan preset tombol tanpa ikon sama sekali.
+  - Prioritaskan tag *self-closing* `<AppButton ... />` kecuali jika slot benar-benar memuat elemen HTML kustom non-teks.
 - **Inertia Link Otomatis:** Berikan prop `href="..."` agar `AppButton` otomatis merender `<Link>` Inertia tanpa perlu membungkusnya secara manual.
 - **Area Sentuh Aman (Mobile):** Ukuran `sm` (h-8 min-h-[36px]), `md` (h-9/10 min-h-[38px]), dan `lg` (h-11 min-h-[44px]) telah memenuhi standar ergonomis mobile touch target.
 

@@ -13,7 +13,8 @@ flowchart LR
     B --> C["3. Tinjau Klaim Susulan Affiliator"]
     C --> D["4. Transfer & Upload Bukti Komisi Bank"]
     D --> E["5. Terbitkan Materi Promosi Profit"]
-    E --> F["6. Catat Saldo (Tgl 1 Awal Bulan)"]
+    E --> F["6. Tanggapi Tiket Kendala Member"]
+    F --> G["7. Catat Saldo (Tgl 1 Awal Bulan)"]
 ```
 
 > 💻 **Tips Akses Cepat Operasional (Install App ke Desktop / Laptop):**  
@@ -100,6 +101,21 @@ Untuk mendukung aktivitas promosi mitra afiliator dan memotivasi seluruh member:
 
 ---
 
+## Tugas 6: Mengelola Tiket Bantuan & Pelaporan Kendala Member
+
+1. Buka menu **Tiket Bantuan** (`/admin/tickets`) atau klik kartu antrean **"Tiket Butuh Respons"** di Dasbor Admin.
+2. **Filter Status:** Gunakan tab filter **"Butuh Respons"** untuk memprioritaskan tiket berstatus Open atau balasan terbaru dari member.
+3. Klik tombol **Lihat Utas Tiket** pada baris tiket.
+4. **Memberikan Solusi / Tanggapan:**
+   - Tinjau kronologi kendala dan gambar lampiran yang dikirimkan member.
+   - Ketik pesan balasan pada form tanggapan admin (dapat menyertakan tangkapan layar solusi).
+   - Klik **"Kirim Tanggapan"**. Status tiket otomatis berubah menjadi **Dijawab (Answered)** dan member menerima notifikasi in-app.
+5. **Mengubah Status Manual:**
+   - Jika investigasi teknis membutuhkan waktu, klik tombol **"Ubah Status Tiket"** $\rightarrow$ pilih **"Sedang Diproses" (In Progress)**.
+   - Jika kendala selesai dan member belum menandai selesai, admin dapat menutup tiket menjadi **Ditutup (Closed)**.
+
+---
+
 ## Tugas Khusus: Alih Peran Pengguna (Investor ↔ Affiliator Cepat Tanpa Akun Baru)
 
 Jika ada Investor lama yang ingin menjadi Mitra Affiliator (atau sebaliknya):
@@ -114,12 +130,13 @@ Jika ada Investor lama yang ingin menjadi Mitra Affiliator (atau sebaliknya):
 ## ✅ Checklist SOP Harian Administrator
 
 | Waktu Kerja | Target Pekerjaan | Lokasi Menu Platform | Standar SLA |
-| :--- | :--- | :--- | :---: |
+| :--- | :--- | :--- | :--- |
 | **09:00 WIB** | Verifikasi pendaftaran KTP baru & terbitkan tautan undangan | `/admin/registrations`<br>`/admin/invitations` | < 1 Jam |
 | **11:00 WIB** | Validasi akun copytrade baru & input kredensial MT4/VPS | `/admin/copytrade` | < 2 Jam |
 | **14:00 WIB** | Audit dan putuskan klaim referral susulan affiliator | `/admin/affiliates?tab=claims` | < 24 Jam |
 | **15:00 WIB** | Publikasikan update materi promosi profit Master Trader | `/admin/profit-master` | Fleksibel |
 | **16:00 WIB** | Eksekusi transfer bank komisi affiliator & unggah bukti | `/admin/commissions` | < 24 Jam |
+| **16:30 WIB** | Tanggapi tiket bantuan & pelaporan kendala member | `/admin/tickets` | < 4 Jam |
 | **Tgl 1 Awal Bulan** | Input saldo bulanan seluruh akun aktif investor | `/admin/copytrade?tab=aktif` | 1–2 Hari |
 
 ---

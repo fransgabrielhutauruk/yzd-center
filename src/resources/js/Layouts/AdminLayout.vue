@@ -24,6 +24,7 @@ import {
     KeyRound,
     History,
     TrendingUp,
+    LifeBuoy,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import { usePwaInstall } from '@/composables/usePwaInstall';
@@ -229,6 +230,12 @@ const navSections = [
                 href: '/admin/education/help',
                 icon: SquarePlay,
                 routeName: 'admin.education.help.index',
+            },
+            {
+                label: 'Tiket Bantuan',
+                href: '/admin/tickets',
+                icon: LifeBuoy,
+                routeName: 'admin.tickets.index',
             },
             {
                 label: 'Tanya Jawab (FAQ)',

@@ -106,4 +106,5 @@ Komisi dihitung berdasarkan setiap akun trading aktif binaan Anda dengan kurs re
 | Bagikan Tautan Referral ke Calon Investor | Setiap Saat | Jaringan Kemitraan |
 | Cek Apakah Downline Sudah Mengaktifkan MT4 | 1–2 Hari Sekali | Tab Daftar Downline |
 | Ajukan Klaim Susulan jika ada yang terlewat | Sesuai Kebutuhan | Tombol "Ajukan Klaim Susulan" |
+| Laporkan Kendala / Bantuan Teknis | Sesuai Kebutuhan | Menu Tiket Bantuan |
 | Tarik Komisi ke Rekening Bank | Bebas (Saat ada saldo siap cair) | Menu Klaim Komisi |
