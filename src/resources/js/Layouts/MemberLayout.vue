@@ -18,6 +18,8 @@ import {
     KeyRound,
     Layers,
     Newspaper,
+    TrendingUp,
+    LifeBuoy,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import { usePwaInstall } from '@/composables/usePwaInstall';
@@ -147,11 +149,17 @@ const toggleCollapse = () => {
 
 const user = computed(() => page.props.auth?.user || {});
 const userDerivedLabels = computed(() => {
-    return user.value?.derived_labels || (user.value?.role === 'administrator' ? ['Administrator'] : ['Member']);
+    return (
+        user.value?.derived_labels ||
+        (user.value?.role === 'administrator' ? ['Administrator'] : ['Member'])
+    );
 });
 
 const badgeLabel = computed(() => {
-    if (userDerivedLabels.value.includes('Investor') && userDerivedLabels.value.includes('Affiliator')) {
+    if (
+        userDerivedLabels.value.includes('Investor') &&
+        userDerivedLabels.value.includes('Affiliator')
+    ) {
         return 'INVESTOR & AFFILIATOR';
     }
     return (userDerivedLabels.value[0] || 'MEMBER').toUpperCase();
@@ -205,6 +213,12 @@ const navSections = computed(() => {
                     icon: Banknote,
                     routeName: 'member.commissions.index',
                 },
+                {
+                    label: 'Materi Promosi',
+                    href: '/member/profit-master',
+                    icon: TrendingUp,
+                    routeName: 'member.profit_master.index',
+                },
             ],
         },
         {
@@ -215,6 +229,12 @@ const navSections = computed(() => {
                     href: '/member/education/help',
                     icon: Newspaper,
                     routeName: 'member.education.help',
+                },
+                {
+                    label: 'Tiket Bantuan',
+                    href: '/member/tickets',
+                    icon: LifeBuoy,
+                    routeName: 'member.tickets.index',
                 },
                 {
                     label: 'Tanya Jawab (FAQ)',
@@ -247,7 +267,7 @@ const logout = () => {
     <AppToaster />
 
     <div
-        class="h-screen h-dvh overflow-hidden bg-white dark:bg-slate-950 text-foreground flex transition-colors duration-200"
+        class="text-foreground flex h-dvh h-screen overflow-hidden bg-white transition-colors duration-200 dark:bg-slate-950"
     >
         <!-- Backdrop Mobile Sidebar -->
         <transition
@@ -261,33 +281,37 @@ const logout = () => {
             <div
                 v-if="isMobileSidebarOpen"
                 @click="isMobileSidebarOpen = false"
-                class="fixed inset-0 z-40 bg-black/60 md:hidden backdrop-blur-xs"
+                class="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs md:hidden"
             ></div>
         </transition>
 
         <!-- Sidebar Component -->
         <aside
             :class="[
-                'bg-[#f8f9ff] dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 fixed inset-y-0 left-0 z-50 flex flex-col shadow-xs transition-all duration-300 ease-in-out md:static md:translate-x-0 md:shadow-none',
+                'fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200 bg-[#f8f9ff] shadow-xs transition-all duration-300 ease-in-out md:static md:translate-x-0 md:shadow-none dark:border-slate-800 dark:bg-slate-900',
                 isCollapsed ? 'md:w-20' : 'md:w-64',
                 'w-64',
                 isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
             ]"
         >
             <!-- Logo Brand & Mobile Close Button -->
-            <div
-                class="h-16 px-4 flex items-center justify-between"
-            >
+            <div class="flex h-16 items-center justify-between px-4">
                 <Link
                     href="/member/dashboard"
                     @click="handleLogoClick"
-                    class="flex items-center gap-1.5 overflow-hidden mx-auto"
+                    class="mx-auto flex items-center gap-1.5 overflow-hidden"
                 >
-                    <span class="text-accent-500 font-black text-2xl tracking-tight shrink-0">YZD</span>
-                    <span v-if="!isCollapsed" class="text-primary-600 dark:text-primary-400 font-bold text-xl tracking-tight shrink-0">Center</span>
+                    <span class="text-accent-500 shrink-0 text-2xl font-black tracking-tight"
+                        >YZD</span
+                    >
                     <span
                         v-if="!isCollapsed"
-                        class="ml-1.5 text-[9px] font-bold bg-primary-600 text-white px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0"
+                        class="text-primary-600 dark:text-primary-400 shrink-0 text-xl font-bold tracking-tight"
+                        >Center</span
+                    >
+                    <span
+                        v-if="!isCollapsed"
+                        class="bg-primary-600 ml-1.5 shrink-0 rounded-md px-2 py-0.5 text-[9px] font-bold tracking-wider text-white uppercase"
                     >
                         {{ badgeLabel }}
                     </span>
@@ -297,10 +321,10 @@ const logout = () => {
                 <button
                     type="button"
                     @click="isMobileSidebarOpen = false"
-                    class="md:hidden p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 rounded-lg cursor-pointer"
+                    class="cursor-pointer rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 md:hidden dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                     aria-label="Tutup Menu"
                 >
-                    <X class="w-5 h-5" />
+                    <X class="h-5 w-5" />
                 </button>
             </div>
 
@@ -308,17 +332,20 @@ const logout = () => {
             <nav
                 ref="sidebarNavRef"
                 @scroll.passive="onSidebarScroll"
-                class="flex-1 overflow-y-auto px-3 py-1 space-y-4 text-sm font-medium"
+                class="flex-1 space-y-4 overflow-y-auto px-3 py-1 text-sm font-medium"
             >
                 <div v-for="(section, idx) in navSections" :key="idx" class="space-y-1">
                     <!-- Section Title (Hidden when collapsed) -->
                     <p
                         v-if="!isCollapsed"
-                        class="px-3 pt-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400"
+                        class="px-3 pt-3 pb-1 text-[11px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
                     >
                         {{ section.title }}
                     </p>
-                    <div v-else-if="idx > 0" class="h-px bg-slate-200 dark:bg-slate-800 mx-2 my-2"></div>
+                    <div
+                        v-else-if="idx > 0"
+                        class="mx-2 my-2 h-px bg-slate-200 dark:bg-slate-800"
+                    ></div>
 
                     <div class="space-y-1">
                         <Link
@@ -331,21 +358,24 @@ const logout = () => {
                                 'group flex items-center rounded-xl py-2.5 transition-all duration-150',
                                 isCollapsed ? 'justify-center px-2' : 'justify-between px-3.5',
                                 isActive(item.href)
-                                    ? 'bg-primary-600 text-white font-semibold shadow-xs'
-                                    : 'text-slate-700 dark:text-slate-300 font-semibold hover:bg-primary-50 dark:hover:bg-primary-950/40 hover:text-primary-600 dark:hover:text-primary-400',
+                                    ? 'bg-primary-600 font-semibold text-white shadow-xs'
+                                    : 'hover:bg-primary-50 dark:hover:bg-primary-950/40 hover:text-primary-600 dark:hover:text-primary-400 font-semibold text-slate-700 dark:text-slate-300',
                             ]"
                         >
-                            <div class="flex items-center gap-3 min-w-0">
+                            <div class="flex min-w-0 items-center gap-3">
                                 <component
                                     :is="item.icon"
                                     :class="[
-                                        'w-4 h-4 shrink-0 transition-colors',
+                                        'h-4 w-4 shrink-0 transition-colors',
                                         isActive(item.href)
                                             ? 'text-white'
-                                            : 'text-slate-500 dark:text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400',
+                                            : 'group-hover:text-primary-600 dark:group-hover:text-primary-400 text-slate-500 dark:text-slate-400',
                                     ]"
                                 />
-                                <span v-if="!isCollapsed" class="truncate font-semibold text-[13px]">
+                                <span
+                                    v-if="!isCollapsed"
+                                    class="truncate text-[13px] font-semibold"
+                                >
                                     {{ item.label }}
                                 </span>
                             </div>
@@ -356,31 +386,31 @@ const logout = () => {
         </aside>
 
         <!-- Main Wrapper -->
-        <div class="flex-1 flex flex-col min-w-0">
+        <div class="flex min-w-0 flex-1 flex-col">
             <!-- Top Navbar -->
             <header
-                class="h-16 bg-[#f8f9ff] dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 transition-colors"
+                class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-[#f8f9ff] px-4 transition-colors sm:px-6 dark:border-slate-800 dark:bg-slate-900"
             >
                 <div class="flex items-center gap-2.5 sm:gap-3">
                     <!-- Mobile Menu Button (Hamburger) -->
                     <button
                         type="button"
                         @click="isMobileSidebarOpen = true"
-                        class="md:hidden p-2 rounded-lg text-slate-700 dark:text-slate-200 hover:text-slate-900 hover:bg-slate-200/60 dark:hover:bg-slate-800 cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center transition-colors"
+                        class="flex min-h-[38px] min-w-[38px] cursor-pointer items-center justify-center rounded-lg p-2 text-slate-700 transition-colors hover:bg-slate-200/60 hover:text-slate-900 md:hidden dark:text-slate-200 dark:hover:bg-slate-800"
                         aria-label="Buka Menu"
                     >
-                        <Menu class="w-5 h-5" />
+                        <Menu class="h-5 w-5" />
                     </button>
 
                     <!-- Desktop Sidebar Minimize/Maximize Button (Hamburger) -->
                     <button
                         type="button"
                         @click="toggleCollapse"
-                        class="hidden md:flex rounded-lg p-2 text-slate-700 dark:text-slate-200 hover:text-slate-900 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer min-h-[38px] min-w-[38px] items-center justify-center"
+                        class="hidden min-h-[38px] min-w-[38px] cursor-pointer items-center justify-center rounded-lg p-2 text-slate-700 transition-colors hover:bg-slate-200/60 hover:text-slate-900 md:flex dark:text-slate-200 dark:hover:bg-slate-800"
                         :title="isCollapsed ? 'Tampilkan Sidebar' : 'Sembunyikan Sidebar'"
                         :aria-label="isCollapsed ? 'Perluas Sidebar' : 'Kecilkan Sidebar'"
                     >
-                        <Menu class="w-5 h-5" />
+                        <Menu class="h-5 w-5" />
                     </button>
                 </div>
 
@@ -392,7 +422,7 @@ const logout = () => {
                     <!-- Vertical Divider -->
                     <div
                         v-if="canShowInstallButton"
-                        class="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 sm:mx-1"
+                        class="mx-0.5 h-6 w-px bg-slate-200 sm:mx-1 dark:bg-slate-700"
                     ></div>
 
                     <!-- In-App Notification Bell Component -->
@@ -402,38 +432,42 @@ const logout = () => {
                     <button
                         type="button"
                         @click="toggleDarkMode"
-                        class="p-2 rounded-lg text-slate-700 dark:text-slate-200 hover:text-slate-900 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
+                        class="flex min-h-[38px] min-w-[38px] cursor-pointer items-center justify-center rounded-lg p-2 text-slate-700 transition-colors hover:bg-slate-200/60 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                         :title="isDark ? 'Mode Terang' : 'Mode Gelap'"
                         aria-label="Toggle Tema"
                     >
-                        <Sun v-if="isDark" class="w-5 h-5 text-amber-500" />
-                        <Moon v-else class="w-5 h-5 text-slate-700 dark:text-slate-300" />
+                        <Sun v-if="isDark" class="h-5 w-5 text-amber-500" />
+                        <Moon v-else class="h-5 w-5 text-slate-700 dark:text-slate-300" />
                     </button>
 
                     <!-- Vertical Divider -->
-                    <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1 sm:mx-1.5"></div>
+                    <div class="mx-1 h-6 w-px bg-slate-200 sm:mx-1.5 dark:bg-slate-700"></div>
 
                     <!-- User Dropdown Menu -->
                     <div class="relative">
                         <button
                             type="button"
                             @click="isUserDropdownOpen = !isUserDropdownOpen"
-                            class="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800 text-sm transition-colors cursor-pointer min-h-[38px]"
+                            class="flex min-h-[38px] cursor-pointer items-center gap-2.5 rounded-lg p-1.5 text-sm transition-colors hover:bg-slate-200/60 dark:hover:bg-slate-800"
                         >
                             <div
-                                class="w-9 h-9 rounded-full bg-primary-600 text-white font-bold text-xs flex items-center justify-center shadow-xs shrink-0"
+                                class="bg-primary-600 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs"
                             >
                                 {{ userInitials }}
                             </div>
                             <div class="hidden text-left sm:block">
-                                <p class="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight truncate">
+                                <p
+                                    class="truncate text-sm leading-tight font-bold text-slate-800 dark:text-slate-100"
+                                >
                                     {{ user.name || 'Member' }}
                                 </p>
-                                <p class="text-xs text-slate-500 dark:text-slate-400 leading-tight">
+                                <p class="text-xs leading-tight text-slate-500 dark:text-slate-400">
                                     {{ userDerivedLabels.join(' & ') }}
                                 </p>
                             </div>
-                            <ChevronDown class="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0 ml-0.5" />
+                            <ChevronDown
+                                class="ml-0.5 h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400"
+                            />
                         </button>
 
                         <div
@@ -452,38 +486,42 @@ const logout = () => {
                         >
                             <div
                                 v-if="isUserDropdownOpen"
-                                class="absolute right-0 mt-2 w-48 rounded-xl bg-card text-card-foreground border border-border shadow-lg py-1 z-50 text-sm font-medium"
+                                class="bg-card text-card-foreground border-border absolute right-0 z-50 mt-2 w-48 rounded-xl border py-1 text-sm font-medium shadow-lg"
                             >
-                                <div class="px-4 py-2 border-b border-border/60">
-                                    <p class="font-bold text-foreground truncate">{{ user.name }}</p>
-                                    <p class="text-xs text-muted-foreground truncate">@{{ user.username }}</p>
+                                <div class="border-border/60 border-b px-4 py-2">
+                                    <p class="text-foreground truncate font-bold">
+                                        {{ user.name }}
+                                    </p>
+                                    <p class="text-muted-foreground truncate text-xs">
+                                        @{{ user.username }}
+                                    </p>
                                 </div>
 
                                 <Link
                                     href="/member/account"
-                                    class="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-foreground transition-colors font-medium"
+                                    class="text-foreground flex items-center gap-2 px-4 py-2 font-medium transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
                                 >
-                                    <User class="w-4 h-4 text-muted-foreground" />
+                                    <User class="text-muted-foreground h-4 w-4" />
                                     <span>Informasi Akun</span>
                                 </Link>
 
                                 <Link
                                     href="/member/account/password"
                                     @click="isUserDropdownOpen = false"
-                                    class="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-foreground transition-colors font-medium"
+                                    class="text-foreground flex items-center gap-2 px-4 py-2 font-medium transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
                                 >
-                                    <KeyRound class="w-4 h-4 text-muted-foreground" />
+                                    <KeyRound class="text-muted-foreground h-4 w-4" />
                                     <span>Ganti Password</span>
                                 </Link>
 
-                                <div class="my-1 border-t border-border/60"></div>
+                                <div class="border-border/60 my-1 border-t"></div>
 
                                 <button
                                     type="button"
                                     @click="logout"
-                                    class="w-full flex items-center gap-2 px-4 py-2 text-left text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors font-bold cursor-pointer"
+                                    class="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left font-bold text-rose-600 transition-colors hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
                                 >
-                                    <LogOut class="w-4 h-4" />
+                                    <LogOut class="h-4 w-4" />
                                     <span>Keluar</span>
                                 </button>
                             </div>
@@ -493,7 +531,7 @@ const logout = () => {
             </header>
 
             <!-- Main Content Area -->
-            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-white dark:bg-slate-950">
+            <main class="flex-1 overflow-y-auto bg-white p-4 sm:p-6 lg:p-8 dark:bg-slate-950">
                 <AppPageHeader
                     v-if="breadcrumbs && breadcrumbs.length > 0"
                     :breadcrumbs="breadcrumbs"

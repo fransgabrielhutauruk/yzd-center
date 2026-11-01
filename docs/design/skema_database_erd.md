@@ -445,6 +445,73 @@ Menyimpan pasal-pasal perlindungan hukum dan penafian risiko yang dapat diubah d
 
 ---
 
+### 3.15 Tabel `profit_master_posts` & `profit_master_post_images` (Materi Promosi Profit Master)
+Menyimpan materi publikasi rekap profit Master Trader beserta lampiran foto bukti performa untuk disalin/dibagikan oleh member & afiliator.
+- **Model Laravel:** `App\Models\ProfitMasterPost`, `App\Models\ProfitMasterPostImage`
+
+#### Tabel `profit_master_posts`
+| Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
+|---|---|---|---|
+| `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik postingan materi promosi. |
+| `caption` | `TEXT` | `NOT NULL` | Teks materi promosi/arahan (maks. 20.000 karakter). |
+| `created_by` | `BIGINT UNSIGNED` | `FK -> users.id, CASCADE` | ID Administrator yang menerbitkan materi. |
+| `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE, INDEX(created_at)` | Timestamps & Index untuk feed kronologis. |
+
+#### Tabel `profit_master_post_images`
+| Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
+|---|---|---|---|
+| `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik foto bukti. |
+| `post_id` | `BIGINT UNSIGNED` | `FK -> profit_master_posts.id, CASCADE` | Relasi ke post materi promosi. |
+| `file_path` | `VARCHAR(255)` | `NOT NULL` | Path berkas privat di disk `local` (`profit_master/{id}/...`). |
+| `file_name` | `VARCHAR(255)` | `NOT NULL` | Nama asli berkas gambar. |
+| `file_size` | `INT UNSIGNED` | `DEFAULT 0` | Ukuran berkas dalam bytes. |
+| `mime_type` | `VARCHAR(255)` | `NOT NULL` | MIME type gambar (mis. `image/png`). |
+| `urutan` | `SMALLINT UNSIGNED` | `DEFAULT 0` | Urutan tampil foto di galeri. |
+| `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
+
+---
+
+### 3.12 Entitas Tiket Bantuan & Pelaporan Kendala
+Modul saluran komunikasi pelaporan kendala teknis, akun, verifikasi, atau transaksi antara member dan tim administrator.
+- **Model Laravel:** `App\Models\TiketBantuan`, `App\Models\TiketBantuanBalasan`, `App\Models\TiketBantuanLampiran`
+
+#### Tabel `tiket_bantuan`
+| Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
+|---|---|---|---|
+| `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik tiket bantuan. |
+| `nomor` | `VARCHAR(30)` | `UNIQUE, NOT NULL` | Nomor tiket bulanan (format: `TKT-YYYYMM-XXXX`). |
+| `user_id` | `BIGINT UNSIGNED` | `FK -> users.id, CASCADE` | Member pembuat/pelapor tiket. |
+| `subjek` | `VARCHAR(255)` | `NOT NULL` | Ringkasan pokok kendala. |
+| `status` | `VARCHAR(30)` | `INDEX, DEFAULT 'open'` | Status tiket (`open`, `in_progress`, `answered`, `resolved`, `closed`). |
+| `last_reply_at` | `TIMESTAMP` | `NULLABLE, INDEX` | Waktu balasan terakhir dikirimkan. |
+| `last_reply_by` | `VARCHAR(20)` | `NULLABLE` | Pihak pengirim balasan terakhir (`member` atau `admin`). |
+| `resolved_at` | `TIMESTAMP` | `NULLABLE` | Waktu tiket ditandai selesai. |
+| `closed_at` | `TIMESTAMP` | `NULLABLE` | Waktu tiket resmi ditutup. |
+| `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps pembuatan dan pembaruan. |
+
+#### Tabel `tiket_bantuan_balasan`
+| Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
+|---|---|---|---|
+| `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik balasan pesan. |
+| `tiket_id` | `BIGINT UNSIGNED` | `FK -> tiket_bantuan.id, CASCADE` | Tiket terkait. |
+| `user_id` | `BIGINT UNSIGNED` | `FK -> users.id, CASCADE` | Pengirim pesan balasan. |
+| `pengirim` | `VARCHAR(20)` | `NOT NULL` | Peran pengirim (`member` atau `admin`). |
+| `pesan` | `TEXT` | `NOT NULL` | Isi pesan balasan (hingga 20.000 karakter). |
+| `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
+
+#### Tabel `tiket_bantuan_lampiran`
+| Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
+|---|---|---|---|
+| `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik berkas lampiran. |
+| `balasan_id` | `BIGINT UNSIGNED` | `FK -> tiket_bantuan_balasan.id, CASCADE` | Pesan balasan tempat lampiran disematkan. |
+| `file_path` | `VARCHAR(255)` | `NOT NULL` | Lokasi berkas privat di disk `local` (`tiket_bantuan/{tiket_id}/...`). |
+| `file_name` | `VARCHAR(255)` | `NOT NULL` | Nama asli berkas lampiran. |
+| `file_size` | `INT UNSIGNED` | `DEFAULT 0` | Ukuran berkas dalam bytes. |
+| `mime_type` | `VARCHAR(100)` | `NOT NULL` | Tipe MIME berkas gambar (JPG, PNG, WEBP). |
+| `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
+
+---
+
 ## 4. Strategi Indexing & Optimasi Database
 
 Untuk memastikan performa kencang di VPS Hostinger (1 vCPU, 4GB RAM), index berikut dipasang:

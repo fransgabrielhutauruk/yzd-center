@@ -183,6 +183,14 @@ Afiliator berhak memperoleh komisi atas keuntungan yang dibukukan oleh *downline
     *   Menampilkan tabel aktivitas sistem terpaginasi (*server-side pagination*) dengan filter kategori, aksi, peran, tingkat risiko, dan tanggal.
     *   Menampilkan modal inspeksi rincian perubahan data (*audit diff*: nilai sebelum vs nilai sesudah).
     *   Mengekspor laporan jejak audit log aktivitas ke format spreadsheet Excel (.xlsx).
+*   **FR-ADM-09 (Materi Promosi / Profit Master):**
+    *   Menerbitkan materi promosi resmi berupa caption teks (hingga 20.000 karakter) beserta lampiran foto bukti transaksi/profit.
+    *   Foto dikompresi otomatis di sisi klien sebelum diunggah dan disimpan pada direktori privat terisolasi.
+    *   Mengedit caption, menambah/menghapus gambar pendukung, atau menghapus materi promosi secara permanen beserta berkas fisiknya.
+*   **FR-ADM-10 (Tiket Bantuan & Pelaporan Kendala):**
+    *   Memantau antrean tiket kendala member via dasbor ("Tiket Butuh Respons") dan tabel manajemen terpadu `AppDataTable`.
+    *   Mengirimkan tanggapan/solusi dua arah dengan lampiran gambar panduan, mengubah status kendala secara manual, dan memicu notifikasi in-app ke pengguna.
+    *   Sistem scheduler otomatis menutup (*Closed*) tiket berstatus *Resolved* setelah 7 hari tanpa aktivitas.
 
 ### 4.3 Modul Investor
 *   **FR-INV-01 (Portofolio Investasi Multi-Akun):**
@@ -213,6 +221,13 @@ Afiliator berhak memperoleh komisi atas keuntungan yang dibukukan oleh *downline
 *   **FR-AFF-03:** Mengajukan klaim relasi referral susulan dengan menyertakan username downline, alasan keterlambatan, dan berkas foto bukti tangkapan layar percakapan WhatsApp.
 *   **FR-AFF-04:** Mengajukan permohonan pencairan komisi afiliasi berjenjang untuk downline yang telah melewati masa aktif minimal 90 hari.
 *   **FR-AFF-05:** Memantau riwayat klaim komisi: melihat kode klaim unik, rincian pembagian persentase tiering modal, status verifikasi admin, dan mengunduh bukti transfer bank resmi.
+*   **FR-AFF-06 (Materi Promosi & Berbagi Bahan Pemasaran):**
+    *   Mengakses umpan (*feed*) materi promosi resmi Master Trader yang kronologis dan dapat dicari.
+    *   Menyediakan tombol cepat Salin Caption, Unduh Foto, dan Bagikan langsung (*Web Share API*) ke aplikasi WhatsApp / media sosial.
+*   **FR-MBR-01 (Tiket Bantuan & Pelaporan Kendala Member):**
+    *   Seluruh member terautentikasi (termasuk member berstatus pending KYC) dapat membuat tiket bantuan dengan penomoran unik bulanan `TKT-YYYYMM-XXXX`.
+    *   Menyematkan berkas tangkapan layar bukti kendala (hingga 10 MB per gambar dengan kompresi senyap sisi klien).
+    *   Melakukan interaksi utas balasan dua arah dengan admin, menandai tiket selesai (*Resolved*), atau membuka kembali (*Reopen*) jika kendala berulang.
 
 ### 4.5 Modul Notifikasi, Pemantauan Galat & Keamanan
 *   **FR-SEC-01 (Notifikasi In-App):** Notifikasi lonceng *real-time* untuk pembaruan status penting (verifikasi KYC disetujui/ditolak, akun copytrade aktif, klaim referral diterima, komisi ditransfer, dan pengingat saldo tanggal 1).

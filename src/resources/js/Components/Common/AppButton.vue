@@ -28,10 +28,10 @@ const props = defineProps({
         default: '',
     },
     /**
-     * Komponen Icon Lucide (mengoverride icon bawaan preset)
+     * Komponen Icon Lucide (mengoverride icon bawaan preset, atau false untuk tanpa icon)
      */
     icon: {
-        type: [Object, Function],
+        type: [Object, Function, Boolean],
         default: null,
     },
     /**
@@ -151,7 +151,12 @@ const currentPreset = computed(() => PRESETS[props.type] || PRESETS.custom);
 
 const resolvedLabel = computed(() => props.label || currentPreset.value.label || '');
 
-const resolvedIcon = computed(() => props.icon || currentPreset.value.icon || null);
+const resolvedIcon = computed(() => {
+    if (props.icon === false) {
+        return null;
+    }
+    return props.icon || currentPreset.value.icon || null;
+});
 
 const resolvedVariant = computed(
     () => props.variant || currentPreset.value.variant || 'default'
@@ -235,7 +240,7 @@ const iconSizeClass = computed(() => {
     <!-- Tombol Standar Button jika aksi event/modal/form -->
     <button
         v-else
-        :type="submit ? 'submit' : 'button'"
+        :type="(submit || type === 'submit') ? 'submit' : 'button'"
         :disabled="disabled || loading"
         :class="baseClasses"
         @click="$emit('click', $event)"

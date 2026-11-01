@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ProfitMasterPostImage;
+use App\Models\TiketBantuanLampiran;
 use App\Models\UserDokumen;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
@@ -277,6 +279,84 @@ class DocumentStreamController extends Controller
                 'Expires'                => '0',
                 'X-Content-Type-Options' => 'nosniff',
                 'X-Frame-Options'        => 'SAMEORIGIN',
+            ]
+        );
+    }
+
+    /**
+     * Tampilkan (stream) berkas gambar materi promosi profit master.
+     */
+    public function showProfitImage(Request $request, int $id): StreamedResponse
+    {
+        $user = $request->user();
+
+        if (!$user || !in_array($user->role, ['administrator', 'member'], true)) {
+            abort(403, 'Anda tidak memiliki hak akses untuk melihat materi promosi ini.');
+        }
+
+        $image = ProfitMasterPostImage::findOrFail($id);
+        $path = $image->file_path;
+
+        if (!Storage::disk('local')->exists($path)) {
+            $fallback = preg_replace('#^private/#', '', $path);
+            if (Storage::disk('local')->exists($fallback)) {
+                $path = $fallback;
+            } else {
+                abort(404, 'Berkas fisik gambar materi promosi tidak ditemukan di penyimpanan server.');
+            }
+        }
+
+        return Storage::disk('local')->response(
+            $path,
+            $image->file_name,
+            [
+                'Content-Type'           => $image->mime_type,
+                'Cache-Control'          => 'private, max-age=86400',
+                'X-Content-Type-Options' => 'nosniff',
+            ]
+        );
+    }
+
+    /**
+     * Tampilkan (stream) berkas lampiran gambar tiket bantuan privat terotentikasi.
+     */
+    public function showTiketAttachment(Request $request, int $id): StreamedResponse
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $lampiran = TiketBantuanLampiran::with('balasan.tiket')->findOrFail($id);
+        $tiket = $lampiran->balasan?->tiket;
+
+        if (!$tiket) {
+            abort(404, 'Tiket bantuan terkait tidak ditemukan.');
+        }
+
+        // Otorisasi: Hanya Admin atau Pemilik Tiket yang dapat mengakses
+        if (!$user->isAdmin() && $user->id !== $tiket->user_id) {
+            abort(403, 'Anda tidak memiliki hak akses untuk melihat lampiran tiket ini.');
+        }
+
+        $path = $lampiran->file_path;
+        if (!Storage::disk('local')->exists($path)) {
+            $fallback = preg_replace('#^private/#', '', $path);
+            if (Storage::disk('local')->exists($fallback)) {
+                $path = $fallback;
+            } else {
+                abort(404, 'Berkas fisik lampiran tiket tidak ditemukan di penyimpanan server.');
+            }
+        }
+
+        return Storage::disk('local')->response(
+            $path,
+            $lampiran->file_name,
+            [
+                'Content-Type'           => $lampiran->mime_type,
+                'Cache-Control'          => 'private, max-age=86400',
+                'X-Content-Type-Options' => 'nosniff',
             ]
         );
     }

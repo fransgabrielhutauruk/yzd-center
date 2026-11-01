@@ -184,4 +184,9 @@ class User extends Authenticatable
             ->where('is_active', true)
             ->whereHas('akunCopytrade', fn ($q) => $q->where('status', 'active'));
     }
+
+    public function tiketBantuan(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(TiketBantuan::class);
+    }
 }
