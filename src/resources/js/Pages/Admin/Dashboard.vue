@@ -15,6 +15,7 @@ import {
     CheckCircle2,
     Clock,
     LifeBuoy,
+    Receipt,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -26,6 +27,7 @@ const props = defineProps({
             referral_claims: 0,
             commission_claims: 0,
             tickets: 0,
+            master_fee: 0,
             total: 0,
         }),
     },
@@ -105,6 +107,18 @@ const pendingList = computed(() => {
             href: '/admin/tickets?status=open',
             icon: LifeBuoy,
             unit: 'Tiket',
+        });
+    }
+
+    if (pa.master_fee > 0) {
+        list.push({
+            id: 'master_fee',
+            title: 'Bukti Master Fee Menunggu Verifikasi',
+            desc: 'Bukti pembayaran Master Fee (Performance Fee 30%) oleh member menunggu verifikasi.',
+            count: pa.master_fee,
+            href: '/admin/master-fee',
+            icon: Receipt,
+            unit: 'Tagihan',
         });
     }
 

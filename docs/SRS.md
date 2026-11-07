@@ -21,6 +21,9 @@
     *   **Manajemen Pengguna & Alih Peran:** Fitur alih peran pengguna (*Role Switch* Investor $\leftrightarrow$ Affiliator) dengan auto-generate kode referral unik.
     *   **Log Aktivitas Imutabel & Audit Diff:** Audit trail permanen dengan penyamaran data sensitif otomatis, pencatatan snapshot sebelum/sesudah, dan ekspor spreadsheet XLSX.
     *   **Pemantauan Galat Real-Time:** Integrasi Sentry Cloud untuk pelacakan bug teknis mendalam dan Bot Telegram Alerting untuk notifikasi insiden fatal 5xx seketika dengan tautan langsung (*deep-link*).
+*   **v1.4.0 (05-11-2026):** Implementasi Modul Master Fee & Penyelarasan Otomatisasi Komisi Afiliasi:
+    *   **Modul Master Fee (Performance Fee 30% Transfer Manual):** Penagihan performa bulanan otomatis per akun dengan formula profit bersih: $\text{balance} - \text{balance\_sebelumnya} + \text{penarikan} - \text{setoran\_tambahan}$, kewajiban unggah foto bukti saldo trading di setiap rekap bulanan, nomor tagihan unik `MFE-YYYYMM-XXXX`, jatuh tempo tanggal 10, notifikasi in-app tgl 1, 7, dan H-1, serta penguncian rekap saat verifikasi atau lunas.
+    *   **Penyelarasan Komisi Afiliasi Berbasis Tagihan Lunas:** Penghapusan input ROI manual oleh Administrator. Komisi afiliator 4-tier dikalkulasi otomatis dan eksklusif dari tagihan Master Fee berstatus `lunas` pada jendela 90 hari downline, dengan pencegahan klaim jika terdapat tagihan downline yang belum beres (`belum_dibayar`, `ditolak`, atau `menunggu_verifikasi`). Admin hanya memvalidasi transfer bank, kurs riil MT4 ke Rupiah, dan mengunggah resi.
 
 ---
 
@@ -121,9 +124,10 @@ Afiliator berhak memperoleh komisi atas keuntungan yang dibukukan oleh *downline
 | **Tier 4** | $< \text{Rp } 100.000.000$ ($< \text{Rp } 100\text{ Juta}$) | **20%** dari jatah Master Trader |
 
 #### Formula Perhitungan & Proteksi Finansial:
-1.  **Sumber Pembayaran Komisi:** Komisi afiliator **dipotong dari jatah 30% Master Trader** (`master_gross_share`), **bukan** memotong jatah hak keuntungan investor. Hak bersih investor tetap terjaga 70% dari gross profit.
-    $$\text{gross\_profit} = \text{deposit\_amount} \times \left(\frac{\text{ROI}}{100}\right)$$
-    $$\text{master\_gross\_share} = \text{gross\_profit} \times 30\%$$
+1.  **Sumber Pembayaran Komisi:** Komisi afiliator **dipotong dari akumulasi tagihan Master Fee lunas downline** (`master_gross_share`), **bukan** memotong jatah hak keuntungan investor. Hak bersih investor tetap terjaga 70% dari gross profit.
+    $$\text{master\_gross\_share} = \sum \text{nominal\_fee tagihan lunas pada jendela 90 hari}$$
+    $$\text{gross\_profit} = \sum \text{profit\_bersih tagihan lunas pada jendela 90 hari}$$
+    $$\text{ROI informatif (\%)} = \left(\frac{\text{gross\_profit}}{\text{modal\_riil}}\right) \times 100\%$$
     $$\text{affiliate\_commission} = \text{master\_gross\_share} \times \left(\frac{\text{Persentase Tier}}{100}\right)$$
     $$\text{master\_net\_share} = \text{master\_gross\_share} - \text{affiliate\_commission}$$
     $$\text{investor\_net\_profit} = \text{gross\_profit} - \text{master\_gross\_share}$$
@@ -132,7 +136,7 @@ Afiliator berhak memperoleh komisi atas keuntungan yang dibukukan oleh *downline
     *   $\text{affiliate\_commission} = \$0.00$ (tidak ada komisi yang dibayarkan).
     *   $\text{master\_gross\_share} = \$0.00$.
     *   Kerugian tidak dibebankan kepada pihak affiliator.
-3.  **Masa Tunggu Kelayakan (*Eligibility Period*):** Akun trading downline wajib telah berstatus aktif minimal **90 hari (3 bulan)** terhitung sejak tanggal mulai copy trade sebelum komisi pertamanya dapat diajukan pencairan oleh affiliator.
+3.  **Masa Tunggu Kelayakan (*Eligibility Period*) & Syarat Lunas Tagihan:** Akun trading downline wajib telah berstatus aktif minimal **90 hari (3 bulan)** terhitung sejak tanggal mulai copy trade dan seluruh tagihan Master Fee downline dalam jendela evaluasi wajib berstatus `lunas` (bebas dari tagihan belum dibayar, ditolak, atau menunggu verifikasi).
 4.  **Perhitungan Mandiri Multi-Akun (*Per-Account Pro-Rata*):** Jika seorang investor memiliki lebih dari satu akun copytrade, penentuan Tier komisi dihitung secara independen per akun, tidak digabungkan.
 
 ---
@@ -169,7 +173,7 @@ Afiliator berhak memperoleh komisi atas keuntungan yang dibukukan oleh *downline
 *   **FR-ADM-04 (Klaim Referral Susulan):** Meninjau permohonan affiliator yang mengklaim downline lupa kode referral, memeriksa bukti tangkapan layar percakapan (*chat*), dan menyetujui pengikatan (*binding*) relasi referral secara sah.
 *   **FR-ADM-05 (Pencairan Komisi Afiliasi):**
     *   Menampilkan antrean klaim komisi berstatus pending lengkap dengan rincian rekening bank tujuan.
-    *   Menginput nilai performa ROI (%) Master Trader untuk kalkulasi otomatis nominal bagi hasil dan nilai transfer IDR sesuai 4-tier modal.
+    *   Menampilkan kalkulasi otomatis komisi afiliator dari tagihan Master Fee lunas downline dan input kurs penarikan riil MT4 ke Rupiah (tanpa input ROI manual).
     *   Memproses status transfer dan mengunggah bukti resi transfer bank resmi (`.jpg`, `.png`, `.pdf`).
 *   **FR-ADM-06 (Manajemen Pengguna):**
     *   Menampilkan direktori seluruh pengguna platform dengan filter peran, status, dan pencarian cepat.
@@ -191,6 +195,11 @@ Afiliator berhak memperoleh komisi atas keuntungan yang dibukukan oleh *downline
     *   Memantau antrean tiket kendala member via dasbor ("Tiket Butuh Respons") dan tabel manajemen terpadu `AppDataTable`.
     *   Mengirimkan tanggapan/solusi dua arah dengan lampiran gambar panduan, mengubah status kendala secara manual, dan memicu notifikasi in-app ke pengguna.
     *   Sistem scheduler otomatis menutup (*Closed*) tiket berstatus *Resolved* setelah 7 hari tanpa aktivitas.
+*   **FR-ADM-11 (Manajemen Tagihan Master Fee):**
+    *   Memantau antrean tagihan Master Fee bulanan: kartu metrik total tagihan, lunas, menunggu verifikasi, belum bayar, terlambat, dan akun belum rekap.
+    *   Memverifikasi bukti transfer pembayaran fee investor atau menolak dengan alasan wajib.
+    *   Mengelola pengaturan rekening bank Master Trader global dan persentase fee (default 30%).
+    *   Streaming privat bukti transfer dan bukti saldo trading investor.
 
 ### 4.3 Modul Investor
 *   **FR-INV-01 (Portofolio Investasi Multi-Akun):**
@@ -214,6 +223,12 @@ Afiliator berhak memperoleh komisi atas keuntungan yang dibukukan oleh *downline
     *   *Tur Aplikasi (Onboarding Tour):* Panduan visual pengenalan sistem langkah-demi-langkah bagi investor baru.
     *   *Jelajah Halaman (Feature Walkthrough):* Panduan interaktif terpandu dengan penyorotan fokus (*spotlight*) pada elemen antarmuka utama di dasbor.
 *   **FR-INV-06 (Pusat Bantuan & Glosarium):** Menelusuri artikel tanya-jawab, panduan setor/tarik broker, dan mencari definisi istilah trading di Kamus Forex.
+*   **FR-INV-07 (Tagihan & Pembayaran Master Fee 30%):**
+    *   Sistem menerbitkan tagihan otomatis saat rekap saldo bulanan disimpan dengan profit bersih > $0.
+    *   Formulir rekap mencatat penarikan dan setoran tambahan, serta mewajibkan unggah bukti saldo (dikompresi senyap).
+    *   Investor dapat melihat daftar tagihan, rincian rekening transfer Master Trader, mengunggah bukti bayar, memantau status verifikasi, dan mengunggah ulang jika ditolak.
+    *   Rekap terkunci saat tagihan berstatus menunggu verifikasi atau lunas.
+    *   Notifikasi in-app otomatis pada tanggal 1, 7, dan H-1 jatuh tempo (tgl 10) untuk tagihan yang belum dibayar.
 
 ### 4.4 Modul Affiliator
 *   **FR-AFF-01:** Menampilkan kartu kode referral, tautan pendaftaran referral personal, dan tombol salin cepat (*one-click copy*).

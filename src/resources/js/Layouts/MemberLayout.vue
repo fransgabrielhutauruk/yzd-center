@@ -20,6 +20,7 @@ import {
     Newspaper,
     TrendingUp,
     LifeBuoy,
+    Receipt,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import { usePwaInstall } from '@/composables/usePwaInstall';
@@ -189,6 +190,12 @@ const navSections = computed(() => {
                     href: '/member/investments',
                     icon: Layers,
                     routeName: 'member.investments.index',
+                },
+                {
+                    label: 'Master Fee',
+                    href: '/member/master-fee',
+                    icon: Receipt,
+                    routeName: 'member.master_fee.index',
                 },
                 {
                     label: 'Kalkulator Proyeksi',

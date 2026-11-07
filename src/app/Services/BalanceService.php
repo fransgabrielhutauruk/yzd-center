@@ -4,16 +4,20 @@ namespace App\Services;
 
 use App\Models\AkunCopytrade;
 use App\Models\RiwayatBalanceCopytrade;
+use App\Models\TagihanMasterFee;
 use App\Models\User;
 use App\Notifications\MonthlyBalanceRecapReminderNotification;
 use Carbon\Carbon;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class BalanceService
 {
     public function __construct(
         protected ExchangeRateService $exchangeRateService,
         protected AuditLogService $auditLogService,
+        protected MasterFeeService $masterFeeService,
     ) {}
 
     /**
@@ -22,7 +26,7 @@ class BalanceService
     public function recordBalance(AkunCopytrade $akun, array $data, User $user): RiwayatBalanceCopytrade
     {
         if ($akun->status !== 'active') {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'akun_copytrade_id' => 'Catatan saldo hanya dapat diinput untuk akun trading yang telah diverifikasi dan aktif.',
             ]);
         }
@@ -31,6 +35,8 @@ class BalanceService
             $tanggal = Carbon::parse($data['tanggal_pencatatan'])->toDateString();
             $balance = (float) $data['balance'];
             $modalAwal = (float) $akun->modal_riil;
+            $penarikan = isset($data['penarikan']) ? (float) $data['penarikan'] : 0.0;
+            $setoran = isset($data['setoran_tambahan']) ? (float) $data['setoran_tambahan'] : 0.0;
 
             // Cari record sebelum tanggal ini untuk menghitung keuntungan MoM
             $prevRecord = RiwayatBalanceCopytrade::query()
@@ -41,16 +47,27 @@ class BalanceService
 
             $baseBalance = $prevRecord ? (float) $prevRecord->balance : $modalAwal;
 
-            $keuntunganNominal = $balance - $baseBalance;
+            // Rumus profit bersih: balance_akhir - balance_sebelumnya + penarikan - setoran_tambahan
+            $keuntunganNominal = $balance - $baseBalance + $penarikan - $setoran;
             $keuntunganPersen = $baseBalance > 0
                 ? round(($keuntunganNominal / $baseBalance) * 100.0, 2)
                 : 0.0;
 
-            // Keuntungan Kumulatif All-Time (Saldo terakhir - Modal Awal)
+            // Keuntungan Kumulatif All-Time
             $keuntunganKumulatif = $balance - $modalAwal;
             $pertumbuhanKumulatifPersen = $modalAwal > 0
                 ? round(($keuntunganKumulatif / $modalAwal) * 100.0, 2)
                 : 0.0;
+
+            // Simpan bukti saldo jika diunggah
+            $buktiSaldoPath = null;
+            if (isset($data['bukti_saldo']) && $data['bukti_saldo'] instanceof UploadedFile) {
+                $ext = $data['bukti_saldo']->getClientOriginalExtension() ?: 'jpg';
+                $filename = 'proof_' . $akun->id . '_' . time() . '_' . uniqid() . '.' . $ext;
+                $buktiSaldoPath = $data['bukti_saldo']->storeAs("balance_proofs/{$akun->id}", $filename, 'local');
+            } elseif (!empty($data['bukti_saldo_path'])) {
+                $buktiSaldoPath = $data['bukti_saldo_path'];
+            }
 
             $record = RiwayatBalanceCopytrade::updateOrCreate(
                 [
@@ -60,16 +77,22 @@ class BalanceService
                 [
                     'user_id'                      => $user->id,
                     'balance'                      => $balance,
+                    'penarikan'                    => $penarikan,
+                    'setoran_tambahan'             => $setoran,
                     'keuntungan_nominal'           => round($keuntunganNominal, 2),
                     'keuntungan_persen'            => round($keuntunganPersen, 2),
                     'keuntungan_kumulatif'         => round($keuntunganKumulatif, 2),
                     'pertumbuhan_kumulatif_persen' => round($pertumbuhanKumulatifPersen, 2),
                     'catatan'                      => !empty($data['catatan']) ? trim($data['catatan']) : null,
+                    'bukti_saldo_path'             => $buktiSaldoPath,
                 ]
             );
 
             // Rekalkulasi data record setelah tanggal ini (jika input disisipkan di antara tanggal)
             $this->recalculateAccountBalances($akun);
+
+            // Sinkronisasi tagihan master fee
+            $this->masterFeeService->syncInvoiceForBalance($record->fresh());
 
             // Audit Log: Pencatatan saldo
             $this->auditLogService->record(
@@ -81,6 +104,8 @@ class BalanceService
                     'sesudah' => [
                         'tanggal_pencatatan' => $tanggal,
                         'balance'            => $balance,
+                        'penarikan'          => $penarikan,
+                        'setoran_tambahan'   => $setoran,
                         'keuntungan_nominal' => round($keuntunganNominal, 2),
                         'keuntungan_persen'  => round($keuntunganPersen, 2),
                     ],
@@ -99,23 +124,50 @@ class BalanceService
     public function updateBalance(RiwayatBalanceCopytrade $record, array $data): RiwayatBalanceCopytrade
     {
         return DB::transaction(function () use ($record, $data): RiwayatBalanceCopytrade {
+            // Tolak edit bila tagihan terkunci (menunggu_verifikasi atau lunas)
+            $tagihan = $record->tagihanMasterFee;
+            if ($tagihan && in_array($tagihan->status, [TagihanMasterFee::STATUS_MENUNGGU_VERIFIKASI, TagihanMasterFee::STATUS_LUNAS], true)) {
+                throw ValidationException::withMessages([
+                    'balance' => 'Rekap terkunci karena tagihan master fee sedang diverifikasi atau sudah lunas.',
+                ]);
+            }
+
             $akun = $record->akunCopytrade;
             $tanggal = Carbon::parse($data['tanggal_pencatatan'])->toDateString();
             $balance = (float) $data['balance'];
+            $penarikan = isset($data['penarikan']) ? (float) $data['penarikan'] : (float) $record->penarikan;
+            $setoran = isset($data['setoran_tambahan']) ? (float) $data['setoran_tambahan'] : (float) $record->setoran_tambahan;
+
+            $buktiSaldoPath = $record->bukti_saldo_path;
+            if (isset($data['bukti_saldo']) && $data['bukti_saldo'] instanceof UploadedFile) {
+                $ext = $data['bukti_saldo']->getClientOriginalExtension() ?: 'jpg';
+                $filename = 'proof_' . $akun->id . '_' . time() . '_' . uniqid() . '.' . $ext;
+                $buktiSaldoPath = $data['bukti_saldo']->storeAs("balance_proofs/{$akun->id}", $filename, 'local');
+            } elseif (isset($data['bukti_saldo_path'])) {
+                $buktiSaldoPath = $data['bukti_saldo_path'];
+            }
 
             $sebelum = [
                 'tanggal_pencatatan' => (string) $record->tanggal_pencatatan,
                 'balance'            => (float) $record->balance,
+                'penarikan'          => (float) $record->penarikan,
+                'setoran_tambahan'   => (float) $record->setoran_tambahan,
                 'catatan'            => $record->catatan,
             ];
 
             $record->update([
                 'tanggal_pencatatan' => $tanggal,
                 'balance'            => $balance,
+                'penarikan'          => $penarikan,
+                'setoran_tambahan'   => $setoran,
+                'bukti_saldo_path'   => $buktiSaldoPath,
                 'catatan'            => !empty($data['catatan']) ? trim($data['catatan']) : null,
             ]);
 
             $this->recalculateAccountBalances($akun);
+
+            // Sinkronisasi tagihan master fee
+            $this->masterFeeService->syncInvoiceForBalance($record->fresh());
 
             // Audit Log: Ubah saldo
             $this->auditLogService->record(
@@ -128,6 +180,8 @@ class BalanceService
                     'sesudah' => [
                         'tanggal_pencatatan' => $tanggal,
                         'balance'            => $balance,
+                        'penarikan'          => $penarikan,
+                        'setoran_tambahan'   => $setoran,
                         'catatan'            => $record->catatan,
                     ],
                 ],
@@ -144,6 +198,14 @@ class BalanceService
     public function deleteBalance(RiwayatBalanceCopytrade $record): void
     {
         DB::transaction(function () use ($record) {
+            // Tolak hapus bila tagihan terkunci
+            $tagihan = $record->tagihanMasterFee;
+            if ($tagihan && in_array($tagihan->status, [TagihanMasterFee::STATUS_MENUNGGU_VERIFIKASI, TagihanMasterFee::STATUS_LUNAS], true)) {
+                throw ValidationException::withMessages([
+                    'balance' => 'Rekap terkunci karena tagihan master fee sedang diverifikasi atau sudah lunas.',
+                ]);
+            }
+
             $akun = $record->akunCopytrade;
 
             $sebelum = [
@@ -151,6 +213,10 @@ class BalanceService
                 'balance'            => (float) $record->balance,
                 'catatan'            => $record->catatan,
             ];
+
+            if ($tagihan) {
+                $tagihan->delete();
+            }
 
             $record->delete();
             $this->recalculateAccountBalances($akun);
@@ -177,29 +243,38 @@ class BalanceService
         $records = RiwayatBalanceCopytrade::query()
             ->where('akun_copytrade_id', $akun->id)
             ->orderBy('tanggal_pencatatan', 'asc')
+            ->orderBy('id', 'asc')
             ->get();
 
         $modalAwal = (float) $akun->modal_riil;
         $prevBalance = $modalAwal;
+        $cumulativeProfit = 0.0;
 
         foreach ($records as $rec) {
             $currentBal = (float) $rec->balance;
-            $keuntunganNominal = $currentBal - $prevBalance;
+            $penarikan = (float) ($rec->penarikan ?? 0.0);
+            $setoran = (float) ($rec->setoran_tambahan ?? 0.0);
+
+            // Rumus profit bersih: balance_akhir - balance_sebelumnya + penarikan - setoran_tambahan
+            $keuntunganNominal = $currentBal - $prevBalance + $penarikan - $setoran;
             $keuntunganPersen = $prevBalance > 0
                 ? round(($keuntunganNominal / $prevBalance) * 100.0, 2)
                 : 0.0;
 
-            $keuntunganKumulatif = $currentBal - $modalAwal;
+            $cumulativeProfit += $keuntunganNominal;
             $pertumbuhanKumulatifPersen = $modalAwal > 0
-                ? round(($keuntunganKumulatif / $modalAwal) * 100.0, 2)
+                ? round(($cumulativeProfit / $modalAwal) * 100.0, 2)
                 : 0.0;
 
             $rec->updateQuietly([
                 'keuntungan_nominal'           => round($keuntunganNominal, 2),
                 'keuntungan_persen'            => round($keuntunganPersen, 2),
-                'keuntungan_kumulatif'         => round($keuntunganKumulatif, 2),
+                'keuntungan_kumulatif'         => round($cumulativeProfit, 2),
                 'pertumbuhan_kumulatif_persen' => round($pertumbuhanKumulatifPersen, 2),
             ]);
+
+            // Sinkronisasi tagihan jika ada
+            $this->masterFeeService->syncInvoiceForBalance($rec);
 
             $prevBalance = $currentBal;
         }
@@ -220,6 +295,7 @@ class BalanceService
         $modalAwal = (float) $akun->modal_riil;
 
         $allRecords = RiwayatBalanceCopytrade::query()
+            ->with('tagihanMasterFee')
             ->where('akun_copytrade_id', $akun->id)
             ->orderBy('tanggal_pencatatan', 'asc')
             ->orderBy('id', 'asc')
@@ -334,12 +410,19 @@ class BalanceService
 
         // Format riwayat untuk tabel
         $formattedHistory = $filteredRecords->map(function ($rec) use ($kurs) {
+            $tagihan = $rec->tagihanMasterFee;
+
             return [
                 'id'                           => $rec->id,
                 'tanggal_pencatatan'           => $rec->tanggal_pencatatan->format('Y-m-d'),
                 'tanggal_formatted'            => function_exists('tanggal_indo') ? tanggal_indo($rec->tanggal_pencatatan) : $rec->tanggal_pencatatan->format('d M Y'),
                 'balance'                      => (float) $rec->balance,
                 'balance_idr'                  => round((float) $rec->balance * $kurs, 0),
+                'penarikan'                    => (float) ($rec->penarikan ?? 0),
+                'penarikan_idr'                => round((float) ($rec->penarikan ?? 0) * $kurs, 0),
+                'setoran_tambahan'             => (float) ($rec->setoran_tambahan ?? 0),
+                'setoran_tambahan_idr'         => round((float) ($rec->setoran_tambahan ?? 0) * $kurs, 0),
+                'bukti_saldo_path'             => $rec->bukti_saldo_path,
                 'keuntungan_nominal'           => (float) $rec->keuntungan_nominal,
                 'keuntungan_nominal_idr'       => round((float) $rec->keuntungan_nominal * $kurs, 0),
                 'keuntungan_persen'            => (float) $rec->keuntungan_persen,
@@ -347,6 +430,17 @@ class BalanceService
                 'keuntungan_kumulatif_idr'     => round((float) $rec->keuntungan_kumulatif * $kurs, 0),
                 'pertumbuhan_kumulatif_persen' => (float) $rec->pertumbuhan_kumulatif_persen,
                 'catatan'                      => $rec->catatan,
+                'tagihan_master_fee'           => $tagihan ? [
+                    'id'           => $tagihan->id,
+                    'nomor'        => $tagihan->nomor,
+                    'status'       => $tagihan->status,
+                    'status_label' => $tagihan->status_label,
+                    'nominal_fee'  => (float) $tagihan->nominal_fee,
+                    'fee_persen'   => (float) $tagihan->fee_persen,
+                    'jatuh_tempo'  => $tagihan->jatuh_tempo?->format('Y-m-d'),
+                    'is_terlambat' => $tagihan->is_terlambat,
+                    'is_locked'    => in_array($tagihan->status, [TagihanMasterFee::STATUS_MENUNGGU_VERIFIKASI, TagihanMasterFee::STATUS_LUNAS], true),
+                ] : null,
             ];
         })->toArray();
 

@@ -77,6 +77,11 @@ class AkunCopytrade extends Model
         return $this->hasOne(RiwayatBalanceCopytrade::class, 'akun_copytrade_id')->latestOfMany('tanggal_pencatatan');
     }
 
+    public function tagihanMasterFee(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(TagihanMasterFee::class, 'akun_copytrade_id');
+    }
+
     // -------------------------------------------------------------------------
     // Accessors
     // -------------------------------------------------------------------------

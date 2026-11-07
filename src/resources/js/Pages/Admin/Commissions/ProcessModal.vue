@@ -41,7 +41,6 @@ const decision = ref('approved_transferred'); // 'approved_transferred' | 'rejec
 const form = useForm({
     status: 'approved_transferred',
     kurs_konversi_idr: '',
-    items: [],
     bukti_transfer: null,
     catatan_admin: '',
 });
@@ -70,17 +69,6 @@ watch(
                 ? String(Math.round(Number(newClaim.kurs_konversi_idr)))
                 : '';
             filePreviewName.value = '';
-
-            if (newClaim.items && newClaim.items.length > 0) {
-                form.items = newClaim.items.map((it) => ({
-                    id: it.id,
-                    roi_percentage: it.roi_percentage !== null && it.roi_percentage !== undefined ? it.roi_percentage : '',
-                    master_share_pct: it.master_share_pct !== null && it.master_share_pct !== undefined ? it.master_share_pct : 30.0,
-                    affiliate_share_pct: it.affiliate_share_pct !== null && it.affiliate_share_pct !== undefined ? it.affiliate_share_pct : (it.persentase_tier || 20.0),
-                }));
-            } else {
-                form.items = [];
-            }
         }
     },
     { immediate: true }
@@ -91,74 +79,37 @@ watch(decision, (val) => {
 });
 
 // Perhitungan profit, drawdown guard, bagi hasil master, dan komisi afiliator per akun
-const calculatedItems = computed(() => {
+const displayItems = computed(() => {
     if (!props.claim?.items) return [];
 
-    return props.claim.items.map((it, idx) => {
-        const itemForm = form.items[idx] || {};
+    return props.claim.items.map((it) => {
         const deposit = Number(it.deposit_amount || it.modal_riil) || 0;
-        const roiRaw = itemForm.roi_percentage;
-        const roi = (roiRaw !== '' && roiRaw !== null && !isNaN(roiRaw)) ? Number(roiRaw) : null;
-        const masterSharePct = Number(itemForm.master_share_pct ?? 30.0);
-        const affiliateSharePct = Number(itemForm.affiliate_share_pct ?? it.persentase_tier ?? 20.0);
-
-        if (roi === null) {
-            return {
-                ...it,
-                deposit,
-                roi: 0,
-                hasInput: false,
-                gross_profit: 0,
-                master_gross_share: 0,
-                affiliate_commission: 0,
-                master_net_share: 0,
-                investor_net_profit: 0,
-                is_drawdown: false,
-                transfer: 0,
-            };
-        }
-
-        const grossProfit = deposit * (roi / 100);
-
-        if (grossProfit <= 0) {
-            return {
-                ...it,
-                deposit,
-                roi,
-                hasInput: true,
-                gross_profit: grossProfit,
-                master_gross_share: 0,
-                affiliate_commission: 0,
-                master_net_share: 0,
-                investor_net_profit: grossProfit,
-                is_drawdown: true,
-                transfer: 0,
-            };
-        }
-
-        const masterGrossShare = grossProfit * (masterSharePct / 100);
-        const affiliateCommission = masterGrossShare * (affiliateSharePct / 100);
-        const masterNetShare = masterGrossShare - affiliateCommission;
-        const investorNetProfit = grossProfit - masterGrossShare;
+        const grossProfit = Number(it.gross_profit ?? 0);
+        const masterGrossShare = Number(it.master_gross_share ?? it.profit_master ?? 0);
+        const affiliateCommission = Number(it.affiliate_commission ?? it.nominal_transfer ?? 0);
+        const masterNetShare = Number(it.master_net_share ?? (masterGrossShare - affiliateCommission));
+        const investorNetProfit = Number(it.investor_net_profit ?? (grossProfit - masterGrossShare));
+        const isDrawdown = masterGrossShare <= 0 || grossProfit <= 0;
 
         return {
             ...it,
             deposit,
-            roi,
-            hasInput: true,
             gross_profit: grossProfit,
             master_gross_share: masterGrossShare,
             affiliate_commission: affiliateCommission,
             master_net_share: masterNetShare,
             investor_net_profit: investorNetProfit,
-            is_drawdown: false,
+            is_drawdown: isDrawdown,
             transfer: affiliateCommission,
         };
     });
 });
 
 const totalCalculatedTransfer = computed(() => {
-    return calculatedItems.value.reduce((acc, it) => acc + (it.transfer || 0), 0);
+    if (props.claim?.total_affiliate_commission !== null && props.claim?.total_affiliate_commission !== undefined) {
+        return Number(props.claim.total_affiliate_commission);
+    }
+    return displayItems.value.reduce((acc, it) => acc + (it.transfer || 0), 0);
 });
 
 const parsedKursMt4 = computed(() => {
@@ -173,24 +124,31 @@ const totalCalculatedTransferIdr = computed(() => {
 });
 
 const totalCalculatedGrossProfit = computed(() => {
-    return calculatedItems.value.reduce((acc, it) => acc + (it.gross_profit || 0), 0);
+    if (props.claim?.total_gross_profit !== null && props.claim?.total_gross_profit !== undefined) {
+        return Number(props.claim.total_gross_profit);
+    }
+    return displayItems.value.reduce((acc, it) => acc + (it.gross_profit || 0), 0);
 });
 
 const totalCalculatedMasterGrossShare = computed(() => {
-    return calculatedItems.value.reduce((acc, it) => acc + (it.master_gross_share || 0), 0);
+    if (props.claim?.total_master_gross_share !== null && props.claim?.total_master_gross_share !== undefined) {
+        return Number(props.claim.total_master_gross_share);
+    }
+    return displayItems.value.reduce((acc, it) => acc + (it.master_gross_share || 0), 0);
 });
 
 const totalCalculatedMasterNetShare = computed(() => {
-    return calculatedItems.value.reduce((acc, it) => acc + (it.master_net_share || 0), 0);
+    if (props.claim?.total_master_net_share !== null && props.claim?.total_master_net_share !== undefined) {
+        return Number(props.claim.total_master_net_share);
+    }
+    return displayItems.value.reduce((acc, it) => acc + (it.master_net_share || 0), 0);
 });
 
 const totalCalculatedInvestorNetProfit = computed(() => {
-    return calculatedItems.value.reduce((acc, it) => acc + (it.investor_net_profit || 0), 0);
-});
-
-const allItemsHaveRoi = computed(() => {
-    if (calculatedItems.value.length === 0) return false;
-    return calculatedItems.value.every((it) => it.hasInput);
+    if (props.claim?.total_investor_net_profit !== null && props.claim?.total_investor_net_profit !== undefined) {
+        return Number(props.claim.total_investor_net_profit);
+    }
+    return displayItems.value.reduce((acc, it) => acc + (it.investor_net_profit || 0), 0);
 });
 
 const hasValidKursIdr = computed(() => {
@@ -471,7 +429,7 @@ const submit = () => {
                         <!-- Card Akun Copytrade -->
                         <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
                             <div
-                                v-for="(it, idx) in calculatedItems"
+                                v-for="(it, idx) in displayItems"
                                 :key="it.id || idx"
                                 class="rounded-xl border border-border bg-muted/20 p-3 space-y-2.5"
                             >
@@ -517,64 +475,8 @@ const submit = () => {
                                     </span>
                                 </div>
 
-                                <!-- Input Parameter: ROI %, Hak Master %, Jatah Afiliator % -->
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-                                    <div class="space-y-1">
-                                        <label class="text-muted-foreground text-[10px] block font-semibold">
-                                            ROI Master Periode Ini (%) <span class="text-rose-500">*</span>:
-                                        </label>
-                                        <div class="relative">
-                                            <input
-                                                type="number"
-                                                v-model="form.items[idx].roi_percentage"
-                                                placeholder="cth: 20"
-                                                step="0.01"
-                                                required
-                                                class="bg-background border-input focus:ring-primary-500 h-8 w-full rounded-lg border px-2.5 pr-6 text-xs font-mono focus:ring-2 focus:outline-none"
-                                            />
-                                            <span class="absolute right-2 top-2 text-[10px] text-muted-foreground font-bold">%</span>
-                                        </div>
-                                    </div>
-
-                                    <div class="space-y-1">
-                                        <label class="text-muted-foreground text-[10px] block font-semibold">
-                                            Bagi Hasil Hak Master (%):
-                                        </label>
-                                        <div class="relative">
-                                            <input
-                                                type="number"
-                                                v-model="form.items[idx].master_share_pct"
-                                                placeholder="30"
-                                                step="0.1"
-                                                min="0"
-                                                max="100"
-                                                class="bg-background border-input focus:ring-primary-500 h-8 w-full rounded-lg border px-2.5 pr-6 text-xs font-mono focus:ring-2 focus:outline-none"
-                                            />
-                                            <span class="absolute right-2 top-2 text-[10px] text-muted-foreground font-bold">%</span>
-                                        </div>
-                                    </div>
-
-                                    <div class="space-y-1">
-                                        <label class="text-muted-foreground text-[10px] block font-semibold">
-                                            Jatah Afiliator Tier {{ it.tier_level }} (%):
-                                        </label>
-                                        <div class="relative">
-                                            <input
-                                                type="number"
-                                                v-model="form.items[idx].affiliate_share_pct"
-                                                placeholder="20"
-                                                step="0.1"
-                                                min="0"
-                                                max="100"
-                                                class="bg-background border-input focus:ring-primary-500 h-8 w-full rounded-lg border px-2.5 pr-6 text-xs font-mono focus:ring-2 focus:outline-none"
-                                            />
-                                            <span class="absolute right-2 top-2 text-[10px] text-muted-foreground font-bold">%</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Box Hasil Live Perhitungan Akun -->
-                                <div v-if="it.hasInput" class="pt-1">
+                                <!-- Box Hasil Kalkulasi Akun dari Tagihan Lunas -->
+                                <div class="pt-1">
                                     <!-- Drawdown Guard Alert jika Rugi / Impas -->
                                     <div
                                         v-if="it.is_drawdown"

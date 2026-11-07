@@ -97,6 +97,7 @@ class InvestmentPortfolioTest extends TestCase
                 'tanggal_pencatatan' => '2026-02-01',
                 'balance'            => 108.00,
                 'catatan'            => 'Bulan Februari profit $8',
+                'bukti_saldo'        => UploadedFile::fake()->image('bukti_saldo.jpg'),
             ]);
 
         $response->assertRedirect(route('member.investments.index', ['account_id' => $akun->id]));

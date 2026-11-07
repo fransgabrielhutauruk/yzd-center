@@ -6,6 +6,8 @@ use App\Models\AkunCopytrade;
 use App\Models\KlaimKomisi;
 use App\Models\KlaimKomisiItem;
 use App\Models\RelasiReferral;
+use App\Models\RiwayatBalanceCopytrade;
+use App\Models\TagihanMasterFee;
 use App\Models\User;
 use App\Notifications\CommissionClaimProcessedNotification;
 use App\Notifications\CommissionClaimSubmittedNotification;
@@ -851,5 +853,186 @@ class CommissionClaimTest extends TestCase
 
         $this->assertEquals('Permohonan Klaim Komisi Baru (90 Hari)', $data['title']);
         $this->assertStringContainsString('dengan total modal $100.', $data['message']);
+    }
+
+    public function test_affiliator_cannot_claim_if_downline_has_unsettled_master_fee_in_window(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-01 10:00:00'));
+
+        $akun = AkunCopytrade::create([
+            'user_id'            => $this->downline->id,
+            'tier'               => 'tier_2',
+            'broker'             => 'XM',
+            'tipe_akun'          => 'standard',
+            'nomor_akun_trading' => '88776655',
+            'modal_riil'         => 10000,
+            'tanggal_mulai'      => '2026-04-01',
+            'nama_bank'          => 'Mandiri',
+            'nomor_rekening'     => '9876543210',
+            'atas_nama_rekening' => $this->downline->name,
+            'status'             => 'active',
+        ]);
+
+        $rekap = RiwayatBalanceCopytrade::create([
+            'akun_copytrade_id'  => $akun->id,
+            'user_id'            => $this->downline->id,
+            'tanggal_pencatatan' => '2026-05-01',
+            'balance'            => 11000,
+            'keuntungan_nominal' => 1000,
+            'keuntungan_persen'  => 10,
+            'penarikan'          => 0,
+            'setoran_tambahan'   => 0,
+            'bukti_saldo_path'   => 'balance_proofs/test.jpg',
+        ]);
+
+        // Tagihan belum dibayar
+        TagihanMasterFee::create([
+            'nomor'              => 'MFE-202605-0001',
+            'riwayat_balance_id' => $rekap->id,
+            'akun_copytrade_id'  => $akun->id,
+            'user_id'            => $this->downline->id,
+            'periode'            => '2026-04-01',
+            'profit_bersih'      => 1000,
+            'fee_persen'         => 30,
+            'nominal_fee'        => 300,
+            'jatuh_tempo'        => '2026-05-10',
+            'status'             => TagihanMasterFee::STATUS_BELUM_DIBAYAR,
+        ]);
+
+        // Affiliator melihat status Tagihan Belum Selesai dan tidak eligible
+        $response = $this->actingAs($this->affiliator)->get('/member/commissions');
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Member/Commissions/Index')
+            ->where('eligibleDownlines.0.is_eligible', false)
+            ->where('eligibleDownlines.0.status_label', 'Tagihan Belum Selesai')
+        );
+
+        // Affiliator mencoba submit klaim langsung -> ditolak validasi
+        $submitResponse = $this->actingAs($this->affiliator)->post('/member/commissions', [
+            'downline_ids'       => [$this->downline->id],
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => $this->affiliator->name,
+        ]);
+
+        $submitResponse->assertSessionHasErrors('downline_ids');
+    }
+
+    public function test_affiliator_can_claim_and_admin_approves_without_manual_roi_input(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-01 10:00:00'));
+
+        $akun = AkunCopytrade::create([
+            'user_id'            => $this->downline->id,
+            'tier'               => 'tier_4',
+            'broker'             => 'XM',
+            'tipe_akun'          => 'standard',
+            'nomor_akun_trading' => '88776655',
+            'modal_riil'         => 1000, // < 100 Juta -> Tier 4 (20%)
+            'tanggal_mulai'      => '2026-04-01',
+            'nama_bank'          => 'Mandiri',
+            'nomor_rekening'     => '9876543210',
+            'atas_nama_rekening' => $this->downline->name,
+            'status'             => 'active',
+        ]);
+
+        // Rekap 1: Profit 1000, fee 300 (lunas)
+        $rekap1 = RiwayatBalanceCopytrade::create([
+            'akun_copytrade_id'  => $akun->id,
+            'user_id'            => $this->downline->id,
+            'tanggal_pencatatan' => '2026-05-01',
+            'balance'            => 2000,
+            'keuntungan_nominal' => 1000,
+            'keuntungan_persen'  => 100,
+            'penarikan'          => 0,
+            'setoran_tambahan'   => 0,
+            'bukti_saldo_path'   => 'balance_proofs/test1.jpg',
+        ]);
+
+        TagihanMasterFee::create([
+            'nomor'              => 'MFE-202605-0001',
+            'riwayat_balance_id' => $rekap1->id,
+            'akun_copytrade_id'  => $akun->id,
+            'user_id'            => $this->downline->id,
+            'periode'            => '2026-04-01',
+            'profit_bersih'      => 1000,
+            'fee_persen'         => 30,
+            'nominal_fee'        => 300,
+            'jatuh_tempo'        => '2026-05-10',
+            'status'             => TagihanMasterFee::STATUS_LUNAS,
+            'dibayar_at'         => now()->subDays(30),
+            'verified_at'        => now()->subDays(30),
+        ]);
+
+        // Rekap 2: Profit 1000, fee 300 (lunas)
+        $rekap2 = RiwayatBalanceCopytrade::create([
+            'akun_copytrade_id'  => $akun->id,
+            'user_id'            => $this->downline->id,
+            'tanggal_pencatatan' => '2026-06-01',
+            'balance'            => 3000,
+            'keuntungan_nominal' => 1000,
+            'keuntungan_persen'  => 50,
+            'penarikan'          => 0,
+            'setoran_tambahan'   => 0,
+            'bukti_saldo_path'   => 'balance_proofs/test2.jpg',
+        ]);
+
+        TagihanMasterFee::create([
+            'nomor'              => 'MFE-202606-0001',
+            'riwayat_balance_id' => $rekap2->id,
+            'akun_copytrade_id'  => $akun->id,
+            'user_id'            => $this->downline->id,
+            'periode'            => '2026-05-01',
+            'profit_bersih'      => 1000,
+            'fee_persen'         => 30,
+            'nominal_fee'        => 300,
+            'jatuh_tempo'        => '2026-06-10',
+            'status'             => TagihanMasterFee::STATUS_LUNAS,
+            'dibayar_at'         => now()->subDays(10),
+            'verified_at'        => now()->subDays(10),
+        ]);
+
+        // Affiliator ajukan klaim komisi
+        $submitResponse = $this->actingAs($this->affiliator)->post('/member/commissions', [
+            'downline_ids'       => [$this->downline->id],
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => $this->affiliator->name,
+        ]);
+
+        $submitResponse->assertRedirect('/member/commissions');
+        $submitResponse->assertSessionHas('success');
+
+        $claim = KlaimKomisi::latest()->first();
+        $this->assertNotNull($claim);
+
+        // Nilai terhitung otomatis dari tagihan lunas:
+        // Total Profit = 2000, Total Hak Master = 600, Komisi Afiliator 20% = 120
+        $this->assertEquals(2000.0, (float) $claim->total_gross_profit);
+        $this->assertEquals(600.0, (float) $claim->total_master_gross_share);
+        $this->assertEquals(120.0, (float) $claim->total_affiliate_commission);
+        $this->assertEquals('pending', $claim->status);
+
+        // Admin setujui klaim TANPA input ROI / profit master manual
+        $receiptFile = UploadedFile::fake()->create('bukti_transfer.jpg', 300, 'image/jpeg');
+
+        $approveResponse = $this->actingAs($this->admin)->post("/admin/commissions/{$claim->id}/process", [
+            'status'            => 'approved_transferred',
+            'kurs_konversi_idr' => 16000,
+            'bukti_transfer'    => $receiptFile,
+            'catatan_admin'     => 'Disetujui berdasarkan Master Fee lunas.',
+        ]);
+
+        $approveResponse->assertRedirect('/admin/commissions');
+        $approveResponse->assertSessionHas('success');
+
+        $claim->refresh();
+        $this->assertEquals('approved_transferred', $claim->status);
+        $this->assertEquals(600.0, (float) $claim->total_master_gross_share);
+        $this->assertEquals(120.0, (float) $claim->total_affiliate_commission);
+        $this->assertEquals(120.0, (float) $claim->total_nominal_transfer);
+        $this->assertEquals(16000.0, (float) $claim->kurs_konversi_idr);
+        $this->assertEquals(1920000.0, (float) $claim->total_nominal_transfer_idr); // 120 * 16,000 = 1,920,000
     }
 }

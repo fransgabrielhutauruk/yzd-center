@@ -236,7 +236,7 @@ const statusBadge = computed(() => {
                         </div>
 
                         <div v-else class="text-muted-foreground text-[10px] italic">
-                            Menunggu verifikasi dan input ROI oleh Administrator.
+                            Menunggu verifikasi pencairan oleh Administrator.
                         </div>
                     </div>
                 </div>

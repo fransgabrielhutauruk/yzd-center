@@ -7,6 +7,7 @@ use App\Models\AkunCopytrade;
 use App\Models\Invitation;
 use App\Models\KlaimKomisi;
 use App\Models\KlaimReferral;
+use App\Models\TagihanMasterFee;
 use App\Models\TiketBantuan;
 use App\Models\User;
 use Inertia\Inertia;
@@ -41,6 +42,10 @@ class AdminDashboardController extends Controller
             ->butuhResponsAdmin()
             ->count();
 
+        $pendingMasterFee = TagihanMasterFee::query()
+            ->where('status', TagihanMasterFee::STATUS_MENUNGGU_VERIFIKASI)
+            ->count();
+
         // 2. Metrik ekosistem
         $memberCount = User::where('role', 'member')->count();
         $activeMemberCount = User::where('role', 'member')->where('is_active', true)->count();
@@ -61,7 +66,8 @@ class AdminDashboardController extends Controller
                 'referral_claims'   => $pendingReferralClaims,
                 'commission_claims' => $pendingCommissionClaims,
                 'tickets'           => $pendingTickets,
-                'total'             => $pendingKyc + $pendingCopytrade + $pendingReferralClaims + $pendingCommissionClaims + $pendingTickets,
+                'master_fee'        => $pendingMasterFee,
+                'total'             => $pendingKyc + $pendingCopytrade + $pendingReferralClaims + $pendingCommissionClaims + $pendingTickets + $pendingMasterFee,
             ],
             'stats' => [
                 'member_count'            => $memberCount,

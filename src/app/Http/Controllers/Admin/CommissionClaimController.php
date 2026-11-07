@@ -45,11 +45,11 @@ class CommissionClaimController extends Controller
     public function process(ProcessCommissionClaimRequest $request, int $id): RedirectResponse
     {
         $status = $request->string('status')->value();
-        $profitMaster = $request->filled('profit_master') ? (float) $request->input('profit_master') : null;
         $kursKonversiIdr = $request->filled('kurs_konversi_idr') ? (float) $request->input('kurs_konversi_idr') : null;
-        $itemizedProfits = $request->input('items');
         $buktiTransfer = $request->file('bukti_transfer');
         $catatanAdmin = $request->input('catatan_admin');
+        $itemizedProfits = $request->input('items');
+        $profitMaster = $request->filled('profit_master') ? (float) $request->input('profit_master') : null;
 
         $claim = $this->commissionClaimService->processClaim(
             $id,

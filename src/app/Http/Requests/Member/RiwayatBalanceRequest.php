@@ -29,6 +29,7 @@ class RiwayatBalanceRequest extends FormRequest
     public function rules(): array
     {
         $recordId = $this->route('id') ?? $this->route('balance');
+        $isUpdate = (bool) $recordId || $this->isMethod('put') || $this->isMethod('patch');
 
         return [
             'akun_copytrade_id' => [
@@ -41,10 +42,9 @@ class RiwayatBalanceRequest extends FormRequest
             'tanggal_pencatatan' => [
                 'required',
                 'date',
-                function (string $attribute, mixed $value, \Closure $fail): void {
+                function (string $attribute, mixed $value, \Closure $fail) use ($recordId): void {
                     $tanggal = \Carbon\Carbon::parse($value)->toDateString();
                     $akunId = $this->input('akun_copytrade_id');
-                    $recordId = $this->route('id') ?? $this->route('balance');
 
                     $exists = \App\Models\RiwayatBalanceCopytrade::query()
                         ->where('akun_copytrade_id', $akunId)
@@ -57,7 +57,15 @@ class RiwayatBalanceRequest extends FormRequest
                     }
                 },
             ],
-            'balance' => ['required', 'numeric', 'min:0'],
+            'balance'          => ['required', 'numeric', 'min:0'],
+            'penarikan'        => ['nullable', 'numeric', 'min:0'],
+            'setoran_tambahan' => ['nullable', 'numeric', 'min:0'],
+            'bukti_saldo'      => [
+                $isUpdate ? 'nullable' : 'required',
+                'image',
+                'mimes:jpeg,png,jpg,webp',
+                'max:10240',
+            ],
             'catatan' => ['nullable', 'string', 'max:255'],
         ];
     }
@@ -73,6 +81,14 @@ class RiwayatBalanceRequest extends FormRequest
             'balance.required'            => 'Nilai saldo (Balance) akun trading wajib diisi.',
             'balance.numeric'             => 'Nilai saldo harus berupa angka.',
             'balance.min'                 => 'Nilai saldo tidak boleh kurang dari 0.',
+            'penarikan.numeric'           => 'Nilai penarikan harus berupa angka.',
+            'penarikan.min'               => 'Nilai penarikan tidak boleh kurang dari 0.',
+            'setoran_tambahan.numeric'    => 'Nilai setoran tambahan harus berupa angka.',
+            'setoran_tambahan.min'        => 'Nilai setoran tambahan tidak boleh kurang dari 0.',
+            'bukti_saldo.required'        => 'Bukti saldo trading wajib diunggah.',
+            'bukti_saldo.image'           => 'Bukti saldo harus berupa gambar.',
+            'bukti_saldo.mimes'           => 'Format gambar bukti saldo harus jpeg, png, jpg, atau webp.',
+            'bukti_saldo.max'             => 'Ukuran bukti saldo maksimal 10MB.',
             'catatan.max'                 => 'Catatan maksimal 255 karakter.',
         ];
     }

@@ -22,19 +22,19 @@ Untuk menjaga alur kerja agentic tetap gesit dan cepat:
 
 ## Cakupan Skenario Bisnis Kritikal (Wajib Ada Test)
 
-### 1. Modul 05: Klaim Komisi Afiliasi (PB 3)
-- **Uji Skema 4-Tier Komisi dari Profit Master Trader:**
-  - Deposit $> \text{Rp } 10\text{ M}$ $\rightarrow$ Tier 1 (**50%** dari profit master).
-  - Deposit $\text{Rp } 1\text{ M} - 10\text{ M}$ $\rightarrow$ Tier 2 (**40%** dari profit master).
-  - Deposit $\text{Rp } 100\text{ Jt} - 1\text{ M}$ $\rightarrow$ Tier 3 (**30%** dari profit master).
-  - Deposit $< \text{Rp } 100\text{ Jt}$ $\rightarrow$ Tier 4 (**20%** dari profit master).
-- **Uji Syarat Keaktifan 90 Hari Berturut-turut:**
-  - Downline aktif $< 90$ hari sejak `copy_started_at` $\rightarrow$ Ditolak / Tidak eligible.
-  - Downline aktif $\ge 90$ hari sejak `copy_started_at` $\rightarrow$ Eligible diajukan klaim.
-- **Uji Anti-Duplikasi:** Affiliator dilarang mengajukan klaim baru untuk downline yang sama jika masih ada klaim berstatus `pending`.
-- **Uji Verifikasi & Pencairan Admin:**
-  - Admin menyetujui transfer: wajib input `profit_master` dan upload `bukti_transfer`, nominal transfer terkalkulasi otomatis:
-    $$\text{nominal\_transfer} = \text{profit\_master} \times \left(\frac{\text{persentase\_tier}}{100}\right)$$
+### 1. Modul 05: Klaim Komisi Afiliasi (PB 3) & Master Fee
+- **Uji Skema 4-Tier Komisi dari Tagihan Master Fee Lunas Downline:**
+  - Deposit $> \text{Rp } 10\text{ M}$ $\rightarrow$ Tier 1 (**50%** dari master gross share tagihan lunas).
+  - Deposit $\text{Rp } 1\text{ M} - 10\text{ M}$ $\rightarrow$ Tier 2 (**40%** dari master gross share tagihan lunas).
+  - Deposit $\text{Rp } 100\text{ Jt} - 1\text{ M}$ $\rightarrow$ Tier 3 (**30%** dari master gross share tagihan lunas).
+  - Deposit $< \text{Rp } 100\text{ Jt}$ $\rightarrow$ Tier 4 (**20%** dari master gross share tagihan lunas).
+- **Uji Syarat Keaktifan 90 Hari & Lunas Tagihan:**
+  - Downline aktif $< 90$ hari sejak `tanggal_mulai` $\rightarrow$ Ditolak / Tidak eligible.
+  - Downline memiliki tagihan Master Fee `belum_dibayar`, `ditolak`, atau `menunggu_verifikasi` $\rightarrow$ Status "Tagihan Belum Selesai" & Ditolak pengajuan klaimnya.
+  - Downline aktif $\ge 90$ hari dan seluruh tagihan Master Fee lunas $\rightarrow$ Eligible diajukan klaim.
+- **Uji Anti-Duplikasi:** Affiliator dilarang mengajukan klaim baru untuk downline yang sama jika masih ada klaim berstatus `pending` atau `approved_transferred`.
+- **Uji Verifikasi & Pencairan Admin (Zero Manual ROI):**
+  - Admin menyetujui transfer: tanpa input ROI manual, upload `bukti_transfer` resi bank, dan konversi kurs MT4 ke Rupiah.
   - Admin menolak klaim: wajib input `catatan_admin` alasan penolakan.
 - **Uji Notifikasi In-App Database:** Admin menerima notifikasi klaim baru, affiliator menerima notifikasi hasil transfer/penolakan.
 

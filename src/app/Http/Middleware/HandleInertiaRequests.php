@@ -41,13 +41,24 @@ class HandleInertiaRequests extends Middleware
             //
             'auth' => [
                 'user' => $request->user() ? [
-                    'id'        => $request->user()->id,
-                    'name'      => $request->user()->name,
-                    'role'      => $request->user()->role ?? null,
-                    'status'    => $request->user()->status ?? null,
-                    'is_active' => (bool) ($request->user()->status === 'active'),
-                    'email'     => $request->user()->email,
-                    'username'  => $request->user()->username,
+                    'id'                       => $request->user()->id,
+                    'name'                     => $request->user()->name,
+                    'role'                     => $request->user()->role ?? null,
+                    'status'                   => $request->user()->status ?? null,
+                    'is_active'                => (bool) ($request->user()->status === 'active'),
+                    'email'                    => $request->user()->email,
+                    'username'                 => $request->user()->username,
+                    'pending_master_fee_count' => $request->user()->role === 'member'
+                        ? \App\Models\TagihanMasterFee::query()
+                            ->where('user_id', $request->user()->id)
+                            ->whereIn('status', [\App\Models\TagihanMasterFee::STATUS_BELUM_DIBAYAR, \App\Models\TagihanMasterFee::STATUS_DITOLAK])
+                            ->count()
+                        : 0,
+                    'waiting_master_fee_count' => $request->user()->role === 'administrator'
+                        ? \App\Models\TagihanMasterFee::query()
+                            ->where('status', \App\Models\TagihanMasterFee::STATUS_MENUNGGU_VERIFIKASI)
+                            ->count()
+                        : 0,
                 ] : null,
             ],
             'flash' => fn () => [

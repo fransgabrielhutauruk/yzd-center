@@ -156,6 +156,11 @@ class User extends Authenticatable
         return $this->hasMany(KlaimKomisiItem::class, 'downline_id');
     }
 
+    public function tagihanMasterFee(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(TagihanMasterFee::class, 'user_id');
+    }
+
     public function hasUpline(): bool
     {
         return $this->relasiUpline()->exists();

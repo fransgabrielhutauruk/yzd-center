@@ -132,6 +132,58 @@ class KlaimKomisiItem extends Model
     }
 
     /**
+     * Hitung kalkulasi komisi afiliator dari bagi hasil Master Fee yang lunas.
+     * master_gross_share = Σ nominal_fee tagihan lunas
+     * gross_profit = Σ profit_bersih tagihan lunas
+     * affiliate_commission = (persentase_tier / 100) * master_gross_share
+     * master_net_share = master_gross_share - affiliate_commission
+     * investor_net_profit = gross_profit - master_gross_share
+     *
+     * @return array{
+     *     gross_profit: float,
+     *     master_gross_share: float,
+     *     affiliate_commission: float,
+     *     master_net_share: float,
+     *     investor_net_profit: float,
+     *     roi_percentage: float,
+     *     is_drawdown: bool
+     * }
+     */
+    public static function calculateCommissionFromPaidFee(
+        float $masterGrossShare,
+        float $grossProfit,
+        float $affiliateSharePct = 20.0,
+        float $modalRiil = 0.0
+    ): array {
+        if ($masterGrossShare <= 0) {
+            return [
+                'gross_profit'         => round($grossProfit, 2),
+                'master_gross_share'   => 0.0,
+                'affiliate_commission' => 0.0,
+                'master_net_share'     => 0.0,
+                'investor_net_profit'  => round($grossProfit, 2),
+                'roi_percentage'       => $modalRiil > 0 ? round(($grossProfit / $modalRiil) * 100, 2) : 0.0,
+                'is_drawdown'          => true,
+            ];
+        }
+
+        $affiliateCommission = round($masterGrossShare * ($affiliateSharePct / 100), 2);
+        $masterNetShare = round($masterGrossShare - $affiliateCommission, 2);
+        $investorNetProfit = round($grossProfit - $masterGrossShare, 2);
+        $roiPct = $modalRiil > 0 ? round(($grossProfit / $modalRiil) * 100, 2) : 0.0;
+
+        return [
+            'gross_profit'         => round($grossProfit, 2),
+            'master_gross_share'   => round($masterGrossShare, 2),
+            'affiliate_commission' => round($affiliateCommission, 2),
+            'master_net_share'     => round($masterNetShare, 2),
+            'investor_net_profit'  => round($investorNetProfit, 2),
+            'roi_percentage'       => $roiPct,
+            'is_drawdown'          => false,
+        ];
+    }
+
+    /**
      * Hitung kalkulasi komisi afiliator sesuai formula bisnis:
      * 1. gross_profit = deposit_amount * (roi_percentage / 100)
      * 2. Kondisi Rugi / Impas (Drawdown Guard):

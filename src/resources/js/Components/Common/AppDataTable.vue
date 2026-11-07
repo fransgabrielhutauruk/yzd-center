@@ -34,7 +34,7 @@ const props = defineProps({
     },
     fetchUrl: {
         type: String,
-        required: true,
+        default: '',
     },
     paramPrefix: {
         type: String,
@@ -243,7 +243,8 @@ const applyFilters = (customParams = {}) => {
         visitOptions.only = props.only;
     }
 
-    router.get(props.fetchUrl, queryParams, visitOptions);
+    const targetUrl = props.fetchUrl || (typeof window !== 'undefined' ? window.location.pathname : '');
+    router.get(targetUrl, queryParams, visitOptions);
 };
 
 // Debounce search input

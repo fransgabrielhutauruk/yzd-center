@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\KlaimKomisi;
 use App\Models\KlaimKomisiItem;
 use App\Models\RelasiReferral;
+use App\Models\TagihanMasterFee;
 use App\Models\User;
 use App\Notifications\CommissionClaimProcessedNotification;
 use App\Notifications\CommissionClaimSubmittedNotification;
@@ -237,6 +238,10 @@ class CommissionClaimService
             $totalModalIdr = 0.0;
             $tierInfo = ['tier_level' => 4, 'persentase_tier' => 20, 'label' => 'Tier 4 (< Rp 100 Juta) - Komisi 20%'];
             $accountsDetail = [];
+            $downlineHasUnsettled = false;
+            $downlineMasterGrossShare = 0.0;
+            $downlineAffiliateCommission = 0.0;
+            $downlineGrossProfit = 0.0;
 
             if ($accountCount > 0) {
                 $firstStartedAt = $activeAccounts->min('tanggal_mulai');
@@ -264,24 +269,71 @@ class CommissionClaimService
                     // Penentuan Tier dihitung per akun masing-masing (tidak digabungkan antar akun)
                     $accTierInfo = KlaimKomisiItem::determineTier($modalIdr);
 
+                    // Periksa apakah ada tagihan Master Fee yang belum lunas dalam jendela waktu akun ini
+                    $accHasUnsettled = TagihanMasterFee::query()
+                        ->where('akun_copytrade_id', $acc->id)
+                        ->whereIn('status', [
+                            TagihanMasterFee::STATUS_BELUM_DIBAYAR,
+                            TagihanMasterFee::STATUS_MENUNGGU_VERIFIKASI,
+                            TagihanMasterFee::STATUS_DITOLAK,
+                        ])
+                        ->whereHas('riwayatBalance', function ($q) use ($accStart, $periodEndDate) {
+                            $q->where('tanggal_pencatatan', '>', $accStart->toDateString())
+                                ->where('tanggal_pencatatan', '<=', $periodEndDate->toDateString());
+                        })
+                        ->exists();
+
+                    if ($accHasUnsettled) {
+                        $downlineHasUnsettled = true;
+                    }
+
+                    // Ambil tagihan Master Fee yang sudah lunas dalam jendela waktu akun ini
+                    $paidInvoices = TagihanMasterFee::query()
+                        ->where('akun_copytrade_id', $acc->id)
+                        ->where('status', TagihanMasterFee::STATUS_LUNAS)
+                        ->whereHas('riwayatBalance', function ($q) use ($accStart, $periodEndDate) {
+                            $q->where('tanggal_pencatatan', '>', $accStart->toDateString())
+                                ->where('tanggal_pencatatan', '<=', $periodEndDate->toDateString());
+                        })
+                        ->get();
+
+                    $accMasterGrossShare = (float) $paidInvoices->sum('nominal_fee');
+                    $accGrossProfit = (float) $paidInvoices->sum('profit_bersih');
+                    $accCalc = KlaimKomisiItem::calculateCommissionFromPaidFee(
+                        $accMasterGrossShare,
+                        $accGrossProfit,
+                        (float) $accTierInfo['persentase_tier'],
+                        $modalUsd
+                    );
+
+                    $downlineMasterGrossShare += $accCalc['master_gross_share'];
+                    $downlineAffiliateCommission += $accCalc['affiliate_commission'];
+                    $downlineGrossProfit += $accCalc['gross_profit'];
+
                     $accountsDetail[] = [
-                        'id'                  => $acc->id,
-                        'broker'              => $acc->broker,
-                        'nomor_akun'          => $acc->nomor_akun_trading,
-                        'tipe_akun'           => $acc->tipe_akun,
-                        'tier'                => $acc->tier,
-                        'modal_riil'          => $modalUsd,
-                        'modal_idr'           => $modalIdr,
-                        'tier_level'          => $accTierInfo['tier_level'],
-                        'persentase_tier'     => $accTierInfo['persentase_tier'],
-                        'tier_info'           => $accTierInfo,
-                        'is_first'            => $isFirst,
-                        'tanggal_mulai'       => tanggal_indo($accStart),
-                        'tanggal_selesai'     => tanggal_indo($periodEndDate),
-                        'tanggal_mulai_raw'   => $accStart->toDateString(),
-                        'tanggal_selesai_raw' => $periodEndDate->toDateString(),
-                        'selisih_hari'        => $selisihHari,
-                        'hari_kehitung'       => $hariKehitung,
+                        'id'                   => $acc->id,
+                        'broker'               => $acc->broker,
+                        'nomor_akun'           => $acc->nomor_akun_trading,
+                        'tipe_akun'            => $acc->tipe_akun,
+                        'tier'                 => $acc->tier,
+                        'modal_riil'           => $modalUsd,
+                        'modal_idr'            => $modalIdr,
+                        'tier_level'           => $accTierInfo['tier_level'],
+                        'persentase_tier'      => $accTierInfo['persentase_tier'],
+                        'tier_info'            => $accTierInfo,
+                        'is_first'             => $isFirst,
+                        'tanggal_mulai'        => tanggal_indo($accStart),
+                        'tanggal_selesai'      => tanggal_indo($periodEndDate),
+                        'tanggal_mulai_raw'    => $accStart->toDateString(),
+                        'tanggal_selesai_raw'  => $periodEndDate->toDateString(),
+                        'selisih_hari'         => $selisihHari,
+                        'hari_kehitung'        => $hariKehitung,
+                        'master_gross_share'   => $accCalc['master_gross_share'],
+                        'affiliate_commission' => $accCalc['affiliate_commission'],
+                        'gross_profit'         => $accCalc['gross_profit'],
+                        'roi_percentage'       => $accCalc['roi_percentage'],
+                        'is_drawdown'          => $accCalc['is_drawdown'],
+                        'has_unsettled_fee'    => $accHasUnsettled,
                     ];
                 }
 
@@ -294,7 +346,7 @@ class CommissionClaimService
                     : ['tier_level' => 4, 'persentase_tier' => 20, 'label' => 'Tier 4 (< Rp 100 Juta) - Komisi 20%'];
             }
 
-            // Penentuan kelayakan: wajib aktif minimal 3 bulan penuh ($targetDays hari) dan belum pernah diklaim
+            // Penentuan kelayakan: wajib aktif minimal 3 bulan penuh ($targetDays hari), bebas tagihan pending/belum bayar, dan belum pernah diklaim
             $isEligible = false;
             $statusLabel = 'Belum Copytrade';
             $reason = 'Belum memiliki akun copytrade aktif.';
@@ -308,41 +360,49 @@ class CommissionClaimService
                 $statusLabel = 'Menunggu Verifikasi';
                 $reason = 'Permohonan klaim untuk investor ini sedang ditinjau Administrator.';
             } elseif ($accountCount > 0) {
-                if ($activeDays >= $targetDays) {
-                    $isEligible = true;
-                    $statusLabel = 'Siap Diklaim (3 Bulan)';
-                    $reason = 'Masa aktif copytrade telah memenuhi syarat minimal periode 3 bulan penuh.';
-                } else {
+                if ($activeDays < $targetDays) {
                     $isEligible = false;
                     $remaining = $targetDays - $activeDays;
                     $statusLabel = "Aktif {$activeDays}/{$targetDays} Hari";
                     $reason = "Aktif {$activeDays} hari — Tersisa {$remaining} hari lagi menuju {$targetDays} hari (3 bulan).";
+                } elseif ($downlineHasUnsettled) {
+                    $isEligible = false;
+                    $statusLabel = 'Tagihan Belum Selesai';
+                    $reason = 'Terdapat tagihan Master Fee investor yang belum lunas (belum dibayar, ditolak, atau menunggu verifikasi). Semua tagihan pada periode 3 bulan wajib lunas terlebih dahulu.';
+                } else {
+                    $isEligible = true;
+                    $statusLabel = 'Siap Diklaim (3 Bulan)';
+                    $reason = 'Masa aktif copytrade dan tagihan Master Fee telah memenuhi syarat untuk pencairan.';
                 }
             }
 
             $result[] = [
-                'id'                   => $downline->id,
-                'name'                 => $downline->name,
-                'username'             => $downline->username,
-                'email'                => $downline->email,
-                'phone'                => $downline->phone,
-                'first_started_at'     => $periodStartDate ? tanggal_indo($periodStartDate) : null,
-                'first_started_at_raw' => $periodStartDate ? $periodStartDate->toDateString() : null,
-                'period_end_date'      => $periodEndDate ? tanggal_indo($periodEndDate) : null,
-                'active_days'          => $activeDays,
-                'target_days'          => $targetDays,
-                'jumlah_akun'          => $accountCount,
-                'has_multi_copytrade'  => $hasMultiCopytrade,
-                'total_modal_riil'     => $totalModalRiil,
-                'total_modal_idr'      => $totalModalIdr,
-                'kurs_usd_idr'         => $kursUsdIdr,
-                'tier_info'            => $tierInfo,
-                'accounts'             => $accountsDetail,
-                'is_eligible'          => $isEligible,
-                'is_claimed'           => $isClaimed,
-                'is_pending'           => $isPending,
-                'status_label'         => $statusLabel,
-                'reason'               => $reason,
+                'id'                         => $downline->id,
+                'name'                       => $downline->name,
+                'username'                   => $downline->username,
+                'email'                      => $downline->email,
+                'phone'                      => $downline->phone,
+                'first_started_at'           => $periodStartDate ? tanggal_indo($periodStartDate) : null,
+                'first_started_at_raw'       => $periodStartDate ? $periodStartDate->toDateString() : null,
+                'period_end_date'            => $periodEndDate ? tanggal_indo($periodEndDate) : null,
+                'active_days'                => $activeDays,
+                'target_days'                => $targetDays,
+                'jumlah_akun'                => $accountCount,
+                'has_multi_copytrade'        => $hasMultiCopytrade,
+                'total_modal_riil'           => $totalModalRiil,
+                'total_modal_idr'            => $totalModalIdr,
+                'total_gross_profit'         => round($downlineGrossProfit, 2),
+                'total_master_gross_share'   => round($downlineMasterGrossShare, 2),
+                'total_affiliate_commission' => round($downlineAffiliateCommission, 2),
+                'has_unsettled_fee'          => $downlineHasUnsettled,
+                'kurs_usd_idr'               => $kursUsdIdr,
+                'tier_info'                  => $tierInfo,
+                'accounts'                   => $accountsDetail,
+                'is_eligible'                => $isEligible,
+                'is_claimed'                 => $isClaimed,
+                'is_pending'                 => $isPending,
+                'status_label'               => $statusLabel,
+                'reason'                     => $reason,
             ];
         }
 
@@ -459,6 +519,26 @@ class CommissionClaimService
                     ]);
                 }
 
+                // 4b. Verifikasi tidak ada tagihan Master Fee yang belum lunas dalam jendela 3 bulan
+                $downlineHasUnsettled = TagihanMasterFee::query()
+                    ->whereIn('akun_copytrade_id', $activeAccounts->pluck('id'))
+                    ->whereIn('status', [
+                        TagihanMasterFee::STATUS_BELUM_DIBAYAR,
+                        TagihanMasterFee::STATUS_MENUNGGU_VERIFIKASI,
+                        TagihanMasterFee::STATUS_DITOLAK,
+                    ])
+                    ->whereHas('riwayatBalance', function ($q) use ($periodStartDate, $periodEndDate) {
+                        $q->where('tanggal_pencatatan', '>', $periodStartDate->toDateString())
+                            ->where('tanggal_pencatatan', '<=', $periodEndDate->toDateString());
+                    })
+                    ->exists();
+
+                if ($downlineHasUnsettled) {
+                    throw ValidationException::withMessages([
+                        'downline_ids' => "Investor {$downline->name} memiliki tagihan Master Fee yang belum selesai pada periode 3 bulan (belum dibayar, ditolak, atau menunggu verifikasi). Semua tagihan wajib diselesaikan terlebih dahulu.",
+                    ]);
+                }
+
                 // 5. Filter hanya akun yang masuk sebelum periode 3 bulan berakhir
                 $validAccounts = [];
                 foreach ($activeAccounts as $index => $acc) {
@@ -478,6 +558,7 @@ class CommissionClaimService
                 }
 
                 // 6. Siapkan record item per akun copytrade dengan Tier masing-masing akun (tidak digabungkan)
+                // dan hitung hak bagi hasil serta komisi afiliator langsung dari tagihan Master Fee yang lunas
                 foreach ($validAccounts as $validAcc) {
                     $acc = $validAcc['acc'];
                     $accStart = $validAcc['acc_start'];
@@ -487,6 +568,25 @@ class CommissionClaimService
                     $modalUsd = (float) $acc->modal_riil;
                     $modalIdr = round($modalUsd * $kursUsdIdr, 2);
                     $accTierInfo = KlaimKomisiItem::determineTier($modalIdr);
+
+                    $paidInvoices = TagihanMasterFee::query()
+                        ->where('akun_copytrade_id', $acc->id)
+                        ->where('status', TagihanMasterFee::STATUS_LUNAS)
+                        ->whereHas('riwayatBalance', function ($q) use ($accStart, $periodEndDate) {
+                            $q->where('tanggal_pencatatan', '>', $accStart->toDateString())
+                                ->where('tanggal_pencatatan', '<=', $periodEndDate->toDateString());
+                        })
+                        ->get();
+
+                    $masterGrossShare = (float) $paidInvoices->sum('nominal_fee');
+                    $grossProfit = (float) $paidInvoices->sum('profit_bersih');
+                    $affiliateSharePct = (float) $accTierInfo['persentase_tier'];
+                    $calc = KlaimKomisiItem::calculateCommissionFromPaidFee(
+                        $masterGrossShare,
+                        $grossProfit,
+                        $affiliateSharePct,
+                        $modalUsd
+                    );
 
                     $preparedItems[] = [
                         'downline_id'          => $downlineId,
@@ -502,37 +602,47 @@ class CommissionClaimService
                         'tier_level'           => $accTierInfo['tier_level'],
                         'persentase_tier'      => $accTierInfo['persentase_tier'],
                         'master_share_pct'     => 30.00,
-                        'affiliate_share_pct'  => (float) $accTierInfo['persentase_tier'],
-                        'roi_percentage'       => null,
-                        'gross_profit'         => null,
-                        'master_gross_share'   => null,
-                        'affiliate_commission' => null,
-                        'master_net_share'     => null,
-                        'investor_net_profit'  => null,
-                        'profit_master'        => null,
-                        'nominal_transfer'     => null,
+                        'affiliate_share_pct'  => $affiliateSharePct,
+                        'roi_percentage'       => $calc['roi_percentage'],
+                        'gross_profit'         => $calc['gross_profit'],
+                        'master_gross_share'   => $calc['master_gross_share'],
+                        'affiliate_commission' => $calc['affiliate_commission'],
+                        'master_net_share'     => $calc['master_net_share'],
+                        'investor_net_profit'  => $calc['investor_net_profit'],
+                        'profit_master'        => $calc['master_gross_share'],
+                        'nominal_transfer'     => $calc['affiliate_commission'],
                     ];
                 }
             }
 
             // Simpan sebagai 1 (SATU) row tiket klaim komisi
             $totalModalRiil = collect($preparedItems)->sum('modal_riil');
+            $totalGrossProfit = collect($preparedItems)->sum('gross_profit');
+            $totalMasterGrossShare = collect($preparedItems)->sum('master_gross_share');
+            $totalMasterNetShare = collect($preparedItems)->sum('master_net_share');
+            $totalInvestorNetProfit = collect($preparedItems)->sum('investor_net_profit');
+            $totalAffiliateCommission = collect($preparedItems)->sum('affiliate_commission');
             $totalDownlines = count($uniqueDownlineIds);
             $totalAkun = count($preparedItems);
 
             $claim = KlaimKomisi::create([
-                'kode_klaim'             => KlaimKomisi::generateKodeKlaim(),
-                'affiliator_id'          => $affiliator->id,
-                'total_downline'         => $totalDownlines,
-                'total_akun'             => $totalAkun,
-                'total_modal_riil'       => $totalModalRiil,
-                'total_deposit_amount'   => $totalModalRiil,
-                'total_profit_master'    => null,
-                'total_nominal_transfer' => null,
-                'nama_bank'              => $namaBank,
-                'nomor_rekening'         => $nomorRekening,
-                'atas_nama_rekening'     => $atasNama,
-                'status'                 => 'pending',
+                'kode_klaim'                 => KlaimKomisi::generateKodeKlaim(),
+                'affiliator_id'              => $affiliator->id,
+                'total_downline'             => $totalDownlines,
+                'total_akun'                 => $totalAkun,
+                'total_modal_riil'           => $totalModalRiil,
+                'total_deposit_amount'       => $totalModalRiil,
+                'total_gross_profit'         => $totalGrossProfit,
+                'total_master_gross_share'   => $totalMasterGrossShare,
+                'total_master_net_share'     => $totalMasterNetShare,
+                'total_investor_net_profit'  => $totalInvestorNetProfit,
+                'total_affiliate_commission' => $totalAffiliateCommission,
+                'total_profit_master'        => $totalMasterGrossShare,
+                'total_nominal_transfer'     => $totalAffiliateCommission,
+                'nama_bank'                  => $namaBank,
+                'nomor_rekening'             => $nomorRekening,
+                'atas_nama_rekening'         => $atasNama,
+                'status'                     => 'pending',
             ]);
 
             // Simpan seluruh rincian akun copytrade
@@ -806,8 +916,8 @@ class CommissionClaimService
                         $totalMasterNetShare += $calc['master_net_share'];
                         $totalInvestorNetProfit += $calc['investor_net_profit'];
                     }
-                } else {
-                    $roiPct = $profitMaster !== null ? (float) $profitMaster : 0.0;
+                } elseif ($profitMaster !== null) {
+                    $roiPct = (float) $profitMaster;
                     foreach ($items as $item) {
                         $depositAmount = (float) ($item->deposit_amount ?: $item->modal_riil);
                         $masterSharePct = (float) ($item->master_share_pct ?: 30.0);
@@ -824,6 +934,66 @@ class CommissionClaimService
                             'roi_percentage'       => $roiPct,
                             'master_share_pct'     => $masterSharePct,
                             'affiliate_share_pct'  => $affiliateSharePct,
+                            'gross_profit'         => $calc['gross_profit'],
+                            'master_gross_share'   => $calc['master_gross_share'],
+                            'affiliate_commission' => $calc['affiliate_commission'],
+                            'master_net_share'     => $calc['master_net_share'],
+                            'investor_net_profit'  => $calc['investor_net_profit'],
+                            'profit_master'        => $calc['master_gross_share'],
+                            'nominal_transfer'     => $calc['affiliate_commission'],
+                        ]);
+
+                        $totalGrossProfit += $calc['gross_profit'];
+                        $totalMasterGrossShare += $calc['master_gross_share'];
+                        $totalAffiliateCommission += $calc['affiliate_commission'];
+                        $totalMasterNetShare += $calc['master_net_share'];
+                        $totalInvestorNetProfit += $calc['investor_net_profit'];
+                    }
+                } else {
+                    // Skema Baru: Dihitung langsung dari tagihan Master Fee lunas downline
+                    foreach ($items as $item) {
+                        $accStart = Carbon::parse($item->tanggal_mulai)->startOfDay();
+                        $accEnd = Carbon::parse($item->tanggal_selesai)->startOfDay();
+
+                        $paidInvoices = TagihanMasterFee::query()
+                            ->where('akun_copytrade_id', $item->akun_copytrade_id)
+                            ->where('status', TagihanMasterFee::STATUS_LUNAS)
+                            ->whereHas('riwayatBalance', function ($q) use ($accStart, $accEnd) {
+                                $q->where('tanggal_pencatatan', '>', $accStart->toDateString())
+                                    ->where('tanggal_pencatatan', '<=', $accEnd->toDateString());
+                            })
+                            ->get();
+
+                        $masterGrossShare = (float) $paidInvoices->sum('nominal_fee');
+                        $grossProfit = (float) $paidInvoices->sum('profit_bersih');
+                        $affiliateSharePct = (float) ($item->affiliate_share_pct ?: $item->persentase_tier);
+                        $depositAmount = (float) ($item->deposit_amount ?: $item->modal_riil);
+
+                        if ($paidInvoices->isNotEmpty()) {
+                            $calc = KlaimKomisiItem::calculateCommissionFromPaidFee(
+                                $masterGrossShare,
+                                $grossProfit,
+                                $affiliateSharePct,
+                                $depositAmount
+                            );
+                        } elseif ($item->master_gross_share !== null) {
+                            $calc = KlaimKomisiItem::calculateCommissionFromPaidFee(
+                                (float) $item->master_gross_share,
+                                (float) ($item->gross_profit ?? 0),
+                                $affiliateSharePct,
+                                $depositAmount
+                            );
+                        } else {
+                            $calc = KlaimKomisiItem::calculateCommissionFromPaidFee(
+                                0.0,
+                                0.0,
+                                $affiliateSharePct,
+                                $depositAmount
+                            );
+                        }
+
+                        $item->update([
+                            'roi_percentage'       => $calc['roi_percentage'],
                             'gross_profit'         => $calc['gross_profit'],
                             'master_gross_share'   => $calc['master_gross_share'],
                             'affiliate_commission' => $calc['affiliate_commission'],

@@ -44,6 +44,7 @@ class AuditLogService
         'autentikasi'        => 'Autentikasi',
         'kyc_dokumen'        => 'Dokumen',
         'copytrade'          => 'Kelola Copytrade',
+        'master_fee'         => 'Master Fee',
         'komisi_afiliasi'    => 'Kemitraan & Komisi',
         'pengguna'           => 'Manajemen Pengguna',
         'undangan'           => 'Tautan Undangan',

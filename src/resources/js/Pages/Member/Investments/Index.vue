@@ -28,6 +28,9 @@ import {
     TrendingUp,
     Wallet,
     XCircle,
+    Lock,
+    Eye,
+    Receipt,
 } from 'lucide-vue-next';
 import MemberLayout from '@/Layouts/MemberLayout.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
@@ -36,6 +39,7 @@ import AppTableAction from '@/Components/Common/AppTableAction.vue';
 import AppButton from '@/Components/Common/AppButton.vue';
 import { Button } from '@/Components/ui/button';
 import { toast } from 'vue-sonner';
+import { compressImageFile } from '@/lib/imageCompression';
 import AddInvestmentAccountModal from './AddInvestmentAccountModal.vue';
 
 const props = defineProps({
@@ -337,6 +341,7 @@ const openAddModal = (tier = '') => {
 const isBalanceModalOpen = ref(false);
 const isEditingBalance = ref(false);
 const editingRecordId = ref(null);
+const editingRecord = ref(null);
 
 const getDefaultDate = () => {
     const d = new Date();
@@ -349,6 +354,14 @@ const balanceForm = useForm({
     akun_copytrade_id: props.selected_account_id,
     tanggal_pencatatan: getDefaultDate(),
     balance: '',
+    penarikan: 0,
+    setoran_tambahan: 0,
+    bukti_saldo: null,
+    catatan: '',
+});
+
+const isRecordLocked = computed(() => {
+    return isEditingBalance.value && (editingRecord.value?.tagihan_master_fee?.is_locked || false);
 });
 
 const modalAccount = computed(() => {
@@ -365,6 +378,20 @@ watch(selectedAccountId, (newId) => {
     }
 });
 
+const handleBuktiSaldoChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+        balanceForm.bukti_saldo = null;
+        return;
+    }
+    try {
+        const res = await compressImageFile(file);
+        balanceForm.bukti_saldo = res.file;
+    } catch {
+        balanceForm.bukti_saldo = file;
+    }
+};
+
 const openBalanceModalForAccount = (accId) => {
     const targetAcc = props.accounts.find((a) => a.id === accId) || activeAccounts.value[0];
     if (targetAcc && targetAcc.status !== 'active') {
@@ -379,21 +406,31 @@ const openBalanceModalForAccount = (accId) => {
 
     isEditingBalance.value = false;
     editingRecordId.value = null;
+    editingRecord.value = null;
     balanceForm.reset();
     balanceForm.clearErrors();
     balanceForm.akun_copytrade_id = targetAcc.id;
     balanceForm.tanggal_pencatatan = getDefaultDate();
     balanceForm.balance = '';
+    balanceForm.penarikan = 0;
+    balanceForm.setoran_tambahan = 0;
+    balanceForm.bukti_saldo = null;
+    balanceForm.catatan = '';
     isBalanceModalOpen.value = true;
 };
 
 const openEditBalanceModal = (record) => {
     isEditingBalance.value = true;
     editingRecordId.value = record.id;
+    editingRecord.value = record;
     balanceForm.clearErrors();
     balanceForm.akun_copytrade_id = selectedAccountId.value;
     balanceForm.tanggal_pencatatan = record.tanggal_pencatatan;
     balanceForm.balance = record.balance;
+    balanceForm.penarikan = record.penarikan || 0;
+    balanceForm.setoran_tambahan = record.setoran_tambahan || 0;
+    balanceForm.catatan = record.catatan || '';
+    balanceForm.bukti_saldo = null;
     isBalanceModalOpen.value = true;
 };
 
@@ -401,6 +438,7 @@ const closeBalanceModal = () => {
     isBalanceModalOpen.value = false;
     isEditingBalance.value = false;
     editingRecordId.value = null;
+    editingRecord.value = null;
     balanceForm.reset();
     balanceForm.clearErrors();
 };
@@ -423,7 +461,13 @@ const liveBaseBalance = computed(() => {
 
 const liveProfitNominal = computed(() => {
     const bal = Number(balanceForm.balance) || 0;
-    return bal - liveBaseBalance.value;
+    const pen = Number(balanceForm.penarikan) || 0;
+    const set = Number(balanceForm.setoran_tambahan) || 0;
+    return bal - liveBaseBalance.value + pen - set;
+});
+
+const liveFeeNominal = computed(() => {
+    return liveProfitNominal.value > 0 ? liveProfitNominal.value * 0.30 : 0;
 });
 
 const liveProfitPct = computed(() => {
@@ -432,9 +476,18 @@ const liveProfitPct = computed(() => {
 });
 
 const submitBalance = () => {
+    if (isRecordLocked.value) {
+        toast.error('Rekap terkunci karena tagihan master fee sedang diverifikasi atau sudah lunas.');
+        return;
+    }
+
     if (isEditingBalance.value && editingRecordId.value) {
-        balanceForm.put(route('member.investments.balance.update', editingRecordId.value), {
+        balanceForm.transform((data) => ({
+            ...data,
+            _method: 'PUT',
+        })).post(route('member.investments.balance.update', editingRecordId.value), {
             preserveScroll: true,
+            forceFormData: true,
             onSuccess: () => {
                 closeBalanceModal();
             },
@@ -442,6 +495,7 @@ const submitBalance = () => {
     } else {
         balanceForm.post(route('member.investments.balance.store'), {
             preserveScroll: true,
+            forceFormData: true,
             onSuccess: () => {
                 closeBalanceModal();
             },
@@ -457,6 +511,10 @@ const recordToDelete = ref(null);
 const isDeletingBalance = ref(false);
 
 const confirmDeleteRecord = (record) => {
+    if (record.tagihan_master_fee?.is_locked) {
+        toast.error('Rekap terkunci karena tagihan master fee sedang diverifikasi atau sudah lunas.');
+        return;
+    }
     recordToDelete.value = record;
     isConfirmDeleteOpen.value = true;
 };
@@ -1865,10 +1923,16 @@ onMounted(() => {
                                                 Saldo (USD)
                                             </th>
                                             <th class="px-3 py-2.5 font-semibold">
-                                                Keuntungan MoM
+                                                Mutasi Dana
                                             </th>
                                             <th class="px-3 py-2.5 font-semibold">
-                                                Keuntungan Kumulatif
+                                                Profit Bersih MoM
+                                            </th>
+                                            <th class="px-3 py-2.5 font-semibold">
+                                                Tagihan Master Fee
+                                            </th>
+                                            <th class="px-3 py-2.5 text-center font-semibold">
+                                                Bukti Saldo
                                             </th>
                                             <th class="px-3 py-2.5 text-center font-semibold">
                                                 Aksi
@@ -1890,6 +1954,15 @@ onMounted(() => {
                                                 class="text-foreground px-3 py-3 font-mono font-bold whitespace-nowrap"
                                             >
                                                 {{ formatUSD(rec.balance) }}
+                                            </td>
+                                            <td class="px-3 py-3 whitespace-nowrap font-mono text-[11px]">
+                                                <div v-if="Number(rec.penarikan) > 0" class="text-rose-600 dark:text-rose-400">
+                                                    Tarik: -{{ formatUSD(rec.penarikan) }}
+                                                </div>
+                                                <div v-if="Number(rec.setoran_tambahan) > 0" class="text-emerald-600 dark:text-emerald-400">
+                                                    Setor: +{{ formatUSD(rec.setoran_tambahan) }}
+                                                </div>
+                                                <span v-if="!Number(rec.penarikan) && !Number(rec.setoran_tambahan)" class="text-muted-foreground">-</span>
                                             </td>
                                             <td class="px-3 py-3 whitespace-nowrap">
                                                 <span
@@ -1915,27 +1988,56 @@ onMounted(() => {
                                                 </span>
                                             </td>
                                             <td class="px-3 py-3 whitespace-nowrap">
-                                                <span
-                                                    :class="[
-                                                        'font-mono font-semibold',
-                                                        Number(rec.keuntungan_kumulatif) > 0
-                                                            ? 'text-foreground'
-                                                            : Number(rec.keuntungan_kumulatif) < 0
-                                                              ? 'text-destructive'
-                                                              : 'text-muted-foreground',
-                                                    ]"
-                                                >
-                                                    {{ Number(rec.keuntungan_kumulatif) > 0 ? '+' : ''
-                                                    }}{{ formatUSD(rec.keuntungan_kumulatif) }}
-                                                    <span class="text-muted-foreground text-[10px]"
-                                                        >({{
-                                                            rec.pertumbuhan_kumulatif_persen
-                                                        }}%)</span
+                                                <div v-if="rec.tagihan_master_fee" class="flex flex-col gap-0.5">
+                                                    <Link
+                                                        href="/member/master-fee"
+                                                        class="font-mono font-bold text-xs hover:underline text-foreground inline-flex items-center gap-1"
                                                     >
+                                                        <span>{{ formatUSD(rec.tagihan_master_fee.nominal_fee) }}</span>
+                                                    </Link>
+                                                    <span
+                                                        :class="[
+                                                            'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold w-fit',
+                                                            rec.tagihan_master_fee.status === 'lunas'
+                                                                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                                                                : rec.tagihan_master_fee.status === 'menunggu_verifikasi'
+                                                                  ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                                                                  : rec.tagihan_master_fee.is_terlambat
+                                                                    ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400 font-bold'
+                                                                    : 'bg-slate-500/10 text-slate-700 dark:text-slate-300'
+                                                        ]"
+                                                    >
+                                                        {{ rec.tagihan_master_fee.is_terlambat ? 'Terlambat' : rec.tagihan_master_fee.status_label }}
+                                                    </span>
+                                                </div>
+                                                <span v-else class="text-muted-foreground text-[11px] italic">
+                                                    Tanpa Fee (Rugi/Impas)
                                                 </span>
                                             </td>
                                             <td class="px-3 py-3 text-center whitespace-nowrap">
+                                                <a
+                                                    v-if="rec.bukti_saldo_path"
+                                                    :href="route('documents.balance_proof', rec.id)"
+                                                    target="_blank"
+                                                    class="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                                                    title="Lihat Bukti Saldo"
+                                                >
+                                                    <Eye class="h-3.5 w-3.5" />
+                                                    <span>Lihat</span>
+                                                </a>
+                                                <span v-else class="text-muted-foreground text-[11px]">-</span>
+                                            </td>
+                                            <td class="px-3 py-3 text-center whitespace-nowrap">
                                                 <div
+                                                    v-if="rec.tagihan_master_fee?.is_locked"
+                                                    class="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-1 text-[11px] font-medium text-muted-foreground"
+                                                    title="Rekap terkunci karena tagihan Master Fee sedang diverifikasi atau sudah lunas"
+                                                >
+                                                    <Lock class="h-3 w-3 text-amber-500" />
+                                                    <span>Terkunci</span>
+                                                </div>
+                                                <div
+                                                    v-else
                                                     class="flex items-center justify-center gap-1.5"
                                                 >
                                                     <AppTableAction
@@ -1980,6 +2082,20 @@ onMounted(() => {
             @close="closeBalanceModal"
         >
             <form @submit.prevent="submitBalance" class="space-y-4 p-1">
+                <!-- Banner Terkunci (Jika Rekap Terkunci) -->
+                <div
+                    v-if="isRecordLocked"
+                    class="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200"
+                >
+                    <Lock class="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                    <div>
+                        <p class="font-bold">Rekap Saldo Terkunci</p>
+                        <p class="text-[11px] leading-relaxed text-amber-800/90 dark:text-amber-300/90 mt-0.5">
+                            Rekap saldo ini tidak dapat diubah atau dihapus karena tagihan Master Fee sedang diverifikasi atau sudah lunas.
+                        </p>
+                    </div>
+                </div>
+
                 <!-- Informasi Akun Trading (Read-only / Bersifat Informasi Saja) -->
                 <div class="space-y-1.5">
                     <label class="text-muted-foreground block text-xs font-semibold">
@@ -2043,7 +2159,8 @@ onMounted(() => {
                     <input
                         v-model="balanceForm.tanggal_pencatatan"
                         type="date"
-                        class="bg-background border-input focus:ring-primary w-full rounded-lg border px-3 py-2 text-xs focus:ring-2 focus:outline-none"
+                        :disabled="isRecordLocked"
+                        class="bg-background border-input focus:ring-primary w-full rounded-lg border px-3 py-2 text-xs focus:ring-2 focus:outline-none disabled:opacity-50"
                     />
                     <p class="text-muted-foreground text-[11px]">
                         Disarankan mencatat setiap tanggal 1 untuk sinkronisasi evaluasi bulanan.
@@ -2071,8 +2188,9 @@ onMounted(() => {
                             type="number"
                             step="0.01"
                             min="0"
+                            :disabled="isRecordLocked"
                             placeholder="0.00"
-                            class="bg-background border-input focus:ring-primary w-full rounded-lg border py-2 pr-3 pl-7 font-mono text-xs focus:ring-2 focus:outline-none"
+                            class="bg-background border-input focus:ring-primary w-full rounded-lg border py-2 pr-3 pl-7 font-mono text-xs focus:ring-2 focus:outline-none disabled:opacity-50"
                         />
                     </div>
                     <p v-if="balanceForm.errors.balance" class="text-destructive text-xs">
@@ -2080,28 +2198,98 @@ onMounted(() => {
                     </p>
                 </div>
 
-                <!-- Live Preview Perhitungan Keuntungan -->
+                <!-- Mutasi Dana: Penarikan & Setoran Tambahan -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="space-y-1.5">
+                        <label class="text-foreground block text-xs font-semibold">
+                            Penarikan Dana (USD)
+                        </label>
+                        <div class="relative">
+                            <span class="text-muted-foreground absolute inset-y-0 left-0 flex items-center pl-3 font-mono text-xs font-bold">$</span>
+                            <input
+                                v-model="balanceForm.penarikan"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                :disabled="isRecordLocked"
+                                placeholder="0.00"
+                                class="bg-background border-input focus:ring-primary w-full rounded-lg border py-2 pr-3 pl-7 font-mono text-xs focus:ring-2 focus:outline-none disabled:opacity-50"
+                            />
+                        </div>
+                        <p v-if="balanceForm.errors.penarikan" class="text-destructive text-xs">
+                            {{ balanceForm.errors.penarikan }}
+                        </p>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-foreground block text-xs font-semibold">
+                            Setoran Tambahan (USD)
+                        </label>
+                        <div class="relative">
+                            <span class="text-muted-foreground absolute inset-y-0 left-0 flex items-center pl-3 font-mono text-xs font-bold">$</span>
+                            <input
+                                v-model="balanceForm.setoran_tambahan"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                :disabled="isRecordLocked"
+                                placeholder="0.00"
+                                class="bg-background border-input focus:ring-primary w-full rounded-lg border py-2 pr-3 pl-7 font-mono text-xs focus:ring-2 focus:outline-none disabled:opacity-50"
+                            />
+                        </div>
+                        <p v-if="balanceForm.errors.setoran_tambahan" class="text-destructive text-xs">
+                            {{ balanceForm.errors.setoran_tambahan }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Unggah Bukti Saldo MT4 (Screenshot) -->
+                <div class="space-y-1.5">
+                    <label class="text-foreground block text-xs font-semibold">
+                        Bukti Saldo MT4 (Screenshot)
+                        <span v-if="!isEditingBalance" class="text-destructive">*</span>
+                        <span v-else class="text-muted-foreground font-normal"> (Opsional jika tidak diganti)</span>
+                    </label>
+                    <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/jpg,image/webp"
+                        :disabled="isRecordLocked"
+                        @change="handleBuktiSaldoChange"
+                        class="bg-background border-input file:bg-primary file:text-primary-foreground focus:ring-primary w-full rounded-lg border file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-1.5 file:text-xs file:font-semibold text-xs focus:ring-2 focus:outline-none disabled:opacity-50 cursor-pointer"
+                    />
+                    <p class="text-muted-foreground text-[11px]">
+                        Unggah gambar bukti saldo akun MT4.
+                    </p>
+                    <p v-if="balanceForm.errors.bukti_saldo" class="text-destructive text-xs">
+                        {{ balanceForm.errors.bukti_saldo }}
+                    </p>
+                </div>
+
+                <!-- Live Preview Perhitungan Profit Bersih & Master Fee -->
                 <div
-                    v-if="balanceForm.balance"
+                    v-if="balanceForm.balance !== ''"
                     :class="[
-                        'space-y-1 rounded-xl border p-3 text-xs',
+                        'space-y-1.5 rounded-xl border p-3 text-xs',
                         liveProfitNominal >= 0
                             ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200'
                             : 'border-destructive/30 bg-destructive/10 text-destructive',
                     ]"
                 >
                     <div class="flex items-center justify-between font-semibold">
-                        <span>Estimasi Keuntungan:</span>
+                        <span>Profit Bersih:</span>
                         <span class="font-mono font-bold">
                             {{ liveProfitNominal >= 0 ? '+' : ''
                             }}{{ formatUSD(liveProfitNominal) }} ({{ liveProfitPct >= 0 ? '+' : ''
                             }}{{ liveProfitPct.toFixed(2) }}%)
                         </span>
                     </div>
+                    <div class="flex items-center justify-between font-semibold border-t border-current/10 pt-1.5">
+                        <span>Estimasi Master Fee (30%):</span>
+                        <span class="font-mono font-bold">
+                            {{ liveProfitNominal > 0 ? formatUSD(liveFeeNominal) : '$0.00 (Tidak ada tagihan)' }}
+                        </span>
+                    </div>
                     <span class="text-muted-foreground block text-[10px]">
-                        Dihitung dari basis saldo sebelumnya: ${{
-                            Number(liveBaseBalance).toFixed(2)
-                        }}
+                        Basis saldo sebelumnya: ${{ Number(liveBaseBalance).toFixed(2) }}
                     </span>
                 </div>
 
@@ -2118,7 +2306,7 @@ onMounted(() => {
                     <Button
                         type="submit"
                         class="bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer gap-2"
-                        :disabled="balanceForm.processing"
+                        :disabled="balanceForm.processing || isRecordLocked"
                     >
                         <Loader2 v-if="balanceForm.processing" class="h-4 w-4 animate-spin" />
                         <CheckCircle2 v-else class="h-4 w-4" />

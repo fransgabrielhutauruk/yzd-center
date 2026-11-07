@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\FaqController;
 use App\Http\Controllers\Admin\HelpCenterController;
 use App\Http\Controllers\Admin\InvitationController;
 use App\Http\Controllers\Admin\LegalContentController;
+use App\Http\Controllers\Admin\MasterFeeController as AdminMasterFeeController;
 use App\Http\Controllers\Admin\ProfitMasterController as AdminProfitMasterController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Admin\Settings\PasswordController as AdminPasswordController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Member\CommissionClaimController as MemberCommissionCla
 use App\Http\Controllers\Member\DashboardController as MemberDashboardController;
 use App\Http\Controllers\Member\EducationController as MemberEducationController;
 use App\Http\Controllers\Member\InvestmentPortfolioController;
+use App\Http\Controllers\Member\MasterFeeController as MemberMasterFeeController;
 use App\Http\Controllers\Member\PasswordController as MemberPasswordController;
 use App\Http\Controllers\Member\ProfitMasterController as MemberProfitMasterController;
 use App\Http\Controllers\Member\TiketBantuanController as MemberTiketBantuanController;
@@ -97,6 +99,12 @@ Route::get('/documents/profit-master/{id}', [DocumentStreamController::class, 's
 Route::get('/documents/tickets/{id}', [DocumentStreamController::class, 'showTiketAttachment'])
     ->middleware('auth')
     ->name('documents.ticket_attachment');
+Route::get('/documents/master-fee/{id}', [DocumentStreamController::class, 'showMasterFeeProof'])
+    ->middleware('auth')
+    ->name('documents.master_fee_proof');
+Route::get('/documents/balance-proof/{id}', [DocumentStreamController::class, 'showBalanceProof'])
+    ->middleware('auth')
+    ->name('documents.balance_proof');
 
 // Notifikasi In-App (Terotentikasi)
 Route::middleware('auth')->prefix('notifications')->name('notifications.')->group(function () {
@@ -160,6 +168,13 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::get('/settings/legal', [LegalContentController::class, 'index'])->name('settings.legal');
     Route::post('/settings/legal', [LegalContentController::class, 'update'])->name('settings.legal.update');
 
+    // Pengaturan Master Fee & Kelola Tagihan
+    Route::get('/master-fee', [AdminMasterFeeController::class, 'index'])->name('master_fee.index');
+    Route::post('/master-fee/{id}/verify', [AdminMasterFeeController::class, 'verify'])->name('master_fee.verify');
+    Route::post('/master-fee/{id}/reject', [AdminMasterFeeController::class, 'reject'])->name('master_fee.reject');
+    Route::get('/settings/master-fee', [AdminMasterFeeController::class, 'settings'])->name('settings.master_fee');
+    Route::put('/settings/master-fee', [AdminMasterFeeController::class, 'updateSettings'])->name('settings.master_fee.update');
+
     // Audit Log Aktivitas Sistem
     Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity_logs.index');
     Route::get('/activity-logs/export', [ActivityLogController::class, 'export'])->name('activity_logs.export');
@@ -211,6 +226,11 @@ Route::middleware(['auth', 'role:member'])->prefix('member')->name('member.')->g
         Route::get('/commissions', [MemberCommissionClaimController::class, 'index'])->name('commissions.index');
         Route::post('/commissions', [MemberCommissionClaimController::class, 'store'])->name('commissions.store');
         Route::get('/commissions/eligible-downlines', [MemberCommissionClaimController::class, 'eligibleDownlines'])->name('commissions.eligible_downlines');
+
+        // Tagihan Master Fee
+        Route::get('/master-fee', [MemberMasterFeeController::class, 'index'])->name('master_fee.index');
+        Route::get('/master-fee/{id}', [MemberMasterFeeController::class, 'show'])->name('master_fee.show');
+        Route::post('/master-fee/{id}/proof', [MemberMasterFeeController::class, 'uploadProof'])->name('master_fee.proof');
     });
 
     // Informasi Akun & Unggah Ulang Berkas Verifikasi (Selalu dapat diakses oleh member)

@@ -10,26 +10,29 @@ const page = usePage();
 
 // Otomatis pantau flash messages dari controller Laravel
 watch(
-    () => ({ ...page.props.flash }),
-    (flash) => {
-        if (!flash) return;
-
+    () => [
+        page.props.flash?.success,
+        page.props.flash?.error,
+        page.props.flash?.warning,
+        page.props.flash?.info,
+    ],
+    ([success, error, warning, info]) => {
         nextTick(() => {
-            if (flash.success) {
-                toast.success(flash.success);
+            if (success) {
+                toast.success(success);
             }
-            if (flash.error) {
-                toast.error(flash.error);
+            if (error) {
+                toast.error(error);
             }
-            if (flash.warning) {
-                toast.warning(flash.warning);
+            if (warning) {
+                toast.warning(warning);
             }
-            if (flash.info) {
-                toast.info(flash.info);
+            if (info) {
+                toast.info(info);
             }
         });
     },
-    { deep: true, immediate: true }
+    { immediate: true }
 );
 </script>
 

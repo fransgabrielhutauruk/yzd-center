@@ -155,6 +155,12 @@ const resolvedIcon = computed(() => {
     if (props.icon === false) {
         return null;
     }
+    if (props.icon === true) {
+        return currentPreset.value.icon || null;
+    }
+    if (typeof props.icon === 'string') {
+        return null;
+    }
     return props.icon || currentPreset.value.icon || null;
 });
 
@@ -207,7 +213,6 @@ const iconSizeClass = computed(() => {
 </script>
 
 <template>
-    <!-- Navigasi Inertia Link jika memiliki prop href -->
     <Link
         v-if="href"
         :href="href"
@@ -236,11 +241,9 @@ const iconSizeClass = computed(() => {
             :class="iconSizeClass"
         />
     </Link>
-
-    <!-- Tombol Standar Button jika aksi event/modal/form -->
     <button
         v-else
-        :type="(submit || type === 'submit') ? 'submit' : 'button'"
+        :type="(submit || type === 'submit' || type === 'save') ? 'submit' : 'button'"
         :disabled="disabled || loading"
         :class="baseClasses"
         @click="$emit('click', $event)"

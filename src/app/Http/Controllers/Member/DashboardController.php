@@ -39,6 +39,16 @@ class DashboardController extends Controller
                 'network'    => $this->referralService->getAffiliatorNetworkStats($user),
                 'commission' => $this->commissionClaimService->getAffiliatorCommissionStats($user),
             ],
+            'master_fee' => [
+                'unpaid_count' => \App\Models\TagihanMasterFee::query()
+                    ->where('user_id', $user->id)
+                    ->whereIn('status', [\App\Models\TagihanMasterFee::STATUS_BELUM_DIBAYAR, \App\Models\TagihanMasterFee::STATUS_DITOLAK])
+                    ->count(),
+                'unpaid_usd' => round((float) \App\Models\TagihanMasterFee::query()
+                    ->where('user_id', $user->id)
+                    ->whereIn('status', [\App\Models\TagihanMasterFee::STATUS_BELUM_DIBAYAR, \App\Models\TagihanMasterFee::STATUS_DITOLAK])
+                    ->sum('nominal_fee'), 2),
+            ],
         ]);
     }
 }

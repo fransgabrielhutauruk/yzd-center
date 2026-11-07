@@ -70,14 +70,13 @@ Dokumen ini memuat panduan pengujian dan verifikasi fungsionalitas Modul 05 sesu
    - Klik tombol **Kirim Pengajuan Klaim**.
 4. Verifikasi bertambah tepat **1 baris (1 row)** pada tabel riwayat dengan status *Menunggu Persetujuan*.
 
-### Skenario 2: Admin Menghitung Komisi Berbasis ROI & Menyelesaikan Transfer
+### Skenario 2: Admin Memverifikasi Komisi Berbasis Master Fee Lunas & Menyelesaikan Transfer
 1. Buka browser dan login sebagai Administrator (`admin@yzd.test` / password).
 2. Buka menu **Manajemen Afiliasi -> Pencairan Komisi** (`/admin/commissions`).
 3. Temukan baris permohonan klaim, klik **Proses**.
 4. Di modal proses pencairan:
-   - Masukkan persentase **ROI Master (%)** untuk setiap akun copytrade (misal: `20%`).
-   - Perhatikan kalkulasi *live* nilai Gross Profit, Hak Kotor Master (30%), Komisi Afiliator, Hak Bersih Master, dan Profit Bersih Investor dalam mata uang USD ($).
-   - Masukkan ROI negatif (misal: `-10%`) untuk memverifikasi munculnya peringatan *Drawdown Guard* (komisi otomatis $0.00).
+   - Periksa kalkulasi otomatis nilai Gross Profit, Hak Kotor Master (30%), Komisi Afiliator, Hak Bersih Master, dan Profit Bersih Investor yang diambil dari tagihan Master Fee lunas downline (tanpa input ROI manual).
+   - Masukkan nilai Kurs Konversi Riil MT4 ke Rupiah (misal: `Rp 16.250`).
    - Unggah resi/bukti transfer bank (JPG/PNG/PDF).
    - Klik **Selesaikan Pencairan**.
 5. Verifikasi status klaim berubah menjadi **Ditransfer** dengan badge hijau solid.

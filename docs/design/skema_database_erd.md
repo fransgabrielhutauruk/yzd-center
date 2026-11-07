@@ -512,6 +512,70 @@ Modul saluran komunikasi pelaporan kendala teknis, akun, verifikasi, atau transa
 
 ---
 
+### 3.16 Tabel `riwayat_balance_copytrade` (Rekap Saldo Bulanan Investor)
+Menyimpan riwayat saldo bulanan akun copytrade investor beserta mutasi penarikan, setoran tambahan, dan bukti saldo.
+- **Model Laravel:** `App\Models\RiwayatBalanceCopytrade` (`protected $table = 'riwayat_balance_copytrade';`)
+
+| Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
+|---|---|---|---|
+| `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik rekap. |
+| `akun_copytrade_id` | `BIGINT UNSIGNED` | `FK -> akun_copytrade.id, CASCADE` | Akun copytrade terkait. |
+| `user_id` | `BIGINT UNSIGNED` | `FK -> users.id, CASCADE` | Investor pemilik akun. |
+| `tanggal_pencatatan` | `DATE` | `NOT NULL, INDEX` | Tanggal pencatatan rekap saldo. |
+| `balance` | `DECIMAL(15,2)` | `NOT NULL` | Saldo akhir trading (USD). |
+| `penarikan` | `DECIMAL(15,2)` | `NOT NULL, DEFAULT 0` | Total penarikan profit/modal pada periode berjalan (USD). |
+| `setoran_tambahan` | `DECIMAL(15,2)` | `NOT NULL, DEFAULT 0` | Total setoran modal tambahan pada periode berjalan (USD). |
+| `keuntungan_nominal` | `DECIMAL(15,2)` | `NOT NULL, DEFAULT 0` | Profit bersih periode berjalan ($\text{balance} - \text{prev} + \text{wd} - \text{depo}$). |
+| `keuntungan_persen` | `DECIMAL(8,2)` | `NOT NULL, DEFAULT 0` | Persentase keuntungan terhadap saldo acuan. |
+| `keuntungan_kumulatif` | `DECIMAL(15,2)` | `NOT NULL, DEFAULT 0` | Akumulasi total profit dari awal. |
+| `pertumbuhan_kumulatif_persen` | `DECIMAL(8,2)` | `NOT NULL, DEFAULT 0` | Akumulasi persentase pertumbuhan dari modal awal. |
+| `bukti_saldo_path` | `VARCHAR(255)` | `NULLABLE` | Path file bukti foto/tangkapan layar saldo MT4 di disk privat. |
+| `catatan` | `TEXT` | `NULLABLE` | Catatan opsional dari investor. |
+| `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
+
+---
+
+### 3.17 Tabel `tagihan_master_fee` (Tagihan Performance Fee 30% Bulanan)
+Menyimpan tagihan performance fee 30% Master Trader yang terbit otomatis dari rekap saldo bulanan yang membukukan profit bersih.
+- **Model Laravel:** `App\Models\TagihanMasterFee` (`protected $table = 'tagihan_master_fee';`)
+
+| Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
+|---|---|---|---|
+| `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik tagihan. |
+| `nomor` | `VARCHAR(20)` | `UNIQUE, NOT NULL` | Nomor tagihan bulanan (format: `MFE-YYYYMM-XXXX`). |
+| `riwayat_balance_id` | `BIGINT UNSIGNED` | `FK -> riwayat_balance_copytrade.id, UNIQUE, CASCADE` | Rekap saldo yang mendasari tagihan. |
+| `akun_copytrade_id` | `BIGINT UNSIGNED` | `FK -> akun_copytrade.id, CASCADE` | Akun copytrade terkait. |
+| `user_id` | `BIGINT UNSIGNED` | `FK -> users.id, CASCADE` | Investor yang ditagih. |
+| `periode` | `DATE` | `NOT NULL` | Hari pertama bulan profit (bulan sebelum tanggal pencatatan). |
+| `profit_bersih` | `DECIMAL(15,2)` | `NOT NULL` | Nominal profit bersih yang dikenakan fee (USD). |
+| `fee_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 30.00` | Persentase fee yang dikunci pada saat tagihan dibuat. |
+| `nominal_fee` | `DECIMAL(15,2)` | `NOT NULL` | Nilai tagihan fee dalam USD ($\text{profit\_bersih} \times \text{fee\_persen} / 100$). |
+| `jatuh_tempo` | `DATE` | `NOT NULL` | Batas pembayaran (tanggal 10 bulan pencatatan). |
+| `status` | `VARCHAR(25)` | `INDEX, DEFAULT 'belum_dibayar'` | Status tagihan (`belum_dibayar`, `menunggu_verifikasi`, `lunas`, `ditolak`). |
+| `bukti_transfer_path` | `VARCHAR(255)` | `NULLABLE` | Path resi transfer manual yang diunggah investor. |
+| `dibayar_at` | `TIMESTAMP` | `NULLABLE` | Waktu investor mengunggah bukti transfer. |
+| `catatan_admin` | `TEXT` | `NULLABLE` | Alasan penolakan dari admin jika ditolak. |
+| `verified_by` | `BIGINT UNSIGNED` | `FK -> users.id, NULLABLE` | Admin pemverifikasi. |
+| `verified_at` | `TIMESTAMP` | `NULLABLE` | Waktu tagihan diverifikasi lunas. |
+| `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
+
+---
+
+### 3.18 Tabel `pengaturan_master_fee` (Pengaturan Rekening & Fee Master Trader)
+Menyimpan rekening tujuan transfer Master Fee dan persentase fee global.
+- **Model Laravel:** `App\Models\PengaturanMasterFee` (`protected $table = 'pengaturan_master_fee';`)
+
+| Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
+|---|---|---|---|
+| `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik (Single Row). |
+| `nama_bank` | `VARCHAR(100)` | `NULLABLE` | Nama bank rekening penampung Master Trader. |
+| `nomor_rekening` | `VARCHAR(100)` | `NULLABLE` | Nomor rekening bank Master Trader. |
+| `atas_nama` | `VARCHAR(150)` | `NULLABLE` | Nama pemilik rekening bank Master Trader. |
+| `fee_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 30.00` | Persentase performance fee default platform (%). |
+| `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
+
+---
+
 ## 4. Strategi Indexing & Optimasi Database
 
 Untuk memastikan performa kencang di VPS Hostinger (1 vCPU, 4GB RAM), index berikut dipasang:

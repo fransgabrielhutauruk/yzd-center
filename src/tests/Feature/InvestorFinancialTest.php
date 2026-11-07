@@ -8,6 +8,8 @@ use App\Models\RiwayatBalanceCopytrade;
 use App\Models\User;
 use App\Services\EducationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class InvestorFinancialTest extends TestCase
@@ -19,6 +21,7 @@ class InvestorFinancialTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Storage::fake('local');
 
         PengaturanMaster::create([
             'kurs_usd_idr'            => 16796.00,
@@ -98,6 +101,7 @@ class InvestorFinancialTest extends TestCase
                 'tanggal_pencatatan' => '2026-02-01',
                 'balance'            => 105.00,
                 'catatan'            => 'Bulan 1 profit normal',
+                'bukti_saldo'        => UploadedFile::fake()->image('bukti1.jpg'),
             ]);
 
         $response1->assertRedirect();
@@ -119,6 +123,7 @@ class InvestorFinancialTest extends TestCase
                 'tanggal_pencatatan' => '2026-03-01',
                 'balance'            => 110.25,
                 'catatan'            => 'Bulan 2 profit 5%',
+                'bukti_saldo'        => UploadedFile::fake()->image('bukti2.jpg'),
             ]);
 
         $response2->assertRedirect();
@@ -212,6 +217,7 @@ class InvestorFinancialTest extends TestCase
                 'akun_copytrade_id'  => $akun->id,
                 'tanggal_pencatatan' => '2026-02-01',
                 'balance'            => 105.00,
+                'bukti_saldo'        => UploadedFile::fake()->image('bukti_del.jpg'),
             ]);
 
         $record = \App\Models\RiwayatBalanceCopytrade::first();

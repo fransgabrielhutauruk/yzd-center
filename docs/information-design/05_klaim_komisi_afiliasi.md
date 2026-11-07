@@ -26,10 +26,11 @@ Dokumen ini memuat spesifikasi teknis dan aturan bisnis untuk perhitungan hak ko
   - **Tier 2 (Modal deposit Rp 1.000.000.000 – Rp 10.000.000.000 / 1 M - 10 M):** Komisi **40%** dari hak Master Trader.
   - **Tier 3 (Modal deposit Rp 100.000.000 – Rp 1.000.000.000 / 100 Jt - 1 M):** Komisi **30%** dari hak Master Trader.
   - **Tier 4 (Modal deposit < Rp 100.000.000 / < 100 Jt):** Komisi **20%** dari hak Master Trader.
-- **Formula Komisi Berbasis ROI & Perlindungan Drawdown (Drawdown Guard):**
-  - Admin menginput persentase pertumbuhan ROI Master (`roi_percentage`) per akun copytrade pada periode aktifnya.
-  - Komisi affiliator dipotong dari jatah bagi hasil Master Trader (`master_share_pct`, default: 30%).
-  - Jika akun dalam posisi rugi atau impas ($\text{gross\_profit} \le 0$), berlaku **Drawdown Guard**: komisi affiliator $0, hak Master $0, dan investor menanggung gross loss tanpa potongan komisi.
+- **Formula Komisi Berbasis Master Fee Lunas & Perlindungan Drawdown (Drawdown Guard):**
+  - Komisi affiliator dihitung langsung dari akumulasi tagihan Master Fee lunas (`master_gross_share` = $\sum$ `nominal_fee` tagihan lunas pada jendela 90 hari). Admin **tidak perlu lagi menginput ROI manual**.
+  - Komisi affiliator dipotong dari jatah bagi hasil Master Trader (`affiliate_share_pct`, default: 20% - 50% sesuai tier modal akun).
+  - Jika akun dalam posisi rugi atau impas ($\text{master\_gross\_share} \le 0$), berlaku **Drawdown Guard**: komisi affiliator $0, hak Master $0, dan tidak ada potongan komisi.
+  - **Syarat Kelayakan Lunas Tagihan:** Seluruh tagihan Master Fee downline dalam periode 3 bulan wajib berstatus `lunas` (klaim ditolak bila ada tagihan `belum_dibayar`, `ditolak`, atau `menunggu_verifikasi`).
 - **Pencairan Terpadu 1 Transfer & 1 Bukti:** Admin melakukan transfer bank tunggal ke rekening affiliator sebesar total akumulasi komisi seluruh akun copytrade dalam tiket klaim tersebut, dan mengunggah satu bukti resi transfer sebagai transparansi.
 
 ---

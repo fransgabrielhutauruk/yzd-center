@@ -360,4 +360,80 @@ class DocumentStreamController extends Controller
             ]
         );
     }
+
+    /**
+     * Tampilkan (stream) berkas bukti transfer master fee privat terotentikasi.
+     */
+    public function showMasterFeeProof(Request $request, int $id): StreamedResponse
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $tagihan = \App\Models\TagihanMasterFee::with('user')->findOrFail($id);
+
+        // Otorisasi: Hanya Admin atau Pemilik Tagihan yang dapat mengakses
+        if (!$user->isAdmin() && $user->id !== $tagihan->user_id) {
+            abort(403, 'Anda tidak memiliki hak akses untuk melihat bukti transfer ini.');
+        }
+
+        $path = $tagihan->bukti_transfer_path;
+        if (!$path || !Storage::disk('local')->exists($path)) {
+            $fallback = $path ? preg_replace('#^private/#', '', $path) : '';
+            if ($fallback && Storage::disk('local')->exists($fallback)) {
+                $path = $fallback;
+            } else {
+                abort(404, 'Berkas fisik bukti transfer tidak ditemukan di penyimpanan server.');
+            }
+        }
+
+        return Storage::disk('local')->response(
+            $path,
+            basename($path),
+            [
+                'Cache-Control'          => 'private, max-age=86400',
+                'X-Content-Type-Options' => 'nosniff',
+            ]
+        );
+    }
+
+    /**
+     * Tampilkan (stream) berkas bukti saldo trading privat terotentikasi.
+     */
+    public function showBalanceProof(Request $request, int $id): StreamedResponse
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $rekap = \App\Models\RiwayatBalanceCopytrade::with('user')->findOrFail($id);
+
+        // Otorisasi: Hanya Admin atau Pemilik Rekap yang dapat mengakses
+        if (!$user->isAdmin() && $user->id !== $rekap->user_id) {
+            abort(403, 'Anda tidak memiliki hak akses untuk melihat bukti saldo ini.');
+        }
+
+        $path = $rekap->bukti_saldo_path;
+        if (!$path || !Storage::disk('local')->exists($path)) {
+            $fallback = $path ? preg_replace('#^private/#', '', $path) : '';
+            if ($fallback && Storage::disk('local')->exists($fallback)) {
+                $path = $fallback;
+            } else {
+                abort(404, 'Berkas fisik bukti saldo tidak ditemukan di penyimpanan server.');
+            }
+        }
+
+        return Storage::disk('local')->response(
+            $path,
+            basename($path),
+            [
+                'Cache-Control'          => 'private, max-age=86400',
+                'X-Content-Type-Options' => 'nosniff',
+            ]
+        );
+    }
 }

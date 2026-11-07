@@ -25,6 +25,8 @@ import {
     History,
     TrendingUp,
     LifeBuoy,
+    Receipt,
+    Settings,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import { usePwaInstall } from '@/composables/usePwaInstall';
@@ -192,6 +194,12 @@ const navSections = [
                 routeName: 'admin.copytrade.index',
             },
             {
+                label: 'Master Fee',
+                href: '/admin/master-fee',
+                icon: Receipt,
+                routeName: 'admin.master_fee.index',
+            },
+            {
                 label: 'Pengguna',
                 href: '/admin/users',
                 icon: Users,
@@ -265,6 +273,12 @@ const navSections = [
                 href: '/admin/settings/legal',
                 icon: FileText,
                 routeName: 'admin.settings.legal',
+            },
+            {
+                label: 'Pengaturan Master Fee',
+                href: '/admin/settings/master-fee',
+                icon: Settings,
+                routeName: 'admin.settings.master_fee',
             },
         ],
     },
