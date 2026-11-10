@@ -49,18 +49,57 @@ class HandleInertiaRequests extends Middleware
                     'email'                    => $request->user()->email,
                     'username'                 => $request->user()->username,
                     'pending_master_fee_count' => $request->user()->role === 'member'
-                        ? \App\Models\TagihanMasterFee::query()
+                        ? \App\Models\LaporanProfitBulanan::query()
                             ->where('user_id', $request->user()->id)
-                            ->whereIn('status', [\App\Models\TagihanMasterFee::STATUS_BELUM_DIBAYAR, \App\Models\TagihanMasterFee::STATUS_DITOLAK])
+                            ->whereIn('status', [\App\Models\LaporanProfitBulanan::STATUS_BELUM_DIBAYAR, \App\Models\LaporanProfitBulanan::STATUS_DITOLAK])
                             ->count()
                         : 0,
                     'waiting_master_fee_count' => $request->user()->role === 'administrator'
-                        ? \App\Models\TagihanMasterFee::query()
-                            ->where('status', \App\Models\TagihanMasterFee::STATUS_MENUNGGU_VERIFIKASI)
+                        ? \App\Models\LaporanProfitBulanan::query()
+                            ->where('status', \App\Models\LaporanProfitBulanan::STATUS_MENUNGGU_VERIFIKASI)
                             ->count()
                         : 0,
                 ] : null,
             ],
+            'first_period_notice' => function () use ($request) {
+                if (!$request->user() || $request->user()->role !== 'member') {
+                    return null;
+                }
+                if ($request->session()->get('first_period_notice_dismissed')) {
+                    return null;
+                }
+
+                $activeAccounts = \App\Models\AkunCopytrade::query()
+                    ->where('user_id', $request->user()->id)
+                    ->where('status', 'active')
+                    ->whereNotNull('tanggal_mulai')
+                    ->get();
+
+                $inFirstPeriod = $activeAccounts->filter(fn ($a) => \App\Support\ProfitPeriod::isInFirstPeriod($a));
+                if ($inFirstPeriod->isEmpty()) {
+                    return null;
+                }
+
+                // Urutkan berdasarkan periode akhir paling awal
+                $earliest = $inFirstPeriod->sortBy(function ($a) {
+                    return \App\Support\ProfitPeriod::firstPeriodEnd(\Carbon\Carbon::parse($a->tanggal_mulai));
+                })->first();
+
+                $mulai = \Carbon\Carbon::parse($earliest->tanggal_mulai)->startOfDay();
+                $p1End = \App\Support\ProfitPeriod::firstPeriodEnd($mulai);
+                $openDate = \App\Support\ProfitPeriod::openReportDate($p1End);
+                $otherCount = $inFirstPeriod->count() - 1;
+
+                return [
+                    'akun_id'       => $earliest->id,
+                    'nomor_akun'    => $earliest->nomor_akun_trading,
+                    'tanggal_mulai' => function_exists('tanggal_indo') ? tanggal_indo($mulai) : $mulai->toDateString(),
+                    'periode_akhir' => function_exists('tanggal_indo') ? tanggal_indo($p1End) : $p1End->toDateString(),
+                    'input_dibuka'  => function_exists('tanggal_indo') ? tanggal_indo($openDate) : $openDate->toDateString(),
+                    'other_count'   => $otherCount,
+                    'aturan'        => 'Mulai copy tgl 1–15 = s/d akhir bulan itu; tgl 16–31 = s/d akhir bulan berikutnya.',
+                ];
+            },
             'flash' => fn () => [
                 'success'              => $request->session()->get('success'),
                 'error'                => $request->session()->get('error'),

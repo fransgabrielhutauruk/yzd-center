@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\AkunCopytrade;
+use App\Models\LaporanProfitBulanan;
 use App\Models\PengaturanMaster;
-use App\Models\RiwayatBalanceCopytrade;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -62,6 +62,7 @@ class InvestmentPortfolioTest extends TestCase
                 'nomor_rekening'        => '12345678',
                 'atas_nama_rekening'    => 'Investor Test',
                 'dokumen_perjanjian'    => $file,
+                'myfxbook_url'          => 'https://www.myfxbook.com/members/test/portfolio/12345',
             ]);
 
         $response->assertRedirect(route('member.investments.index'));
@@ -72,47 +73,13 @@ class InvestmentPortfolioTest extends TestCase
             'nomor_akun_trading' => 'MT4-889900',
             'modal_riil'         => 150.00,
             'status'             => 'pending',
-        ]);
-    }
-
-    public function test_investor_can_record_monthly_balance_and_calculates_profit(): void
-    {
-        $akun = AkunCopytrade::create([
-            'user_id'            => $this->investor->id,
-            'tier'               => 'tier_1',
-            'broker'             => 'HFM',
-            'tipe_akun'          => 'cent',
-            'nomor_akun_trading' => 'MT4-112233',
-            'modal_riil'         => 100.00,
-            'tanggal_mulai'      => '2026-01-01',
-            'nama_bank'          => 'BCA',
-            'nomor_rekening'     => '12345',
-            'atas_nama_rekening' => 'Investor Test',
-            'status'             => 'active',
-        ]);
-
-        $response = $this->actingAs($this->investor)
-            ->post(route('member.investments.balance.store'), [
-                'akun_copytrade_id'  => $akun->id,
-                'tanggal_pencatatan' => '2026-02-01',
-                'balance'            => 108.00,
-                'catatan'            => 'Bulan Februari profit $8',
-                'bukti_saldo'        => UploadedFile::fake()->image('bukti_saldo.jpg'),
-            ]);
-
-        $response->assertRedirect(route('member.investments.index', ['account_id' => $akun->id]));
-        $this->assertDatabaseHas('riwayat_balance_copytrade', [
-            'akun_copytrade_id'    => $akun->id,
-            'balance'              => 108.00,
-            'keuntungan_nominal'   => 8.00,
-            'keuntungan_persen'    => 8.00,
-            'keuntungan_kumulatif' => 8.00,
+            'myfxbook_url'       => 'https://www.myfxbook.com/members/test/portfolio/12345',
         ]);
     }
 
     public function test_consolidated_summary_accurately_aggregates_multiple_accounts(): void
     {
-        // Akun 1: Modal $100, Saldo akhir $120 (laba $20)
+        // Akun 1: Modal $100, Laporan profit $20
         $akun1 = AkunCopytrade::create([
             'user_id'            => $this->investor->id,
             'tier'               => 'tier_1',
@@ -125,19 +92,29 @@ class InvestmentPortfolioTest extends TestCase
             'nomor_rekening'     => '11111',
             'atas_nama_rekening' => 'Investor Test',
             'status'             => 'active',
+            'myfxbook_url'       => 'https://www.myfxbook.com/members/test/acc1/111',
         ]);
-        RiwayatBalanceCopytrade::create([
-            'akun_copytrade_id'            => $akun1->id,
-            'user_id'                      => $this->investor->id,
-            'tanggal_pencatatan'           => '2026-02-01',
-            'balance'                      => 120.00,
-            'keuntungan_nominal'           => 20.00,
-            'keuntungan_persen'            => 20.00,
-            'keuntungan_kumulatif'         => 20.00,
-            'pertumbuhan_kumulatif_persen' => 20.00,
+        LaporanProfitBulanan::create([
+            'nomor'               => 'LPB-2026-001',
+            'akun_copytrade_id'   => $akun1->id,
+            'user_id'             => $this->investor->id,
+            'periode_ke'          => 1,
+            'periode_awal'        => '2026-01-01',
+            'periode_akhir'       => '2026-01-31',
+            'jatuh_tempo'         => '2026-02-01',
+            'profit_usd'          => 20.00,
+            'fee_persen'          => 30.00,
+            'fee_usd'             => 6.00,
+            'wd_usd'              => 10.00,
+            'wd_idr'              => 160000,
+            'kurs_riil'           => 16000.00,
+            'fee_idr'             => 96000,
+            'bukti_myfxbook_path' => 'laporan-profit/myfxbook/1.jpg',
+            'bukti_wd_path'       => 'laporan-profit/wd/1.jpg',
+            'status'              => 'lunas',
         ]);
 
-        // Akun 2 (Tier 3 Managed VPS): Modal $300,000, Saldo akhir $315,000 (laba $15,000)
+        // Akun 2 (Tier 3 Managed VPS): Modal $300,000, Laporan profit $15,000
         $akun2 = AkunCopytrade::create([
             'user_id'            => $this->investor->id,
             'tier'               => 'tier_3',
@@ -150,16 +127,26 @@ class InvestmentPortfolioTest extends TestCase
             'nomor_rekening'     => '22222',
             'atas_nama_rekening' => 'Investor Test',
             'status'             => 'active',
+            'myfxbook_url'       => 'https://www.myfxbook.com/members/test/acc2/222',
         ]);
-        RiwayatBalanceCopytrade::create([
-            'akun_copytrade_id'            => $akun2->id,
-            'user_id'                      => $this->investor->id,
-            'tanggal_pencatatan'           => '2026-02-01',
-            'balance'                      => 315000.00,
-            'keuntungan_nominal'           => 15000.00,
-            'keuntungan_persen'            => 5.00,
-            'keuntungan_kumulatif'         => 15000.00,
-            'pertumbuhan_kumulatif_persen' => 5.00,
+        LaporanProfitBulanan::create([
+            'nomor'               => 'LPB-2026-002',
+            'akun_copytrade_id'   => $akun2->id,
+            'user_id'             => $this->investor->id,
+            'periode_ke'          => 1,
+            'periode_awal'        => '2026-01-01',
+            'periode_akhir'       => '2026-01-31',
+            'jatuh_tempo'         => '2026-02-01',
+            'profit_usd'          => 15000.00,
+            'fee_persen'          => 30.00,
+            'fee_usd'             => 4500.00,
+            'wd_usd'              => 7500.00,
+            'wd_idr'              => 120000000,
+            'kurs_riil'           => 16000.00,
+            'fee_idr'             => 72000000,
+            'bukti_myfxbook_path' => 'laporan-profit/myfxbook/2.jpg',
+            'bukti_wd_path'       => 'laporan-profit/wd/2.jpg',
+            'status'              => 'lunas',
         ]);
 
         $response = $this->actingAs($this->investor)
@@ -177,49 +164,11 @@ class InvestmentPortfolioTest extends TestCase
         );
     }
 
-    public function test_investor_can_delete_balance_record(): void
-    {
-        $akun = AkunCopytrade::create([
-            'user_id'            => $this->investor->id,
-            'tier'               => 'tier_1',
-            'broker'             => 'HFM',
-            'tipe_akun'          => 'cent',
-            'nomor_akun_trading' => 'MT4-DEL1',
-            'modal_riil'         => 100.00,
-            'tanggal_mulai'      => '2026-01-01',
-            'nama_bank'          => 'BCA',
-            'nomor_rekening'     => '12345',
-            'atas_nama_rekening' => 'Investor Test',
-            'status'             => 'active',
-        ]);
-
-        $rec = RiwayatBalanceCopytrade::create([
-            'akun_copytrade_id'  => $akun->id,
-            'user_id'            => $this->investor->id,
-            'tanggal_pencatatan' => '2026-02-01',
-            'balance'            => 110.00,
-            'keuntungan_nominal' => 10.00,
-            'keuntungan_persen'  => 10.00,
-        ]);
-
-        $response = $this->actingAs($this->investor)
-            ->delete(route('member.investments.balance.destroy', $rec->id));
-
-        $response->assertRedirect(route('member.investments.index', ['account_id' => $akun->id]));
-        $this->assertDatabaseMissing('riwayat_balance_copytrade', [
-            'id' => $rec->id,
-        ]);
-    }
-
     public function test_legacy_copytrade_routes_redirect_to_investments_page(): void
     {
-        $resp1 = $this->actingAs($this->investor)
+        $resp = $this->actingAs($this->investor)
             ->get(route('member.copytrade.index'));
-        $resp1->assertRedirect(route('member.investments.index'));
-
-        $resp2 = $this->actingAs($this->investor)
-            ->get(route('member.copytrade.balance.index'));
-        $resp2->assertRedirect(route('member.investments.index'));
+        $resp->assertRedirect(route('member.investments.index'));
     }
 
     public function test_unauthenticated_user_cannot_access_investments(): void
@@ -243,6 +192,7 @@ class InvestmentPortfolioTest extends TestCase
             'nama_bank'          => 'BCA',
             'nomor_rekening'     => '123',
             'atas_nama_rekening' => 'Investor',
+            'myfxbook_url'       => 'https://www.myfxbook.com/members/demo/active',
         ]);
 
         // Akun 2: ditolak
@@ -259,6 +209,7 @@ class InvestmentPortfolioTest extends TestCase
             'nama_bank'          => 'BCA',
             'nomor_rekening'     => '123',
             'atas_nama_rekening' => 'Investor',
+            'myfxbook_url'       => 'https://www.myfxbook.com/members/demo/rej',
         ]);
 
         $response = $this->actingAs($this->investor)
@@ -286,6 +237,7 @@ class InvestmentPortfolioTest extends TestCase
             'nama_bank'          => 'BCA',
             'nomor_rekening'     => '123',
             'atas_nama_rekening' => 'Investor',
+            'myfxbook_url'       => 'https://www.myfxbook.com/members/demo/pending',
         ]);
 
         $response = $this->actingAs($this->investor)
@@ -304,36 +256,6 @@ class InvestmentPortfolioTest extends TestCase
         );
     }
 
-    public function test_investor_cannot_record_balance_for_pending_account(): void
-    {
-        $pendingAccount = AkunCopytrade::create([
-            'user_id'            => $this->investor->id,
-            'tier'               => 'tier_1',
-            'broker'             => 'HFM',
-            'tipe_akun'          => 'cent',
-            'nomor_akun_trading' => 'MT4-PENDING-2',
-            'modal_riil'         => 100.00,
-            'status'             => 'pending',
-            'tanggal_mulai'      => '2026-01-01',
-            'nama_bank'          => 'BCA',
-            'nomor_rekening'     => '123',
-            'atas_nama_rekening' => 'Investor',
-        ]);
-
-        $response = $this->actingAs($this->investor)
-            ->post(route('member.investments.balance.store'), [
-                'akun_copytrade_id'  => $pendingAccount->id,
-                'tanggal_pencatatan' => '2026-02-01',
-                'balance'            => 105.00,
-            ]);
-
-        // Harus gagal validasi/otorisasi
-        $response->assertSessionHasErrors('akun_copytrade_id');
-        $this->assertDatabaseMissing('riwayat_balance_copytrade', [
-            'akun_copytrade_id' => $pendingAccount->id,
-        ]);
-    }
-
     public function test_tier_1_accepts_deposit_below_100_and_rejects_5000_or_above(): void
     {
         $file = UploadedFile::fake()->create('surat_perjanjian.pdf', 500, 'application/pdf');
@@ -349,6 +271,7 @@ class InvestmentPortfolioTest extends TestCase
                 'nomor_rekening'        => '12345678',
                 'atas_nama_rekening'    => 'Investor Test',
                 'dokumen_perjanjian'    => $file,
+                'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/tier1',
             ]);
 
         $responseSuccess->assertRedirect(route('member.investments.index'));
@@ -368,6 +291,7 @@ class InvestmentPortfolioTest extends TestCase
                 'nama_bank'             => 'BCA',
                 'nomor_rekening'        => '12345678',
                 'atas_nama_rekening'    => 'Investor Test',
+                'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/tier1fail',
             ]);
 
         $responseFail->assertSessionHasErrors('modal_riil');
@@ -385,6 +309,7 @@ class InvestmentPortfolioTest extends TestCase
                 'nama_bank'             => 'BCA',
                 'nomor_rekening'        => '12345678',
                 'atas_nama_rekening'    => 'Investor Test',
+                'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/tier2under',
             ]);
         $responseUnder->assertSessionHasErrors('modal_riil');
 
@@ -398,6 +323,7 @@ class InvestmentPortfolioTest extends TestCase
                 'nama_bank'             => 'BCA',
                 'nomor_rekening'        => '12345678',
                 'atas_nama_rekening'    => 'Investor Test',
+                'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/tier2over',
             ]);
         $responseOver->assertSessionHasErrors('modal_riil');
 
@@ -413,6 +339,7 @@ class InvestmentPortfolioTest extends TestCase
                 'nomor_rekening'        => '12345678',
                 'atas_nama_rekening'    => 'Investor Test',
                 'dokumen_perjanjian'    => $file,
+                'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/tier2valid',
             ]);
         $responseValid->assertRedirect(route('member.investments.index'));
         $this->assertDatabaseHas('akun_copytrade', [
@@ -436,6 +363,7 @@ class InvestmentPortfolioTest extends TestCase
                 'server_broker'         => 'XMGlobal-Real 50',
                 'master_password'       => 'MasterSecret123',
                 'investor_password'     => 'InvestorSecret456',
+                'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/tier3under',
             ]);
         $responseUnder->assertSessionHasErrors('modal_riil');
 
@@ -454,6 +382,7 @@ class InvestmentPortfolioTest extends TestCase
                 'master_password'       => 'MasterSecret123',
                 'investor_password'     => 'InvestorSecret456',
                 'dokumen_perjanjian'    => $file,
+                'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/tier3valid',
             ]);
         $responseValid->assertRedirect(route('member.investments.index'));
         $this->assertDatabaseHas('akun_copytrade', [
@@ -476,6 +405,7 @@ class InvestmentPortfolioTest extends TestCase
                 'nomor_rekening'        => '9876543210',
                 'atas_nama_rekening'    => 'Investor Pertama',
                 'dokumen_perjanjian'    => $file,
+                'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/first',
             ]);
         $resp1->assertRedirect(route('member.investments.index'));
         $firstAccount = AkunCopytrade::where('nomor_akun_trading', 'MT4-ACC-FIRST')->firstOrFail();
@@ -487,7 +417,7 @@ class InvestmentPortfolioTest extends TestCase
                 'nomor_akun_trading'    => 'MT4-ACC-SECOND',
                 'modal_riil'            => 15000.00,
                 'tanggal_mulai_trading' => '2026-03-01',
-                // nama_bank, nomor_rekening, atas_nama_rekening, dokumen_perjanjian tidak dikirim
+                'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/second',
             ]);
         $resp2->assertRedirect(route('member.investments.index'));
 
@@ -536,7 +466,48 @@ class InvestmentPortfolioTest extends TestCase
         unlink($tempPath);
     }
 
-    public function test_investor_can_filter_performance_using_custom_month_and_year(): void
+    public function test_download_agreement_template_properly_escapes_special_characters_producing_valid_xml(): void
+    {
+        $this->investor->update([
+            'name'      => 'Investor & Partner <VIP>',
+            'pekerjaan' => 'Trader & Business Consultant',
+        ]);
+
+        foreach (['tier_1', 'tier_2', 'tier_3'] as $tier) {
+            $params = [
+                'nomor_akun_trading' => '12345678',
+                'modal_riil'         => '10000',
+                'nama_bank'          => 'BCA & Mandiri',
+                'nomor_rekening'     => '1234567890',
+                'atas_nama_rekening' => 'Investor & Co',
+            ];
+
+            $response = $this->actingAs($this->investor)
+                ->get(route('member.investments.template', ['tier' => $tier]) . '?' . http_build_query($params));
+
+            $response->assertStatus(200);
+
+            $binaryContent = $response->streamedContent();
+            $tempPath = tempnam(sys_get_temp_dir(), 'test_xml_escape_') . '.docx';
+            file_put_contents($tempPath, $binaryContent);
+
+            $zip = new \ZipArchive;
+            $this->assertTrue($zip->open($tempPath));
+
+            $xml = $zip->getFromName('word/document.xml');
+            libxml_use_internal_errors(true);
+            $parsed = simplexml_load_string($xml);
+            $this->assertNotFalse($parsed, "XML in {$tier} template must be valid, but had errors: " . json_encode(libxml_get_errors()));
+
+            $this->assertStringContainsString('Trader &amp; Business Consultant', $xml);
+            $this->assertStringContainsString('Investor &amp; Partner &lt;VIP&gt;', $xml);
+
+            $zip->close();
+            unlink($tempPath);
+        }
+    }
+
+    public function test_investor_can_view_account_performance_history_from_profit_reports(): void
     {
         $akun = AkunCopytrade::create([
             'user_id'            => $this->investor->id,
@@ -545,49 +516,63 @@ class InvestmentPortfolioTest extends TestCase
             'tipe_akun'          => 'cent',
             'nomor_akun_trading' => '11223344',
             'modal_riil'         => 1000,
-            'tanggal_mulai'      => '2026-05-01',
+            'tanggal_mulai'      => '2026-01-01',
             'nama_bank'          => 'BCA',
             'nomor_rekening'     => '1234567890',
             'atas_nama_rekening' => 'Investor Test',
             'status'             => 'active',
+            'myfxbook_url'       => 'https://www.myfxbook.com/members/demo/perf',
         ]);
 
-        RiwayatBalanceCopytrade::create([
-            'akun_copytrade_id'            => $akun->id,
-            'user_id'                      => $this->investor->id,
-            'tanggal_pencatatan'           => '2026-05-01',
-            'balance'                      => 1100,
-            'keuntungan_nominal'           => 100,
-            'keuntungan_persen'            => 10,
-            'keuntungan_kumulatif'         => 100,
-            'pertumbuhan_kumulatif_persen' => 10,
+        LaporanProfitBulanan::create([
+            'nomor'               => 'LPB-2026-003',
+            'akun_copytrade_id'   => $akun->id,
+            'user_id'             => $this->investor->id,
+            'periode_ke'          => 1,
+            'periode_awal'        => '2026-01-01',
+            'periode_akhir'       => '2026-01-31',
+            'jatuh_tempo'         => '2026-02-01',
+            'profit_usd'          => 100,
+            'fee_persen'          => 30,
+            'fee_usd'             => 30,
+            'wd_usd'              => 50,
+            'wd_idr'              => 800000,
+            'kurs_riil'           => 16000,
+            'fee_idr'             => 480000,
+            'bukti_myfxbook_path' => 'myfx.jpg',
+            'bukti_wd_path'       => 'wd.jpg',
+            'status'              => 'lunas',
         ]);
 
-        RiwayatBalanceCopytrade::create([
-            'akun_copytrade_id'            => $akun->id,
-            'user_id'                      => $this->investor->id,
-            'tanggal_pencatatan'           => '2026-06-01',
-            'balance'                      => 1250,
-            'keuntungan_nominal'           => 150,
-            'keuntungan_persen'            => 13.64,
-            'keuntungan_kumulatif'         => 250,
-            'pertumbuhan_kumulatif_persen' => 25,
+        LaporanProfitBulanan::create([
+            'nomor'               => 'LPB-2026-004',
+            'akun_copytrade_id'   => $akun->id,
+            'user_id'             => $this->investor->id,
+            'periode_ke'          => 2,
+            'periode_awal'        => '2026-02-01',
+            'periode_akhir'       => '2026-02-28',
+            'jatuh_tempo'         => '2026-03-01',
+            'profit_usd'          => 150,
+            'fee_persen'          => 30,
+            'fee_usd'             => 45,
+            'wd_usd'              => 60,
+            'wd_idr'              => 960000,
+            'kurs_riil'           => 16000,
+            'fee_idr'             => 720000,
+            'bukti_myfxbook_path' => 'myfx2.jpg',
+            'bukti_wd_path'       => 'wd2.jpg',
+            'status'              => 'lunas',
         ]);
 
         $response = $this->actingAs($this->investor)->get(route('member.investments.index', [
             'account_id' => $akun->id,
-            'period'     => 'custom',
-            'start_date' => '2026-05',
-            'end_date'   => '2026-06',
         ]));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->where('summary.period_label', 'Mei 2026 s/d Juni 2026')
-            ->where('summary.start_date', '2026-05-01')
-            ->where('summary.end_date', '2026-06-30')
             ->has('summary.history', 2)
-            ->where('summary.months_active', fn ($m) => $m >= 1)
+            ->where('summary.all_time_profit_nominal', fn ($v) => (float) $v === 250.0)
+            ->where('summary.current_balance', fn ($v) => (float) $v === 1250.0)
         );
     }
 
@@ -606,6 +591,7 @@ class InvestmentPortfolioTest extends TestCase
             'nomor_rekening'     => '12345',
             'atas_nama_rekening' => 'Investor Test',
             'status'             => 'rejected',
+            'myfxbook_url'       => 'https://www.myfxbook.com/members/demo/rej',
         ]);
 
         // Halaman portofolio: akun ditolak hilang dari list (accounts kosong) & has_existing = false
@@ -625,6 +611,7 @@ class InvestmentPortfolioTest extends TestCase
             'nama_bank'             => 'BCA',
             'nomor_rekening'        => '12345',
             'atas_nama_rekening'    => 'Investor Test',
+            'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/new222',
         ];
 
         $this->actingAs($this->investor)
@@ -660,6 +647,7 @@ class InvestmentPortfolioTest extends TestCase
                 'nomor_rekening'        => '12345',
                 'atas_nama_rekening'    => 'Investor Test',
                 'dokumen_perjanjian'    => $file,
+                'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/pend1',
             ])
             ->assertRedirect(route('member.investments.index'));
 
@@ -681,6 +669,7 @@ class InvestmentPortfolioTest extends TestCase
                 'nama_bank'             => 'BCA',
                 'nomor_rekening'        => '12345',
                 'atas_nama_rekening'    => 'Investor Test',
+                'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/pend2',
             ])
             ->assertRedirect(route('member.investments.index'));
 
@@ -691,143 +680,162 @@ class InvestmentPortfolioTest extends TestCase
         ]);
     }
 
-    public function test_investor_can_update_balance_record_including_changing_date_without_creating_new_row(): void
+    public function test_investor_can_update_myfxbook_url(): void
     {
         $akun = AkunCopytrade::create([
             'user_id'            => $this->investor->id,
             'tier'               => 'tier_1',
             'broker'             => 'HFM',
             'tipe_akun'          => 'cent',
-            'nomor_akun_trading' => 'MT4-UPDATE-1',
+            'nomor_akun_trading' => 'MT4-UPDATE-MFB',
             'modal_riil'         => 100.00,
             'tanggal_mulai'      => '2026-01-01',
             'nama_bank'          => 'BCA',
             'nomor_rekening'     => '12345',
             'atas_nama_rekening' => 'Investor Test',
             'status'             => 'active',
+            'myfxbook_url'       => 'https://www.myfxbook.com/members/old/portfolio/111',
         ]);
 
-        $record = RiwayatBalanceCopytrade::create([
-            'akun_copytrade_id'            => $akun->id,
-            'user_id'                      => $this->investor->id,
-            'tanggal_pencatatan'           => '2026-02-01',
-            'balance'                      => 110.00,
-            'keuntungan_nominal'           => 10.00,
-            'keuntungan_persen'            => 10.00,
-            'keuntungan_kumulatif'         => 10.00,
-            'pertumbuhan_kumulatif_persen' => 10.00,
-            'catatan'                      => 'Catatan lama',
-        ]);
-
-        $this->assertEquals(1, RiwayatBalanceCopytrade::where('akun_copytrade_id', $akun->id)->count());
-
-        // Update tanggal menjadi 2026-02-15 dan saldo 115.00
         $response = $this->actingAs($this->investor)
-            ->put(route('member.investments.balance.update', $record->id), [
-                'akun_copytrade_id'  => $akun->id,
-                'tanggal_pencatatan' => '2026-02-15',
-                'balance'            => 115.00,
-                'catatan'            => 'Catatan diperbarui',
+            ->put(route('member.investments.myfxbook.update', $akun->id), [
+                'myfxbook_url' => 'https://www.myfxbook.com/members/new/portfolio/999',
             ]);
 
-        $response->assertRedirect(route('member.investments.index', ['account_id' => $akun->id]));
+        $response->assertRedirect();
         $response->assertSessionHas('success');
 
-        // Pastikan TIDAK membuat baris baru (tetap tepat 1 record)
-        $this->assertEquals(1, RiwayatBalanceCopytrade::where('akun_copytrade_id', $akun->id)->count());
-
-        $record->refresh();
-        $this->assertEquals('2026-02-15', $record->tanggal_pencatatan->format('Y-m-d'));
-        $this->assertEquals(115.00, (float) $record->balance);
-        $this->assertEquals(15.00, (float) $record->keuntungan_nominal);
-        $this->assertEquals(15.00, (float) $record->keuntungan_persen);
-        $this->assertEquals('Catatan diperbarui', $record->catatan);
+        $this->assertDatabaseHas('akun_copytrade', [
+            'id'           => $akun->id,
+            'myfxbook_url' => 'https://www.myfxbook.com/members/new/portfolio/999',
+        ]);
     }
 
-    public function test_updating_balance_date_to_an_existing_date_fails_validation(): void
+    public function test_investor_cannot_update_myfxbook_url_with_invalid_domain(): void
     {
         $akun = AkunCopytrade::create([
             'user_id'            => $this->investor->id,
             'tier'               => 'tier_1',
             'broker'             => 'HFM',
             'tipe_akun'          => 'cent',
-            'nomor_akun_trading' => 'MT4-COLLISION',
+            'nomor_akun_trading' => 'MT4-UPDATE-MFB2',
             'modal_riil'         => 100.00,
             'tanggal_mulai'      => '2026-01-01',
             'nama_bank'          => 'BCA',
             'nomor_rekening'     => '12345',
             'atas_nama_rekening' => 'Investor Test',
             'status'             => 'active',
+            'myfxbook_url'       => 'https://www.myfxbook.com/members/old/portfolio/111',
         ]);
 
-        $record1 = RiwayatBalanceCopytrade::create([
-            'akun_copytrade_id'            => $akun->id,
-            'user_id'                      => $this->investor->id,
-            'tanggal_pencatatan'           => '2026-02-01',
-            'balance'                      => 110.00,
-            'keuntungan_nominal'           => 10.00,
-            'keuntungan_persen'            => 10.00,
-            'keuntungan_kumulatif'         => 10.00,
-            'pertumbuhan_kumulatif_persen' => 10.00,
-        ]);
-
-        RiwayatBalanceCopytrade::create([
-            'akun_copytrade_id'            => $akun->id,
-            'user_id'                      => $this->investor->id,
-            'tanggal_pencatatan'           => '2026-03-01',
-            'balance'                      => 120.00,
-            'keuntungan_nominal'           => 10.00,
-            'keuntungan_persen'            => 9.09,
-            'keuntungan_kumulatif'         => 20.00,
-            'pertumbuhan_kumulatif_persen' => 20.00,
-        ]);
-
-        // Coba ubah record1 ke tanggal record2 (2026-03-01)
         $response = $this->actingAs($this->investor)
-            ->put(route('member.investments.balance.update', $record1->id), [
-                'akun_copytrade_id'  => $akun->id,
-                'tanggal_pencatatan' => '2026-03-01',
-                'balance'            => 112.00,
+            ->put(route('member.investments.myfxbook.update', $akun->id), [
+                'myfxbook_url' => 'https://google.com/malicious',
             ]);
 
-        $response->assertSessionHasErrors('tanggal_pencatatan');
+        $response->assertSessionHasErrors('myfxbook_url');
     }
 
-    public function test_investor_cannot_update_other_investor_balance_record(): void
+    public function test_investor_can_auto_save_onboarding_step_and_detect_tier(): void
     {
-        $otherUser = \App\Models\User::factory()->create(['role' => 'investor', 'status' => 'active']);
-        $otherAkun = AkunCopytrade::create([
-            'user_id'            => $otherUser->id,
-            'tier'               => 'tier_1',
-            'broker'             => 'HFM',
-            'tipe_akun'          => 'cent',
-            'nomor_akun_trading' => 'MT4-OTHER',
-            'modal_riil'         => 100.00,
-            'tanggal_mulai'      => '2026-01-01',
-            'nama_bank'          => 'BCA',
-            'nomor_rekening'     => '12345',
-            'atas_nama_rekening' => 'Other Investor',
-            'status'             => 'active',
-        ]);
-
-        $otherRecord = RiwayatBalanceCopytrade::create([
-            'akun_copytrade_id'            => $otherAkun->id,
-            'user_id'                      => $otherUser->id,
-            'tanggal_pencatatan'           => '2026-02-01',
-            'balance'                      => 110.00,
-            'keuntungan_nominal'           => 10.00,
-            'keuntungan_persen'            => 10.00,
-            'keuntungan_kumulatif'         => 10.00,
-            'pertumbuhan_kumulatif_persen' => 10.00,
-        ]);
-
         $response = $this->actingAs($this->investor)
-            ->put(route('member.investments.balance.update', $otherRecord->id), [
-                'akun_copytrade_id'  => $otherAkun->id,
-                'tanggal_pencatatan' => '2026-02-15',
-                'balance'            => 115.00,
+            ->post(route('member.investments.onboarding.update'), [
+                'modal_usd'       => 7500.0,
+                'completed_steps' => ['step_1', 'step_2'],
+                'draft_data'      => [
+                    'nomor_akun_trading' => 'HFM-991188',
+                    'server_broker'      => 'HFMarkets-Live Server 2',
+                ],
             ]);
 
-        $response->assertForbidden();
+        $response->assertRedirect();
+
+        $this->assertDatabaseHas('investor_onboarding_steps', [
+            'user_id'   => $this->investor->id,
+            'tier'      => 'tier_2',
+            'modal_usd' => 7500.0,
+            'status'    => 'in_progress',
+        ]);
+    }
+
+    public function test_tier_2_copytrade_registration_uses_hfm_broker(): void
+    {
+        $file = UploadedFile::fake()->create('surat_perjanjian.pdf', 500, 'application/pdf');
+
+        $response = $this->actingAs($this->investor)
+            ->post(route('member.investments.store'), [
+                'tier_investasi'        => 'tier_2',
+                'nomor_akun_trading'    => 'HFM-TIER2-001',
+                'modal_riil'            => 10000.00,
+                'tanggal_mulai_trading' => '2026-03-01',
+                'nama_bank'             => 'BCA',
+                'nomor_rekening'        => '987654321',
+                'atas_nama_rekening'    => 'Investor Tier 2',
+                'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/account/2',
+                'dokumen_perjanjian'    => $file,
+            ]);
+
+        $response->assertRedirect(route('member.investments.index'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('akun_copytrade', [
+            'user_id'            => $this->investor->id,
+            'tier'               => 'tier_2',
+            'broker'             => 'HFM', // Tier 2 kini menggunakan broker HFM
+            'tipe_akun'          => 'standard',
+            'nomor_akun_trading' => 'HFM-TIER2-001',
+        ]);
+    }
+
+    public function test_investor_can_reset_onboarding_step(): void
+    {
+        $this->actingAs($this->investor)
+            ->post(route('member.investments.onboarding.update'), [
+                'modal_usd'       => 2000.0,
+                'completed_steps' => ['step_1'],
+            ]);
+
+        $this->assertDatabaseHas('investor_onboarding_steps', [
+            'user_id' => $this->investor->id,
+        ]);
+
+        $resetResponse = $this->actingAs($this->investor)
+            ->post(route('member.investments.onboarding.reset'));
+
+        $resetResponse->assertRedirect();
+        $resetResponse->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('investor_onboarding_steps', [
+            'user_id' => $this->investor->id,
+        ]);
+    }
+
+    public function test_registering_account_marks_onboarding_step_as_submitted(): void
+    {
+        $this->actingAs($this->investor)
+            ->post(route('member.investments.onboarding.update'), [
+                'modal_usd'       => 3000.0,
+                'completed_steps' => ['step_1', 'step_2', 'step_3', 'step_4', 'step_5', 'step_6'],
+            ]);
+
+        $file = UploadedFile::fake()->create('surat_perjanjian.pdf', 500, 'application/pdf');
+
+        $this->actingAs($this->investor)
+            ->post(route('member.investments.store'), [
+                'tier_investasi'        => 'tier_1',
+                'nomor_akun_trading'    => 'HFM-COMPLETE-01',
+                'modal_riil'            => 3000.00,
+                'tanggal_mulai_trading' => '2026-03-01',
+                'nama_bank'             => 'BCA',
+                'nomor_rekening'        => '987654321',
+                'atas_nama_rekening'    => 'Investor Flow Test',
+                'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/account/3',
+                'dokumen_perjanjian'    => $file,
+            ]);
+
+        $this->assertDatabaseHas('investor_onboarding_steps', [
+            'user_id' => $this->investor->id,
+            'status'  => 'submitted',
+        ]);
     }
 }

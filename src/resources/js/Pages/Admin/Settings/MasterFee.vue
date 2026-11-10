@@ -16,6 +16,7 @@ const props = defineProps({
 
 const form = useForm({
     fee_persen: props.settings?.fee_persen ? parseInt(props.settings.fee_persen, 10) : 30,
+    wd_maks_persen: props.settings?.wd_maks_persen ? parseInt(props.settings.wd_maks_persen, 10) : 60,
     nama_bank: props.settings?.nama_bank || '',
     nomor_rekening: props.settings?.nomor_rekening || '',
     atas_nama: props.settings?.atas_nama || '',
@@ -58,30 +59,57 @@ const submit = () => {
 
             <!-- Formulir Pengaturan -->
             <form @submit.prevent="submit" class="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs space-y-6">
-                <!-- 1. Persentase Bagi Hasil -->
-                <div class="space-y-2">
-                    <label class="text-xs font-bold text-foreground flex items-center gap-1.5">
-                        <Percent class="h-3.5 w-3.5 text-primary" />
-                        <span>Persentase Master Fee (%) <span class="text-destructive">*</span></span>
-                    </label>
-                    <div class="relative max-w-xs">
-                        <input
-                            v-model.number="form.fee_persen"
-                            type="number"
-                            step="1"
-                            min="1"
-                            max="100"
-                            placeholder="30"
-                            class="w-full rounded-lg border border-input bg-background py-2 pr-8 pl-3 font-mono text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                        />
-                        <span class="absolute inset-y-0 right-0 flex items-center pr-3 font-bold text-xs text-muted-foreground">%</span>
+                <!-- 1. Persentase Bagi Hasil & Maksimal WD -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-foreground flex items-center gap-1.5">
+                            <Percent class="h-3.5 w-3.5 text-primary" />
+                            <span>Persentase Master Fee (%) <span class="text-destructive">*</span></span>
+                        </label>
+                        <div class="relative max-w-xs">
+                            <input
+                                v-model.number="form.fee_persen"
+                                type="number"
+                                step="1"
+                                min="1"
+                                max="100"
+                                placeholder="30"
+                                class="w-full rounded-lg border border-input bg-background py-2 pr-8 pl-3 font-mono text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                            />
+                            <span class="absolute inset-y-0 right-0 flex items-center pr-3 font-bold text-xs text-muted-foreground">%</span>
+                        </div>
+                        <p class="text-[11px] text-muted-foreground">
+                            Default: 30%. Nilai persentase yang dikenakan dari profit bulanan member.
+                        </p>
+                        <p v-if="form.errors.fee_persen" class="text-xs text-destructive">
+                            {{ form.errors.fee_persen }}
+                        </p>
                     </div>
-                    <p class="text-[11px] text-muted-foreground">
-                        Default: 30%. Nilai persentase yang dikenakan dari profit bersih bulanan investor copytrade.
-                    </p>
-                    <p v-if="form.errors.fee_persen" class="text-xs text-destructive">
-                        {{ form.errors.fee_persen }}
-                    </p>
+
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-foreground flex items-center gap-1.5">
+                            <Percent class="h-3.5 w-3.5 text-primary" />
+                            <span>Maksimal Penarikan Broker (WD %) <span class="text-destructive">*</span></span>
+                        </label>
+                        <div class="relative max-w-xs">
+                            <input
+                                v-model.number="form.wd_maks_persen"
+                                type="number"
+                                step="1"
+                                :min="form.fee_persen || 1"
+                                max="100"
+                                placeholder="60"
+                                class="w-full rounded-lg border border-input bg-background py-2 pr-8 pl-3 font-mono text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                            />
+                            <span class="absolute inset-y-0 right-0 flex items-center pr-3 font-bold text-xs text-muted-foreground">%</span>
+                        </div>
+                        <p class="text-[11px] text-muted-foreground">
+                            Default: 60%. Batas maksimal penarikan broker dari profit yang dilaporkan.
+                        </p>
+                        <p v-if="form.errors.wd_maks_persen" class="text-xs text-destructive">
+                            {{ form.errors.wd_maks_persen }}
+                        </p>
+                    </div>
                 </div>
 
                 <div class="border-t border-border pt-4 space-y-4">

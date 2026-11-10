@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Member;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Member\RiwayatBalanceRequest;
 use App\Http\Requests\Member\StoreCopytradeRequest;
 use App\Models\AkunCopytrade;
-use App\Models\RiwayatBalanceCopytrade;
-use App\Services\BalanceService;
+use App\Models\InvestorOnboardingStep;
+use App\Models\PengaturanMaster;
 use App\Services\CopytradeService;
 use App\Services\ExchangeRateService;
+use App\Services\ProfitSummaryService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,7 +20,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 class InvestmentPortfolioController extends Controller
 {
     public function __construct(
-        protected BalanceService $balanceService,
+        protected ProfitSummaryService $profitSummaryService,
         protected CopytradeService $copytradeService,
         protected ExchangeRateService $exchangeRateService
     ) {}
@@ -33,16 +33,13 @@ class InvestmentPortfolioController extends Controller
         $user = $request->user();
 
         // 1. Ambil Ringkasan Konsolidasi Seluruh Portofolio
-        $consolidated = $this->balanceService->getPortfolioConsolidatedSummary($user);
+        $consolidated = $this->profitSummaryService->getPortfolioConsolidatedSummary($user);
 
-        // Pengingat In-App Rekapitulasi Saldo Tanggal 1 (jika periode hari ke-1 s/d 5)
-        $this->balanceService->sendMonthlyBalanceReminderIfNeeded($user);
-
-        // 2. Ambil Daftar Seluruh Akun Investasi Milik User Beserta Saldo Terkini (Kecuali yang ditolak)
+        // 2. Ambil Daftar Seluruh Akun Investasi Milik User Beserta Laporan Profit Terkini
         $accounts = AkunCopytrade::query()
             ->where('user_id', $user->id)
             ->whereIn('status', ['pending', 'active'])
-            ->with(['riwayatBalance' => fn ($q) => $q->orderBy('tanggal_pencatatan', 'desc')->orderBy('id', 'desc')])
+            ->with(['laporanProfit' => fn ($q) => $q->orderBy('periode_ke', 'desc')])
             ->orderBy('id', 'asc')
             ->get();
 
@@ -52,15 +49,16 @@ class InvestmentPortfolioController extends Controller
         $accountsFormatted = $accounts->map(function (AkunCopytrade $akun) use ($kurs) {
             $modalAwal = (float) $akun->modal_riil;
             $isActive = $akun->status === 'active';
-            $latestRecord = $isActive ? $akun->riwayatBalance->sortByDesc('id')->sortByDesc('tanggal_pencatatan')->first() : null;
-            $currentBalance = $latestRecord ? (float) $latestRecord->balance : $modalAwal;
-            $profitNominal = $isActive ? ($currentBalance - $modalAwal) : 0.0;
-            $growthPct = ($isActive && $modalAwal > 0) ? round(($profitNominal / $modalAwal) * 100.0, 2) : 0.0;
+            $reports = $akun->laporanProfit;
+            $totalProfit = $isActive ? (float) $reports->sum('profit_usd') : 0.0;
+            $currentBalance = $modalAwal + $totalProfit;
+            $growthPct = ($isActive && $modalAwal > 0) ? round(($totalProfit / $modalAwal) * 100.0, 2) : 0.0;
 
             $startDateCarbon = $akun->tanggal_mulai ?? $akun->created_at;
             $diffMonths = $startDateCarbon ? max(0, (int) Carbon::parse($startDateCarbon)->diffInMonths(now())) : 0;
-            $recordsCount = $isActive ? $akun->riwayatBalance->count() : 0;
-            $monthsActive = max($diffMonths, $recordsCount > 1 ? $recordsCount - 1 : 0);
+            $reportsCount = $reports->count();
+            $monthsActive = max($diffMonths, $reportsCount > 1 ? $reportsCount - 1 : 0);
+            $latestReport = $reports->first();
 
             return [
                 'id'             => $akun->id,
@@ -80,8 +78,8 @@ class InvestmentPortfolioController extends Controller
                 'modal_riil_formatted' => '$' . number_format($modalAwal, 2, '.', ','),
                 'current_balance'      => round($currentBalance, 2),
                 'current_balance_idr'  => round($currentBalance * $kurs, 0),
-                'profit_nominal'       => round($profitNominal, 2),
-                'profit_nominal_idr'   => round($profitNominal * $kurs, 0),
+                'profit_nominal'       => round($totalProfit, 2),
+                'profit_nominal_idr'   => round($totalProfit * $kurs, 0),
                 'growth_pct'           => $growthPct,
                 'status'               => $akun->status,
                 'tanggal_mulai'        => $akun->tanggal_mulai ? (function_exists('tanggal_indo') ? tanggal_indo($akun->tanggal_mulai) : $akun->tanggal_mulai->format('d M Y')) : '-',
@@ -91,18 +89,19 @@ class InvestmentPortfolioController extends Controller
                 'atas_nama_rekening'   => $akun->atas_nama_rekening,
                 'server_broker'        => $akun->server_broker,
                 'catatan_admin'        => $akun->catatan_admin,
+                'myfxbook_url'         => $akun->myfxbook_url,
+                'has_myfxbook'         => !empty($akun->myfxbook_url),
                 'has_surat_perjanjian' => !empty($akun->surat_perjanjian_path),
-                'latest_record_date'   => $latestRecord?->tanggal_pencatatan?->format('Y-m-d'),
-                'records_count'        => $recordsCount,
+                'latest_record_date'   => $latestReport?->periode_akhir?->format('Y-m-d'),
+                'records_count'        => $reportsCount,
             ];
         });
 
-        // 3. Tentukan Akun yang Dipilih untuk Detail Kinerja & Riwayat Saldo
+        // 3. Tentukan Akun yang Dipilih untuk Detail Kinerja
         $selectedAccountId = $request->integer('account_id');
         $selectedAccount = $accounts->firstWhere('id', $selectedAccountId);
 
         if (!$selectedAccount) {
-            // Utamakan akun aktif pertama, jika tidak ada baru akun pending pertama
             $selectedAccount = $accounts->firstWhere('status', 'active') ?: $accounts->first();
             $selectedAccountId = $selectedAccount?->id;
         }
@@ -114,7 +113,7 @@ class InvestmentPortfolioController extends Controller
 
         $summary = null;
         if ($selectedAccount && $selectedAccount->status === 'active') {
-            $summary = $this->balanceService->getPerformanceSummary(
+            $summary = $this->profitSummaryService->getPerformanceSummary(
                 $selectedAccount,
                 $period,
                 $startDate,
@@ -122,20 +121,37 @@ class InvestmentPortfolioController extends Controller
             );
         }
 
+        $onboardingStep = InvestorOnboardingStep::firstOrCreate(
+            ['user_id' => $user->id, 'status' => 'in_progress'],
+            [
+                'modal_usd'       => null,
+                'tier'            => null,
+                'completed_steps' => [],
+                'draft_data'      => [],
+            ]
+        );
+
         return Inertia::render('Member/Investments/Index', [
             'consolidated'        => $consolidated,
             'accounts'            => $accountsFormatted,
             'selected_account_id' => $selectedAccountId,
             'summary'             => $summary,
             'has_existing'        => AkunCopytrade::where('user_id', $user->id)->whereIn('status', ['pending', 'active'])->exists(),
-            'filters'             => [
+            'onboarding'          => [
+                'id'              => $onboardingStep->id,
+                'modal_usd'       => $onboardingStep->modal_usd !== null ? (float) $onboardingStep->modal_usd : null,
+                'tier'            => $onboardingStep->tier,
+                'completed_steps' => $onboardingStep->completed_steps ?? [],
+                'draft_data'      => $onboardingStep->draft_data ?? [],
+                'status'          => $onboardingStep->status,
+            ],
+            'filters' => [
                 'period'     => $period,
                 'start_date' => $startDate,
                 'end_date'   => $endDate,
             ],
-            'exchange_rate_meta'    => $kursData,
-            'today_date'            => now()->toDateString(),
-            'is_first_day_of_month' => now()->day === 1,
+            'exchange_rate_meta' => $kursData,
+            'today_date'         => now()->toDateString(),
         ]);
     }
 
@@ -150,86 +166,90 @@ class InvestmentPortfolioController extends Controller
 
         $akun = $this->copytradeService->storeCopytrade($user, $validated, $suratPerjanjian);
 
+        // Tandai progres onboarding aktif sebagai submitted
+        InvestorOnboardingStep::where('user_id', $user->id)
+            ->where('status', 'in_progress')
+            ->update(['status' => 'submitted']);
+
         return redirect()->route('member.investments.index')
             ->with('success', "Pendaftaran akun trading {$akun->nomor_akun_trading} ({$akun->tier_investasi}) berhasil diajukan dan sedang menunggu verifikasi Administrator.");
     }
 
     /**
-     * Menyimpan pencatatan saldo tanggal 1 (atau tanggal tertentu) dan menghitung keuntungan otomatis.
+     * Simpan pembaruan progres onboarding / checklist langkah investasi investor.
      */
-    public function storeBalance(RiwayatBalanceRequest $request): RedirectResponse
+    public function updateOnboarding(Request $request): RedirectResponse
     {
         $user = $request->user();
-        $validated = $request->validated();
+        $step = InvestorOnboardingStep::firstOrCreate(
+            ['user_id' => $user->id, 'status' => 'in_progress']
+        );
 
-        $akun = AkunCopytrade::query()
-            ->where('id', $validated['akun_copytrade_id'])
-            ->where('user_id', $user->id)
-            ->firstOrFail();
+        $modalUsd = $request->has('modal_usd') && filled($request->input('modal_usd'))
+            ? (float) $request->input('modal_usd')
+            : null;
 
-        if ($akun->status !== 'active') {
-            return redirect()->back()->with('error', 'Catatan saldo hanya dapat diinput untuk akun trading yang telah diverifikasi dan aktif.');
+        $tier = $request->input('tier');
+        if (!$tier && $modalUsd !== null && $modalUsd > 0) {
+            $tier = match (true) {
+                $modalUsd < PengaturanMaster::TIER_2_MIN_USD => 'tier_1',
+                $modalUsd < PengaturanMaster::TIER_3_MIN_USD => 'tier_2',
+                default                                      => 'tier_3',
+            };
         }
 
-        $record = $this->balanceService->recordBalance($akun, $validated, $user);
+        $step->update([
+            'modal_usd'       => $modalUsd,
+            'tier'            => $tier,
+            'completed_steps' => $request->input('completed_steps', $step->completed_steps ?? []),
+            'draft_data'      => $request->input('draft_data', $step->draft_data ?? []),
+        ]);
 
-        $tglIndo = function_exists('tanggal_indo')
-            ? tanggal_indo($record->tanggal_pencatatan)
-            : $record->tanggal_pencatatan->format('d/m/Y');
-
-        return redirect()->route('member.investments.index', [
-            'account_id' => $akun->id,
-        ])->with('success', "Saldo per {$tglIndo} pada akun {$akun->nomor_akun_trading} berhasil dicatat.");
+        return redirect()->back();
     }
 
     /**
-     * Memperbarui catatan saldo tertentu dan merekalibrasi seluruh riwayat.
+     * Reset progres flow investor untuk memulai dari awal.
      */
-    public function updateBalance(RiwayatBalanceRequest $request, int $id): RedirectResponse
+    public function resetOnboarding(Request $request): RedirectResponse
     {
         $user = $request->user();
-        $validated = $request->validated();
+        InvestorOnboardingStep::where('user_id', $user->id)->delete();
 
-        $record = RiwayatBalanceCopytrade::query()
-            ->where('id', $id)
-            ->where('user_id', $user->id)
-            ->firstOrFail();
-
-        $akun = $record->akunCopytrade;
-
-        if ($akun->status !== 'active') {
-            return redirect()->back()->with('error', 'Catatan saldo hanya dapat diperbarui untuk akun trading yang aktif.');
-        }
-
-        $record = $this->balanceService->updateBalance($record, $validated);
-
-        $tglIndo = function_exists('tanggal_indo')
-            ? tanggal_indo($record->tanggal_pencatatan)
-            : $record->tanggal_pencatatan->format('d/m/Y');
-
-        return redirect()->route('member.investments.index', [
-            'account_id' => $akun->id,
-        ])->with('success', "Catatan saldo per {$tglIndo} pada akun {$akun->nomor_akun_trading} berhasil diperbarui.");
+        return redirect()->back()->with('success', 'Alur panduan investasi berhasil di-reset.');
     }
 
     /**
-     * Menghapus catatan saldo tertentu.
+     * Memperbarui tautan Myfxbook akun copytrade oleh investor pemilik akun.
      */
-    public function destroyBalance(int $id, Request $request): RedirectResponse
+    public function updateMyfxbook(Request $request, int $id): RedirectResponse
     {
-        $user = $request->user();
+        $validated = $request->validate([
+            'myfxbook_url' => [
+                'required',
+                'url',
+                'max:255',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $host = parse_url((string) $value, PHP_URL_HOST);
+                    if (!$host || !str_contains(strtolower($host), 'myfxbook.com')) {
+                        $fail('Tautan Myfxbook harus berasal dari domain myfxbook.com.');
+                    }
+                },
+            ],
+        ], [
+            'myfxbook_url.required' => 'Tautan Myfxbook wajib diisi.',
+            'myfxbook_url.url'      => 'Format tautan Myfxbook tidak valid.',
+            'myfxbook_url.max'      => 'Tautan Myfxbook maksimal 255 karakter.',
+        ]);
 
-        $record = RiwayatBalanceCopytrade::query()
-            ->where('id', $id)
-            ->where('user_id', $user->id)
-            ->firstOrFail();
+        $akun = AkunCopytrade::findOrFail($id);
+        if ($akun->user_id !== $request->user()->id) {
+            abort(403, 'Anda tidak memiliki akses ke akun ini.');
+        }
 
-        $accountId = $record->akun_copytrade_id;
-        $this->balanceService->deleteBalance($record);
+        $this->copytradeService->updateMyfxbookUrl($akun, $validated['myfxbook_url'], $request->user());
 
-        return redirect()->route('member.investments.index', [
-            'account_id' => $accountId,
-        ])->with('success', 'Catatan saldo berhasil dihapus.');
+        return redirect()->back()->with('success', 'Tautan Myfxbook akun copytrade berhasil diperbarui.');
     }
 
     /**

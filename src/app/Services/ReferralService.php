@@ -493,7 +493,7 @@ class ReferralService
     public function getPaginatedDownlines(User $affiliator, array $filters): LengthAwarePaginator
     {
         $query = RelasiReferral::query()
-            ->with(['downline.akunCopytrades'])
+            ->with(['downline.akunCopytrades.laporanProfit' => fn ($q) => $q->orderByDesc('periode_ke')])
             ->where('affiliator_id', $affiliator->id);
 
         if (!empty($filters['search'])) {
@@ -532,6 +532,21 @@ class ReferralService
                 $activeCount = $accounts->where('status', 'active')->count();
                 $pendingCount = $accounts->where('status', 'pending')->count();
 
+                $downlineAccounts = $accounts->where('status', 'active')->map(function ($acc) {
+                    return [
+                        'id'                 => $acc->id,
+                        'nomor_akun_trading' => $acc->nomor_akun_trading,
+                        'broker'             => $acc->broker,
+                        'myfxbook_url'       => $acc->myfxbook_url,
+                        'laporan'            => $acc->laporanProfit->map(fn ($l) => [
+                            'periode_ke'    => $l->periode_ke,
+                            'periode_label' => \Carbon\Carbon::parse($l->periode_awal)->translatedFormat('d M') . ' - ' . \Carbon\Carbon::parse($l->periode_akhir)->translatedFormat('d M Y'),
+                            'profit_usd'    => (float) $l->profit_usd,
+                            'status_tampil' => $l->status_tampil,
+                        ])->all(),
+                    ];
+                })->values()->all();
+
                 return [
                     'id'                     => $rel->id,
                     'name'                   => $downline?->name ?? '-',
@@ -540,6 +555,7 @@ class ReferralService
                     'phone'                  => $downline?->phone ?? '-',
                     'active_accounts_count'  => $activeCount,
                     'pending_accounts_count' => $pendingCount,
+                    'accounts'               => $downlineAccounts,
                     'sumber'                 => $rel->sumber,
                     'sumber_label'           => $rel->sumber === 'link_otomatis' ? 'Kode Registrasi' : 'Klaim Susulan',
                     'joined_at'              => $rel->joined_at ? $rel->joined_at->toIso8601String() : null,

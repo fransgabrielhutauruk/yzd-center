@@ -91,19 +91,19 @@ const nextStep = computed(() => {
         return {
             icon: CalendarCheck,
             tone: 'primary',
-            title: 'Catat saldo akun bulan ini',
-            desc: `${d.unrecorded_accounts_count} dari ${d.portfolio.active_accounts_count} akun aktif belum dicatat bulan ini. Pencatatan rutin membuat evaluasi profit dan progres BEP akurat.`,
-            cta: 'Catat Saldo',
-            href: RECORD_URL,
+            title: 'Input laporan profit periode terbuka',
+            desc: `${d.unrecorded_accounts_count} akun trading Anda memiliki periode profit yang telah selesai dan siap dilaporkan.`,
+            cta: 'Input Laporan Profit',
+            href: '/member/master-fee',
         };
     }
     return {
         icon: CheckCircle2,
         tone: 'emerald',
-        title: 'Saldo bulan ini sudah tercatat lengkap',
+        title: 'Laporan profit periode selesai sudah lengkap',
         desc: 'Portofolio investasi Anda telah terbarui. Anda juga dapat terus memantau dan memperluas jaringan kemitraan.',
-        cta: 'Lihat Kinerja',
-        href: RECORD_URL,
+        cta: 'Lihat Master Fee',
+        href: '/member/master-fee',
     };
 });
 
@@ -348,7 +348,7 @@ const shortcuts = [
                             {{ formatUSD(p.total_current_balance) }}
                         </div>
                         <div class="text-muted-foreground mt-1 text-[11px]">
-                            {{ recorded ? 'Tercatat bulan ini' : 'Belum update bulan ini' }}
+                            {{ recorded ? 'Laporan periode lengkap' : 'Menunggu input laporan' }}
                         </div>
                     </div>
 

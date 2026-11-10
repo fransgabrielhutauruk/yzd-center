@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Models\KlaimKomisi;
 use App\Models\KlaimKomisiItem;
+use App\Models\LaporanProfitBulanan;
 use App\Models\RelasiReferral;
-use App\Models\TagihanMasterFee;
 use App\Models\User;
 use App\Notifications\CommissionClaimProcessedNotification;
 use App\Notifications\CommissionClaimSubmittedNotification;
@@ -244,61 +244,37 @@ class CommissionClaimService
             $downlineGrossProfit = 0.0;
 
             if ($accountCount > 0) {
-                $firstStartedAt = $activeAccounts->min('tanggal_mulai');
-                if ($firstStartedAt) {
-                    $periodStartDate = Carbon::parse($firstStartedAt)->startOfDay();
-                    $periodEndDate = $periodStartDate->copy()->addMonthsNoOverflow(3)->startOfDay();
-                    $targetDays = (int) $periodStartDate->diffInDays($periodEndDate);
-                    $activeDays = (int) $periodStartDate->diffInDays(now()->startOfDay());
-                }
-
                 foreach ($activeAccounts as $index => $acc) {
-                    $accStart = Carbon::parse($acc->tanggal_mulai)->startOfDay();
-                    $selisihHari = $periodStartDate ? (int) $periodStartDate->diffInDays($accStart) : 0;
-                    // Hari yang kehitung di dalam periode 3 bulan pertama
-                    $hariKehitung = $periodEndDate ? max(0, (int) $accStart->diffInDays($periodEndDate, false)) : 0;
-
-                    // Hanya akun yang masuk sebelum periode 3 bulan berakhir yang ikut dihitung
-                    if ($hariKehitung <= 0) {
-                        continue;
-                    }
-
                     $isFirst = ($index === 0);
                     $modalUsd = (float) $acc->modal_riil;
                     $modalIdr = round($modalUsd * $kursUsdIdr, 2);
-                    // Penentuan Tier dihitung per akun masing-masing (tidak digabungkan antar akun)
                     $accTierInfo = KlaimKomisiItem::determineTier($modalIdr);
 
-                    // Periksa apakah ada tagihan Master Fee yang belum lunas dalam jendela waktu akun ini
-                    $accHasUnsettled = TagihanMasterFee::query()
+                    // Ambil 3 laporan profit bulanan pertama akun copytrade ini
+                    $reports = LaporanProfitBulanan::query()
                         ->where('akun_copytrade_id', $acc->id)
-                        ->whereIn('status', [
-                            TagihanMasterFee::STATUS_BELUM_DIBAYAR,
-                            TagihanMasterFee::STATUS_MENUNGGU_VERIFIKASI,
-                            TagihanMasterFee::STATUS_DITOLAK,
-                        ])
-                        ->whereHas('riwayatBalance', function ($q) use ($accStart, $periodEndDate) {
-                            $q->where('tanggal_pencatatan', '>', $accStart->toDateString())
-                                ->where('tanggal_pencatatan', '<=', $periodEndDate->toDateString());
-                        })
-                        ->exists();
+                        ->whereIn('periode_ke', [1, 2, 3])
+                        ->orderBy('periode_ke', 'asc')
+                        ->get();
+
+                    $reportsCount = $reports->count();
+
+                    // Periksa apakah ada laporan pada 3 periode pertama yang belum lunas
+                    $accHasUnsettled = $reports->contains(fn ($r) => in_array($r->status, [
+                        LaporanProfitBulanan::STATUS_BELUM_DIBAYAR,
+                        LaporanProfitBulanan::STATUS_MENUNGGU_VERIFIKASI,
+                        LaporanProfitBulanan::STATUS_DITOLAK,
+                    ], true));
 
                     if ($accHasUnsettled) {
                         $downlineHasUnsettled = true;
                     }
 
-                    // Ambil tagihan Master Fee yang sudah lunas dalam jendela waktu akun ini
-                    $paidInvoices = TagihanMasterFee::query()
-                        ->where('akun_copytrade_id', $acc->id)
-                        ->where('status', TagihanMasterFee::STATUS_LUNAS)
-                        ->whereHas('riwayatBalance', function ($q) use ($accStart, $periodEndDate) {
-                            $q->where('tanggal_pencatatan', '>', $accStart->toDateString())
-                                ->where('tanggal_pencatatan', '<=', $periodEndDate->toDateString());
-                        })
-                        ->get();
+                    $accMasterGrossShare = (float) $reports->sum('fee_usd');
+                    $accGrossProfit = (float) $reports->sum('profit_usd');
+                    $accMasterGrossShareIdr = (int) $reports->sum('fee_idr');
+                    $accAffiliateCommissionIdr = (int) round($accMasterGrossShareIdr * ((float) $accTierInfo['persentase_tier'] / 100));
 
-                    $accMasterGrossShare = (float) $paidInvoices->sum('nominal_fee');
-                    $accGrossProfit = (float) $paidInvoices->sum('profit_bersih');
                     $accCalc = KlaimKomisiItem::calculateCommissionFromPaidFee(
                         $accMasterGrossShare,
                         $accGrossProfit,
@@ -310,30 +286,38 @@ class CommissionClaimService
                     $downlineAffiliateCommission += $accCalc['affiliate_commission'];
                     $downlineGrossProfit += $accCalc['gross_profit'];
 
+                    $accStart = $reports->first()?->periode_awal ? Carbon::parse($reports->first()->periode_awal)->startOfDay() : ($acc->tanggal_mulai ? Carbon::parse($acc->tanggal_mulai)->startOfDay() : null);
+                    $accEnd = $reports->count() >= 3 ? Carbon::parse($reports->get(2)->periode_akhir)->startOfDay() : ($reports->last()?->periode_akhir ? Carbon::parse($reports->last()->periode_akhir)->startOfDay() : null);
+                    $hariKehitung = ($accStart && $accEnd) ? (int) $accStart->diffInDays($accEnd) : 90;
+
                     $accountsDetail[] = [
-                        'id'                   => $acc->id,
-                        'broker'               => $acc->broker,
-                        'nomor_akun'           => $acc->nomor_akun_trading,
-                        'tipe_akun'            => $acc->tipe_akun,
-                        'tier'                 => $acc->tier,
-                        'modal_riil'           => $modalUsd,
-                        'modal_idr'            => $modalIdr,
-                        'tier_level'           => $accTierInfo['tier_level'],
-                        'persentase_tier'      => $accTierInfo['persentase_tier'],
-                        'tier_info'            => $accTierInfo,
-                        'is_first'             => $isFirst,
-                        'tanggal_mulai'        => tanggal_indo($accStart),
-                        'tanggal_selesai'      => tanggal_indo($periodEndDate),
-                        'tanggal_mulai_raw'    => $accStart->toDateString(),
-                        'tanggal_selesai_raw'  => $periodEndDate->toDateString(),
-                        'selisih_hari'         => $selisihHari,
-                        'hari_kehitung'        => $hariKehitung,
-                        'master_gross_share'   => $accCalc['master_gross_share'],
-                        'affiliate_commission' => $accCalc['affiliate_commission'],
-                        'gross_profit'         => $accCalc['gross_profit'],
-                        'roi_percentage'       => $accCalc['roi_percentage'],
-                        'is_drawdown'          => $accCalc['is_drawdown'],
-                        'has_unsettled_fee'    => $accHasUnsettled,
+                        'id'                       => $acc->id,
+                        'broker'                   => $acc->broker,
+                        'nomor_akun'               => $acc->nomor_akun_trading,
+                        'tipe_akun'                => $acc->tipe_akun,
+                        'tier'                     => $acc->tier,
+                        'modal_riil'               => $modalUsd,
+                        'modal_idr'                => $modalIdr,
+                        'tier_level'               => $accTierInfo['tier_level'],
+                        'persentase_tier'          => $accTierInfo['persentase_tier'],
+                        'tier_info'                => $accTierInfo,
+                        'is_first'                 => $isFirst,
+                        'tanggal_mulai'            => $accStart ? (function_exists('tanggal_indo') ? tanggal_indo($accStart) : $accStart->format('d M Y')) : null,
+                        'tanggal_selesai'          => $accEnd ? (function_exists('tanggal_indo') ? tanggal_indo($accEnd) : $accEnd->format('d M Y')) : null,
+                        'tanggal_mulai_raw'        => $accStart?->toDateString(),
+                        'tanggal_selesai_raw'      => $accEnd?->toDateString(),
+                        'selisih_hari'             => 0,
+                        'hari_kehitung'            => $hariKehitung,
+                        'reports_count'            => $reportsCount,
+                        'reports_list'             => $reports,
+                        'master_gross_share'       => $accCalc['master_gross_share'],
+                        'master_gross_share_idr'   => $accMasterGrossShareIdr,
+                        'affiliate_commission'     => $accCalc['affiliate_commission'],
+                        'affiliate_commission_idr' => $accAffiliateCommissionIdr,
+                        'gross_profit'             => $accCalc['gross_profit'],
+                        'roi_percentage'           => $accCalc['roi_percentage'],
+                        'is_drawdown'              => $accCalc['is_drawdown'],
+                        'has_unsettled_fee'        => $accHasUnsettled,
                     ];
                 }
 
@@ -344,9 +328,80 @@ class CommissionClaimService
                 $tierInfo = !empty($accountsDetail)
                     ? $accountsDetail[0]['tier_info']
                     : ['tier_level' => 4, 'persentase_tier' => 20, 'label' => 'Tier 4 (< Rp 100 Juta) - Komisi 20%'];
+
+                if (!empty($accountsDetail)) {
+                    $firstStartedAt = $accountsDetail[0]['tanggal_mulai_raw'];
+                    $periodStartDate = $accountsDetail[0]['tanggal_mulai_raw'] ? Carbon::parse($accountsDetail[0]['tanggal_mulai_raw']) : null;
+                    $periodEndDate = $accountsDetail[0]['tanggal_selesai_raw'] ? Carbon::parse($accountsDetail[0]['tanggal_selesai_raw']) : null;
+                    $activeDays = $accountsDetail[0]['hari_kehitung'];
+                    $targetDays = $accountsDetail[0]['hari_kehitung'];
+                }
             }
 
-            // Penentuan kelayakan: wajib aktif minimal 3 bulan penuh ($targetDays hari), bebas tagihan pending/belum bayar, dan belum pernah diklaim
+            // Hitung status stepper 3 periode untuk downline
+            $periodsProgress = [];
+            for ($p = 1; $p <= 3; $p++) {
+                if ($accountCount === 0) {
+                    $periodsProgress[] = [
+                        'periode_ke'    => $p,
+                        'label'         => "P{$p}",
+                        'state'         => 'waiting_report',
+                        'status_tampil' => 'Belum Lapor',
+                        'periode_label' => null,
+                    ];
+                    continue;
+                }
+
+                $reportsForP = collect();
+                foreach ($accountsDetail as $ad) {
+                    $r = $ad['reports_list']->firstWhere('periode_ke', $p);
+                    if ($r) {
+                        $reportsForP->push($r);
+                    }
+                }
+
+                if ($reportsForP->count() < $accountCount) {
+                    $firstRep = $reportsForP->first();
+                    $dateRange = $firstRep ? Carbon::parse($firstRep->periode_awal)->translatedFormat('d M') . ' – ' . Carbon::parse($firstRep->periode_akhir)->translatedFormat('d M Y') : null;
+                    $periodsProgress[] = [
+                        'periode_ke'    => $p,
+                        'label'         => "P{$p}",
+                        'state'         => 'waiting_report',
+                        'status_tampil' => 'Belum Lapor',
+                        'periode_label' => $dateRange,
+                    ];
+                } else {
+                    $allSettled = $reportsForP->every(fn ($r) => in_array($r->status, [
+                        LaporanProfitBulanan::STATUS_LUNAS,
+                        LaporanProfitBulanan::STATUS_TANPA_FEE,
+                    ], true));
+
+                    $firstRep = $reportsForP->first();
+                    $dateRange = $firstRep ? Carbon::parse($firstRep->periode_awal)->translatedFormat('d M') . ' – ' . Carbon::parse($firstRep->periode_akhir)->translatedFormat('d M Y') : null;
+
+                    if ($allSettled) {
+                        $periodsProgress[] = [
+                            'periode_ke'    => $p,
+                            'label'         => "P{$p}",
+                            'state'         => 'settled',
+                            'status_tampil' => $firstRep?->status === LaporanProfitBulanan::STATUS_TANPA_FEE ? 'Tanpa Fee' : 'Lunas',
+                            'periode_label' => $dateRange,
+                        ];
+                    } else {
+                        $periodsProgress[] = [
+                            'periode_ke'    => $p,
+                            'label'         => "P{$p}",
+                            'state'         => 'unsettled',
+                            'status_tampil' => $firstRep?->status_tampil ?? 'Menunggu',
+                            'periode_label' => $dateRange,
+                        ];
+                    }
+                }
+            }
+
+            $completedPeriodsCount = collect($periodsProgress)->where('state', 'settled')->count();
+
+            // Penentuan kelayakan: wajib memiliki 3 laporan bulanan pertama, bebas tagihan belum bayar/ditolak/menunggu verifikasi, dan belum pernah diklaim
             $isEligible = false;
             $statusLabel = 'Belum Copytrade';
             $reason = 'Belum memiliki akun copytrade aktif.';
@@ -354,55 +409,68 @@ class CommissionClaimService
             if ($isClaimed) {
                 $isEligible = false;
                 $statusLabel = 'Sudah Dicairkan';
-                $reason = 'Hak komisi periode 3 bulan untuk investor ini telah dicairkan.';
+                $reason = 'Hak komisi 3 periode laporan untuk investor ini telah dicairkan.';
             } elseif ($isPending) {
                 $isEligible = false;
                 $statusLabel = 'Menunggu Verifikasi';
                 $reason = 'Permohonan klaim untuk investor ini sedang ditinjau Administrator.';
             } elseif ($accountCount > 0) {
-                if ($activeDays < $targetDays) {
+                $allAccountsHave3Reports = collect($accountsDetail)->every(fn ($a) => ($a['reports_count'] ?? 0) >= 3);
+                $minReports = collect($accountsDetail)->min('reports_count') ?? 0;
+
+                if (!$allAccountsHave3Reports) {
                     $isEligible = false;
-                    $remaining = $targetDays - $activeDays;
-                    $statusLabel = "Aktif {$activeDays}/{$targetDays} Hari";
-                    $reason = "Aktif {$activeDays} hari — Tersisa {$remaining} hari lagi menuju {$targetDays} hari (3 bulan).";
+                    $remaining = 3 - $minReports;
+                    $statusLabel = "Laporan {$minReports}/3 Selesai";
+                    $reason = "Baru {$minReports} dari 3 laporan profit bulanan pertama yang diterbitkan untuk akun investor.";
                 } elseif ($downlineHasUnsettled) {
                     $isEligible = false;
                     $statusLabel = 'Tagihan Belum Selesai';
-                    $reason = 'Terdapat tagihan Master Fee investor yang belum lunas (belum dibayar, ditolak, atau menunggu verifikasi). Semua tagihan pada periode 3 bulan wajib lunas terlebih dahulu.';
+                    $reason = 'Terdapat tagihan Master Fee investor yang belum lunas (belum dibayar, ditolak, atau menunggu verifikasi). Semua tagihan pada 3 periode pertama wajib lunas terlebih dahulu.';
                 } else {
                     $isEligible = true;
-                    $statusLabel = 'Siap Diklaim (3 Bulan)';
-                    $reason = 'Masa aktif copytrade dan tagihan Master Fee telah memenuhi syarat untuk pencairan.';
+                    $statusLabel = 'Siap Diklaim (3 Periode)';
+                    $reason = 'Seluruh 3 periode laporan bulanan dan pembayaran Master Fee telah selesai dan memenuhi syarat pencairan komisi.';
                 }
             }
 
+            $accountsFormatted = array_map(function ($acc) {
+                unset($acc['reports_list']);
+
+                return $acc;
+            }, $accountsDetail);
+
             $result[] = [
-                'id'                         => $downline->id,
-                'name'                       => $downline->name,
-                'username'                   => $downline->username,
-                'email'                      => $downline->email,
-                'phone'                      => $downline->phone,
-                'first_started_at'           => $periodStartDate ? tanggal_indo($periodStartDate) : null,
-                'first_started_at_raw'       => $periodStartDate ? $periodStartDate->toDateString() : null,
-                'period_end_date'            => $periodEndDate ? tanggal_indo($periodEndDate) : null,
-                'active_days'                => $activeDays,
-                'target_days'                => $targetDays,
-                'jumlah_akun'                => $accountCount,
-                'has_multi_copytrade'        => $hasMultiCopytrade,
-                'total_modal_riil'           => $totalModalRiil,
-                'total_modal_idr'            => $totalModalIdr,
-                'total_gross_profit'         => round($downlineGrossProfit, 2),
-                'total_master_gross_share'   => round($downlineMasterGrossShare, 2),
-                'total_affiliate_commission' => round($downlineAffiliateCommission, 2),
-                'has_unsettled_fee'          => $downlineHasUnsettled,
-                'kurs_usd_idr'               => $kursUsdIdr,
-                'tier_info'                  => $tierInfo,
-                'accounts'                   => $accountsDetail,
-                'is_eligible'                => $isEligible,
-                'is_claimed'                 => $isClaimed,
-                'is_pending'                 => $isPending,
-                'status_label'               => $statusLabel,
-                'reason'                     => $reason,
+                'id'                             => $downline->id,
+                'name'                           => $downline->name,
+                'username'                       => $downline->username,
+                'email'                          => $downline->email,
+                'phone'                          => $downline->phone,
+                'first_started_at'               => $periodStartDate ? tanggal_indo($periodStartDate) : null,
+                'first_started_at_raw'           => $periodStartDate ? $periodStartDate->toDateString() : null,
+                'period_end_date'                => $periodEndDate ? tanggal_indo($periodEndDate) : null,
+                'active_days'                    => $activeDays,
+                'target_days'                    => $targetDays,
+                'periods_progress'               => $periodsProgress,
+                'completed_periods_count'        => $completedPeriodsCount,
+                'jumlah_akun'                    => $accountCount,
+                'has_multi_copytrade'            => $hasMultiCopytrade,
+                'total_modal_riil'               => $totalModalRiil,
+                'total_modal_idr'                => $totalModalIdr,
+                'total_gross_profit'             => round($downlineGrossProfit, 2),
+                'total_master_gross_share'       => round($downlineMasterGrossShare, 2),
+                'total_master_gross_share_idr'   => (int) collect($accountsDetail)->sum('master_gross_share_idr'),
+                'total_affiliate_commission'     => round($downlineAffiliateCommission, 2),
+                'total_affiliate_commission_idr' => (int) collect($accountsDetail)->sum('affiliate_commission_idr'),
+                'has_unsettled_fee'              => $downlineHasUnsettled,
+                'kurs_usd_idr'                   => $kursUsdIdr,
+                'tier_info'                      => $tierInfo,
+                'accounts'                       => $accountsFormatted,
+                'is_eligible'                    => $isEligible,
+                'is_claimed'                     => $isClaimed,
+                'is_pending'                     => $isPending,
+                'status_label'                   => $statusLabel,
+                'reason'                         => $reason,
             ];
         }
 
@@ -488,24 +556,31 @@ class CommissionClaimService
                     ]);
                 }
 
-                // 3. Waktu pertama kali start copytrade & masa aktif 3 bulan kalender
-                $firstStartedAt = $activeAccounts->min('tanggal_mulai');
-                if (!$firstStartedAt) {
-                    throw ValidationException::withMessages([
-                        'downline_ids' => "Tanggal mulai copytrade untuk investor {$downline->name} belum terkonfirmasi.",
-                    ]);
-                }
+                // 3. Verifikasi ketersediaan 3 laporan bulanan pertama per akun aktif & cek tagihan belum lunas
+                foreach ($activeAccounts as $acc) {
+                    $reports = LaporanProfitBulanan::query()
+                        ->where('akun_copytrade_id', $acc->id)
+                        ->whereIn('periode_ke', [1, 2, 3])
+                        ->orderBy('periode_ke', 'asc')
+                        ->get();
 
-                $periodStartDate = Carbon::parse($firstStartedAt)->startOfDay();
-                $periodEndDate = $periodStartDate->copy()->addMonthsNoOverflow(3)->startOfDay();
-                $targetDays = (int) $periodStartDate->diffInDays($periodEndDate);
-                $activeDays = (int) $periodStartDate->diffInDays(now()->startOfDay());
+                    if ($reports->count() < 3) {
+                        throw ValidationException::withMessages([
+                            'downline_ids' => "Investor {$downline->name} baru memiliki {$reports->count()}/3 laporan bulanan. Klaim komisi mensyaratkan 3 laporan profit bulanan pertama telah terbit.",
+                        ]);
+                    }
 
-                if ($activeDays < $targetDays) {
-                    $remaining = $targetDays - $activeDays;
-                    throw ValidationException::withMessages([
-                        'downline_ids' => "Investor {$downline->name} baru aktif {$activeDays} hari. Syarat klaim komisi minimal periode 3 bulan ({$targetDays} hari, tersisa {$remaining} hari lagi).",
-                    ]);
+                    $hasUnsettled = $reports->contains(fn ($r) => in_array($r->status, [
+                        LaporanProfitBulanan::STATUS_BELUM_DIBAYAR,
+                        LaporanProfitBulanan::STATUS_MENUNGGU_VERIFIKASI,
+                        LaporanProfitBulanan::STATUS_DITOLAK,
+                    ], true));
+
+                    if ($hasUnsettled) {
+                        throw ValidationException::withMessages([
+                            'downline_ids' => "Investor {$downline->name} memiliki tagihan Master Fee yang belum selesai pada 3 periode pertama (belum dibayar, ditolak, atau menunggu verifikasi). Semua tagihan wajib diselesaikan terlebih dahulu.",
+                        ]);
+                    }
                 }
 
                 // 4. Verifikasi klaim 1x saja per downline: tidak boleh ada yang sedang pending atau approved
@@ -519,68 +594,24 @@ class CommissionClaimService
                     ]);
                 }
 
-                // 4b. Verifikasi tidak ada tagihan Master Fee yang belum lunas dalam jendela 3 bulan
-                $downlineHasUnsettled = TagihanMasterFee::query()
-                    ->whereIn('akun_copytrade_id', $activeAccounts->pluck('id'))
-                    ->whereIn('status', [
-                        TagihanMasterFee::STATUS_BELUM_DIBAYAR,
-                        TagihanMasterFee::STATUS_MENUNGGU_VERIFIKASI,
-                        TagihanMasterFee::STATUS_DITOLAK,
-                    ])
-                    ->whereHas('riwayatBalance', function ($q) use ($periodStartDate, $periodEndDate) {
-                        $q->where('tanggal_pencatatan', '>', $periodStartDate->toDateString())
-                            ->where('tanggal_pencatatan', '<=', $periodEndDate->toDateString());
-                    })
-                    ->exists();
-
-                if ($downlineHasUnsettled) {
-                    throw ValidationException::withMessages([
-                        'downline_ids' => "Investor {$downline->name} memiliki tagihan Master Fee yang belum selesai pada periode 3 bulan (belum dibayar, ditolak, atau menunggu verifikasi). Semua tagihan wajib diselesaikan terlebih dahulu.",
-                    ]);
-                }
-
-                // 5. Filter hanya akun yang masuk sebelum periode 3 bulan berakhir
-                $validAccounts = [];
+                // 5. Siapkan record item per akun copytrade dari 3 laporan bulanan pertama
                 foreach ($activeAccounts as $index => $acc) {
-                    $accStart = Carbon::parse($acc->tanggal_mulai)->startOfDay();
-                    $hariKehitung = max(0, (int) $accStart->diffInDays($periodEndDate, false));
-
-                    if ($hariKehitung <= 0) {
-                        continue;
-                    }
-
-                    $validAccounts[] = [
-                        'acc'           => $acc,
-                        'acc_start'     => $accStart,
-                        'hari_kehitung' => $hariKehitung,
-                        'is_first'      => ($index === 0),
-                    ];
-                }
-
-                // 6. Siapkan record item per akun copytrade dengan Tier masing-masing akun (tidak digabungkan)
-                // dan hitung hak bagi hasil serta komisi afiliator langsung dari tagihan Master Fee yang lunas
-                foreach ($validAccounts as $validAcc) {
-                    $acc = $validAcc['acc'];
-                    $accStart = $validAcc['acc_start'];
-                    $hariKehitung = $validAcc['hari_kehitung'];
-                    $isFirst = $validAcc['is_first'];
+                    $reports = LaporanProfitBulanan::query()
+                        ->where('akun_copytrade_id', $acc->id)
+                        ->whereIn('periode_ke', [1, 2, 3])
+                        ->orderBy('periode_ke', 'asc')
+                        ->get();
 
                     $modalUsd = (float) $acc->modal_riil;
                     $modalIdr = round($modalUsd * $kursUsdIdr, 2);
                     $accTierInfo = KlaimKomisiItem::determineTier($modalIdr);
 
-                    $paidInvoices = TagihanMasterFee::query()
-                        ->where('akun_copytrade_id', $acc->id)
-                        ->where('status', TagihanMasterFee::STATUS_LUNAS)
-                        ->whereHas('riwayatBalance', function ($q) use ($accStart, $periodEndDate) {
-                            $q->where('tanggal_pencatatan', '>', $accStart->toDateString())
-                                ->where('tanggal_pencatatan', '<=', $periodEndDate->toDateString());
-                        })
-                        ->get();
-
-                    $masterGrossShare = (float) $paidInvoices->sum('nominal_fee');
-                    $grossProfit = (float) $paidInvoices->sum('profit_bersih');
+                    $masterGrossShare = (float) $reports->sum('fee_usd');
+                    $grossProfit = (float) $reports->sum('profit_usd');
+                    $masterGrossShareIdr = (int) $reports->sum('fee_idr');
                     $affiliateSharePct = (float) $accTierInfo['persentase_tier'];
+                    $affiliateCommissionIdr = (int) round($masterGrossShareIdr * ($affiliateSharePct / 100));
+
                     $calc = KlaimKomisiItem::calculateCommissionFromPaidFee(
                         $masterGrossShare,
                         $grossProfit,
@@ -588,29 +619,37 @@ class CommissionClaimService
                         $modalUsd
                     );
 
+                    $p1 = $reports->first();
+                    $p3 = $reports->last();
+                    $accStart = $p1 ? Carbon::parse($p1->periode_awal)->startOfDay() : ($acc->tanggal_mulai ? Carbon::parse($acc->tanggal_mulai)->startOfDay() : now());
+                    $accEnd = $p3 ? Carbon::parse($p3->periode_akhir)->startOfDay() : $accStart->copy()->addMonthsNoOverflow(3);
+                    $hariKehitung = (int) $accStart->diffInDays($accEnd);
+
                     $preparedItems[] = [
-                        'downline_id'          => $downlineId,
-                        'akun_copytrade_id'    => $acc->id,
-                        'broker'               => $acc->broker,
-                        'nomor_akun_trading'   => $acc->nomor_akun_trading,
-                        'is_akun_pertama'      => $isFirst,
-                        'tanggal_mulai'        => $accStart->toDateString(),
-                        'tanggal_selesai'      => $periodEndDate->toDateString(),
-                        'hari_kehitung'        => $hariKehitung,
-                        'modal_riil'           => $modalUsd,
-                        'deposit_amount'       => $modalUsd,
-                        'tier_level'           => $accTierInfo['tier_level'],
-                        'persentase_tier'      => $accTierInfo['persentase_tier'],
-                        'master_share_pct'     => 30.00,
-                        'affiliate_share_pct'  => $affiliateSharePct,
-                        'roi_percentage'       => $calc['roi_percentage'],
-                        'gross_profit'         => $calc['gross_profit'],
-                        'master_gross_share'   => $calc['master_gross_share'],
-                        'affiliate_commission' => $calc['affiliate_commission'],
-                        'master_net_share'     => $calc['master_net_share'],
-                        'investor_net_profit'  => $calc['investor_net_profit'],
-                        'profit_master'        => $calc['master_gross_share'],
-                        'nominal_transfer'     => $calc['affiliate_commission'],
+                        'downline_id'              => $downlineId,
+                        'akun_copytrade_id'        => $acc->id,
+                        'broker'                   => $acc->broker,
+                        'nomor_akun_trading'       => $acc->nomor_akun_trading,
+                        'is_akun_pertama'          => ($index === 0),
+                        'tanggal_mulai'            => $accStart->toDateString(),
+                        'tanggal_selesai'          => $accEnd->toDateString(),
+                        'hari_kehitung'            => $hariKehitung,
+                        'modal_riil'               => $modalUsd,
+                        'deposit_amount'           => $modalUsd,
+                        'tier_level'               => $accTierInfo['tier_level'],
+                        'persentase_tier'          => $accTierInfo['persentase_tier'],
+                        'master_share_pct'         => (float) ($p1?->fee_persen ?? 30.00),
+                        'affiliate_share_pct'      => $affiliateSharePct,
+                        'roi_percentage'           => $calc['roi_percentage'],
+                        'gross_profit'             => $calc['gross_profit'],
+                        'master_gross_share'       => $calc['master_gross_share'],
+                        'master_gross_share_idr'   => $masterGrossShareIdr,
+                        'affiliate_commission'     => $calc['affiliate_commission'],
+                        'affiliate_commission_idr' => $affiliateCommissionIdr,
+                        'master_net_share'         => $calc['master_net_share'],
+                        'investor_net_profit'      => $calc['investor_net_profit'],
+                        'profit_master'            => $calc['master_gross_share'],
+                        'nominal_transfer'         => $calc['affiliate_commission'],
                     ];
                 }
             }
@@ -622,6 +661,10 @@ class CommissionClaimService
             $totalMasterNetShare = collect($preparedItems)->sum('master_net_share');
             $totalInvestorNetProfit = collect($preparedItems)->sum('investor_net_profit');
             $totalAffiliateCommission = collect($preparedItems)->sum('affiliate_commission');
+            $totalNominalTransferIdr = (float) collect($preparedItems)->sum('affiliate_commission_idr');
+            $kursKonversiIdr = $totalAffiliateCommission > 0
+                ? round($totalNominalTransferIdr / $totalAffiliateCommission, 2)
+                : $kursUsdIdr;
             $totalDownlines = count($uniqueDownlineIds);
             $totalAkun = count($preparedItems);
 
@@ -639,6 +682,8 @@ class CommissionClaimService
                 'total_affiliate_commission' => $totalAffiliateCommission,
                 'total_profit_master'        => $totalMasterGrossShare,
                 'total_nominal_transfer'     => $totalAffiliateCommission,
+                'kurs_konversi_idr'          => $kursKonversiIdr,
+                'total_nominal_transfer_idr' => $totalNominalTransferIdr,
                 'nama_bank'                  => $namaBank,
                 'nomor_rekening'             => $nomorRekening,
                 'atas_nama_rekening'         => $atasNama,
@@ -749,32 +794,34 @@ class CommissionClaimService
             ->withQueryString()
             ->through(function (KlaimKomisi $claim) use ($kursUsdIdr) {
                 $items = $claim->items->map(fn (KlaimKomisiItem $it) => [
-                    'id'                   => $it->id,
-                    'downline_id'          => $it->downline_id,
-                    'downline_name'        => $it->downline?->name ?? 'Investor',
-                    'downline_username'    => $it->downline?->username,
-                    'downline_email'       => $it->downline?->email,
-                    'broker'               => $it->broker,
-                    'nomor_akun_trading'   => $it->nomor_akun_trading,
-                    'is_akun_pertama'      => (bool) $it->is_akun_pertama,
-                    'tanggal_mulai'        => tanggal_indo($it->tanggal_mulai),
-                    'tanggal_selesai'      => tanggal_indo($it->tanggal_selesai),
-                    'hari_kehitung'        => $it->hari_kehitung,
-                    'modal_riil'           => (float) $it->modal_riil,
-                    'modal_idr'            => round((float) $it->modal_riil * $kursUsdIdr, 2),
-                    'deposit_amount'       => (float) ($it->deposit_amount ?: $it->modal_riil),
-                    'tier_level'           => $it->tier_level,
-                    'persentase_tier'      => $it->persentase_tier,
-                    'roi_percentage'       => $it->roi_percentage !== null ? (float) $it->roi_percentage : null,
-                    'gross_profit'         => $it->gross_profit !== null ? (float) $it->gross_profit : null,
-                    'master_share_pct'     => $it->master_share_pct !== null ? (float) $it->master_share_pct : 30.0,
-                    'master_gross_share'   => $it->master_gross_share !== null ? (float) $it->master_gross_share : null,
-                    'affiliate_share_pct'  => $it->affiliate_share_pct !== null ? (float) $it->affiliate_share_pct : (float) $it->persentase_tier,
-                    'affiliate_commission' => $it->affiliate_commission !== null ? (float) $it->affiliate_commission : null,
-                    'master_net_share'     => $it->master_net_share !== null ? (float) $it->master_net_share : null,
-                    'investor_net_profit'  => $it->investor_net_profit !== null ? (float) $it->investor_net_profit : null,
-                    'profit_master'        => $it->profit_master !== null ? (float) $it->profit_master : null,
-                    'nominal_transfer'     => $it->nominal_transfer !== null ? (float) $it->nominal_transfer : null,
+                    'id'                       => $it->id,
+                    'downline_id'              => $it->downline_id,
+                    'downline_name'            => $it->downline?->name ?? 'Investor',
+                    'downline_username'        => $it->downline?->username,
+                    'downline_email'           => $it->downline?->email,
+                    'broker'                   => $it->broker,
+                    'nomor_akun_trading'       => $it->nomor_akun_trading,
+                    'is_akun_pertama'          => (bool) $it->is_akun_pertama,
+                    'tanggal_mulai'            => tanggal_indo($it->tanggal_mulai),
+                    'tanggal_selesai'          => tanggal_indo($it->tanggal_selesai),
+                    'hari_kehitung'            => $it->hari_kehitung,
+                    'modal_riil'               => (float) $it->modal_riil,
+                    'modal_idr'                => round((float) $it->modal_riil * $kursUsdIdr, 2),
+                    'deposit_amount'           => (float) ($it->deposit_amount ?: $it->modal_riil),
+                    'tier_level'               => $it->tier_level,
+                    'persentase_tier'          => $it->persentase_tier,
+                    'roi_percentage'           => $it->roi_percentage !== null ? (float) $it->roi_percentage : null,
+                    'gross_profit'             => $it->gross_profit !== null ? (float) $it->gross_profit : null,
+                    'master_share_pct'         => $it->master_share_pct !== null ? (float) $it->master_share_pct : 30.0,
+                    'master_gross_share'       => $it->master_gross_share !== null ? (float) $it->master_gross_share : null,
+                    'master_gross_share_idr'   => (int) ($it->master_gross_share_idr ?? 0),
+                    'affiliate_share_pct'      => $it->affiliate_share_pct !== null ? (float) $it->affiliate_share_pct : (float) $it->persentase_tier,
+                    'affiliate_commission'     => $it->affiliate_commission !== null ? (float) $it->affiliate_commission : null,
+                    'affiliate_commission_idr' => (int) ($it->affiliate_commission_idr ?? 0),
+                    'master_net_share'         => $it->master_net_share !== null ? (float) $it->master_net_share : null,
+                    'investor_net_profit'      => $it->investor_net_profit !== null ? (float) $it->investor_net_profit : null,
+                    'profit_master'            => $it->profit_master !== null ? (float) $it->profit_master : null,
+                    'nominal_transfer'         => $it->nominal_transfer !== null ? (float) $it->nominal_transfer : null,
                 ]);
 
                 $uniqueDownlines = $items->pluck('downline_name')->filter()->unique()->values();
@@ -861,7 +908,7 @@ class CommissionClaimService
                 ? $kursKonversiIdr
                 : $this->getUsdToIdrRate();
 
-            return DB::transaction(function () use ($claim, $status, $profitMaster, $itemizedProfits, $buktiTransfer, $catatanAdmin, $processor, $finalKursIdr) {
+            return DB::transaction(function () use ($claim, $status, $profitMaster, $itemizedProfits, $buktiTransfer, $catatanAdmin, $processor, $finalKursIdr, $kursKonversiIdr) {
                 $claim->load('items.downline');
                 $items = $claim->items;
 
@@ -898,16 +945,18 @@ class CommissionClaimService
                         );
 
                         $item->update([
-                            'roi_percentage'       => $roiPct,
-                            'master_share_pct'     => $masterSharePct,
-                            'affiliate_share_pct'  => $affiliateSharePct,
-                            'gross_profit'         => $calc['gross_profit'],
-                            'master_gross_share'   => $calc['master_gross_share'],
-                            'affiliate_commission' => $calc['affiliate_commission'],
-                            'master_net_share'     => $calc['master_net_share'],
-                            'investor_net_profit'  => $calc['investor_net_profit'],
-                            'profit_master'        => $calc['master_gross_share'],
-                            'nominal_transfer'     => $calc['affiliate_commission'],
+                            'roi_percentage'           => $roiPct,
+                            'master_share_pct'         => $masterSharePct,
+                            'affiliate_share_pct'      => $affiliateSharePct,
+                            'gross_profit'             => $calc['gross_profit'],
+                            'master_gross_share'       => $calc['master_gross_share'],
+                            'master_gross_share_idr'   => (int) round($calc['master_gross_share'] * $finalKursIdr),
+                            'affiliate_commission'     => $calc['affiliate_commission'],
+                            'affiliate_commission_idr' => (int) round($calc['affiliate_commission'] * $finalKursIdr),
+                            'master_net_share'         => $calc['master_net_share'],
+                            'investor_net_profit'      => $calc['investor_net_profit'],
+                            'profit_master'            => $calc['master_gross_share'],
+                            'nominal_transfer'         => $calc['affiliate_commission'],
                         ]);
 
                         $totalGrossProfit += $calc['gross_profit'];
@@ -931,16 +980,18 @@ class CommissionClaimService
                         );
 
                         $item->update([
-                            'roi_percentage'       => $roiPct,
-                            'master_share_pct'     => $masterSharePct,
-                            'affiliate_share_pct'  => $affiliateSharePct,
-                            'gross_profit'         => $calc['gross_profit'],
-                            'master_gross_share'   => $calc['master_gross_share'],
-                            'affiliate_commission' => $calc['affiliate_commission'],
-                            'master_net_share'     => $calc['master_net_share'],
-                            'investor_net_profit'  => $calc['investor_net_profit'],
-                            'profit_master'        => $calc['master_gross_share'],
-                            'nominal_transfer'     => $calc['affiliate_commission'],
+                            'roi_percentage'           => $roiPct,
+                            'master_share_pct'         => $masterSharePct,
+                            'affiliate_share_pct'      => $affiliateSharePct,
+                            'gross_profit'             => $calc['gross_profit'],
+                            'master_gross_share'       => $calc['master_gross_share'],
+                            'master_gross_share_idr'   => (int) round($calc['master_gross_share'] * $finalKursIdr),
+                            'affiliate_commission'     => $calc['affiliate_commission'],
+                            'affiliate_commission_idr' => (int) round($calc['affiliate_commission'] * $finalKursIdr),
+                            'master_net_share'         => $calc['master_net_share'],
+                            'investor_net_profit'      => $calc['investor_net_profit'],
+                            'profit_master'            => $calc['master_gross_share'],
+                            'nominal_transfer'         => $calc['affiliate_commission'],
                         ]);
 
                         $totalGrossProfit += $calc['gross_profit'];
@@ -950,26 +1001,29 @@ class CommissionClaimService
                         $totalInvestorNetProfit += $calc['investor_net_profit'];
                     }
                 } else {
-                    // Skema Baru: Dihitung langsung dari tagihan Master Fee lunas downline
+                    // Skema Baru: Dihitung langsung dari 3 laporan bulanan pertama downline (berbasis fee Rupiah riil)
+                    $totalNominalTransferIdr = 0;
                     foreach ($items as $item) {
-                        $accStart = Carbon::parse($item->tanggal_mulai)->startOfDay();
-                        $accEnd = Carbon::parse($item->tanggal_selesai)->startOfDay();
-
-                        $paidInvoices = TagihanMasterFee::query()
+                        $reports = LaporanProfitBulanan::query()
                             ->where('akun_copytrade_id', $item->akun_copytrade_id)
-                            ->where('status', TagihanMasterFee::STATUS_LUNAS)
-                            ->whereHas('riwayatBalance', function ($q) use ($accStart, $accEnd) {
-                                $q->where('tanggal_pencatatan', '>', $accStart->toDateString())
-                                    ->where('tanggal_pencatatan', '<=', $accEnd->toDateString());
-                            })
+                            ->whereIn('periode_ke', [1, 2, 3])
                             ->get();
 
-                        $masterGrossShare = (float) $paidInvoices->sum('nominal_fee');
-                        $grossProfit = (float) $paidInvoices->sum('profit_bersih');
+                        $masterGrossShare = (float) $reports->sum('fee_usd');
+                        $grossProfit = (float) $reports->sum('profit_usd');
                         $affiliateSharePct = (float) ($item->affiliate_share_pct ?: $item->persentase_tier);
                         $depositAmount = (float) ($item->deposit_amount ?: $item->modal_riil);
 
-                        if ($paidInvoices->isNotEmpty()) {
+                        $masterGrossShareIdr = (int) $reports->sum('fee_idr');
+                        if ($masterGrossShareIdr === 0 && (int) $item->master_gross_share_idr > 0) {
+                            $masterGrossShareIdr = (int) $item->master_gross_share_idr;
+                        }
+                        $itemAffiliateCommissionIdr = (int) round($masterGrossShareIdr * ($affiliateSharePct / 100));
+                        if ($itemAffiliateCommissionIdr === 0 && (int) $item->affiliate_commission_idr > 0) {
+                            $itemAffiliateCommissionIdr = (int) $item->affiliate_commission_idr;
+                        }
+
+                        if ($reports->isNotEmpty()) {
                             $calc = KlaimKomisiItem::calculateCommissionFromPaidFee(
                                 $masterGrossShare,
                                 $grossProfit,
@@ -992,15 +1046,23 @@ class CommissionClaimService
                             );
                         }
 
+                        // Fallback IDR jika masih 0 tapi USD komisi > 0 (misal legacy mock)
+                        if ($itemAffiliateCommissionIdr === 0 && $calc['affiliate_commission'] > 0) {
+                            $itemAffiliateCommissionIdr = (int) round($calc['affiliate_commission'] * $finalKursIdr);
+                            $masterGrossShareIdr = (int) round($calc['master_gross_share'] * $finalKursIdr);
+                        }
+
                         $item->update([
-                            'roi_percentage'       => $calc['roi_percentage'],
-                            'gross_profit'         => $calc['gross_profit'],
-                            'master_gross_share'   => $calc['master_gross_share'],
-                            'affiliate_commission' => $calc['affiliate_commission'],
-                            'master_net_share'     => $calc['master_net_share'],
-                            'investor_net_profit'  => $calc['investor_net_profit'],
-                            'profit_master'        => $calc['master_gross_share'],
-                            'nominal_transfer'     => $calc['affiliate_commission'],
+                            'roi_percentage'           => $calc['roi_percentage'],
+                            'gross_profit'             => $calc['gross_profit'],
+                            'master_gross_share'       => $calc['master_gross_share'],
+                            'master_gross_share_idr'   => $masterGrossShareIdr,
+                            'affiliate_commission'     => $calc['affiliate_commission'],
+                            'affiliate_commission_idr' => $itemAffiliateCommissionIdr,
+                            'master_net_share'         => $calc['master_net_share'],
+                            'investor_net_profit'      => $calc['investor_net_profit'],
+                            'profit_master'            => $calc['master_gross_share'],
+                            'nominal_transfer'         => $calc['affiliate_commission'],
                         ]);
 
                         $totalGrossProfit += $calc['gross_profit'];
@@ -1008,11 +1070,29 @@ class CommissionClaimService
                         $totalAffiliateCommission += $calc['affiliate_commission'];
                         $totalMasterNetShare += $calc['master_net_share'];
                         $totalInvestorNetProfit += $calc['investor_net_profit'];
+                        $totalNominalTransferIdr += $itemAffiliateCommissionIdr;
                     }
                 }
 
                 $transferPath = $buktiTransfer->store('commission_claims/transfers', 'local');
-                $totalNominalTransferIdr = round($totalAffiliateCommission * $finalKursIdr, 2);
+
+                // Tentukan total IDR transfer final
+                if (!isset($totalNominalTransferIdr) || $totalNominalTransferIdr <= 0) {
+                    if ((float) $claim->total_nominal_transfer_idr > 0) {
+                        $totalNominalTransferIdr = (float) $claim->total_nominal_transfer_idr;
+                    } else {
+                        $totalNominalTransferIdr = round($totalAffiliateCommission * $finalKursIdr, 2);
+                    }
+                }
+
+                // Hitung kurs konversi efektif
+                if ($kursKonversiIdr !== null && $kursKonversiIdr > 0) {
+                    $effectiveKurs = $kursKonversiIdr;
+                } elseif ($totalAffiliateCommission > 0 && $totalNominalTransferIdr > 0) {
+                    $effectiveKurs = round($totalNominalTransferIdr / $totalAffiliateCommission, 2);
+                } else {
+                    $effectiveKurs = $finalKursIdr;
+                }
 
                 $claim->update([
                     'status'                     => $status,
@@ -1023,7 +1103,7 @@ class CommissionClaimService
                     'total_affiliate_commission' => $totalAffiliateCommission,
                     'total_profit_master'        => $totalMasterGrossShare,
                     'total_nominal_transfer'     => $totalAffiliateCommission,
-                    'kurs_konversi_idr'          => $finalKursIdr,
+                    'kurs_konversi_idr'          => $effectiveKurs,
                     'total_nominal_transfer_idr' => $totalNominalTransferIdr,
                     'bukti_transfer_path'        => $transferPath,
                     'catatan_admin'              => $catatanAdmin ?: null,

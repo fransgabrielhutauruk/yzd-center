@@ -22,7 +22,29 @@ import {
     Eye,
     ExternalLink,
     MessageSquare,
+    Check,
+    AlertTriangle,
+    CreditCard,
 } from 'lucide-vue-next';
+
+const getStatusBadgeClass = (status) => {
+    switch (status) {
+        case 'Lunas':
+            return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20';
+        case 'Tanpa Fee':
+            return 'bg-slate-500/10 text-slate-700 dark:text-slate-300 border border-slate-500/20';
+        case 'Menunggu Verifikasi':
+            return 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20';
+        case 'Menunggu Pembayaran':
+            return 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20';
+        case 'Perlu Koreksi':
+            return 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20';
+        case 'Bukti Ditolak':
+            return 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20';
+        default:
+            return 'bg-muted text-muted-foreground border border-border';
+    }
+};
 
 const props = defineProps({
     stats: {
@@ -314,6 +336,15 @@ const openAdminNoteModal = (note) => {
     isAdminNoteModalOpen.value = true;
 };
 
+// Modal Detail Kinerja Akun Downline
+const selectedDownlineForDetail = ref(null);
+const isDownlineDetailOpen = ref(false);
+
+const openDownlineDetail = (item) => {
+    selectedDownlineForDetail.value = item;
+    isDownlineDetailOpen.value = true;
+};
+
 // Kolom Tabel Downline
 const downlineColumns = [
     { key: 'joined_at', label: 'Bergabung', sortable: true },
@@ -422,24 +453,36 @@ const claimColumns = [
                     <template #column-copytrade_status="{ item }">
                         <div
                             v-if="item.active_accounts_count > 0 || item.pending_accounts_count > 0"
-                            class="flex flex-wrap items-center gap-1.5"
+                            class="flex flex-col gap-1.5"
                         >
-                            <span
-                                v-if="item.active_accounts_count > 0"
-                                class="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap text-emerald-800 dark:text-emerald-300"
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <span
+                                    v-if="item.active_accounts_count > 0"
+                                    class="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap text-emerald-800 dark:text-emerald-300"
+                                >
+                                    <CheckCircle2
+                                        class="h-3 w-3 text-emerald-600 dark:text-emerald-400"
+                                    />
+                                    <span>{{ item.active_accounts_count }} Aktif</span>
+                                </span>
+                                <span
+                                    v-if="item.pending_accounts_count > 0"
+                                    class="inline-flex items-center gap-1 rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap text-sky-800 dark:text-sky-300"
+                                >
+                                    <Clock class="h-3 w-3" />
+                                    <span>{{ item.pending_accounts_count }} Menunggu Verifikasi</span>
+                                </span>
+                            </div>
+
+                            <button
+                                v-if="item.accounts && item.accounts.length > 0"
+                                type="button"
+                                @click="openDownlineDetail(item)"
+                                class="text-[11px] font-semibold text-primary hover:underline inline-flex items-center gap-1 self-start"
                             >
-                                <CheckCircle2
-                                    class="h-3 w-3 text-emerald-600 dark:text-emerald-400"
-                                />
-                                <span>{{ item.active_accounts_count }} Aktif</span>
-                            </span>
-                            <span
-                                v-if="item.pending_accounts_count > 0"
-                                class="inline-flex items-center gap-1 rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap text-sky-800 dark:text-sky-300"
-                            >
-                                <Clock class="h-3 w-3" />
-                                <span>{{ item.pending_accounts_count }} Menunggu Verifikasi</span>
-                            </span>
+                                <Eye class="h-3 w-3" />
+                                <span>Kinerja Akun ({{ item.accounts.length }})</span>
+                            </button>
                         </div>
                         <span v-else class="text-muted-foreground text-xs">Belum Ada Akun</span>
                     </template>
@@ -948,6 +991,101 @@ const claimColumns = [
                 >
                     Tutup
                 </Button>
+            </div>
+        </AppModal>
+
+        <!-- MODAL RINCIAN KINERJA AKUN DOWNLINE -->
+        <AppModal
+            :show="isDownlineDetailOpen"
+            :title="`Kinerja Akun Copytrade — ${selectedDownlineForDetail?.name || ''}`"
+            max-width="2xl"
+            @close="isDownlineDetailOpen = false"
+        >
+            <div v-if="selectedDownlineForDetail" class="space-y-4 p-1">
+                <div v-if="!selectedDownlineForDetail.accounts || selectedDownlineForDetail.accounts.length === 0" class="text-center py-6 text-xs text-muted-foreground">
+                    Investor ini belum memiliki akun copytrade yang aktif.
+                </div>
+
+                <div
+                    v-for="acc in selectedDownlineForDetail.accounts"
+                    :key="acc.id"
+                    class="rounded-xl border border-border bg-card p-4 space-y-3"
+                >
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <div class="space-y-0.5">
+                            <h4 class="font-bold text-sm text-foreground">
+                                Akun #{{ acc.nomor_akun_trading }} ({{ acc.broker }})
+                            </h4>
+                        </div>
+                        <a
+                            v-if="acc.myfxbook_url"
+                            :href="acc.myfxbook_url"
+                            target="_blank"
+                            class="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                        >
+                            <span>Buka Myfxbook</span>
+                            <ExternalLink class="h-3 w-3" />
+                        </a>
+                    </div>
+
+                    <!-- Tabel Periode Laporan Profit Akun -->
+                    <div class="rounded-lg border border-border overflow-hidden">
+                        <table class="w-full text-xs">
+                            <thead class="bg-muted/50 border-b border-border text-muted-foreground font-semibold">
+                                <tr>
+                                    <th class="py-2 px-3 text-left">Periode</th>
+                                    <th class="py-2 px-3 text-right">Profit (USD)</th>
+                                    <th class="py-2 px-3 text-center">Status Tagihan</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-border">
+                                <tr v-if="!acc.laporan || acc.laporan.length === 0">
+                                    <td colspan="3" class="py-3 px-3 text-center text-muted-foreground">
+                                        Belum ada laporan profit bulanan untuk akun ini.
+                                    </td>
+                                </tr>
+                                <tr
+                                    v-for="lap in acc.laporan"
+                                    :key="lap.periode_ke"
+                                    class="hover:bg-muted/30"
+                                >
+                                    <td class="py-2 px-3">
+                                        <div class="font-medium text-foreground">Periode ke-{{ lap.periode_ke }}</div>
+                                        <div class="text-[10px] text-muted-foreground">{{ lap.periode_label }}</div>
+                                    </td>
+                                    <td class="py-2 px-3 text-right font-mono font-bold" :class="lap.profit_usd >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
+                                        {{ lap.profit_usd >= 0 ? '+' : '' }}${{ Number(lap.profit_usd).toFixed(2) }}
+                                    </td>
+                                    <td class="py-2 px-3 text-center">
+                                        <span
+                                            :class="[
+                                                'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-nowrap',
+                                                getStatusBadgeClass(lap.status_tampil)
+                                            ]"
+                                        >
+                                            <CheckCircle2 v-if="lap.status_tampil === 'Lunas'" class="h-2.5 w-2.5" />
+                                            <Check v-else-if="lap.status_tampil === 'Tanpa Fee'" class="h-2.5 w-2.5" />
+                                            <Clock v-else-if="lap.status_tampil === 'Menunggu Verifikasi'" class="h-2.5 w-2.5" />
+                                            <CreditCard v-else-if="lap.status_tampil === 'Menunggu Pembayaran'" class="h-2.5 w-2.5" />
+                                            <AlertTriangle v-else-if="lap.status_tampil === 'Perlu Koreksi'" class="h-2.5 w-2.5" />
+                                            <XCircle v-else-if="lap.status_tampil === 'Bukti Ditolak'" class="h-2.5 w-2.5" />
+                                            <span>{{ lap.status_tampil }}</span>
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-border flex justify-end border-t pt-3 mt-3">
+                <AppButton
+                    type="custom"
+                    variant="outline"
+                    label="Tutup"
+                    @click="isDownlineDetailOpen = false"
+                />
             </div>
         </AppModal>
     </MemberLayout>

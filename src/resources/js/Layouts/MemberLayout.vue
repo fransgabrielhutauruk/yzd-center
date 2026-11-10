@@ -28,6 +28,7 @@ import AppToaster from '@/Components/Common/AppToaster.vue';
 import AppNotificationBell from '@/Components/Common/AppNotificationBell.vue';
 import AppPwaInstallButton from '@/Components/Common/AppPwaInstallButton.vue';
 import AppPageHeader from '@/Components/Common/AppPageHeader.vue';
+import FirstPeriodBanner from '@/Components/Common/FirstPeriodBanner.vue';
 
 defineProps({
     title: {
@@ -539,6 +540,7 @@ const logout = () => {
 
             <!-- Main Content Area -->
             <main class="flex-1 overflow-y-auto bg-white p-4 sm:p-6 lg:p-8 dark:bg-slate-950">
+                <FirstPeriodBanner />
                 <AppPageHeader
                     v-if="breadcrumbs && breadcrumbs.length > 0"
                     :breadcrumbs="breadcrumbs"

@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Models\TagihanMasterFee;
+use App\Models\LaporanProfitBulanan;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -11,7 +11,7 @@ class MasterFeeRejectedNotification extends Notification
     use Queueable;
 
     public function __construct(
-        public TagihanMasterFee $tagihan,
+        public LaporanProfitBulanan $laporan,
         public string $alasan
     ) {}
 
@@ -28,15 +28,15 @@ class MasterFeeRejectedNotification extends Notification
      */
     public function toArray(object $notifiable): array
     {
-        $feeFormatted = '$' . number_format((float) $this->tagihan->nominal_fee, 2);
+        $feeFormatted = '$' . number_format((float) $this->laporan->fee_usd, 2);
 
         return [
             'type'       => 'master_fee_rejected',
             'title'      => 'Pembayaran Master Fee Ditolak',
-            'message'    => "Bukti pembayaran untuk tagihan Master Fee ({$this->tagihan->nomor}) sebesar {$feeFormatted} ditolak. Alasan: {$this->alasan}. Silakan unggah ulang bukti yang valid.",
+            'message'    => "Bukti pembayaran untuk Master Fee ({$this->laporan->nomor}) sebesar {$feeFormatted} ditolak. Alasan: {$this->alasan}. Silakan unggah ulang bukti yang valid.",
             'icon'       => 'x-circle',
-            'tagihan_id' => $this->tagihan->id,
-            'nomor'      => $this->tagihan->nomor,
+            'laporan_id' => $this->laporan->id,
+            'nomor'      => $this->laporan->nomor,
             'alasan'     => $this->alasan,
             'url'        => '/member/master-fee',
         ];

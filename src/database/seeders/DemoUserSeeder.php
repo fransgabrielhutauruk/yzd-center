@@ -124,6 +124,7 @@ class DemoUserSeeder extends Seeder
                 'broker'             => 'HFM',
                 'tipe_akun'          => 'cent',
                 'server_broker'      => 'HFMarkets-Live',
+                'myfxbook_url'       => 'https://www.myfxbook.com/members/demo/yzd-investor/1234567',
                 'modal_riil'         => 1000.00,
                 'tanggal_mulai'      => now()->subMonths(2)->toDateString(),
                 'nama_bank'          => 'BCA',

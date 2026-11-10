@@ -23,6 +23,7 @@ import {
     CheckSquare,
     Square,
     Lock,
+    Minus,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -57,7 +58,7 @@ const activeTab = ref('downlines'); // 'downlines' | 'claims'
 const tabs = computed(() => [
     {
         key: 'downlines',
-        label: 'Status Komisi Downline (3 Bulan)',
+        label: 'Status Komisi Downline (3 Periode)',
         icon: Users,
     },
     {
@@ -275,7 +276,7 @@ const getStatusBadge = (status) => {
 
     <MemberLayout
         title="Klaim Komisi Afiliasi"
-        subtitle="Pantau masa aktif periode 3 bulan copytrade downline Anda dan ajukan pencairan komisi."
+        subtitle="Pantau progres 3 periode laporan bulanan copytrade downline Anda dan ajukan pencairan komisi."
         :breadcrumbs="[{ label: 'Program Kemitraan' }, { label: 'Klaim Komisi' }]"
     >
         <template #header-actions>
@@ -424,8 +425,8 @@ const getStatusBadge = (status) => {
                                 class="border-input bg-background text-foreground focus:border-primary-500 focus:ring-primary-500/20 h-9 rounded-lg border px-3 text-xs transition-all focus:ring-2 focus:outline-none"
                             >
                                 <option value="">Semua Status</option>
-                                <option value="eligible">Siap Diklaim (3 Bulan)</option>
-                                <option value="progress">Masa Tunggu (&lt; 3 Bulan)</option>
+                                <option value="eligible">Siap Diklaim (3 Periode)</option>
+                                <option value="progress">Masa Tunggu (&lt; 3 Periode)</option>
                                 <option value="pending">Menunggu Verifikasi</option>
                                 <option value="claimed">Sudah Dicairkan</option>
                                 <option value="no_account">Belum Copytrade</option>
@@ -483,8 +484,8 @@ const getStatusBadge = (status) => {
                                         />
                                     </th>
                                     <th class="px-4 py-3">Investor</th>
-                                    <th class="px-4 py-3">Periode 3 Bulan &amp; Progres</th>
-                                    <th class="px-4 py-3">Akun Tergabung</th>
+                                    <th class="px-4 py-3">Progres 3 Periode</th>
+                                    <th class="px-4 py-3">Nomor Akun / Mulai Investasi</th>
                                     <th class="px-4 py-3">Total Modal &amp; Tier</th>
                                     <th class="px-4 py-3">Status Kelayakan</th>
                                     <th class="px-4 py-3 text-right">Aksi</th>
@@ -543,73 +544,64 @@ const getStatusBadge = (status) => {
                                         </div>
                                     </td>
 
-                                    <!-- 3. Kolom Periode 3 Bulan & Progres -->
+                                    <!-- 3. Kolom Progres 3 Periode -->
                                     <td class="px-4 py-3.5 align-middle">
-                                        <div v-if="downline.first_started_at" class="space-y-1">
-                                            <p
-                                                class="text-foreground text-xs font-medium whitespace-nowrap"
-                                            >
-                                                {{ downline.first_started_at }} &ndash;
-                                                {{ downline.period_end_date }}
-                                            </p>
-                                            <div class="flex items-center gap-2">
-                                                <div
-                                                    class="bg-muted h-1.5 w-24 overflow-hidden rounded-full"
-                                                >
-                                                    <div
-                                                        class="h-full rounded-full transition-all"
-                                                        :class="
-                                                            downline.active_days >=
-                                                            (downline.target_days || 90)
-                                                                ? 'bg-emerald-500'
-                                                                : 'bg-sky-500'
-                                                        "
-                                                        :style="{
-                                                            width: `${Math.min(100, Math.round((downline.active_days / (downline.target_days || 90)) * 100))}%`,
-                                                        }"
-                                                    ></div>
-                                                </div>
-                                                <span
-                                                    class="text-muted-foreground font-mono text-[11px] font-semibold"
-                                                >
-                                                    {{ downline.active_days }}/{{
-                                                        downline.target_days || 90
-                                                    }}
-                                                    Hari
-                                                </span>
+                                        <div v-if="downline.periods_progress?.length" class="space-y-1.5">
+                                            <!-- 3-Langkah Stepper -->
+                                            <div class="flex items-center gap-1.5">
+                                                <template v-for="(p, pIdx) in downline.periods_progress" :key="p.periode_ke">
+                                                    <span
+                                                        :title="p.periode_label ? `Periode ${p.periode_ke}: ${p.periode_label} (${p.status_tampil})` : `Periode ${p.periode_ke}: ${p.status_tampil}`"
+                                                        :class="[
+                                                            'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold border transition-colors cursor-help',
+                                                            p.state === 'settled'
+                                                                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
+                                                                : p.state === 'unsettled'
+                                                                  ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
+                                                                  : 'bg-muted/60 text-muted-foreground border-border/60'
+                                                        ]"
+                                                    >
+                                                        <CheckCircle2 v-if="p.state === 'settled'" class="h-3 w-3" />
+                                                        <Clock v-else-if="p.state === 'unsettled'" class="h-3 w-3" />
+                                                        <Minus v-else class="h-3 w-3" />
+                                                        <span>{{ p.label }}</span>
+                                                    </span>
+                                                    <span v-if="pIdx < downline.periods_progress.length - 1" class="text-muted-foreground/40 text-xs font-bold">&rsaquo;</span>
+                                                </template>
                                             </div>
+                                            <p class="text-[11px] text-muted-foreground font-medium">
+                                                <span v-if="downline.completed_periods_count === 3" class="text-emerald-600 dark:text-emerald-400 font-semibold">
+                                                    3/3 Periode Lengkap
+                                                </span>
+                                                <span v-else-if="downline.jumlah_akun > 0">
+                                                    {{ downline.completed_periods_count || 0 }}/3 Periode Selesai
+                                                </span>
+                                                <span v-else>
+                                                    Belum Copytrade
+                                                </span>
+                                            </p>
                                         </div>
                                         <span v-else class="text-muted-foreground text-xs">-</span>
                                     </td>
 
-                                    <!-- 4. Kolom Akun Tergabung -->
+                                    <!-- 4. Kolom Nomor Akun / Mulai Investasi -->
                                     <td class="px-4 py-3.5 align-middle">
                                         <div v-if="downline.accounts?.length" class="space-y-1">
-                                            <div class="flex flex-wrap items-center gap-1">
-                                                <span
-                                                    v-for="(acc, idx) in downline.accounts.slice(
-                                                        0,
-                                                        2
-                                                    )"
-                                                    :key="idx"
-                                                    class="border-border bg-muted/40 text-foreground inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono text-[10px]"
-                                                >
-                                                    <strong>{{ acc.broker }}</strong>
-                                                    <span>({{ acc.hari_kehitung }} hr)</span>
-                                                </span>
-                                                <span
-                                                    v-if="downline.accounts.length > 2"
-                                                    class="bg-muted text-muted-foreground rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
-                                                >
-                                                    +{{ downline.accounts.length - 2 }} lainnya
+                                            <div
+                                                v-for="(acc, idx) in downline.accounts"
+                                                :key="idx"
+                                                class="font-mono text-xs text-foreground"
+                                            >
+                                                <span class="font-bold">#{{ acc.nomor_akun || '-' }}</span>
+                                                <span class="text-muted-foreground font-sans text-[11px]">
+                                                    &mdash; {{ acc.tanggal_mulai || '-' }}
                                                 </span>
                                             </div>
                                             <p
                                                 v-if="downline.has_multi_copytrade"
                                                 class="text-muted-foreground text-[10px]"
                                             >
-                                                {{ downline.jumlah_akun }} akun digabung
-                                                (proporsional)
+                                                {{ downline.jumlah_akun }} akun terdaftar
                                             </p>
                                         </div>
                                         <span v-else class="text-muted-foreground text-xs"
@@ -948,20 +940,13 @@ const getStatusBadge = (status) => {
                                     >No. {{ acc.nomor_akun }}</span
                                 >
                                 <span
-                                    v-if="acc.is_first"
-                                    class="rounded border border-sky-500/30 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-bold text-sky-800 dark:text-sky-300"
+                                    class="rounded border border-primary-500/30 bg-primary-500/10 px-1.5 py-0.5 text-[10px] font-bold text-primary-800 dark:text-primary-300"
                                 >
-                                    Akun Pertama (Acuan 3 Bulan)
-                                </span>
-                                <span
-                                    v-else
-                                    class="rounded border border-purple-500/30 bg-purple-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-purple-800 dark:text-purple-300"
-                                >
-                                    Akun Tambahan (+{{ acc.selisih_hari }} hari)
+                                    Tier {{ acc.tier_level }} ({{ acc.persentase_tier }}%)
                                 </span>
                             </div>
                             <p class="text-muted-foreground text-[11px]">
-                                Mulai: {{ acc.tanggal_mulai }} s/d {{ acc.tanggal_selesai }}
+                                Mulai Investasi: {{ acc.tanggal_mulai || '-' }}
                             </p>
                         </div>
 
@@ -978,12 +963,12 @@ const getStatusBadge = (status) => {
                                 class="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-center"
                             >
                                 <span class="text-muted-foreground block text-[9px]"
-                                    >Dihitung:</span
+                                    >Laporan:</span
                                 >
                                 <span
                                     class="font-mono text-xs font-extrabold text-emerald-800 dark:text-emerald-300"
                                 >
-                                    {{ acc.hari_kehitung }} Hari
+                                    {{ acc.reports_count || 0 }}/3 Periode
                                 </span>
                             </div>
                         </div>

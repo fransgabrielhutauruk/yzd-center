@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Models\TagihanMasterFee;
+use App\Models\LaporanProfitBulanan;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
@@ -12,7 +12,7 @@ class MasterFeeIssuedNotification extends Notification
     use Queueable;
 
     public function __construct(
-        public TagihanMasterFee $tagihan
+        public LaporanProfitBulanan $laporan
     ) {}
 
     /**
@@ -28,17 +28,16 @@ class MasterFeeIssuedNotification extends Notification
      */
     public function toArray(object $notifiable): array
     {
-        $periodeFormatted = Carbon::parse($this->tagihan->periode)->isoFormat('MMMM Y');
-        $jatuhTempoFormatted = Carbon::parse($this->tagihan->jatuh_tempo)->isoFormat('D MMMM Y');
-        $feeFormatted = '$' . number_format((float) $this->tagihan->nominal_fee, 2);
+        $periodeFormatted = Carbon::parse($this->laporan->periode_akhir)->isoFormat('MMMM Y');
+        $feeFormatted = '$' . number_format((float) $this->laporan->fee_usd, 2);
 
         return [
             'type'       => 'master_fee_issued',
-            'title'      => 'Tagihan Master Fee Baru Diterbitkan',
-            'message'    => "Tagihan Master Fee ({$this->tagihan->nomor}) periode {$periodeFormatted} sebesar {$feeFormatted} telah diterbitkan. Jatuh tempo: {$jatuhTempoFormatted}.",
+            'title'      => 'Master Fee Diterbitkan',
+            'message'    => "Laporan profit ({$this->laporan->nomor}) periode {$periodeFormatted} dengan fee {$feeFormatted} telah dibuat. Silakan lakukan pembayaran dan unggah bukti transfer.",
             'icon'       => 'receipt',
-            'tagihan_id' => $this->tagihan->id,
-            'nomor'      => $this->tagihan->nomor,
+            'laporan_id' => $this->laporan->id,
+            'nomor'      => $this->laporan->nomor,
             'url'        => '/member/master-fee',
         ];
     }

@@ -178,6 +178,18 @@ const submit = () => {
                                     >{{ copytrade.broker }} ({{ copytrade.tipe_akun }})</span
                                 >
                             </div>
+                            <div v-if="copytrade.myfxbook_url" class="flex justify-between items-center">
+                                <span class="text-muted-foreground">Myfxbook:</span>
+                                <a
+                                    :href="copytrade.myfxbook_url"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="text-primary hover:underline inline-flex items-center gap-1 font-mono text-xs font-semibold"
+                                >
+                                    <span>Buka Myfxbook</span>
+                                    <ExternalLink class="h-3 w-3" />
+                                </a>
+                            </div>
                             <div class="flex justify-between">
                                 <span class="text-muted-foreground">Modal:</span>
                                 <span

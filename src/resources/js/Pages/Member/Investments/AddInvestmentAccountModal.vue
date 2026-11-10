@@ -47,6 +47,7 @@ const getTodayIso = () => new Date().toISOString().split('T')[0];
 const form = useForm({
     tier_investasi: props.defaultTier || '',
     nomor_akun_trading: '',
+    myfxbook_url: '',
     modal_riil: '',
     tanggal_mulai_trading: getTodayIso(),
     nama_bank: '',
@@ -273,7 +274,7 @@ const resetAndClose = () => {
                         >
                             <option value="" disabled>Pilih Tier Investasi</option>
                             <option value="tier_1">Tier 1 - Copytrade Cent Broker HFM (Di bawah ${{ TIER_2_MIN.toLocaleString() }})</option>
-                            <option value="tier_2">Tier 2 - Copytrade Standard Broker XM (${{ TIER_2_MIN.toLocaleString() }} - ${{ TIER_3_MIN.toLocaleString() }})</option>
+                            <option value="tier_2">Tier 2 - Copytrade Standard Broker HFM (${{ TIER_2_MIN.toLocaleString() }} - ${{ TIER_3_MIN.toLocaleString() }})</option>
                             <option value="tier_3">Tier 3 - Direct Managed Trading Broker XM (Minimal ${{ TIER_3_MIN.toLocaleString() }})</option>
                         </select>
                         <p v-if="form.errors.tier_investasi" class="text-destructive text-xs">
@@ -294,6 +295,36 @@ const resetAndClose = () => {
                         />
                         <p v-if="form.errors.nomor_akun_trading" class="text-destructive text-xs">
                             {{ form.errors.nomor_akun_trading }}
+                        </p>
+                    </div>
+
+                    <!-- Tautan Myfxbook -->
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <label class="text-foreground block text-xs font-semibold">
+                                Tautan Myfxbook Akun Trading <span class="text-destructive">*</span>
+                            </label>
+                            <a
+                                href="https://www.myfxbook.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="text-[11px] text-primary hover:underline inline-flex items-center gap-1 font-medium"
+                            >
+                                <span>Buka Myfxbook</span>
+                                <ExternalLink class="h-3 w-3" />
+                            </a>
+                        </div>
+                        <input
+                            v-model="form.myfxbook_url"
+                            type="url"
+                            placeholder="https://www.myfxbook.com/members/username/system-name/1234567"
+                            class="bg-background border-input focus:ring-primary w-full rounded-lg border px-3 py-2 text-xs focus:ring-2 focus:outline-none"
+                        />
+                        <p class="text-muted-foreground text-[11px]">
+                            Tautan publik portofolio akun trading Anda pada platform Myfxbook sebagai acuan resmi laporan profit bulanan.
+                        </p>
+                        <p v-if="form.errors.myfxbook_url" class="text-destructive text-xs">
+                            {{ form.errors.myfxbook_url }}
                         </p>
                     </div>
 

@@ -7,15 +7,11 @@ Dokumen ini memuat spesifikasi teknis dan aturan bisnis untuk perhitungan hak ko
 ## 1. Ringkasan Fitur & Peran Terlibat
 
 - **Satu Tiket Klaim = 1 Baris (1 Row):** Pengajuan klaim komisi affiliator—meskipun memilih banyak investor downline dan banyak akun copytrade sekaligus—dihitung dan dicatat sebagai **1 (satu) permohonan klaim utama (1 row)** pada tabel `klaim_komisi` dengan kode klaim tunggal (`CLM-YYYYMM-XXXX`) dan rincian item pada `klaim_komisi_items`.
-- **Acuan Periode 90 Hari (1 Kali Klaim Per Downline):**
-  - Hak komisi per downline diajukan **1 kali saja** untuk periode copytrade 90 hari (3 bulan).
-  - Syarat kelayakan klaim: investor telah aktif copytrade minimal **90 hari** sejak pertama kali mulai.
-- **Investor dengan Lebih dari 1 Akun Copytrade (Multi-Akun):**
-  - Acuan hari pertama copytrade adalah waktu akun copytrade pertama kali aktif (`min(copy_started_at)`).
-  - Akun pertama dihitung penuh **90 hari**.
-  - Jika investor memiliki akun kedua, ketiga, dst., hari yang dihitung adalah **90 hari dikurangi selisih hari mulai akun tersebut terhadap akun pertama**:
-    $$\text{hari\_kehitung} = \max(0, 90 - \Delta\text{hari\_start})$$
-    *(Contoh: Akun ke-2 mulai pada hari ke-20 setelah Akun 1, maka Akun ke-2 dihitung 70 hari)*.
+- **Acuan 3 Laporan Bulanan (Eliminasi Jendela 90 Hari & `hari_kehitung`):**
+  - Hak komisi per downline diajukan **1 kali saja** setelah seluruh akun copytrade downline menyelesaikan **3 laporan profit bulanan pertama (`periode_ke` 1, 2, 3)**.
+  - Syarat kelayakan klaim: setiap akun copytrade milik downline wajib memiliki minimal 3 laporan bulanan dan seluruh laporan tersebut berstatus lunas (`lunas` atau `tanpa_fee`).
+  - Jika salah satu akun memiliki tagihan Master Fee yang belum diselesaikan (`belum_dibayar`, `menunggu_verifikasi`, atau `perlu_koreksi`), klaim dicegah dengan status *"Tagihan Belum Selesai"*.
+  - Jika laporan bulanan belum genap 3 periode, status menampilkan *"Menunggu 3 Laporan Bulanan (X/3)"*.
 - **Penarikan Otomatis Modal Riil (Zero Manual Input & Zero Upload Bukti):**
   - Affiliator **tidak perlu** menginput angka nominal deposit.
   - Affiliator **tidak perlu** mengunggah file bukti modal/portofolio.

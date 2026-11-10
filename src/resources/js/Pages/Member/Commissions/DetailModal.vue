@@ -188,7 +188,7 @@ const statusBadge = computed(() => {
                             <div>
                                 <span class="text-muted-foreground block text-[10px]">Periode Aktif:</span>
                                 <span class="text-foreground font-medium block">{{ item.tanggal_mulai }} s/d {{ item.tanggal_selesai }}</span>
-                                <span class="text-emerald-700 dark:text-emerald-400 font-bold text-[10px]">Dihitung {{ item.hari_kehitung }} Hari</span>
+                                <span class="text-emerald-700 dark:text-emerald-400 font-bold text-[10px]">3 Periode Laporan Selesai</span>
                             </div>
                             <div>
                                 <span class="text-muted-foreground block text-[10px]">Modal Awal Investor:</span>
@@ -222,11 +222,13 @@ const statusBadge = computed(() => {
                                 </div>
                                 <div>
                                     <span class="text-muted-foreground block font-sans">Hak Master ({{ item.master_share_pct ?? 30 }}%):</span>
-                                    <strong class="text-foreground">{{ formatUSD(item.master_gross_share ?? item.profit_master) }}</strong>
+                                    <strong class="text-foreground block">{{ formatUSD(item.master_gross_share ?? item.profit_master) }}</strong>
+                                    <span v-if="item.master_gross_share_idr" class="text-muted-foreground text-[9px] block">(&approx; {{ formatRupiah(item.master_gross_share_idr) }})</span>
                                 </div>
                                 <div class="rounded bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5">
                                     <span class="text-emerald-800 dark:text-emerald-300 block font-sans font-bold">Komisi Afiliator:</span>
-                                    <strong class="text-emerald-800 dark:text-emerald-300 text-xs">{{ formatUSD(item.affiliate_commission ?? item.nominal_transfer) }}</strong>
+                                    <strong class="text-emerald-800 dark:text-emerald-300 text-xs block">{{ formatUSD(item.affiliate_commission ?? item.nominal_transfer) }}</strong>
+                                    <span v-if="item.affiliate_commission_idr" class="text-emerald-700/80 dark:text-emerald-400/80 text-[9px] block">(&approx; {{ formatRupiah(item.affiliate_commission_idr) }})</span>
                                 </div>
                                 <div>
                                     <span class="text-muted-foreground block font-sans">Net Investor:</span>
@@ -269,14 +271,14 @@ const statusBadge = computed(() => {
                     </div>
                 </div>
 
-                <!-- Konversi Rupiah Sesuai Kurs MT4 -->
+                <!-- Konversi Rupiah Sesuai Setoran Riil Investor / Kurs Efektif -->
                 <div
                     v-if="claim.kurs_konversi_idr || claim.total_nominal_transfer_idr"
                     class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 flex items-center justify-between flex-wrap gap-2"
                 >
                     <div class="space-y-0.5">
                         <span class="text-[10px] font-semibold text-emerald-900 dark:text-emerald-200 block">
-                            Kurs Konversi MT4:
+                            Kurs Konversi Efektif:
                         </span>
                         <strong class="font-mono text-xs text-foreground">
                             {{ formatRupiah(claim.kurs_konversi_idr) }} / $1 USD

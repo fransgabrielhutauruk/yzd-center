@@ -355,6 +355,7 @@ Mengelola status verifikasi 2-tahap akun MT4 investor hingga aktif menyalin Mast
 | `step2_copy_status` | `ENUM` | `'locked', 'pending', 'active_copying', 'rejected'` | Gembok terbuka setelah step 1 verified. |
 | `step2_copy_verified_at` | `TIMESTAMP` | `NULLABLE` | Waktu admin menyetujui penyalinan copy. |
 | `step3_mql5_url` | `VARCHAR(255)` | `NULLABLE` | URL portofolio publik pribadi investor (opsional). |
+| `myfxbook_url` | `VARCHAR(255)` | `NULLABLE` | Tautan portofolio Myfxbook publik untuk pemantauan performa transparan. |
 | `copy_started_at` | `DATETIME` | `NULLABLE` | **Titik awal perhitungan 3 bulan aktif untuk klaim komisi.** |
 | `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
 
@@ -512,56 +513,42 @@ Modul saluran komunikasi pelaporan kendala teknis, akun, verifikasi, atau transa
 
 ---
 
-### 3.16 Tabel `riwayat_balance_copytrade` (Rekap Saldo Bulanan Investor)
-Menyimpan riwayat saldo bulanan akun copytrade investor beserta mutasi penarikan, setoran tambahan, dan bukti saldo.
-- **Model Laravel:** `App\Models\RiwayatBalanceCopytrade` (`protected $table = 'riwayat_balance_copytrade';`)
+### 3.16 Tabel `laporan_profit_bulanan` (Laporan Profit Bulanan & Master Fee)
+Menyimpan laporan profit trading bulanan per akun copytrade (didukung screenshot Myfxbook dan screenshot penarikan WD broker) serta penagihan Master Fee.
+- **Model Laravel:** `App\Models\LaporanProfitBulanan` (`protected $table = 'laporan_profit_bulanan';`)
 
 | Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
 |---|---|---|---|
-| `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik rekap. |
+| `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik laporan. |
+| `nomor` | `VARCHAR(20)` | `UNIQUE, NOT NULL` | Nomor tagihan/laporan (format: `MFE-YYYYMM-XXXX`). |
 | `akun_copytrade_id` | `BIGINT UNSIGNED` | `FK -> akun_copytrade.id, CASCADE` | Akun copytrade terkait. |
-| `user_id` | `BIGINT UNSIGNED` | `FK -> users.id, CASCADE` | Investor pemilik akun. |
-| `tanggal_pencatatan` | `DATE` | `NOT NULL, INDEX` | Tanggal pencatatan rekap saldo. |
-| `balance` | `DECIMAL(15,2)` | `NOT NULL` | Saldo akhir trading (USD). |
-| `penarikan` | `DECIMAL(15,2)` | `NOT NULL, DEFAULT 0` | Total penarikan profit/modal pada periode berjalan (USD). |
-| `setoran_tambahan` | `DECIMAL(15,2)` | `NOT NULL, DEFAULT 0` | Total setoran modal tambahan pada periode berjalan (USD). |
-| `keuntungan_nominal` | `DECIMAL(15,2)` | `NOT NULL, DEFAULT 0` | Profit bersih periode berjalan ($\text{balance} - \text{prev} + \text{wd} - \text{depo}$). |
-| `keuntungan_persen` | `DECIMAL(8,2)` | `NOT NULL, DEFAULT 0` | Persentase keuntungan terhadap saldo acuan. |
-| `keuntungan_kumulatif` | `DECIMAL(15,2)` | `NOT NULL, DEFAULT 0` | Akumulasi total profit dari awal. |
-| `pertumbuhan_kumulatif_persen` | `DECIMAL(8,2)` | `NOT NULL, DEFAULT 0` | Akumulasi persentase pertumbuhan dari modal awal. |
-| `bukti_saldo_path` | `VARCHAR(255)` | `NULLABLE` | Path file bukti foto/tangkapan layar saldo MT4 di disk privat. |
-| `catatan` | `TEXT` | `NULLABLE` | Catatan opsional dari investor. |
-| `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
-
----
-
-### 3.17 Tabel `tagihan_master_fee` (Tagihan Performance Fee 30% Bulanan)
-Menyimpan tagihan performance fee 30% Master Trader yang terbit otomatis dari rekap saldo bulanan yang membukukan profit bersih.
-- **Model Laravel:** `App\Models\TagihanMasterFee` (`protected $table = 'tagihan_master_fee';`)
-
-| Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
-|---|---|---|---|
-| `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik tagihan. |
-| `nomor` | `VARCHAR(20)` | `UNIQUE, NOT NULL` | Nomor tagihan bulanan (format: `MFE-YYYYMM-XXXX`). |
-| `riwayat_balance_id` | `BIGINT UNSIGNED` | `FK -> riwayat_balance_copytrade.id, UNIQUE, CASCADE` | Rekap saldo yang mendasari tagihan. |
-| `akun_copytrade_id` | `BIGINT UNSIGNED` | `FK -> akun_copytrade.id, CASCADE` | Akun copytrade terkait. |
-| `user_id` | `BIGINT UNSIGNED` | `FK -> users.id, CASCADE` | Investor yang ditagih. |
-| `periode` | `DATE` | `NOT NULL` | Hari pertama bulan profit (bulan sebelum tanggal pencatatan). |
-| `profit_bersih` | `DECIMAL(15,2)` | `NOT NULL` | Nominal profit bersih yang dikenakan fee (USD). |
-| `fee_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 30.00` | Persentase fee yang dikunci pada saat tagihan dibuat. |
-| `nominal_fee` | `DECIMAL(15,2)` | `NOT NULL` | Nilai tagihan fee dalam USD ($\text{profit\_bersih} \times \text{fee\_persen} / 100$). |
-| `jatuh_tempo` | `DATE` | `NOT NULL` | Batas pembayaran (tanggal 10 bulan pencatatan). |
-| `status` | `VARCHAR(25)` | `INDEX, DEFAULT 'belum_dibayar'` | Status tagihan (`belum_dibayar`, `menunggu_verifikasi`, `lunas`, `ditolak`). |
-| `bukti_transfer_path` | `VARCHAR(255)` | `NULLABLE` | Path resi transfer manual yang diunggah investor. |
-| `dibayar_at` | `TIMESTAMP` | `NULLABLE` | Waktu investor mengunggah bukti transfer. |
-| `catatan_admin` | `TEXT` | `NULLABLE` | Alasan penolakan dari admin jika ditolak. |
+| `user_id` | `BIGINT UNSIGNED` | `FK -> users.id, CASCADE` | Investor pemilik akun / pelapor. |
+| `periode_ke` | `SMALLINT UNSIGNED` | `NOT NULL` | Periode pelaporan bulanan ke-1, ke-2, ke-3, dst. |
+| `periode_awal` | `DATE` | `NOT NULL` | Tanggal mulai rentang periode performa. |
+| `periode_akhir` | `DATE` | `NOT NULL` | Tanggal akhir rentang periode performa. |
+| `jatuh_tempo` | `DATE` | `NOT NULL` | Batas waktu pelaporan/pembayaran fee. |
+| `profit_usd` | `DECIMAL(15,2)` | `NOT NULL` | Nominal profit/loss trading periode berjalan (USD). Boleh negatif. |
+| `bukti_myfxbook_path` | `VARCHAR(255)` | `NOT NULL` | Path screenshot pembuktian profit dari Myfxbook di disk privat. |
+| `wd_usd` | `DECIMAL(15,2)` | `NULLABLE` | Nominal penarikan dana ke rekening broker dalam USD (30% - 60% jika profit > 0). |
+| `wd_idr` | `DECIMAL(18,0)` | `NULLABLE` | Nominal penarikan dana yang diterima dalam Rupiah (IDR). |
+| `bukti_wd_path` | `VARCHAR(255)` | `NULLABLE` | Path screenshot mutasi penarikan WD dari broker di disk privat. |
+| `kurs_riil` | `DECIMAL(15,2)` | `NULLABLE` | Nilai tukar riil dari penarikan broker (`wd_idr / wd_usd`). |
+| `fee_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 30.00` | Persentase Master Fee platform (%). |
+| `fee_usd` | `DECIMAL(15,2)` | `NOT NULL, DEFAULT 0` | Nominal tagihan fee dalam USD (`profit_usd * fee_persen / 100`). |
+| `fee_idr` | `DECIMAL(18,0)` | `NOT NULL, DEFAULT 0` | Nominal tagihan fee dalam IDR (`fee_usd * kurs_riil`). |
+| `status` | `VARCHAR(25)` | `INDEX, DEFAULT 'belum_dibayar'` | Status tagihan (`belum_dibayar`, `menunggu_verifikasi`, `lunas`, `tanpa_fee`). |
+| `bukti_transfer_path` | `VARCHAR(255)` | `NULLABLE` | Path resi transfer pelunasan Master Fee ke rekening Master Trader. |
+| `dibayar_at` | `TIMESTAMP` | `NULLABLE` | Waktu pengunggahan resi transfer fee. |
+| `catatan_admin` | `TEXT` | `NULLABLE` | Alasan penolakan dari admin jika resi ditolak. |
+| `perlu_koreksi` | `BOOLEAN` | `DEFAULT FALSE` | Status penandaan revisi input oleh admin. |
+| `catatan_koreksi` | `TEXT` | `NULLABLE` | Instruksi koreksi data laporan dari admin kepada member. |
 | `verified_by` | `BIGINT UNSIGNED` | `FK -> users.id, NULLABLE` | Admin pemverifikasi. |
-| `verified_at` | `TIMESTAMP` | `NULLABLE` | Waktu tagihan diverifikasi lunas. |
+| `verified_at` | `TIMESTAMP` | `NULLABLE` | Waktu laporan & fee diverifikasi lunas. |
 | `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
 
 ---
 
-### 3.18 Tabel `pengaturan_master_fee` (Pengaturan Rekening & Fee Master Trader)
+### 3.17 Tabel `pengaturan_master_fee` (Pengaturan Rekening & Fee Master Trader)
 Menyimpan rekening tujuan transfer Master Fee dan persentase fee global.
 - **Model Laravel:** `App\Models\PengaturanMasterFee` (`protected $table = 'pengaturan_master_fee';`)
 
@@ -572,6 +559,7 @@ Menyimpan rekening tujuan transfer Master Fee dan persentase fee global.
 | `nomor_rekening` | `VARCHAR(100)` | `NULLABLE` | Nomor rekening bank Master Trader. |
 | `atas_nama` | `VARCHAR(150)` | `NULLABLE` | Nama pemilik rekening bank Master Trader. |
 | `fee_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 30.00` | Persentase performance fee default platform (%). |
+| `wd_maks_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 60.00` | Batas persentase maksimal penarikan WD broker (%). |
 | `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
 
 ---

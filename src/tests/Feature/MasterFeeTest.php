@@ -3,15 +3,16 @@
 namespace Tests\Feature;
 
 use App\Models\AkunCopytrade;
+use App\Models\LaporanProfitBulanan;
 use App\Models\PengaturanMasterFee;
+use App\Models\RelasiReferral;
 use App\Models\User;
-use App\Services\BalanceService;
 use App\Services\MasterFeeService;
+use App\Support\ProfitPeriod;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class MasterFeeTest extends TestCase
@@ -22,9 +23,11 @@ class MasterFeeTest extends TestCase
 
     protected User $member;
 
-    protected AkunCopytrade $akun;
+    protected User $affiliator;
 
-    protected BalanceService $balanceService;
+    protected User $otherMember;
+
+    protected AkunCopytrade $akun;
 
     protected MasterFeeService $masterFeeService;
 
@@ -39,12 +42,32 @@ class MasterFeeTest extends TestCase
             'is_active' => true,
         ]);
 
+        $this->affiliator = User::factory()->create([
+            'role'      => 'member',
+            'status'    => 'active',
+            'is_active' => true,
+        ]);
+
         $this->member = User::factory()->create([
             'role'      => 'member',
             'status'    => 'active',
             'is_active' => true,
         ]);
 
+        RelasiReferral::create([
+            'affiliator_id' => $this->affiliator->id,
+            'downline_id'   => $this->member->id,
+            'status'        => 'active',
+            'joined_at'     => now(),
+        ]);
+
+        $this->otherMember = User::factory()->create([
+            'role'      => 'member',
+            'status'    => 'active',
+            'is_active' => true,
+        ]);
+
+        // Akun aktif mulai 3 Agustus 2026 (hari 1-15: periode 1 s/d 31 Agu 2026, buka input 1 Sep 2026)
         $this->akun = AkunCopytrade::create([
             'user_id'            => $this->member->id,
             'tier'               => 'tier_1',
@@ -52,380 +75,399 @@ class MasterFeeTest extends TestCase
             'tipe_akun'          => 'cent',
             'nomor_akun_trading' => 'MT4-TEST-FEE-01',
             'modal_riil'         => 1000.00,
-            'tanggal_mulai'      => '2026-08-01',
+            'tanggal_mulai'      => '2026-08-03',
             'nama_bank'          => 'BCA',
             'nomor_rekening'     => '1122334455',
             'atas_nama_rekening' => 'Test Member',
             'status'             => 'active',
-            'verified_at'        => now(),
+            'myfxbook_url'       => 'https://www.myfxbook.com/members/tester/test-sys/12345',
+            'verified_at'        => '2026-08-03 10:00:00',
         ]);
 
         PengaturanMasterFee::current();
-        $this->balanceService = app(BalanceService::class);
         $this->masterFeeService = app(MasterFeeService::class);
     }
 
-    public function test_profit_bersih_formula_and_automatic_master_fee_generation(): void
+    public function test_profit_period_rules(): void
     {
-        // Rekap 1: Modal $1000 -> Saldo $1200. Profit $200. Fee 30% = $60
-        $file = UploadedFile::fake()->image('bukti_saldo_1.png');
-        $rekap1 = $this->balanceService->recordBalance($this->akun, [
-            'tanggal_pencatatan' => '2026-09-01',
-            'balance'            => 1200.00,
-            'penarikan'          => 0,
-            'setoran_tambahan'   => 0,
-            'bukti_saldo'        => $file,
-        ], $this->member);
+        // 1. Akun mulai tgl 1-15: akhir periode adalah akhir bulan yang sama
+        $mulaiAwal = Carbon::parse('2026-08-03');
+        $this->assertEquals('2026-08-31', ProfitPeriod::firstPeriodEnd($mulaiAwal)->toDateString());
+        $this->assertEquals('2026-09-01', ProfitPeriod::openReportDate(Carbon::parse('2026-08-31'))->toDateString());
 
-        $this->assertEquals(200.00, (float) $rekap1->keuntungan_nominal);
-        $this->assertNotNull($rekap1->tagihanMasterFee);
-        $this->assertEquals(60.00, (float) $rekap1->tagihanMasterFee->nominal_fee);
-        $this->assertEquals('2026-08-01', $rekap1->tagihanMasterFee->periode->format('Y-m-d'));
-        $this->assertEquals('2026-09-10', $rekap1->tagihanMasterFee->jatuh_tempo->format('Y-m-d'));
-        $this->assertEquals('belum_dibayar', $rekap1->tagihanMasterFee->status);
+        // 2. Akun mulai tgl 16-31: akhir periode adalah akhir bulan berikutnya
+        $mulaiAkhir = Carbon::parse('2026-06-17');
+        $this->assertEquals('2026-07-31', ProfitPeriod::firstPeriodEnd($mulaiAkhir)->toDateString());
+        $this->assertEquals('2026-08-01', ProfitPeriod::openReportDate(Carbon::parse('2026-07-31'))->toDateString());
 
-        // Rekap 2: Ada penarikan $50 dan setoran tambahan $100
-        // Saldo sebelumnya $1200, saldo akhir $1400.
-        // Profit bersih = 1400 - 1200 + 50 - 100 = 150. Fee 30% = $45
-        $file2 = UploadedFile::fake()->image('bukti_saldo_2.png');
-        $rekap2 = $this->balanceService->recordBalance($this->akun, [
-            'tanggal_pencatatan' => '2026-10-01',
-            'balance'            => 1400.00,
-            'penarikan'          => 50.00,
-            'setoran_tambahan'   => 100.00,
-            'bukti_saldo'        => $file2,
-        ], $this->member);
+        // 3. Tanggal input belum dibuka sebelum tanggal 1 bulan berikutnya
+        Carbon::setTestNow('2026-08-25');
+        $this->assertNull(ProfitPeriod::nextReportablePeriod($this->akun, Carbon::now()));
 
-        $this->assertEquals(150.00, (float) $rekap2->keuntungan_nominal);
-        $this->assertNotNull($rekap2->tagihanMasterFee);
-        $this->assertEquals(45.00, (float) $rekap2->tagihanMasterFee->nominal_fee);
+        // 4. Tanggal input terbuka tepat tanggal 1 bulan berikutnya
+        Carbon::setTestNow('2026-09-01');
+        $next = ProfitPeriod::nextReportablePeriod($this->akun, Carbon::now());
+        $this->assertNotNull($next);
+        $this->assertEquals(1, $next['ke']);
+        $this->assertEquals('2026-08-03', $next['awal']->toDateString());
+        $this->assertEquals('2026-08-31', $next['akhir']->toDateString());
     }
 
-    public function test_loss_or_break_even_does_not_create_invoice_and_deletes_unpaid_if_recalculated_to_loss(): void
+    public function test_submit_report_with_positive_profit_calculates_fee_and_kurs_riil_correctly(): void
     {
-        // Rekap dengan rugi: modal 1000 -> saldo 900. Profit bersih = -100
-        $file = UploadedFile::fake()->image('bukti_saldo.png');
-        $rekap = $this->balanceService->recordBalance($this->akun, [
-            'tanggal_pencatatan' => '2026-09-01',
-            'balance'            => 900.00,
-            'bukti_saldo'        => $file,
-        ], $this->member);
+        Carbon::setTestNow('2026-09-02');
 
-        $this->assertEquals(-100.00, (float) $rekap->keuntungan_nominal);
-        $this->assertNull($rekap->fresh()->tagihanMasterFee);
+        $myfxbook = UploadedFile::fake()->image('myfxbook.png');
+        $wd = UploadedFile::fake()->image('wd_broker.png');
 
-        // Ubah menjadi untung $200 (saldo 1200) -> tagihan terbit
-        $this->balanceService->updateBalance($rekap, [
-            'tanggal_pencatatan' => '2026-09-01',
-            'balance'            => 1200.00,
-        ]);
+        // Contoh skenario: profit $100, WD $60, diterima Rp1.000.000
+        // fee 30% -> $30. kurs_riil = 1.000.000 / 60 = 16666.67. fee_idr = round(30 * 16666.67) = Rp500.000
+        $payload = [
+            'akun_copytrade_id' => $this->akun->id,
+            'periode_ke'        => 1,
+            'profit_usd'        => 100.00,
+            'wd_usd'            => 60.00,
+            'wd_idr'            => 1000000,
+            'bukti_myfxbook'    => $myfxbook,
+            'bukti_wd'          => $wd,
+        ];
 
-        $this->assertNotNull($rekap->fresh()->tagihanMasterFee);
-        $this->assertEquals(60.00, (float) $rekap->fresh()->tagihanMasterFee->nominal_fee);
-
-        // Ubah kembali menjadi rugi -> tagihan otomatis terhapus
-        $this->balanceService->updateBalance($rekap, [
-            'tanggal_pencatatan' => '2026-09-01',
-            'balance'            => 800.00,
-        ]);
-        $this->assertNull($rekap->fresh()->tagihanMasterFee);
-    }
-
-    public function test_recap_is_locked_when_invoice_is_menunggu_verifikasi_or_lunas(): void
-    {
-        $file = UploadedFile::fake()->image('bukti_saldo.png');
-        $rekap = $this->balanceService->recordBalance($this->akun, [
-            'tanggal_pencatatan' => '2026-09-01',
-            'balance'            => 1200.00,
-            'bukti_saldo'        => $file,
-        ], $this->member);
-
-        $tagihan = $rekap->fresh()->tagihanMasterFee;
-        $this->assertNotNull($tagihan);
-
-        // Member unggah bukti transfer -> status menjadi menunggu_verifikasi
-        $tfProof = UploadedFile::fake()->image('transfer.jpg');
-        $this->masterFeeService->submitProof($tagihan, $tfProof, $this->member);
-        $this->assertEquals('menunggu_verifikasi', $tagihan->fresh()->status);
-
-        // Percobaan edit rekap harus ditolak
-        $this->expectException(ValidationException::class);
-        $this->expectExceptionMessage('Rekap terkunci karena tagihan master fee sedang diverifikasi atau sudah lunas.');
-
-        $this->balanceService->updateBalance($rekap, [
-            'tanggal_pencatatan' => '2026-09-01',
-            'balance'            => 1300.00,
-        ]);
-    }
-
-    public function test_admin_can_verify_and_reject_with_reason(): void
-    {
-        $file = UploadedFile::fake()->image('bukti_saldo.png');
-        $rekap = $this->balanceService->recordBalance($this->akun, [
-            'tanggal_pencatatan' => '2026-09-01',
-            'balance'            => 1200.00,
-            'bukti_saldo'        => $file,
-        ], $this->member);
-
-        $tagihan = $rekap->fresh()->tagihanMasterFee;
-
-        // 1. Submit proof
-        $tfProof = UploadedFile::fake()->image('transfer.jpg');
-        $this->masterFeeService->submitProof($tagihan, $tfProof, $this->member);
-
-        // 2. Reject
-        $this->masterFeeService->reject($tagihan, $this->admin, 'Bukti transfer buram tidak terbaca.');
-        $this->assertEquals('ditolak', $tagihan->fresh()->status);
-        $this->assertEquals('Bukti transfer buram tidak terbaca.', $tagihan->fresh()->catatan_admin);
-
-        // 3. Re-upload proof
-        $tfProof2 = UploadedFile::fake()->image('transfer_clear.jpg');
-        $this->masterFeeService->submitProof($tagihan, $tfProof2, $this->member);
-        $this->assertEquals('menunggu_verifikasi', $tagihan->fresh()->status);
-        $this->assertNull($tagihan->fresh()->catatan_admin);
-
-        // 4. Verify
-        $this->masterFeeService->verify($tagihan, $this->admin);
-        $this->assertEquals('lunas', $tagihan->fresh()->status);
-        $this->assertEquals($this->admin->id, $tagihan->fresh()->verified_by);
-        $this->assertNotNull($tagihan->fresh()->verified_at);
-    }
-
-    public function test_http_member_and_admin_endpoints(): void
-    {
-        $file = UploadedFile::fake()->image('bukti_saldo.png');
-        $rekap = $this->balanceService->recordBalance($this->akun, [
-            'tanggal_pencatatan' => '2026-09-01',
-            'balance'            => 1200.00,
-            'bukti_saldo'        => $file,
-        ], $this->member);
-
-        $tagihan = $rekap->fresh()->tagihanMasterFee;
-
-        // Member index
-        $res = $this->actingAs($this->member)->get(route('member.master_fee.index'));
-        $res->assertOk();
-
-        // Member detail JSON
-        $res = $this->actingAs($this->member)->get(route('member.master_fee.show', $tagihan->id));
-        $res->assertOk()->assertJsonFragment(['nomor' => $tagihan->nomor]);
-
-        // Another member cannot view detail
-        $otherMember = User::factory()->create(['role' => 'member', 'status' => 'active', 'is_active' => true]);
-        $this->actingAs($otherMember)->get(route('member.master_fee.show', $tagihan->id))->assertNotFound();
-
-        // Member upload proof
-        $tfProof = UploadedFile::fake()->image('transfer.jpg');
-        $this->actingAs($this->member)->post(route('member.master_fee.proof', $tagihan->id), [
-            'bukti_transfer' => $tfProof,
-        ])->assertRedirect();
-        $this->assertEquals('menunggu_verifikasi', $tagihan->fresh()->status);
-
-        // Admin endpoints
-        $this->actingAs($this->admin)->get(route('admin.master_fee.index'))->assertOk();
-
-        // Admin reject
-        $this->actingAs($this->admin)->post(route('admin.master_fee.reject', $tagihan->id), [
-            'alasan' => 'Bukti salah akun.',
-        ])->assertRedirect();
-        $this->assertEquals('ditolak', $tagihan->fresh()->status);
-
-        // Member re-upload & Admin verify
-        $this->actingAs($this->member)->post(route('member.master_fee.proof', $tagihan->id), [
-            'bukti_transfer' => $tfProof,
-        ])->assertRedirect();
-
-        $this->actingAs($this->admin)->post(route('admin.master_fee.verify', $tagihan->id))->assertRedirect();
-        $this->assertEquals('lunas', $tagihan->fresh()->status);
-
-        // Admin update settings
-        $this->actingAs($this->admin)->put(route('admin.settings.master_fee.update'), [
-            'fee_persen'     => 25,
-            'nama_bank'      => 'Mandiri',
-            'nomor_rekening' => '9876543210',
-            'atas_nama'      => 'Master Fee Updated',
-        ])->assertRedirect();
-        $this->assertSame(25, PengaturanMasterFee::current()->fee_persen);
-        $this->assertEquals('Mandiri', PengaturanMasterFee::current()->nama_bank);
-    }
-
-    public function test_document_streaming_authorization(): void
-    {
-        $file = UploadedFile::fake()->image('bukti_saldo.png');
-        $rekap = $this->balanceService->recordBalance($this->akun, [
-            'tanggal_pencatatan' => '2026-09-01',
-            'balance'            => 1200.00,
-            'bukti_saldo'        => $file,
-        ], $this->member);
-
-        $tagihan = $rekap->fresh()->tagihanMasterFee;
-        $tfProof = UploadedFile::fake()->image('transfer.jpg');
-        $this->masterFeeService->submitProof($tagihan, $tfProof, $this->member);
-
-        $tagihanId = $tagihan->id;
-        $rekapId = $rekap->id;
-
-        // Owner can stream
-        $this->actingAs($this->member)->get(route('documents.master_fee_proof', $tagihanId))->assertOk();
-        $this->actingAs($this->member)->get(route('documents.balance_proof', $rekapId))->assertOk();
-
-        // Admin can stream
-        $this->actingAs($this->admin)->get(route('documents.master_fee_proof', $tagihanId))->assertOk();
-        $this->actingAs($this->admin)->get(route('documents.balance_proof', $rekapId))->assertOk();
-
-        // Other member is forbidden (403)
-        $otherMember = User::factory()->create(['role' => 'member', 'status' => 'active', 'is_active' => true]);
-        $this->actingAs($otherMember)->get(route('documents.master_fee_proof', $tagihanId))->assertForbidden();
-        $this->actingAs($otherMember)->get(route('documents.balance_proof', $rekapId))->assertForbidden();
-    }
-
-    public function test_send_master_fee_reminders_command_is_idempotent(): void
-    {
-        $file = UploadedFile::fake()->image('bukti_saldo.png');
-        $rekap = $this->balanceService->recordBalance($this->akun, [
-            'tanggal_pencatatan' => '2026-09-01',
-            'balance'            => 1200.00,
-            'bukti_saldo'        => $file,
-        ], $this->member);
-
-        $tagihan = $rekap->fresh()->tagihanMasterFee;
-        $this->assertEquals('2026-09-10', $tagihan->jatuh_tempo->format('Y-m-d'));
-
-        // Simulasikan tanggal 7 (pengingat tgl 7)
-        Carbon::setTestNow('2026-09-07 08:00:00');
-
-        $this->artisan('app:send-master-fee-reminders')
-            ->expectsOutputToContain('Sebanyak 1 pengingat berhasil dikirimkan.')
-            ->assertSuccessful();
-
-        // Jalankan kedua kali di hari yang sama -> harus idempoten (0 pengingat)
-        $this->artisan('app:send-master-fee-reminders')
-            ->expectsOutputToContain('Sebanyak 0 pengingat berhasil dikirimkan.')
-            ->assertSuccessful();
-
-        Carbon::setTestNow();
-    }
-
-    public function test_fee_percent_is_locked_per_invoice(): void
-    {
-        $file = UploadedFile::fake()->image('bukti_saldo.png');
-        $rekap = $this->balanceService->recordBalance($this->akun, [
-            'tanggal_pencatatan' => '2026-09-01',
-            'balance'            => 1200.00,
-            'bukti_saldo'        => $file,
-        ], $this->member);
-
-        $tagihan = $rekap->fresh()->tagihanMasterFee;
-        $this->assertEquals(30.00, (float) $tagihan->fee_persen);
-        $this->assertEquals(60.00, (float) $tagihan->nominal_fee);
-
-        // Ubah pengaturan global ke 20%
-        $this->masterFeeService->updateSettings(['fee_persen' => 20], $this->admin);
-
-        // Tagihan lama tetap 30% dan fee tetap $60
-        $this->assertEquals(30.00, (float) $tagihan->fresh()->fee_persen);
-        $this->assertEquals(60.00, (float) $tagihan->fresh()->nominal_fee);
-    }
-
-    public function test_month_range_filtering_for_admin_and_member(): void
-    {
-        $file = UploadedFile::fake()->image('bukti_saldo.png');
-        $rekap1 = $this->balanceService->recordBalance($this->akun, [
-            'tanggal_pencatatan' => '2026-08-01',
-            'balance'            => 1200.00,
-            'bukti_saldo'        => $file,
-        ], $this->member); // Periode: 2026-07-01
-
-        $file2 = UploadedFile::fake()->image('bukti_saldo2.png');
-        $rekap2 = $this->balanceService->recordBalance($this->akun, [
-            'tanggal_pencatatan' => '2026-10-01',
-            'balance'            => 1400.00,
-            'bukti_saldo'        => $file2,
-        ], $this->member); // Periode: 2026-09-01
-
-        // Filter range 2026-08 s/d 2026-09 -> only rekap2 matches
-        $paginator = $this->masterFeeService->paginateForAdmin([
-            'periode_dari'   => '2026-08',
-            'periode_sampai' => '2026-09',
-        ]);
-        $this->assertCount(1, $paginator->items());
-        $this->assertEquals($rekap2->tagihanMasterFee->id, $paginator->items()[0]->id);
-
-        // Filter range 2026-07 s/d 2026-09 -> both match
-        $paginatorAll = $this->masterFeeService->paginateForAdmin([
-            'periode_dari'   => '2026-07',
-            'periode_sampai' => '2026-09',
-        ]);
-        $this->assertCount(2, $paginatorAll->items());
-
-        // Controller endpoint filter test
-        $res = $this->actingAs($this->admin)->get(route('admin.master_fee.index', [
-            'periode_dari'   => '2026-08',
-            'periode_sampai' => '2026-09',
-        ]));
-        $res->assertOk();
-    }
-
-    public function test_admin_can_update_master_fee_settings_via_http(): void
-    {
-        $response = $this->actingAs($this->admin)->put(route('admin.settings.master_fee.update'), [
-            'fee_persen'     => 25,
-            'nama_bank'      => 'BCA Syariah',
-            'nomor_rekening' => '9988776655',
-            'atas_nama'      => 'PT YZD Trading Indonesia',
-        ]);
-
-        $response->assertRedirect();
+        $response = $this->actingAs($this->member)->post('/member/master-fee', $payload);
+        $response->assertRedirect(route('member.master_fee.index'));
         $response->assertSessionHas('success');
 
-        $settings = $this->masterFeeService->getSettings();
-        $this->assertSame(25, $settings->fee_persen);
-        $this->assertEquals('BCA Syariah', $settings->nama_bank);
-        $this->assertEquals('9988776655', $settings->nomor_rekening);
-        $this->assertEquals('PT YZD Trading Indonesia', $settings->atas_nama);
+        $laporan = LaporanProfitBulanan::where('akun_copytrade_id', $this->akun->id)->first();
+        $this->assertNotNull($laporan);
+        $this->assertEquals(1, $laporan->periode_ke);
+        $this->assertEquals(100.00, (float) $laporan->profit_usd);
+        $this->assertEquals(60.00, (float) $laporan->wd_usd);
+        $this->assertEquals(1000000, $laporan->wd_idr);
+        $this->assertEquals(30.00, (float) $laporan->fee_usd);
+        $this->assertEquals(500000, $laporan->fee_idr);
+        $this->assertEquals('belum_dibayar', $laporan->status);
+        $this->assertEquals('Menunggu Pembayaran', $laporan->status_tampil);
+
+        Storage::disk('local')->assertExists($laporan->bukti_myfxbook_path);
+        Storage::disk('local')->assertExists($laporan->bukti_wd_path);
     }
 
-    public function test_member_can_search_master_fee_by_nomor_and_akun(): void
+    public function test_submit_report_validates_wd_range_between_fee_and_max_percent(): void
     {
-        $file1 = UploadedFile::fake()->image('bukti1.png');
-        $rekap1 = $this->balanceService->recordBalance($this->akun, [
-            'tanggal_pencatatan' => '2026-08-01',
-            'balance'            => 1200.00,
-            'bukti_saldo'        => $file1,
-        ], $this->member);
+        Carbon::setTestNow('2026-09-02');
+        $myfxbook = UploadedFile::fake()->image('myfxbook.png');
+        $wd = UploadedFile::fake()->image('wd.png');
 
-        $tagihan1 = $rekap1->fresh()->tagihanMasterFee;
+        // Profit $100 -> WD min 30% ($30), max 60% ($60)
 
-        // Search by invoice number
-        $resultNomor = $this->masterFeeService->paginateForMember($this->member, [
-            'search' => $tagihan1->nomor,
+        // 1. WD terlalu kecil ($25 < $30) -> ditolak
+        $responseLow = $this->actingAs($this->member)->post('/member/master-fee', [
+            'akun_copytrade_id' => $this->akun->id,
+            'periode_ke'        => 1,
+            'profit_usd'        => 100.00,
+            'wd_usd'            => 25.00,
+            'wd_idr'            => 400000,
+            'bukti_myfxbook'    => $myfxbook,
+            'bukti_wd'          => $wd,
         ]);
-        $this->assertCount(1, $resultNomor->items());
-        $this->assertEquals($tagihan1->id, $resultNomor->items()[0]->id);
+        $responseLow->assertSessionHasErrors('wd_usd');
 
-        // Search by trading account number
-        $resultAkun = $this->masterFeeService->paginateForMember($this->member, [
-            'search' => 'TEST-FEE-01',
+        // 2. WD terlalu besar ($70 > $60) -> ditolak
+        $responseHigh = $this->actingAs($this->member)->post('/member/master-fee', [
+            'akun_copytrade_id' => $this->akun->id,
+            'periode_ke'        => 1,
+            'profit_usd'        => 100.00,
+            'wd_usd'            => 70.00,
+            'wd_idr'            => 1100000,
+            'bukti_myfxbook'    => $myfxbook,
+            'bukti_wd'          => $wd,
         ]);
-        $this->assertCount(1, $resultAkun->items());
-        $this->assertEquals($tagihan1->id, $resultAkun->items()[0]->id);
+        $responseHigh->assertSessionHasErrors('wd_usd');
+    }
 
-        // Search by broker
-        $resultBroker = $this->masterFeeService->paginateForMember($this->member, [
-            'search' => 'HFM',
+    public function test_submit_report_with_zero_or_negative_profit_sets_tanpa_fee_status(): void
+    {
+        Carbon::setTestNow('2026-09-02');
+        $myfxbook = UploadedFile::fake()->image('myfxbook.png');
+
+        // Profit impas ($0) atau minus (-$50)
+        $payload = [
+            'akun_copytrade_id' => $this->akun->id,
+            'periode_ke'        => 1,
+            'profit_usd'        => -50.00,
+            'bukti_myfxbook'    => $myfxbook,
+            // tanpa wd_usd, wd_idr, bukti_wd
+        ];
+
+        $response = $this->actingAs($this->member)->post('/member/master-fee', $payload);
+        $response->assertRedirect(route('member.master_fee.index'));
+
+        $laporan = LaporanProfitBulanan::where('akun_copytrade_id', $this->akun->id)->first();
+        $this->assertNotNull($laporan);
+        $this->assertEquals(-50.00, (float) $laporan->profit_usd);
+        $this->assertEquals(0, (float) $laporan->fee_usd);
+        $this->assertEquals(0, $laporan->fee_idr);
+        $this->assertNull($laporan->wd_usd);
+        $this->assertNull($laporan->bukti_wd_path);
+        $this->assertEquals('tanpa_fee', $laporan->status);
+        $this->assertEquals('Tanpa Fee', $laporan->status_tampil);
+        $this->assertNull($laporan->status_catatan);
+    }
+
+    public function test_submit_report_requires_myfxbook_url_on_account(): void
+    {
+        Carbon::setTestNow('2026-09-02');
+        $this->akun->update(['myfxbook_url' => null]);
+
+        $myfxbook = UploadedFile::fake()->image('myfxbook.png');
+        $payload = [
+            'akun_copytrade_id' => $this->akun->id,
+            'periode_ke'        => 1,
+            'profit_usd'        => 50.00,
+            'wd_usd'            => 20.00,
+            'wd_idr'            => 320000,
+            'bukti_myfxbook'    => $myfxbook,
+            'bukti_wd'          => UploadedFile::fake()->image('wd.png'),
+        ];
+
+        $response = $this->actingAs($this->member)->post('/member/master-fee', $payload);
+        $response->assertSessionHasErrors('akun_copytrade_id');
+    }
+
+    public function test_submit_proof_and_admin_verification_workflow(): void
+    {
+        Carbon::setTestNow('2026-09-02');
+
+        $laporan = LaporanProfitBulanan::create([
+            'nomor'               => 'MFE-202609-0001',
+            'akun_copytrade_id'   => $this->akun->id,
+            'user_id'             => $this->member->id,
+            'periode_ke'          => 1,
+            'periode_awal'        => '2026-08-03',
+            'periode_akhir'       => '2026-08-31',
+            'jatuh_tempo'         => '2026-09-01',
+            'profit_usd'          => 100.00,
+            'bukti_myfxbook_path' => 'master_fee/myfxbook/test.png',
+            'wd_usd'              => 50.00,
+            'wd_idr'              => 800000,
+            'bukti_wd_path'       => 'master_fee/wd/test.png',
+            'kurs_riil'           => 16000.00,
+            'fee_persen'          => 30.00,
+            'fee_usd'             => 30.00,
+            'fee_idr'             => 480000,
+            'status'              => 'belum_dibayar',
         ]);
-        $this->assertCount(1, $resultBroker->items());
 
-        // Search non-existent keyword
-        $resultNotFound = $this->masterFeeService->paginateForMember($this->member, [
-            'search' => 'NON-EXISTENT-KEYWORD-XYZ',
+        // 1. Member unggah bukti transfer
+        $tf = UploadedFile::fake()->image('tf.png');
+        $responseProof = $this->actingAs($this->member)->post("/member/master-fee/{$laporan->id}/proof", [
+            'bukti_transfer' => $tf,
         ]);
-        $this->assertCount(0, $resultNotFound->items());
+        $responseProof->assertRedirect();
 
-        // HTTP endpoint test
-        $response = $this->actingAs($this->member)->get(route('member.master_fee.index', [
-            'search' => $tagihan1->nomor,
-        ]));
-        $response->assertOk();
+        $laporan->refresh();
+        $this->assertEquals('menunggu_verifikasi', $laporan->status);
+        $this->assertEquals('Menunggu Verifikasi', $laporan->status_tampil);
+        $this->assertNull($laporan->status_catatan);
+        $this->assertNotNull($laporan->bukti_transfer_path);
+        Storage::disk('local')->assertExists($laporan->bukti_transfer_path);
+
+        // 2. Admin verifikasi menjadi LUNAS
+        $responseVerify = $this->actingAs($this->admin)->post("/admin/master-fee/{$laporan->id}/verify");
+        $responseVerify->assertRedirect();
+
+        $laporan->refresh();
+        $this->assertEquals('lunas', $laporan->status);
+        $this->assertEquals('Lunas', $laporan->status_tampil);
+        $this->assertEquals($this->admin->id, $laporan->verified_by);
+        $this->assertNotNull($laporan->verified_at);
+    }
+
+    public function test_admin_can_reject_payment_proof_and_member_can_reupload(): void
+    {
+        $laporan = LaporanProfitBulanan::create([
+            'nomor'               => 'MFE-202609-0001',
+            'akun_copytrade_id'   => $this->akun->id,
+            'user_id'             => $this->member->id,
+            'periode_ke'          => 1,
+            'periode_awal'        => '2026-08-03',
+            'periode_akhir'       => '2026-08-31',
+            'jatuh_tempo'         => '2026-09-01',
+            'profit_usd'          => 100.00,
+            'bukti_myfxbook_path' => 'master_fee/myfxbook/test.png',
+            'wd_usd'              => 50.00,
+            'wd_idr'              => 800000,
+            'bukti_wd_path'       => 'master_fee/wd/test.png',
+            'kurs_riil'           => 16000.00,
+            'fee_persen'          => 30.00,
+            'fee_usd'             => 30.00,
+            'fee_idr'             => 480000,
+            'status'              => 'menunggu_verifikasi',
+            'bukti_transfer_path' => 'master_fee/transfers/old_tf.png',
+        ]);
+
+        // Admin tolak dengan alasan
+        $responseReject = $this->actingAs($this->admin)->post("/admin/master-fee/{$laporan->id}/reject", [
+            'alasan' => 'Bukti mutasi transfer terpotong nama penerima.',
+        ]);
+        $responseReject->assertRedirect();
+
+        $laporan->refresh();
+        $this->assertEquals('ditolak', $laporan->status);
+        $this->assertEquals('Bukti Ditolak', $laporan->status_tampil);
+        $this->assertEquals('Bukti mutasi transfer terpotong nama penerima.', $laporan->catatan_admin);
+        $this->assertEquals('Bukti mutasi transfer terpotong nama penerima.', $laporan->status_catatan);
+        $this->assertTrue($laporan->is_editable);
+
+        // Member unggah bukti transfer baru
+        $newTf = UploadedFile::fake()->image('new_tf.png');
+        $responseReupload = $this->actingAs($this->member)->post("/member/master-fee/{$laporan->id}/proof", [
+            'bukti_transfer' => $newTf,
+        ]);
+        $responseReupload->assertRedirect();
+
+        $laporan->refresh();
+        $this->assertEquals('menunggu_verifikasi', $laporan->status);
+    }
+
+    public function test_admin_flag_correction_workflow(): void
+    {
+        $laporan = LaporanProfitBulanan::create([
+            'nomor'               => 'MFE-202609-0001',
+            'akun_copytrade_id'   => $this->akun->id,
+            'user_id'             => $this->member->id,
+            'periode_ke'          => 1,
+            'periode_awal'        => '2026-08-03',
+            'periode_akhir'       => '2026-08-31',
+            'jatuh_tempo'         => '2026-09-01',
+            'profit_usd'          => 100.00,
+            'bukti_myfxbook_path' => 'master_fee/myfxbook/test.png',
+            'wd_usd'              => 50.00,
+            'wd_idr'              => 800000,
+            'bukti_wd_path'       => 'master_fee/wd/test.png',
+            'kurs_riil'           => 16000.00,
+            'fee_persen'          => 30.00,
+            'fee_usd'             => 30.00,
+            'fee_idr'             => 480000,
+            'status'              => 'belum_dibayar',
+        ]);
+
+        // 1. Admin tandai Perlu Koreksi
+        $responseFlag = $this->actingAs($this->admin)->post("/admin/master-fee/{$laporan->id}/flag-correction", [
+            'alasan' => 'Angka profit pada form berbeda dengan screenshot Myfxbook.',
+        ]);
+        $responseFlag->assertRedirect();
+
+        $laporan->refresh();
+        $this->assertTrue($laporan->perlu_koreksi);
+        $this->assertEquals('Perlu Koreksi', $laporan->status_tampil);
+        $this->assertEquals('Angka profit pada form berbeda dengan screenshot Myfxbook.', $laporan->catatan_koreksi);
+        $this->assertEquals('Angka profit pada form berbeda dengan screenshot Myfxbook.', $laporan->status_catatan);
+        $this->assertTrue($laporan->is_editable);
+
+        // 2. Member merevisi laporan
+        $responseUpdate = $this->actingAs($this->member)->put("/member/master-fee/{$laporan->id}", [
+            'profit_usd' => 120.00,
+            'wd_usd'     => 60.00,
+            'wd_idr'     => 960000,
+        ]);
+        $responseUpdate->assertRedirect();
+
+        $laporan->refresh();
+        $this->assertEquals(120.00, (float) $laporan->profit_usd);
+        $this->assertEquals(36.00, (float) $laporan->fee_usd); // 30% dari 120
+        $this->assertFalse($laporan->perlu_koreksi);
+        $this->assertNull($laporan->catatan_koreksi);
+    }
+
+    public function test_document_security_and_streaming_authorization(): void
+    {
+        Storage::disk('local')->put('master_fee/myfxbook/test.png', 'myfxbook-binary');
+        Storage::disk('local')->put('master_fee/wd/test.png', 'wd-binary');
+        Storage::disk('local')->put('master_fee/transfers/test.png', 'tf-binary');
+
+        $laporan = LaporanProfitBulanan::create([
+            'nomor'               => 'MFE-202609-0001',
+            'akun_copytrade_id'   => $this->akun->id,
+            'user_id'             => $this->member->id,
+            'periode_ke'          => 1,
+            'periode_awal'        => '2026-08-03',
+            'periode_akhir'       => '2026-08-31',
+            'jatuh_tempo'         => '2026-09-01',
+            'profit_usd'          => 100.00,
+            'bukti_myfxbook_path' => 'master_fee/myfxbook/test.png',
+            'wd_usd'              => 50.00,
+            'wd_idr'              => 800000,
+            'bukti_wd_path'       => 'master_fee/wd/test.png',
+            'kurs_riil'           => 16000.00,
+            'fee_persen'          => 30.00,
+            'fee_usd'             => 30.00,
+            'fee_idr'             => 480000,
+            'status'              => 'belum_dibayar',
+            'bukti_transfer_path' => 'master_fee/transfers/test.png',
+        ]);
+
+        // Pemilik dapat mengakses seluruh berkas bukti
+        $this->actingAs($this->member)->get("/documents/master-fee/{$laporan->id}/myfxbook")->assertOk();
+        $this->actingAs($this->member)->get("/documents/master-fee/{$laporan->id}/wd")->assertOk();
+        $this->actingAs($this->member)->get("/documents/master-fee/{$laporan->id}")->assertOk();
+
+        // Admin dapat mengakses seluruh berkas bukti
+        $this->actingAs($this->admin)->get("/documents/master-fee/{$laporan->id}/myfxbook")->assertOk();
+        $this->actingAs($this->admin)->get("/documents/master-fee/{$laporan->id}/wd")->assertOk();
+        $this->actingAs($this->admin)->get("/documents/master-fee/{$laporan->id}")->assertOk();
+
+        // Member lain dilarang mengakses berkas (403 Forbidden)
+        $this->actingAs($this->otherMember)->get("/documents/master-fee/{$laporan->id}/myfxbook")->assertForbidden();
+        $this->actingAs($this->otherMember)->get("/documents/master-fee/{$laporan->id}/wd")->assertForbidden();
+        $this->actingAs($this->otherMember)->get("/documents/master-fee/{$laporan->id}")->assertForbidden();
+
+        // Afiliator dilarang mengakses screenshot / berkas transfer downline (403 Forbidden)
+        $this->actingAs($this->affiliator)->get("/documents/master-fee/{$laporan->id}/myfxbook")->assertForbidden();
+        $this->actingAs($this->affiliator)->get("/documents/master-fee/{$laporan->id}/wd")->assertForbidden();
+        $this->actingAs($this->affiliator)->get("/documents/master-fee/{$laporan->id}")->assertForbidden();
+    }
+
+    public function test_affiliator_downline_report_strictly_hides_financial_details_and_proofs(): void
+    {
+        $laporan = LaporanProfitBulanan::create([
+            'nomor'               => 'MFE-202609-0001',
+            'akun_copytrade_id'   => $this->akun->id,
+            'user_id'             => $this->member->id,
+            'periode_ke'          => 1,
+            'periode_awal'        => '2026-08-03',
+            'periode_akhir'       => '2026-08-31',
+            'jatuh_tempo'         => '2026-09-01',
+            'profit_usd'          => 250.00,
+            'bukti_myfxbook_path' => 'master_fee/myfxbook/secret.png',
+            'wd_usd'              => 100.00,
+            'wd_idr'              => 1600000,
+            'bukti_wd_path'       => 'master_fee/wd/secret.png',
+            'kurs_riil'           => 16000.00,
+            'fee_persen'          => 30.00,
+            'fee_usd'             => 75.00,
+            'fee_idr'             => 1200000,
+            'status'              => 'lunas',
+        ]);
+
+        $paginated = $this->masterFeeService->downlineReport($this->affiliator);
+        $data = $paginated->items();
+
+        $this->assertCount(1, $data);
+        $item = $data[0];
+
+        $this->assertEquals($this->akun->nomor_akun_trading, $item['nomor_akun_trading']);
+        $this->assertEquals($this->akun->myfxbook_url, $item['myfxbook_url']);
+        $this->assertArrayNotHasKey('fee_usd', $item);
+        $this->assertArrayNotHasKey('fee_idr', $item);
+        $this->assertArrayNotHasKey('wd_usd', $item);
+        $this->assertArrayNotHasKey('wd_idr', $item);
+
+        $laporanItem = $item['laporan'][0];
+        $this->assertEquals(250.00, $laporanItem['profit_usd']);
+        $this->assertEquals('Lunas', $laporanItem['status_tampil']);
+        $this->assertArrayNotHasKey('fee_usd', $laporanItem);
+        $this->assertArrayNotHasKey('fee_idr', $laporanItem);
+        $this->assertArrayNotHasKey('bukti_myfxbook_path', $laporanItem);
+        $this->assertArrayNotHasKey('bukti_wd_path', $laporanItem);
     }
 }

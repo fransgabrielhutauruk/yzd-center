@@ -35,9 +35,20 @@ class StoreCopytradeRequest extends FormRequest
             'nama_bank'             => [$hasAnyCopytrade ? 'nullable' : 'required', 'string', 'max:50'],
             'nomor_rekening'        => [$hasAnyCopytrade ? 'nullable' : 'required', 'string', 'max:50'],
             'atas_nama_rekening'    => [$hasAnyCopytrade ? 'nullable' : 'required', 'string', 'max:100'],
-            'server_broker'         => ['required_if:tier_investasi,tier_3', 'nullable', 'string', 'max:50'],
-            'master_password'       => ['required_if:tier_investasi,tier_3', 'nullable', 'string', 'max:100'],
-            'investor_password'     => ['required_if:tier_investasi,tier_3', 'nullable', 'string', 'max:100'],
+            'myfxbook_url'          => [
+                'required',
+                'url',
+                'max:255',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $host = parse_url((string) $value, PHP_URL_HOST);
+                    if (!$host || !str_contains(strtolower($host), 'myfxbook.com')) {
+                        $fail('Tautan Myfxbook harus berasal dari domain myfxbook.com.');
+                    }
+                },
+            ],
+            'server_broker'     => ['required_if:tier_investasi,tier_3', 'nullable', 'string', 'max:50'],
+            'master_password'   => ['required_if:tier_investasi,tier_3', 'nullable', 'string', 'max:100'],
+            'investor_password' => ['required_if:tier_investasi,tier_3', 'nullable', 'string', 'max:100'],
         ];
 
         if (!$hasAnyCopytrade) {
@@ -113,9 +124,12 @@ class StoreCopytradeRequest extends FormRequest
             'modal_riil.gt'                  => 'Modal riil harus lebih besar dari $0.',
             'modal_riil.min'                 => 'Modal riil harus lebih besar dari $0.',
             'tanggal_mulai_trading.required' => 'Tanggal mulai investasi/copytrade wajib ditentukan.',
-            'nama_bank.required'             => 'Nama bank untuk penarikan dana wajib diisi.',
+            'nama_bank.required'             => 'Nama bank wajib diisi.',
             'nomor_rekening.required'        => 'Nomor rekening bank penarikan dana wajib diisi.',
             'atas_nama_rekening.required'    => 'Nama pemilik rekening bank wajib diisi.',
+            'myfxbook_url.required'          => 'Tautan Myfxbook wajib diisi.',
+            'myfxbook_url.url'               => 'Format tautan Myfxbook tidak valid.',
+            'myfxbook_url.max'               => 'Tautan Myfxbook maksimal 255 karakter.',
             'server_broker.required_if'      => 'Server broker wajib diisi untuk pendaftaran Tier 3.',
             'master_password.required_if'    => 'Master password MT4 wajib diisi untuk pendaftaran Tier 3.',
             'investor_password.required_if'  => 'Investor password MT4 wajib diisi untuk pendaftaran Tier 3.',

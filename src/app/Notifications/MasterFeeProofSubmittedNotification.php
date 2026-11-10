@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Models\TagihanMasterFee;
+use App\Models\LaporanProfitBulanan;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -11,7 +11,7 @@ class MasterFeeProofSubmittedNotification extends Notification
     use Queueable;
 
     public function __construct(
-        public TagihanMasterFee $tagihan
+        public LaporanProfitBulanan $laporan
     ) {}
 
     /**
@@ -27,17 +27,17 @@ class MasterFeeProofSubmittedNotification extends Notification
      */
     public function toArray(object $notifiable): array
     {
-        $feeFormatted = '$' . number_format((float) $this->tagihan->nominal_fee, 2);
-        $memberName = $this->tagihan->user?->name ?? 'Member';
+        $feeFormatted = '$' . number_format((float) $this->laporan->fee_usd, 2);
+        $memberName = $this->laporan->user?->name ?? 'Member';
 
         return [
             'type'       => 'master_fee_proof_submitted',
             'title'      => 'Bukti Transfer Master Fee Baru',
-            'message'    => "Member {$memberName} telah mengunggah bukti pembayaran untuk tagihan {$this->tagihan->nomor} ({$feeFormatted}). Menunggu verifikasi admin.",
+            'message'    => "Member {$memberName} telah mengunggah bukti pembayaran untuk laporan {$this->laporan->nomor} ({$feeFormatted}). Menunggu verifikasi admin.",
             'icon'       => 'file-check',
-            'tagihan_id' => $this->tagihan->id,
-            'nomor'      => $this->tagihan->nomor,
-            'member_id'  => $this->tagihan->user_id,
+            'laporan_id' => $this->laporan->id,
+            'nomor'      => $this->laporan->nomor,
+            'member_id'  => $this->laporan->user_id,
             'url'        => '/admin/master-fee',
         ];
     }

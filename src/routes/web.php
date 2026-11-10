@@ -102,9 +102,12 @@ Route::get('/documents/tickets/{id}', [DocumentStreamController::class, 'showTik
 Route::get('/documents/master-fee/{id}', [DocumentStreamController::class, 'showMasterFeeProof'])
     ->middleware('auth')
     ->name('documents.master_fee_proof');
-Route::get('/documents/balance-proof/{id}', [DocumentStreamController::class, 'showBalanceProof'])
+Route::get('/documents/master-fee/{id}/myfxbook', [DocumentStreamController::class, 'showMyfxbookProof'])
     ->middleware('auth')
-    ->name('documents.balance_proof');
+    ->name('documents.master_fee_myfxbook');
+Route::get('/documents/master-fee/{id}/wd', [DocumentStreamController::class, 'showWdProof'])
+    ->middleware('auth')
+    ->name('documents.master_fee_wd');
 
 // Notifikasi In-App (Terotentikasi)
 Route::middleware('auth')->prefix('notifications')->name('notifications.')->group(function () {
@@ -168,10 +171,11 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::get('/settings/legal', [LegalContentController::class, 'index'])->name('settings.legal');
     Route::post('/settings/legal', [LegalContentController::class, 'update'])->name('settings.legal.update');
 
-    // Pengaturan Master Fee & Kelola Tagihan
+    // Pengaturan Master Fee & Kelola Laporan
     Route::get('/master-fee', [AdminMasterFeeController::class, 'index'])->name('master_fee.index');
     Route::post('/master-fee/{id}/verify', [AdminMasterFeeController::class, 'verify'])->name('master_fee.verify');
     Route::post('/master-fee/{id}/reject', [AdminMasterFeeController::class, 'reject'])->name('master_fee.reject');
+    Route::post('/master-fee/{id}/flag-correction', [AdminMasterFeeController::class, 'flagCorrection'])->name('master_fee.flag_correction');
     Route::get('/settings/master-fee', [AdminMasterFeeController::class, 'settings'])->name('settings.master_fee');
     Route::put('/settings/master-fee', [AdminMasterFeeController::class, 'updateSettings'])->name('settings.master_fee.update');
 
@@ -227,10 +231,22 @@ Route::middleware(['auth', 'role:member'])->prefix('member')->name('member.')->g
         Route::post('/commissions', [MemberCommissionClaimController::class, 'store'])->name('commissions.store');
         Route::get('/commissions/eligible-downlines', [MemberCommissionClaimController::class, 'eligibleDownlines'])->name('commissions.eligible_downlines');
 
-        // Tagihan Master Fee
+        // Laporan Profit & Master Fee
         Route::get('/master-fee', [MemberMasterFeeController::class, 'index'])->name('master_fee.index');
+        Route::post('/master-fee', [MemberMasterFeeController::class, 'store'])->name('master_fee.store');
+        Route::put('/master-fee/{id}', [MemberMasterFeeController::class, 'update'])->name('master_fee.update');
+        Route::delete('/master-fee/{id}', [MemberMasterFeeController::class, 'destroy'])->name('master_fee.destroy');
         Route::get('/master-fee/{id}', [MemberMasterFeeController::class, 'show'])->name('master_fee.show');
         Route::post('/master-fee/{id}/proof', [MemberMasterFeeController::class, 'uploadProof'])->name('master_fee.proof');
+        Route::post('/first-period-banner/dismiss', function (\Illuminate\Http\Request $request) {
+            session(['first_period_notice_dismissed' => true]);
+
+            if ($request->wantsJson() && !$request->header('X-Inertia')) {
+                return response()->json(['status' => 'dismissed']);
+            }
+
+            return back();
+        })->name('first_period_banner.dismiss');
     });
 
     // Informasi Akun & Unggah Ulang Berkas Verifikasi (Selalu dapat diakses oleh member)
@@ -240,21 +256,17 @@ Route::middleware(['auth', 'role:member'])->prefix('member')->name('member.')->g
     // Ganti Password Member
     Route::get('/account/password', [MemberPasswordController::class, 'index'])->name('account.password');
 
-    // Portofolio Investasi (Terpadu: Akun Trading Tier 1/2/3, Kinerja Saldo & BEP)
+    // Portofolio Investasi (Terpadu: Akun Trading Tier 1/2/3, Alur Onboarding & Kinerja)
     Route::get('/investments', [InvestmentPortfolioController::class, 'index'])->name('investments.index');
     Route::post('/investments', [InvestmentPortfolioController::class, 'storeAccount'])->name('investments.store');
-    Route::post('/investments/balance', [InvestmentPortfolioController::class, 'storeBalance'])->name('investments.balance.store');
-    Route::put('/investments/balance/{id}', [InvestmentPortfolioController::class, 'updateBalance'])->name('investments.balance.update');
-    Route::delete('/investments/balance/{id}', [InvestmentPortfolioController::class, 'destroyBalance'])->name('investments.balance.destroy');
+    Route::post('/investments/onboarding', [InvestmentPortfolioController::class, 'updateOnboarding'])->name('investments.onboarding.update');
+    Route::post('/investments/onboarding/reset', [InvestmentPortfolioController::class, 'resetOnboarding'])->name('investments.onboarding.reset');
+    Route::put('/investments/{id}/myfxbook', [InvestmentPortfolioController::class, 'updateMyfxbook'])->name('investments.myfxbook.update');
     Route::match(['get', 'post'], '/investments/template-perjanjian/{tier}', [InvestmentPortfolioController::class, 'downloadTemplate'])->name('investments.template');
 
     // Backward compatibility redirects & route aliases
     Route::get('/copytrade', fn () => redirect()->route('member.investments.index'))->name('copytrade.index');
-    Route::get('/copytrade/balance', fn () => redirect()->route('member.investments.index'))->name('copytrade.balance.index');
     Route::post('/copytrade', [InvestmentPortfolioController::class, 'storeAccount'])->name('copytrade.store');
-    Route::post('/copytrade/balance', [InvestmentPortfolioController::class, 'storeBalance'])->name('copytrade.balance.store');
-    Route::put('/copytrade/balance/{id}', [InvestmentPortfolioController::class, 'updateBalance'])->name('copytrade.balance.update');
-    Route::delete('/copytrade/balance/{id}', [InvestmentPortfolioController::class, 'destroyBalance'])->name('copytrade.balance.destroy');
     Route::match(['get', 'post'], '/copytrade/template-perjanjian/{tier}', [InvestmentPortfolioController::class, 'downloadTemplate'])->name('copytrade.template');
 
     // Materi Promosi (Profit Master) - Selalu dapat diakses oleh semua member

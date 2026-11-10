@@ -759,7 +759,7 @@ Menu **Glosarium Forex** (`/member/education/glossary`) menyajikan kamus referen
 Sistem mengirimkan pemberitahuan instan (*in-app notification*) untuk seluruh aktivitas akun Anda:
 - Persetujuan verifikasi akun KYC atau instruksi revisi KTP/perjanjian.
 - Pengaktifan akun copytrade MT4 baru.
-- Pengingat rutin **Input Saldo Tanggal 1** setiap awal bulan.
+- Pengingat rutin **Laporan Profit Bulanan & Master Fee** pada tanggal 1, 7, dan 15.
 - Pendaftaran downline baru di bawah jaringan Anda.
 - Persetujuan/penolakan klaim referral susulan.
 - Konfirmasi transfer pencairan komisi bank beserta berkas struk bukti transfer.
@@ -793,3 +793,42 @@ Sistem mengirimkan pemberitahuan instan (*in-app notification*) untuk seluruh ak
 ### 13.4 Kondisi Khusus (Edge Cases) pada Notifikasi & Keamanan
 - **Salah Ketik Kata Sandi:** Gunakan ikon mata (`👁️`) pada kolom input untuk memeriksa ketikan Anda sebelum menyimpan.
 - **Lupa Kata Sandi Login:** Demi perlindungan aset finansial Member, pemulihan kata sandi dilakukan melalui verifikasi identitas resmi bersama Administrator YZD Center.
+
+
+---
+
+## Bab 14: Manajemen Laporan Profit Bulanan & Master Fee (30%)
+
+Menu **Master Fee** (`/member/master-fee`) adalah modul pelaporan performa trading mandiri bulanan berbasis bukti nyata (Myfxbook dan mutasi penarikan broker) serta penyelesaian kewajiban bagi hasil (*performance fee*) kepada Master Trader.
+
+### 14.1 Siklus Periode Pelaporan
+- **Akun Mulai Hari ke-1 s.d. 15:** Periode berakhir pada akhir bulan berjalan. Laporan dibuka mulai tanggal 1 bulan berikutnya.
+- **Akun Mulai Hari ke-16 s.d. 31:** Periode berjalan hingga akhir bulan berikutnya (periode awal gabungan). Laporan dibuka mulai tanggal 1 bulan setelahnya.
+- **Siklus Rutin:** Periode selanjutnya berjalan tepat 1 bulan kalender (tanggal 1 s.d. akhir bulan).
+
+### 14.2 Prosedur Pelaporan Profit Bulanan
+1. Buka menu **Portofolio** $ightarrow$ **Master Fee** $ightarrow$ klik tombol **"Input Laporan Profit"**.
+2. Pilih akun copytrade yang telah siap lapor.
+3. Masukkan **Profit Trading (USD)** sesuai hasil pada akun broker / Myfxbook.
+4. Unggah **Screenshot Portofolio Myfxbook** yang memperlihatkan profit pada periode tersebut.
+5. **Jika Profit > $0:**
+   - Lakukan penarikan dana (*withdrawal* / WD) pada broker sebesar **30% s.d. 60%** dari total profit.
+   - Masukkan nominal **Penarikan Dana (USD)** dan nilai Rupiah yang diterima di rekening (**Penarikan Dana IDR**).
+   - Unggah **Screenshot Bukti Mutasi Penarikan Broker**.
+   - Sistem secara otomatis menghitung nilai tukar riil: `Kurs Riil = WD IDR / WD USD`, serta nominal Master Fee: `Fee IDR = Fee USD * Kurs Riil`.
+6. **Jika Profit <= $0 (Rugi / Impas):**
+   - Field WD dinonaktifkan.
+   - Tagihan fee otomatis bernilai $0 dan status langsung diselesaikan sebagai `tanpa_fee` (ditampilkan "Lunas").
+7. Klik tombol **"Simpan & Kirim Laporan"**.
+
+### 14.3 Prosedur Pembayaran & Pengunggahan Bukti Transfer
+1. Pada daftar laporan berstatus **Belum Bayar**, klik tombol **"Detail & Bayar"**.
+2. Sistem menampilkan rekening penampung resmi Master Trader (BCA / Mandiri) lengkap dengan tombol salin nomor rekening.
+3. Lakukan transfer bank via m-banking / ATM sesuai nominal `fee_idr`.
+4. Unggah foto / berkas bukti transfer (resi bank) pada formulir pembayaran.
+5. Status laporan berubah menjadi **Menunggu Verifikasi**.
+
+### 14.4 Revisi Laporan (Status "Perlu Koreksi")
+Jika Administrator mendeteksi ketidaksesuaian input angka dengan screenshot Myfxbook / WD:
+1. Status laporan akan ditandai **Perlu Koreksi** dengan catatan instruksi dari Admin.
+2. Klik tombol edit pada baris laporan untuk memperbaiki data atau mengunggah ulang screenshot.

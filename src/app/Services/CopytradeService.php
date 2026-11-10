@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use PhpOffice\PhpWord\Settings;
 use PhpOffice\PhpWord\TemplateProcessor;
 
 class CopytradeService
@@ -33,8 +34,8 @@ class CopytradeService
             $tier = $data['tier_investasi'] ?? $data['tier'] ?? 'tier_1';
 
             $broker = $data['broker'] ?? match ($tier) {
-                'tier_2', 'tier_3' => 'XM',
-                default            => 'HFM',
+                'tier_3' => 'XM',
+                default  => 'HFM',
             };
 
             $tipeAkun = $data['tipe_akun'] ?? match ($tier) {
@@ -59,6 +60,7 @@ class CopytradeService
                 'broker'             => $broker,
                 'tipe_akun'          => $tipeAkun,
                 'nomor_akun_trading' => $data['nomor_akun_trading'],
+                'myfxbook_url'       => $data['myfxbook_url'] ?? null,
                 'modal_riil'         => $data['modal_riil'],
                 'tanggal_mulai'      => $data['tanggal_mulai_trading'] ?? $data['tanggal_mulai'] ?? now()->toDateString(),
                 'nama_bank'          => !empty($data['nama_bank']) ? $data['nama_bank'] : ($existingBankAkun?->nama_bank ?? '-'),
@@ -246,6 +248,34 @@ class CopytradeService
     /**
      * Jumlah akun per status untuk badge tab halaman Kelola Copytrade.
      */
+    public function updateMyfxbookUrl(AkunCopytrade $akun, string $url, User $user): AkunCopytrade
+    {
+        if ($akun->user_id !== $user->id) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'myfxbook_url' => 'Anda tidak memiliki otorisasi untuk akun copytrade ini.',
+            ]);
+        }
+
+        $host = parse_url($url, PHP_URL_HOST);
+        if (!$host || !str_contains(strtolower($host), 'myfxbook.com')) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'myfxbook_url' => 'Tautan Myfxbook harus berasal dari domain myfxbook.com.',
+            ]);
+        }
+
+        $akun->update(['myfxbook_url' => $url]);
+
+        $this->auditLogService->record(
+            kategori: 'copytrade',
+            aksi: 'update_myfxbook_url',
+            deskripsi: "Investor {$user->name} memperbarui tautan Myfxbook akun #{$akun->nomor_akun_trading}.",
+            subject: $akun,
+            user: $user
+        );
+
+        return $akun;
+    }
+
     public function getAdminCounts(): array
     {
         $rows = AkunCopytrade::query()
@@ -300,11 +330,11 @@ class CopytradeService
 
         $monthStart = now()->startOfMonth()->toDateString();
         $monthEnd = now()->endOfMonth()->toDateString();
-        $inThisMonth = fn ($q) => $q->whereBetween('tanggal_pencatatan', [$monthStart, $monthEnd]);
+        $inThisMonth = fn ($q) => $q->whereBetween('periode_akhir', [$monthStart, $monthEnd]);
 
         $query = AkunCopytrade::query()
-            ->with(['user', 'verifier', 'latestRiwayatBalance'])
-            ->withExists(['riwayatBalance as recorded_this_month' => $inThisMonth])
+            ->with(['user', 'verifier', 'latestLaporanProfit'])
+            ->withExists(['laporanProfit as recorded_this_month' => $inThisMonth])
             ->where('status', 'active');
 
         $this->applyAdminSearch($query, $f['search']);
@@ -318,7 +348,7 @@ class CopytradeService
         }
 
         if ($f['catatan'] === 'belum') {
-            $query->whereDoesntHave('riwayatBalance', $inThisMonth);
+            $query->whereDoesntHave('laporanProfit', $inThisMonth);
         }
 
         return $query->orderBy($sort, $dir)
@@ -326,10 +356,10 @@ class CopytradeService
             ->paginate($f['per_page'], ['*'], $f['page_name'])
             ->withQueryString()
             ->through(function (AkunCopytrade $akun) {
-                $latest = $akun->latestRiwayatBalance;
+                $latest = $akun->latestLaporanProfit;
                 $modal = (float) $akun->modal_riil;
-                $balance = $latest ? (float) $latest->balance : null;
-                $profit = $balance !== null ? $balance - $modal : null;
+                $profit = $latest ? (float) $latest->profit_usd : null;
+                $balance = $profit !== null ? $modal + $profit : null;
 
                 return $this->mapBaseRow($akun) + [
                     'current_balance'           => $balance,
@@ -337,7 +367,7 @@ class CopytradeService
                     'profit'                    => $profit !== null ? round($profit, 2) : null,
                     'profit_formatted'          => $profit !== null ? $this->signedUsd($profit) : null,
                     'profit_pct'                => ($profit !== null && $modal > 0) ? round(($profit / $modal) * 100.0, 2) : null,
-                    'last_recorded_at'          => $latest?->tanggal_pencatatan ? tanggal_indo($latest->tanggal_pencatatan) : null,
+                    'last_recorded_at'          => $latest?->periode_akhir ? tanggal_indo($latest->periode_akhir) : null,
                     'recorded_this_month'       => (bool) $akun->recorded_this_month,
                     'active_duration'           => $this->formatActiveDuration($akun->tanggal_mulai),
                 ];
@@ -345,7 +375,7 @@ class CopytradeService
     }
 
     /**
-     * Detail akun untuk modal admin: kredensial (hanya tier 3) dan riwayat saldo (hanya akun aktif).
+     * Detail akun untuk modal admin: kredensial (hanya tier 3) dan riwayat laporan profit (hanya akun aktif).
      */
     public function getAccountDetail(AkunCopytrade $akun): array
     {
@@ -359,21 +389,32 @@ class CopytradeService
 
         $history = [];
         if ($akun->status === 'active') {
-            $history = $akun->riwayatBalance()
-                ->orderByDesc('tanggal_pencatatan')
-                ->orderByDesc('id')
+            $history = $akun->laporanProfit()
+                ->orderByDesc('periode_ke')
                 ->limit(24)
                 ->get()
-                ->map(fn ($r) => [
-                    'id'                           => $r->id,
-                    'tanggal'                      => $r->tanggal_pencatatan->toDateString(),
-                    'tanggal_formatted'            => tanggal_indo($r->tanggal_pencatatan),
-                    'balance'                      => (float) $r->balance,
-                    'balance_formatted'            => '$' . number_format((float) $r->balance, 2, '.', ','),
-                    'keuntungan_nominal'           => (float) $r->keuntungan_nominal,
-                    'keuntungan_nominal_formatted' => $this->signedUsd((float) $r->keuntungan_nominal),
-                    'keuntungan_persen'            => (float) $r->keuntungan_persen,
-                ])
+                ->map(function ($r) use ($akun) {
+                    $modal = (float) $akun->modal_riil;
+                    $profit = (float) $r->profit_usd;
+                    $balance = $modal + $profit;
+                    $profitPct = $modal > 0 ? round(($profit / $modal) * 100, 2) : 0;
+
+                    return [
+                        'id'                           => $r->id,
+                        'periode_ke'                   => $r->periode_ke,
+                        'tanggal'                      => $r->periode_akhir->toDateString(),
+                        'tanggal_formatted'            => tanggal_indo($r->periode_akhir),
+                        'balance'                      => $balance,
+                        'balance_formatted'            => '$' . number_format($balance, 2, '.', ','),
+                        'profit_usd'                   => $profit,
+                        'profit_usd_formatted'         => $this->signedUsd($profit),
+                        'keuntungan_nominal'           => $profit,
+                        'keuntungan_nominal_formatted' => $this->signedUsd($profit),
+                        'keuntungan_persen'            => $profitPct,
+                        'status'                       => $r->status,
+                        'status_tampil'                => $r->status_tampil,
+                    ];
+                })
                 ->all();
         }
 
@@ -505,6 +546,7 @@ class CopytradeService
             'status'               => $akun->status,
             'catatan_admin'        => $akun->catatan_admin,
             'server_broker'        => $akun->server_broker,
+            'myfxbook_url'         => $akun->myfxbook_url,
             'has_surat_perjanjian' => !empty($akun->surat_perjanjian_path),
             'surat_perjanjian_url' => $akun->surat_perjanjian_path ? route('documents.copytrade', $akun->id) : null,
             'created_at'           => tanggal_waktu_indo($akun->created_at),
@@ -526,7 +568,7 @@ class CopytradeService
     {
         $fileName = match ($tier) {
             'tier_1' => 'tier_1_hfm.docx',
-            'tier_2' => 'tier_2_xm.docx',
+            'tier_2' => 'tier_2_hfm.docx',
             'tier_3' => 'tier_3_xm.docx',
             default  => null,
         };
@@ -540,6 +582,7 @@ class CopytradeService
             return null;
         }
 
+        Settings::setOutputEscapingEnabled(true);
         $template = new TemplateProcessor($sourcePath);
 
         $user->loadMissing('ahliWaris');

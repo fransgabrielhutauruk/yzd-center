@@ -194,18 +194,6 @@ const submit = () => {
                                     <span class="text-foreground font-semibold">{{ acc.broker }}</span>
                                     <span class="text-muted-foreground font-mono text-[10px]">#{{ acc.nomor_akun }}</span>
                                     <span
-                                        v-if="acc.is_first"
-                                        class="rounded border border-sky-500/30 bg-sky-500/10 px-1.5 py-0.5 text-[9px] font-bold text-sky-800 dark:text-sky-300"
-                                    >
-                                        Akun Utama (Acuan)
-                                    </span>
-                                    <span
-                                        v-else
-                                        class="rounded border border-purple-500/30 bg-purple-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-purple-800 dark:text-purple-300"
-                                    >
-                                        Tambahan (+{{ acc.selisih_hari }} hr)
-                                    </span>
-                                    <span
                                         class="border-primary-500/30 bg-primary-500/10 text-primary-800 dark:text-primary-300 rounded border px-1.5 py-0.5 text-[9px] font-bold"
                                     >
                                         Tier {{ acc.tier_level }} ({{ acc.persentase_tier }}%)
@@ -216,7 +204,7 @@ const submit = () => {
                                     <span
                                         class="rounded border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-300"
                                     >
-                                        {{ acc.hari_kehitung }} Hari
+                                        {{ acc.reports_count || 3 }}/3 Periode
                                     </span>
                                 </div>
                             </div>

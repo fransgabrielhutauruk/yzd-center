@@ -16,6 +16,7 @@ class AkunCopytrade extends Model
         'tipe_akun',
         'nomor_akun_trading',
         'server_broker',
+        'myfxbook_url',
         'master_password',
         'investor_password',
         'modal_riil',
@@ -53,6 +54,17 @@ class AkunCopytrade extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::updating(function (self $akun) {
+            if ($akun->isDirty('tanggal_mulai') && $akun->laporanProfit()->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'tanggal_mulai' => 'Tanggal mulai trading tidak dapat diubah karena akun ini sudah memiliki laporan profit yang tersimpan.',
+                ]);
+            }
+        });
+    }
+
     // -------------------------------------------------------------------------
     // Relasi
     // -------------------------------------------------------------------------
@@ -67,19 +79,14 @@ class AkunCopytrade extends Model
         return $this->belongsTo(User::class, 'verified_by');
     }
 
-    public function riwayatBalance(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function laporanProfit(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(RiwayatBalanceCopytrade::class, 'akun_copytrade_id');
+        return $this->hasMany(LaporanProfitBulanan::class, 'akun_copytrade_id');
     }
 
-    public function latestRiwayatBalance(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function latestLaporanProfit(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(RiwayatBalanceCopytrade::class, 'akun_copytrade_id')->latestOfMany('tanggal_pencatatan');
-    }
-
-    public function tagihanMasterFee(): \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(TagihanMasterFee::class, 'akun_copytrade_id');
+        return $this->hasOne(LaporanProfitBulanan::class, 'akun_copytrade_id')->latestOfMany('periode_ke');
     }
 
     // -------------------------------------------------------------------------

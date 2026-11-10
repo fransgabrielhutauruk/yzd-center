@@ -114,11 +114,11 @@ const pendingList = computed(() => {
         list.push({
             id: 'master_fee',
             title: 'Bukti Master Fee Menunggu Verifikasi',
-            desc: 'Bukti pembayaran Master Fee (Performance Fee 30%) oleh member menunggu verifikasi.',
+            desc: 'Bukti pembayaran Master Fee bulanan oleh member menunggu verifikasi admin.',
             count: pa.master_fee,
             href: '/admin/master-fee',
             icon: Receipt,
-            unit: 'Tagihan',
+            unit: 'Laporan',
         });
     }
 

@@ -7,7 +7,7 @@ use App\Models\AkunCopytrade;
 use App\Models\Invitation;
 use App\Models\KlaimKomisi;
 use App\Models\KlaimReferral;
-use App\Models\TagihanMasterFee;
+use App\Models\LaporanProfitBulanan;
 use App\Models\TiketBantuan;
 use App\Models\User;
 use Inertia\Inertia;
@@ -42,8 +42,8 @@ class AdminDashboardController extends Controller
             ->butuhResponsAdmin()
             ->count();
 
-        $pendingMasterFee = TagihanMasterFee::query()
-            ->where('status', TagihanMasterFee::STATUS_MENUNGGU_VERIFIKASI)
+        $pendingMasterFee = LaporanProfitBulanan::query()
+            ->where('status', LaporanProfitBulanan::STATUS_MENUNGGU_VERIFIKASI)
             ->count();
 
         // 2. Metrik ekosistem

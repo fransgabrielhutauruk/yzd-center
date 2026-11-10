@@ -72,6 +72,11 @@ class User extends Authenticatable
         return $this->hasMany(AkunCopytrade::class);
     }
 
+    public function investorOnboardingStep(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(InvestorOnboardingStep::class)->latestOfMany();
+    }
+
     public function ahliWaris(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(UserAhliWaris::class);
@@ -156,9 +161,9 @@ class User extends Authenticatable
         return $this->hasMany(KlaimKomisiItem::class, 'downline_id');
     }
 
-    public function tagihanMasterFee(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function laporanProfitBulanan(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(TagihanMasterFee::class, 'user_id');
+        return $this->hasMany(LaporanProfitBulanan::class, 'user_id');
     }
 
     public function hasUpline(): bool

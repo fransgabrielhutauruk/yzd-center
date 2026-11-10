@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AkunCopytrade;
+use App\Models\LaporanProfitBulanan;
 use App\Models\User;
 use App\Models\UserDokumen;
 use App\Notifications\CopytradeAccountStatusChangedNotification;
@@ -79,6 +80,7 @@ class CopytradeTest extends TestCase
         $payload = [
             'tier_investasi'        => 'tier_1',
             'nomor_akun_trading'    => '11223344',
+            'myfxbook_url'          => 'https://www.myfxbook.com/members/tester/system-one/1234567',
             'modal_riil'            => 1000,
             'tanggal_mulai_trading' => '2026-03-01',
             'nama_bank'             => 'BCA',
@@ -129,6 +131,7 @@ class CopytradeTest extends TestCase
         $payload = [
             'tier_investasi'        => 'tier_2',
             'nomor_akun_trading'    => '55667788',
+            'myfxbook_url'          => 'https://www.myfxbook.com/members/tester/system-two/7654321',
             'modal_riil'            => 10000,
             'tanggal_mulai_trading' => '2026-04-01',
             'nama_bank'             => 'BCA',
@@ -189,6 +192,7 @@ class CopytradeTest extends TestCase
         $payload = [
             'tier_investasi'        => 'tier_3',
             'nomor_akun_trading'    => '99887766',
+            'myfxbook_url'          => 'https://www.myfxbook.com/members/tester/system-three/9988776',
             'modal_riil'            => 350000,
             'tanggal_mulai_trading' => '2026-03-01',
             'nama_bank'             => 'BCA',
@@ -565,5 +569,99 @@ class CopytradeTest extends TestCase
         $this->assertStringContainsString('Dewi Lestari', $xml);
         $zip->close();
         unlink($tempPath);
+    }
+
+    public function test_copytrade_requires_valid_myfxbook_url(): void
+    {
+        $file = UploadedFile::fake()->create('perjanjian.pdf', 500, 'application/pdf');
+
+        // URL dari domain selain myfxbook.com harus ditolak
+        $payloadInvalidDomain = [
+            'tier_investasi'        => 'tier_1',
+            'nomor_akun_trading'    => '11223344',
+            'myfxbook_url'          => 'https://www.google.com/search?q=test',
+            'modal_riil'            => 1000,
+            'tanggal_mulai_trading' => '2026-03-01',
+            'nama_bank'             => 'BCA',
+            'nomor_rekening'        => '1234567890',
+            'atas_nama_rekening'    => 'Investor Tester',
+            'dokumen_perjanjian'    => $file,
+        ];
+
+        $response = $this->actingAs($this->investor)->post('/member/copytrade', $payloadInvalidDomain);
+        $response->assertSessionHasErrors('myfxbook_url');
+    }
+
+    public function test_member_can_update_myfxbook_url_for_existing_account(): void
+    {
+        $akun = AkunCopytrade::create([
+            'user_id'            => $this->investor->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'HFM',
+            'tipe_akun'          => 'cent',
+            'nomor_akun_trading' => '11223344',
+            'modal_riil'         => 1000,
+            'tanggal_mulai'      => '2026-03-01',
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => 'Investor Tester',
+            'status'             => 'active',
+            'myfxbook_url'       => null,
+        ]);
+
+        $newUrl = 'https://www.myfxbook.com/members/tester/updated-system/998877';
+
+        $response = $this->actingAs($this->investor)->put("/member/investments/{$akun->id}/myfxbook", [
+            'myfxbook_url' => $newUrl,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+        $this->assertEquals($newUrl, $akun->fresh()->myfxbook_url);
+
+        // Member lain tidak boleh mengubah akun ini
+        $other = User::factory()->create(['role' => 'member', 'status' => 'active']);
+        $badResponse = $this->actingAs($other)->put("/member/investments/{$akun->id}/myfxbook", [
+            'myfxbook_url' => 'https://www.myfxbook.com/members/other/sys/1',
+        ]);
+        $badResponse->assertForbidden();
+    }
+
+    public function test_akun_copytrade_blocks_tanggal_mulai_update_if_reports_exist(): void
+    {
+        $akun = AkunCopytrade::create([
+            'user_id'            => $this->investor->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'HFM',
+            'tipe_akun'          => 'cent',
+            'nomor_akun_trading' => '11223344',
+            'modal_riil'         => 1000,
+            'tanggal_mulai'      => '2026-03-01',
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => 'Investor Tester',
+            'status'             => 'active',
+            'myfxbook_url'       => 'https://www.myfxbook.com/members/tester/sys/1',
+        ]);
+
+        // Simpan laporan profit
+        LaporanProfitBulanan::create([
+            'nomor'               => 'MFE-202603-0001',
+            'akun_copytrade_id'   => $akun->id,
+            'user_id'             => $this->investor->id,
+            'periode_ke'          => 1,
+            'periode_awal'        => '2026-03-01',
+            'periode_akhir'       => '2026-03-31',
+            'jatuh_tempo'         => '2026-04-01',
+            'profit_usd'          => 100,
+            'bukti_myfxbook_path' => 'myfxbook/test.jpg',
+            'fee_persen'          => 30,
+            'fee_usd'             => 30,
+            'fee_idr'             => 480000,
+            'status'              => 'lunas',
+        ]);
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $akun->update(['tanggal_mulai' => '2026-03-10']);
     }
 }
