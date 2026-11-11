@@ -208,7 +208,7 @@ Fasilitas simulasi interaktif sisi klien (`/member/affiliates-calculator`) bagi 
 *   **FR-ADM-09 (Materi Promosi / Profit Master):**
     *   Menerbitkan materi promosi resmi berupa caption teks (hingga 20.000 karakter) beserta lampiran foto bukti transaksi/profit.
     *   Foto dikompresi otomatis di sisi klien sebelum diunggah dan disimpan pada direktori privat terisolasi.
-    *   Mengedit caption, menambah/menghapus gambar pendukung, atau menghapus materi promosi secara permanen beserta berkas fisiknya.
+    *   Mengedit caption, menambah/menghapus gambar pendukung, atau menghapus materi promosi (soft delete; berkas fisik tetap tersimpan dan dapat dipulihkan).
 *   **FR-ADM-10 (Tiket Bantuan & Pelaporan Kendala):**
     *   Memantau antrean tiket kendala member via dasbor ("Tiket Butuh Respons") dan tabel manajemen terpadu `AppDataTable`.
     *   Mengirimkan tanggapan/solusi dua arah dengan lampiran gambar panduan, mengubah status kendala secara manual, dan memicu notifikasi in-app ke pengguna.
@@ -280,6 +280,20 @@ Fasilitas simulasi interaktif sisi klien (`/member/affiliates-calculator`) bagi 
     *   Integrasi **Sentry Cloud** melacak seluruh *unhandled exception*, *stack trace*, *breadcrumbs*, dan nomor baris galat di backend maupun frontend.
     *   Integrasi **Bot Telegram Alerting** mengirimkan ringkasan insiden darurat 5xx secara seketika (*real-time*) ke perangkat seluler pengembang, lengkap dengan URL rute, metode HTTP, status otentikasi pengguna, dan tautan langsung (*deep-link*) menuju dasbor investigasi Sentry terkait.
     *   Mekanisme pembatasan lonjakan (*throttling*) 10 menit mencegah banjir notifikasi Telegram jika terjadi loop galat berulang.
+
+### 4.6 Kebijakan Penghapusan Data (Soft Delete) & Pemulihan Sistem
+*   **FR-DEL-01 (Soft Delete Menyeluruh):** Operasi penghapusan pada seluruh entitas utama (Glosarium, Kategori Panduan, Artikel Bantuan, Topik FAQ, FAQ, Materi Promosi/Profit Master, Laporan Profit Bulanan, dan Tautan Undangan) menerapkan soft delete (`deleted_at` dan `deleted_by`). Data tidak langsung dihapus permanen dari basis data dan otomatis disembunyikan dari antarmuka pengguna/admin.
+*   **FR-DEL-02 (Perlindungan Berkas Fisik):** Berkas gambar/foto materi promosi, bukti Myfxbook, bukti WD broker, dan bukti transfer pembayaran fee **tidak dihapus** saat soft delete terjadi guna menjamin integritas data historis.
+*   **FR-DEL-03 (Cascade Soft Delete Induk-Anak):** Penghapusan entitas induk (Kategori Panduan, Topik FAQ, Post Profit Master) otomatis men-cascade soft delete pada entitas anak dengan timestamp `deleted_at` identik. Pemulihan induk hanya memulihkan anak yang terhapus bersamaan.
+*   **FR-DEL-04 (Konvensi Slug & Periode Laporan):**
+    *   Slug artikel/kategori yang terhapus otomatis diubah menjadi `{slug}--trashed-{id}` sehingga slug asli dapat segera digunakan kembali untuk data aktif baru tanpa memicu galat bentrok integritas.
+    *   Laporan profit periode yang sama dapat diinput ulang setelah laporan lama di-soft delete, dengan penomoran unik yang memperhitungkan seluruh data historis (`withTrashed`).
+*   **FR-DEL-05 (Perangkat Pemulihan Developer via Artisan CLI):**
+    *   Sistem tidak mengekspos fitur *Trash / Restore* di antarmuka web (UI) untuk menjaga kesederhanaan operasional.
+    *   Pengembang/administrator sistem dapat melihat, memulihkan, atau membersihkan data melalui konsol CLI:
+        *   `php artisan app:trash:list {model?}`: Menampilkan daftar data terhapus per modul atau seluruh modul.
+        *   `php artisan app:trash:restore {model} {id}`: Memulihkan entitas beserta anak berelasi yang terhapus bersamaan, memverifikasi ketersediaan slug/periode tanpa bentrok, dan mencatat jejak audit log.
+        *   `php artisan app:trash:purge --days=N {--model=} {--force}`: Menghapus permanen data dan berkas fisiknya yang telah terhapus lebih lama dari N hari (opsi `--days` wajib diisi eksplisit; tidak dijalankan otomatis).
 
 ---
 

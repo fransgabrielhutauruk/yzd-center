@@ -627,7 +627,7 @@ const faqColumns = [
         <AppConfirmDialog
             :show="isDeleteFaqModalOpen"
             title="Hapus Pertanyaan FAQ"
-            :message="`Apakah Anda yakin ingin menghapus pertanyaan '${deletingFaq?.pertanyaan}'? Tindakan ini tidak dapat dibatalkan.`"
+            :message="`Apakah Anda yakin ingin menghapus pertanyaan '${deletingFaq?.pertanyaan}' dari daftar?`"
             confirm-text="Ya, Hapus"
             cancel-text="Batal"
             type="danger"
@@ -640,7 +640,7 @@ const faqColumns = [
         <AppConfirmDialog
             :show="isBatchDeleteOpen"
             title="Hapus Pertanyaan FAQ Terpilih"
-            :message="`Apakah Anda yakin ingin menghapus ${selectedFaqs.length} pertanyaan FAQ yang dipilih? Tindakan ini tidak dapat dibatalkan.`"
+            :message="`Apakah Anda yakin ingin menghapus ${selectedFaqs.length} pertanyaan FAQ yang dipilih dari daftar?`"
             confirm-text="Ya, Hapus Semua"
             cancel-text="Batal"
             type="danger"

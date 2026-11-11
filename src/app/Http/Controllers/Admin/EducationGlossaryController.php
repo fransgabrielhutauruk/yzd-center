@@ -66,9 +66,10 @@ class EducationGlossaryController extends Controller
                 ->with('error', 'Tidak ada istilah yang dipilih untuk dihapus.');
         }
 
-        EdukasiGlosarium::whereIn('id', $ids)->delete();
+        $items = EdukasiGlosarium::whereIn('id', $ids)->get();
+        $items->each->delete();
 
         return redirect()->route('admin.education.glossary.index')
-            ->with('success', count($ids) . ' istilah glosarium berhasil dihapus.');
+            ->with('success', $items->count() . ' istilah glosarium berhasil dihapus.');
     }
 }

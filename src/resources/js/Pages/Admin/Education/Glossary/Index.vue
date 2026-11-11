@@ -262,7 +262,7 @@ const handleBatchDelete = () => {
         <AppConfirmDialog
             :show="isDeleteModalOpen"
             title="Hapus Istilah Glosarium"
-            :message="`Apakah Anda yakin ingin menghapus istilah '${deletingItem?.istilah}'? Tindakan ini tidak dapat dibatalkan.`"
+            :message="`Apakah Anda yakin ingin menghapus istilah '${deletingItem?.istilah}' dari daftar?`"
             confirm-text="Ya, Hapus"
             cancel-text="Batal"
             type="danger"
@@ -275,7 +275,7 @@ const handleBatchDelete = () => {
         <AppConfirmDialog
             :show="isBatchDeleteOpen"
             title="Hapus Istilah Terpilih"
-            :message="`Apakah Anda yakin ingin menghapus ${selectedItems.length} istilah glosarium yang dipilih? Tindakan ini tidak dapat dibatalkan.`"
+            :message="`Apakah Anda yakin ingin menghapus ${selectedItems.length} istilah glosarium yang dipilih dari daftar?`"
             confirm-text="Ya, Hapus Semua"
             cancel-text="Batal"
             type="danger"

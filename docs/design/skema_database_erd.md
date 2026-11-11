@@ -396,6 +396,8 @@ Menampung kamus istilah trading yang dikelola admin dan dibaca oleh seluruh inve
 | `kategori` | `VARCHAR(50)` | `NOT NULL` | Kategori istilah (Dasar, Teknikal, Manajemen Risiko). |
 | `definisi` | `TEXT` | `NOT NULL` | Penjelasan istilah dalam bahasa yang ramah pemula. |
 | `created_by` | `BIGINT UNSIGNED` | `FK -> users.id` | ID admin yang menambahkan. |
+| `deleted_at` | `TIMESTAMP` | `NULLABLE` | Timestamp soft delete. |
+| `deleted_by` | `VARCHAR(100)` | `NULLABLE` | Username/aktor penghapus. |
 | `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
 
 ---
@@ -412,6 +414,8 @@ Menyimpan panduan pendaftaran, deposit broker, panduan copytrade, dan tutorial v
 | `konten` | `LONGTEXT` | `NOT NULL` | Isi panduan lengkap. |
 | `video_url` | `VARCHAR(255)` | `NULLABLE` | URL embed tutorial YouTube jika ada. |
 | `is_published` | `BOOLEAN` | `DEFAULT TRUE` | Status tayang artikel. |
+| `deleted_at` | `TIMESTAMP` | `NULLABLE` | Timestamp soft delete. |
+| `deleted_by` | `VARCHAR(100)` | `NULLABLE` | Username/aktor penghapus. |
 | `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
 
 ---
@@ -456,6 +460,8 @@ Menyimpan materi publikasi rekap profit Master Trader beserta lampiran foto bukt
 | `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik postingan materi promosi. |
 | `caption` | `TEXT` | `NOT NULL` | Teks materi promosi/arahan (maks. 20.000 karakter). |
 | `created_by` | `BIGINT UNSIGNED` | `FK -> users.id, CASCADE` | ID Administrator yang menerbitkan materi. |
+| `deleted_at` | `TIMESTAMP` | `NULLABLE` | Timestamp soft delete. |
+| `deleted_by` | `VARCHAR(100)` | `NULLABLE` | Username/aktor penghapus. |
 | `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE, INDEX(created_at)` | Timestamps & Index untuk feed kronologis. |
 
 #### Tabel `profit_master_post_images`
@@ -468,6 +474,8 @@ Menyimpan materi publikasi rekap profit Master Trader beserta lampiran foto bukt
 | `file_size` | `INT UNSIGNED` | `DEFAULT 0` | Ukuran berkas dalam bytes. |
 | `mime_type` | `VARCHAR(255)` | `NOT NULL` | MIME type gambar (mis. `image/png`). |
 | `urutan` | `SMALLINT UNSIGNED` | `DEFAULT 0` | Urutan tampil foto di galeri. |
+| `deleted_at` | `TIMESTAMP` | `NULLABLE` | Timestamp soft delete (cascade dari post). |
+| `deleted_by` | `VARCHAR(100)` | `NULLABLE` | Username/aktor penghapus. |
 | `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
 
 ---
@@ -544,7 +552,11 @@ Menyimpan laporan profit trading bulanan per akun copytrade (didukung screenshot
 | `catatan_koreksi` | `TEXT` | `NULLABLE` | Instruksi koreksi data laporan dari admin kepada member. |
 | `verified_by` | `BIGINT UNSIGNED` | `FK -> users.id, NULLABLE` | Admin pemverifikasi. |
 | `verified_at` | `TIMESTAMP` | `NULLABLE` | Waktu laporan & fee diverifikasi lunas. |
+| `deleted_at` | `TIMESTAMP` | `NULLABLE` | Timestamp soft delete laporan. |
+| `deleted_by` | `VARCHAR(100)` | `NULLABLE` | Username/aktor penghapus. |
 | `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
+
+> Catatan: Constraint `(akun_copytrade_id, periode_ke)` menggunakan indeks biasa (bukan unique index basis data) agar tidak memblokir input ulang periode setelah soft delete; pencegahan duplikasi diverifikasi secara transaksional di aplikasi.
 
 ---
 

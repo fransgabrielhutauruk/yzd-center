@@ -72,10 +72,11 @@ class FaqController extends Controller
                 ->with('error', 'Tidak ada FAQ yang dipilih untuk dihapus.');
         }
 
-        EdukasiFaq::whereIn('id', $ids)->delete();
+        $faqs = EdukasiFaq::whereIn('id', $ids)->get();
+        $faqs->each->delete();
 
         return redirect()->route('admin.education.faq.index', ['tab' => 'faqs'])
-            ->with('success', count($ids) . ' pertanyaan FAQ berhasil dihapus.');
+            ->with('success', $faqs->count() . ' pertanyaan FAQ berhasil dihapus.');
     }
 
     public function storeTopic(FaqTopikRequest $request): RedirectResponse

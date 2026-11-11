@@ -17,9 +17,16 @@ class PanduanBantuanRequest extends FormRequest
         $articleId = $this->route('id') ?? $this->route('article')?->id;
 
         return [
-            'kategori_id'  => ['required', 'exists:panduan_kategori,id'],
-            'judul'        => ['required', 'string', 'max:255'],
-            'slug'         => ['nullable', 'string', 'max:255', Rule::unique('panduan_bantuan', 'slug')->ignore($articleId)],
+            'kategori_id' => ['required', 'exists:panduan_kategori,id'],
+            'judul'       => ['required', 'string', 'max:255'],
+            'slug'        => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('panduan_bantuan', 'slug')
+                    ->ignore($articleId)
+                    ->whereNull('deleted_at'),
+            ],
             'ringkasan'    => ['nullable', 'string', 'max:1000'],
             'konten'       => ['required', 'string', 'max:20000'],
             'video_url'    => ['nullable', 'url', 'max:255'],

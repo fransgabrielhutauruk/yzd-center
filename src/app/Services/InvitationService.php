@@ -282,7 +282,10 @@ class InvitationService
                 tingkat: 'warning'
             );
 
-            return Invitation::whereIn('invitation_id', $invitationIds)->delete();
+            $invitations = Invitation::whereIn('invitation_id', $invitationIds)->get();
+            $invitations->each->delete();
+
+            return $invitations->count();
         });
     }
 }

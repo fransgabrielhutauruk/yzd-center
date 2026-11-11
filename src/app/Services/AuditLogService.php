@@ -93,6 +93,8 @@ class AuditLogService
         'selesaikan_tiket_bantuan'   => 'Penyelesaian Tiket Bantuan',
         'buka_kembali_tiket_bantuan' => 'Pembukaan Kembali Tiket Bantuan',
         'tutup_tiket_bantuan'        => 'Penutupan Tiket Bantuan',
+        'pulihkan_data'              => 'Pemulihan Data Terhapus',
+        'bersihkan_data'             => 'Pembersihan Data Permanen (Purge)',
     ];
 
     /**

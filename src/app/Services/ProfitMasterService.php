@@ -132,9 +132,6 @@ class ProfitMasterService
                     ->get();
 
                 foreach ($imagesToDelete as $img) {
-                    if ($disk->exists($img->file_path)) {
-                        $disk->delete($img->file_path);
-                    }
                     $img->delete();
                 }
             }
@@ -183,19 +180,12 @@ class ProfitMasterService
     }
 
     /**
-     * Menghapus postingan profit master beserta seluruh berkas gambar fisiknya.
+     * Menghapus postingan profit master (soft delete, berkas fisik tetap tersimpan).
      */
     public function delete(ProfitMasterPost $post): bool
     {
         return DB::transaction(function () use ($post) {
             $postId = $post->id;
-            $disk = Storage::disk('local');
-
-            // Hapus direktori fisik dan seluruh isinya
-            $folder = "profit_master/{$postId}";
-            if ($disk->exists($folder)) {
-                $disk->deleteDirectory($folder);
-            }
 
             $deleted = $post->delete();
 

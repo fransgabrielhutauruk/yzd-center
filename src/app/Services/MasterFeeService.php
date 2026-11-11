@@ -33,7 +33,7 @@ class MasterFeeService
         $yearMonth = $date->format('Ym');
         $prefix = "MFE-{$yearMonth}-";
 
-        $lastNumber = LaporanProfitBulanan::query()
+        $lastNumber = LaporanProfitBulanan::withTrashed()
             ->where('nomor', 'like', "{$prefix}%")
             ->lockForUpdate()
             ->orderByDesc('nomor')
@@ -187,6 +187,20 @@ class MasterFeeService
             $feeIdr,
             $status
         ): LaporanProfitBulanan {
+            // Lock akun untuk mencegah race condition pembuatan laporan ganda
+            AkunCopytrade::where('id', $akun->id)->lockForUpdate()->first();
+
+            // Pengecekan duplikat laporan aktif untuk (akun, periode_ke)
+            $existingReport = LaporanProfitBulanan::where('akun_copytrade_id', $akun->id)
+                ->where('periode_ke', $nextPeriod['ke'])
+                ->first();
+
+            if ($existingReport) {
+                throw ValidationException::withMessages([
+                    'periode' => "Laporan untuk periode ke-{$nextPeriod['ke']} sudah pernah dibuat.",
+                ]);
+            }
+
             $nomor = $this->generateNomor(Carbon::now());
 
             $extMb = $buktiMyfxbook->getClientOriginalExtension() ?: 'jpg';
@@ -400,16 +414,6 @@ class MasterFeeService
         }
 
         return DB::transaction(function () use ($laporan, $user) {
-            if ($laporan->bukti_myfxbook_path) {
-                Storage::disk('local')->delete($laporan->bukti_myfxbook_path);
-            }
-            if ($laporan->bukti_wd_path) {
-                Storage::disk('local')->delete($laporan->bukti_wd_path);
-            }
-            if ($laporan->bukti_transfer_path) {
-                Storage::disk('local')->delete($laporan->bukti_transfer_path);
-            }
-
             $this->auditLogService->record(
                 kategori: 'master_fee',
                 aksi: 'hapus_laporan',
@@ -418,7 +422,7 @@ class MasterFeeService
                 user: $user
             );
 
-            return $laporan->delete();
+            return (bool) $laporan->delete();
         });
     }
 
