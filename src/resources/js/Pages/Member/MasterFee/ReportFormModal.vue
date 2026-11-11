@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppModal from '@/Components/Common/AppModal.vue';
 import AppButton from '@/Components/Common/AppButton.vue';
+import AppCurrencyInput from '@/Components/Common/AppCurrencyInput.vue';
 import { compressImageFile } from '@/lib/imageCompression';
 import { toast } from 'vue-sonner';
 import {
@@ -230,17 +231,14 @@ const submit = () => {
                         Boleh bernilai 0 atau negatif (rugi)
                     </span>
                 </div>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 font-mono text-xs font-bold text-muted-foreground">$</span>
-                    <input
-                        v-model="form.profit_usd"
-                        type="number"
-                        step="0.01"
-                        placeholder="Contoh: 150.00 atau -25.00"
-                        class="w-full rounded-lg border border-input bg-background py-2 pr-3 pl-7 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-                        required
-                    />
-                </div>
+                <AppCurrencyInput
+                    v-model="form.profit_usd"
+                    currency="USD"
+                    allow-negative
+                    placeholder="Contoh: 150.00 atau -25.00"
+                    :has-error="!!form.errors.profit_usd"
+                    required
+                />
                 <p v-if="form.errors.profit_usd" class="text-xs text-destructive">
                     {{ form.errors.profit_usd }}
                 </p>
@@ -286,19 +284,15 @@ const submit = () => {
                         </span>
                     </div>
 
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 font-mono text-xs font-bold text-muted-foreground">$</span>
-                        <input
-                            v-model="form.wd_usd"
-                            type="number"
-                            step="0.01"
-                            :min="wdMinUsd"
-                            :max="wdMaxUsd"
-                            placeholder="0.00"
-                            class="w-full rounded-lg border border-input bg-background py-2 pr-3 pl-7 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-                            required
-                        />
-                    </div>
+                    <AppCurrencyInput
+                        v-model="form.wd_usd"
+                        currency="USD"
+                        :min="wdMinUsd"
+                        :max="wdMaxUsd"
+                        placeholder="0.00"
+                        :has-error="!!form.errors.wd_usd"
+                        required
+                    />
 
                     <!-- Tombol Preset WD -->
                     <div class="flex items-center gap-2 pt-1">
@@ -328,18 +322,14 @@ const submit = () => {
                     <label class="block text-xs font-semibold text-foreground">
                         Nominal Rupiah Bersih Diterima di Bank (IDR) <span class="text-destructive">*</span>
                     </label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 font-mono text-xs font-bold text-muted-foreground">Rp</span>
-                        <input
-                            v-model="form.wd_idr"
-                            type="number"
-                            step="1"
-                            min="1"
-                            placeholder="Contoh: 1000000"
-                            class="w-full rounded-lg border border-input bg-background py-2 pr-3 pl-9 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-                            required
-                        />
-                    </div>
+                    <AppCurrencyInput
+                        v-model="form.wd_idr"
+                        currency="IDR"
+                        :min="1"
+                        placeholder="Contoh: 1.000.000"
+                        :has-error="!!form.errors.wd_idr"
+                        required
+                    />
                     <p class="text-[11px] text-muted-foreground">
                         Jumlah rupiah persis yang diterima pada mutasi rekening bank Anda dari hasil penarikan broker.
                     </p>

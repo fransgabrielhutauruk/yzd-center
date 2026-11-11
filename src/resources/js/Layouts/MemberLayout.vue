@@ -222,6 +222,12 @@ const navSections = computed(() => {
                     routeName: 'member.commissions.index',
                 },
                 {
+                    label: 'Kalkulator Komisi',
+                    href: '/member/affiliates-calculator',
+                    icon: Calculator,
+                    routeName: 'member.affiliates.calculator',
+                },
+                {
                     label: 'Materi Promosi',
                     href: '/member/profit-master',
                     icon: TrendingUp,
@@ -261,8 +267,20 @@ const navSections = computed(() => {
     ];
 });
 
-const isActive = (href) => {
-    return page.url.startsWith(href);
+const isActive = (itemOrHref) => {
+    const href = typeof itemOrHref === 'string' ? itemOrHref : itemOrHref?.href;
+    const currentPath = (page.url || '').split('?')[0].replace(/\/+$/, '') || '/';
+    const targetPath = (href || '').split('?')[0].replace(/\/+$/, '') || '/';
+
+    if (currentPath === targetPath) {
+        return true;
+    }
+
+    if (targetPath !== '/member' && targetPath !== '' && currentPath.startsWith(targetPath + '/')) {
+        return true;
+    }
+
+    return false;
 };
 
 const logout = () => {

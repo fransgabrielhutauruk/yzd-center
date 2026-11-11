@@ -64,6 +64,7 @@
    - [9.6 Langkah Demi Langkah Pengajuan Pencairan Komisi](#96-langkah-demi-langkah-pengajuan-pencairan-komisi)
    - [9.7 Proses Verifikasi Administrator & Bukti Transfer Bank](#97-proses-verifikasi-administrator--bukti-transfer-bank)
    - [9.8 Kondisi Khusus (Edge Cases) pada Pencairan Komisi](#98-kondisi-khusus-edge-cases-pada-pencairan-komisi)
+   - [9.9 Simulasi Proyeksi Potensi Komisi (Kalkulator Afiliator)](#99-simulasi-proyeksi-potensi-komisi-kalkulator-afiliator)
 10. [Bab 10: Program Kemitraan 4 — Materi Promosi (Profit Master Feed)](#bab-10-program-kemitraan-4--materi-promosi-profit-master-feed)
     - [10.1 Fungsi Feed Materi Promosi Master Trader](#101-fungsi-feed-materi-promosi-master-trader)
     - [10.2 Pencarian Materi Promosi](#102-pencarian-materi-promosi)
@@ -361,15 +362,15 @@ Halaman **Portofolio Investasi** (`/member/investments`) adalah pusat pengelolaa
 ---
 
 ### 5.2 Mendaftarkan Akun Investasi / Copytrade Baru
-1. Klik tombol **"Tambah Akun Baru"**.
-2. Pada formulir yang muncul:
-   - Pilih **Tier Investasi** (*Tier 1*, *Tier 2*, atau *Tier 3*).
-   - Masukkan **Nomor Akun MT4** (hanya angka).
-   - Masukkan nominal **Modal Deposit (USD)** sesuai rentang Tier.
-   - Tentukan **Tanggal Mulai Investasi**.
-3. Klik **"Daftarkan Akun Investasi"**. Akun akan masuk antrean verifikasi Admin dengan status *Menunggu Verifikasi*.
-
-![Jendela Modal Tambah Akun Investasi Baru](./assets/investor/09-modal-tambah-akun-investasi.png)
+1. Klik tombol **"Mulai Investasi Akun Baru"** pada header tab portofolio atau beralih ke tab **"Alur Memulai Investasi"**.
+2. Ikuti alur mandiri (onboarding 6 langkah) terstruktur:
+   - **Langkah 1:** Pemilihan Broker (HFM untuk Tier 1 & 2, atau XM untuk Tier 3).
+   - **Langkah 2:** Penentuan Modal Investasi (USD) dan verifikasi Tier.
+   - **Langkah 3:** Registrasi & Verifikasi Akun Broker.
+   - **Langkah 4:** Pembukaan Akun MT4 & Deposit Modal.
+   - **Langkah 5:** Pengisian Data Akun MT4 & Bukti Pendaftaran.
+   - **Langkah 6:** Sinkronisasi Myfxbook & Verifikasi Akhir.
+3. Klik **"Kirim Pengajuan Akun Investasi"**. Akun akan masuk antrean verifikasi Admin dengan status *Menunggu Verifikasi*.
 
 ---
 
@@ -597,6 +598,37 @@ Buka menu **Klaim Komisi** (`/member/commissions`):
 ### 9.8 Kondisi Khusus (Edge Cases) pada Pencairan Komisi
 - **Perubahan Rekening Bank:** Jika terdapat perubahan nomor rekening, perbarui profil sebelum mengirim pengajuan klaim.
 - **Penolakan Sebagian Akun:** Jika suatu akun MT4 mengalami pembatalan deposit di broker, Admin dapat menolak akun tersebut dengan catatan rinci, sementara akun lain yang valid tetap dapat diproses.
+
+---
+
+### 9.9 Simulasi Proyeksi Potensi Komisi (Kalkulator Afiliator)
+Untuk mempermudah affiliator dalam merencanakan target pembinaan investor dan mempresentasikan potensi kemitraan secara transparan, sistem menyediakan fitur **Kalkulator Komisi Afiliator** (`/member/affiliates-calculator`).
+
+#### Cara Mengakses:
+1. Melalui menu samping (*Sidebar*): **Program Kemitraan & Komisi** $\rightarrow$ **Kalkulator Komisi**.
+2. Melalui pintasan tombol **"Kalkulator Komisi"** di sudut kanan atas halaman **Jaringan Kemitraan** (`/member/affiliates`).
+
+#### Panduan Penggunaan Formulir Simulasi:
+1. **Daftar Investor Binaan (Tanpa Batasan Kuota):**
+   - Klik tombol **"Tambah Investor"** untuk menambahkan baris investor baru tanpa batasan jumlah baris.
+   - Masukkan **Nama / Label Investor** (misal: "Investor A").
+   - Masukkan **Estimasi Modal Awal (IDR)** (minimal Rp 10.000.000). Nilai ekuivalen USD dihitung otomatis berdasarkan kurs pasar saat ini.
+   - Atur **Estimasi Profit Bulanan (%)** per investor (baku: 5.0%, rentang: 0.1% s.d. 100%).
+   - Klik tombol ikon tempat sampah (*Hapus*) untuk mengurangi baris investor (minimal tersisa 1 baris).
+   - Klik tombol **"Reset"** di header untuk mengembalikan isian formulir ke nilai awal (1 investor @ Rp 100 Juta, 5% profit).
+2. **Panel Ringkasan & Indikator Tiering:**
+   - **Total Estimasi Modal:** Akumulasi total modal seluruh investor binaan dalam Rupiah dan USD.
+   - **Total Estimasi Komisi 3 Bulan:** Proyeksi total hak komisi afiliator yang akan dicairkan setelah 3 bulan evaluasi laporan lunas.
+   - **Indikator Skema 4-Tier:** Menampilkan tingkatan tier yang aktif dengan highlight warna ungu:
+     - **Tier 1:** Modal $> \text{Rp } 10\text{ Milyar}$ $\rightarrow$ Komisi **50%** dari Master Fee.
+     - **Tier 2:** Modal $\text{Rp } 1\text{ M} - \text{Rp } 10\text{ M}$ $\rightarrow$ Komisi **40%** dari Master Fee.
+     - **Tier 3:** Modal $\text{Rp } 100\text{ Jt} - \text{Rp } 1\text{ M}$ $\rightarrow$ Komisi **30%** dari Master Fee.
+     - **Tier 4:** Modal $< \text{Rp } 100\text{ Juta}$ $\rightarrow$ Komisi **20%** dari Master Fee.
+3. **Membaca Tabel Rincian Proyeksi Bulanan (Jendela 3 Bulan):**
+   - **Bulan ke-1 s.d. ke-3:** Menampilkan modal awal bulan, estimasi gross profit, tagihan Master Fee (30%), estimasi komisi afiliator, proyeksi penarikan tunai investor (60% dari laba bersih investor), dan pemupukan modal (40% dari laba bersih investor ditambahkan ke modal bulan berikutnya).
+   - **Baris Total Akumulasi:** Menampilkan total gross profit, total Master Fee, total komisi afiliator, dan total penarikan tunai investor selama 3 bulan.
+4. **Pernyataan Sanggahan (*Disclaimer*):**
+   - Hasil kalkulasi kalkulator adalah simulasi matematis murni berdasarkan estimasi dan asumsi performa, **bukan merupakan jaminan keuntungan pasti** dari pasar forex.
 
 ---
 

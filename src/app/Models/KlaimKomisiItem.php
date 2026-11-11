@@ -90,40 +90,97 @@ class KlaimKomisiItem extends Model
     // -------------------------------------------------------------------------
 
     /**
+     * Definisi resmi 4-Tier Skema Komisi Afiliator YZD Center.
+     * Urut dari Tier 1 (tertinggi) ke Tier 4.
+     *
+     * @return array<int, array{
+     *     tier_level: int,
+     *     persentase_tier: int,
+     *     label: string,
+     *     name: string,
+     *     min_idr: float|null,
+     *     max_idr: float|null,
+     *     range_label: string,
+     *     is_strict_greater: bool
+     * }>
+     */
+    public static function tierDefinitions(): array
+    {
+        return [
+            [
+                'tier_level'        => 1,
+                'persentase_tier'   => 50,
+                'label'             => 'Tier 1 (> Rp 10 Milyar) - Komisi 50%',
+                'name'              => 'Tier 1',
+                'min_idr'           => 10_000_000_000.0,
+                'max_idr'           => null,
+                'range_label'       => '> Rp 10 Milyar',
+                'is_strict_greater' => true,
+            ],
+            [
+                'tier_level'        => 2,
+                'persentase_tier'   => 40,
+                'label'             => 'Tier 2 (Rp 1 Milyar - Rp 10 Milyar) - Komisi 40%',
+                'name'              => 'Tier 2',
+                'min_idr'           => 1_000_000_000.0,
+                'max_idr'           => 10_000_000_000.0,
+                'range_label'       => 'Rp 1 Milyar – Rp 10 Milyar',
+                'is_strict_greater' => false,
+            ],
+            [
+                'tier_level'        => 3,
+                'persentase_tier'   => 30,
+                'label'             => 'Tier 3 (Rp 100 Juta - Rp 1 Milyar) - Komisi 30%',
+                'name'              => 'Tier 3',
+                'min_idr'           => 100_000_000.0,
+                'max_idr'           => 1_000_000_000.0,
+                'range_label'       => 'Rp 100 Juta – Rp 1 Milyar',
+                'is_strict_greater' => false,
+            ],
+            [
+                'tier_level'        => 4,
+                'persentase_tier'   => 20,
+                'label'             => 'Tier 4 (< Rp 100 Juta) - Komisi 20%',
+                'name'              => 'Tier 4',
+                'min_idr'           => 0.0,
+                'max_idr'           => 100_000_000.0,
+                'range_label'       => '< Rp 100 Juta',
+                'is_strict_greater' => false,
+            ],
+        ];
+    }
+
+    /**
      * Tentukan level tier dan persentase komisi berdasarkan nominal modal riil.
      *
      * @return array{tier_level: int, persentase_tier: int, label: string}
      */
     public static function determineTier(float $modalRiil): array
     {
-        if ($modalRiil > 10_000_000_000) {
-            return [
-                'tier_level'      => 1,
-                'persentase_tier' => 50,
-                'label'           => 'Tier 1 (> Rp 10 Milyar) - Komisi 50%',
-            ];
+        foreach (static::tierDefinitions() as $tier) {
+            if ($tier['is_strict_greater']) {
+                if ($modalRiil > $tier['min_idr']) {
+                    return [
+                        'tier_level'      => $tier['tier_level'],
+                        'persentase_tier' => $tier['persentase_tier'],
+                        'label'           => $tier['label'],
+                    ];
+                }
+            } elseif ($tier['min_idr'] !== null && $modalRiil >= $tier['min_idr']) {
+                return [
+                    'tier_level'      => $tier['tier_level'],
+                    'persentase_tier' => $tier['persentase_tier'],
+                    'label'           => $tier['label'],
+                ];
+            }
         }
 
-        if ($modalRiil >= 1_000_000_000) {
-            return [
-                'tier_level'      => 2,
-                'persentase_tier' => 40,
-                'label'           => 'Tier 2 (Rp 1 Milyar - Rp 10 Milyar) - Komisi 40%',
-            ];
-        }
-
-        if ($modalRiil >= 100_000_000) {
-            return [
-                'tier_level'      => 3,
-                'persentase_tier' => 30,
-                'label'           => 'Tier 3 (Rp 100 Juta - Rp 1 Milyar) - Komisi 30%',
-            ];
-        }
+        $fallback = static::tierDefinitions()[3];
 
         return [
-            'tier_level'      => 4,
-            'persentase_tier' => 20,
-            'label'           => 'Tier 4 (< Rp 100 Juta) - Komisi 20%',
+            'tier_level'      => $fallback['tier_level'],
+            'persentase_tier' => $fallback['persentase_tier'],
+            'label'           => $fallback['label'],
         ];
     }
 

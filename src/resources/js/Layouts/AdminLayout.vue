@@ -284,8 +284,20 @@ const navSections = [
     },
 ];
 
-const isActive = (item) => {
-    return page.url.startsWith(item.href);
+const isActive = (itemOrHref) => {
+    const href = typeof itemOrHref === 'string' ? itemOrHref : itemOrHref?.href;
+    const currentPath = (page.url || '').split('?')[0].replace(/\/+$/, '') || '/';
+    const targetPath = (href || '').split('?')[0].replace(/\/+$/, '') || '/';
+
+    if (currentPath === targetPath) {
+        return true;
+    }
+
+    if (targetPath !== '/admin' && targetPath !== '' && currentPath.startsWith(targetPath + '/')) {
+        return true;
+    }
+
+    return false;
 };
 
 const logout = () => {

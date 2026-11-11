@@ -20,7 +20,6 @@ import {
     LineChart,
     Loader2,
     Minus,
-    PlusCircle,
     ShieldCheck,
     Sparkles,
     Trash2,
@@ -41,7 +40,6 @@ import AppTabs from '@/Components/Common/AppTabs.vue';
 import { Button } from '@/Components/ui/button';
 import { toast } from 'vue-sonner';
 import { compressImageFile } from '@/lib/imageCompression';
-import AddInvestmentAccountModal from './AddInvestmentAccountModal.vue';
 import InvestorFlow from './InvestorFlow.vue';
 
 const props = defineProps({
@@ -191,6 +189,18 @@ const defaultTab = computed(() => {
     return hasAccounts.value ? 'portfolio' : 'onboarding';
 });
 const activeTab = ref(defaultTab.value);
+
+watch(activeTab, (newTab) => {
+    if (typeof window !== 'undefined') {
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.set('tab', String(newTab));
+            window.history.replaceState({}, '', url.toString());
+        } catch {
+            // Fallback
+        }
+    }
+});
 
 const tabItems = computed(() => {
     const items = [
@@ -370,17 +380,6 @@ const applyFilter = () => {
             preserveScroll: true,
         }
     );
-};
-
-// -----------------------------------------------------------------------------
-// Modal Tambah Akun Investasi
-// -----------------------------------------------------------------------------
-const isAddModalOpen = ref(false);
-const selectedTierForAdd = ref('');
-
-const openAddModal = (tier = '') => {
-    selectedTierForAdd.value = tier;
-    isAddModalOpen.value = true;
 };
 
 // -----------------------------------------------------------------------------
@@ -912,14 +911,6 @@ onMounted(() => {
                             Daftar Akun Investasi Anda
                         </h2>
                     </div>
-
-                    <AppButton
-                        type="create"
-                        :icon="PlusCircle"
-                        label="Tambah Akun Baru"
-                        size="sm"
-                        @click="openAddModal()"
-                    />
                 </div>
 
                 <!-- Grid Kartu Akun -->
@@ -1079,10 +1070,9 @@ onMounted(() => {
 
                         <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
                             <AppButton
-                                type="create"
-                                :icon="PlusCircle"
-                                label="Ajukan Akun Investasi Baru"
-                                @click="openAddModal()"
+                                type="add"
+                                label="Mulai Investasi Akun Baru"
+                                @click="activeTab = 'onboarding'"
                             />
                             <Link
                                 href="/member/education/help?kategori=investasi-tiering"
@@ -1797,16 +1787,6 @@ onMounted(() => {
             </div>
             </div>
         </div>
-
-        <!-- ===================================================================== -->
-        <!-- MODAL: Tambah Akun Investasi                                          -->
-        <!-- ===================================================================== -->
-        <AddInvestmentAccountModal
-            :show="isAddModalOpen"
-            :has-existing="has_existing || accounts.length > 0"
-            :default-tier="selectedTierForAdd"
-            @close="isAddModalOpen = false"
-        />
 
         <!-- ===================================================================== -->
         <!-- MODAL: Lengkapi / Perbarui Tautan Myfxbook                            -->

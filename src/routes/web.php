@@ -22,6 +22,7 @@ use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DocumentStreamController;
 use App\Http\Controllers\Member\AccountController;
+use App\Http\Controllers\Member\AffiliateCalculatorController;
 use App\Http\Controllers\Member\AffiliateNetworkController;
 use App\Http\Controllers\Member\CommissionClaimController as MemberCommissionClaimController;
 use App\Http\Controllers\Member\DashboardController as MemberDashboardController;
@@ -222,6 +223,7 @@ Route::middleware(['auth', 'role:member'])->prefix('member')->name('member.')->g
 
         // Jaringan Kemitraan & Klaim Susulan
         Route::get('/affiliates', [AffiliateNetworkController::class, 'index'])->name('affiliates.index');
+        Route::get('/affiliates-calculator', [AffiliateCalculatorController::class, 'index'])->name('affiliates.calculator');
         Route::post('/affiliates/claims', [AffiliateNetworkController::class, 'storeClaim'])->name('affiliates.claims.store');
         Route::get('/affiliates/eligible-downlines', [AffiliateNetworkController::class, 'eligibleDownlines'])->name('affiliates.eligible_downlines');
         Route::get('/affiliates/check-downline', [AffiliateNetworkController::class, 'checkDownline'])->name('affiliates.check_downline');
@@ -241,11 +243,11 @@ Route::middleware(['auth', 'role:member'])->prefix('member')->name('member.')->g
         Route::post('/first-period-banner/dismiss', function (\Illuminate\Http\Request $request) {
             session(['first_period_notice_dismissed' => true]);
 
-            if ($request->wantsJson() && !$request->header('X-Inertia')) {
-                return response()->json(['status' => 'dismissed']);
+            if ($request->hasHeader('X-Inertia')) {
+                return back();
             }
 
-            return back();
+            return response()->json(['status' => 'dismissed']);
         })->name('first_period_banner.dismiss');
     });
 

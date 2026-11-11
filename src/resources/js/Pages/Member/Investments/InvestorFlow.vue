@@ -24,6 +24,7 @@ import {
 } from 'lucide-vue-next';
 import AppButton from '@/Components/Common/AppButton.vue';
 import AppConfirmDialog from '@/Components/Common/AppConfirmDialog.vue';
+import AppCurrencyInput from '@/Components/Common/AppCurrencyInput.vue';
 import { compressImageFile } from '@/lib/imageCompression';
 
 const props = defineProps({
@@ -442,21 +443,14 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             Kurs: ${{ 1 }} = {{ formatIDR(exchangeRate) }}
                         </span>
                     </label>
-                    <div class="relative">
-                        <span
-                            class="text-muted-foreground absolute top-2.5 left-3 font-mono text-xs font-bold"
-                            >$</span
-                        >
-                        <input
-                            v-model.number="modalUsd"
-                            type="number"
-                            min="1"
-                            step="any"
-                            placeholder="Contoh: 5000"
-                            @input="triggerAutoSave"
-                            class="bg-background border-input focus:ring-primary-500 h-10 w-full rounded-xl border pr-4 pl-8 font-mono text-sm font-bold focus:ring-2 focus:outline-none"
-                        />
-                    </div>
+                    <AppCurrencyInput
+                        v-model="modalUsd"
+                        currency="USD"
+                        :min="1"
+                        size="lg"
+                        placeholder="Contoh: 5000"
+                        @input="triggerAutoSave"
+                    />
                     <p v-if="modalIdrEstimate > 0" class="text-muted-foreground font-mono text-xs">
                         Estimasi Rupiah:
                         <strong class="text-foreground">{{ formatIDR(modalIdrEstimate) }}</strong>

@@ -18,6 +18,7 @@ import {
 } from 'lucide-vue-next';
 import MemberLayout from '@/Layouts/MemberLayout.vue';
 import AppButton from '@/Components/Common/AppButton.vue';
+import AppCurrencyInput from '@/Components/Common/AppCurrencyInput.vue';
 import { Button } from '@/Components/ui/button';
 import { toast } from 'vue-sonner';
 
@@ -539,16 +540,13 @@ const whatsappConsultUrl = computed(() => {
                         <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                             Modal Awal ($ USD)
                         </label>
-                        <div class="relative">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">$</span>
-                            <input
-                                v-model.number="initialCapital"
-                                type="number"
-                                min="10"
-                                step="50"
-                                class="w-full rounded-xl border border-slate-300 py-2.5 pl-7 pr-3 text-sm font-bold text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white font-mono"
-                            />
-                        </div>
+                        <AppCurrencyInput
+                            v-model="initialCapital"
+                            currency="USD"
+                            :min="10"
+                            size="lg"
+                            placeholder="500"
+                        />
                     </div>
 
                     <!-- 2. Target Profit Bulanan (%) -->
@@ -607,16 +605,12 @@ const whatsappConsultUrl = computed(() => {
                                 <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                                     Kurs Acuan (Rp per 1 USD)
                                 </label>
-                                <div class="relative">
-                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rp</span>
-                                    <input
-                                        v-model.number="exchangeRate"
-                                        type="number"
-                                        min="10000"
-                                        step="50"
-                                        class="w-full rounded-lg border border-slate-300 py-1.5 pl-8 pr-3 text-xs font-bold text-slate-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white font-mono"
-                                    />
-                                </div>
+                                <AppCurrencyInput
+                                    v-model="exchangeRate"
+                                    currency="IDR"
+                                    :min="1000"
+                                    placeholder="16.500"
+                                />
                             </div>
 
                             <div class="flex items-center gap-2">

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import MemberLayout from '@/Layouts/MemberLayout.vue';
 import AppDataTable from '@/Components/Common/AppDataTable.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
@@ -25,6 +25,7 @@ import {
     Check,
     AlertTriangle,
     CreditCard,
+    Calculator,
 } from 'lucide-vue-next';
 
 const getStatusBadgeClass = (status) => {
@@ -376,6 +377,14 @@ const claimColumns = [
     >
         <template #header-actions>
             <div class="flex items-center gap-2 self-start sm:self-center">
+                <Link :href="route('member.affiliates.calculator')">
+                    <AppButton
+                        type="custom"
+                        variant="outline"
+                        :icon="Calculator"
+                        label="Kalkulator Komisi"
+                    />
+                </Link>
                 <AppButton
                     type="create"
                     :icon="PlusCircle"

@@ -143,6 +143,20 @@ Afiliator berhak memperoleh komisi atas keuntungan yang dibukukan oleh *downline
 3.  **Kelayakan Klaim Berbasis 3 Laporan Bulanan:** Akun trading downline wajib telah menyelesaikan **3 laporan profit bulanan pertama (`periode_ke` 1, 2, 3)** dan seluruh laporan tersebut berstatus `lunas` atau `tanpa_fee` (bebas dari tagihan belum dibayar, ditolak, perlu koreksi, atau menunggu verifikasi). Tidak lagi menggunakan batasan rentang kalender 90 hari maupun kalkulasi `hari_kehitung`.
 4.  **Perhitungan Mandiri Multi-Akun (*Per-Account Pro-Rata*):** Jika seorang investor memiliki lebih dari satu akun copytrade, penentuan Tier komisi dihitung secara independen per akun, tidak digabungkan.
 
+#### 3.3.1 Kalkulator Simulasi Komisi Afiliator (Affiliate Commission Calculator):
+Fasilitas simulasi interaktif sisi klien (`/member/affiliates-calculator`) bagi member aktif untuk memproyeksikan potensi pendapatan komisi afiliasi:
+1.  **Dinamis Multi-Investor:** Pengguna dapat menyimulasikan banyak investor binaan sekaligus secara dinamis tanpa batasan jumlah baris dengan nama, nominal modal deposit (IDR), dan estimasi profit bulanan individual.
+2.  **Jendela Evaluasi 3 Bulan dengan Pemupukan Modal (*Compounding*):**
+    *   Estimasi Gross Profit bulanan: $\text{Gross Profit} = \text{Modal Awal Bulan} \times \text{Estimasi ROI \%}$.
+    *   Tagihan Master Fee (30% dari gross profit).
+    *   Komisi Afiliator: $\text{Komisi} = \text{Master Fee} \times \text{Persentase Tier Modal}$.
+    *   Porsi Penarikan Tunai (*Withdrawal*): 60% dari laba bersih investor dialokasikan untuk ditarik tunai.
+    *   Porsi Pemupukan Modal (*Compounding*): 40% dari laba bersih investor ditambahkan ke modal trading bulan berikutnya:
+        $$\text{Modal Bulan } (m+1) = \text{Modal Bulan } m + (0.40 \times (\text{Gross Profit} - \text{Master Fee}))$$
+3.  **Evaluasi Tiering Dinamis:** Setiap investor dievaluasi tier-nya (Tier 1 s.d. Tier 4) berdasarkan nominal modal awal masing-masing dengan indikator visual *active tier*.
+4.  **Akumulasi Transparan:** Ringkasan total modal kelolaan, akumulasi komisi 3 bulan dalam IDR dan USD, serta tabel rincian bulan ke-1, ke-2, dan ke-3.
+5.  **Pernyataan Sanggahan (*Disclaimer*):** Menegaskan bahwa kalkulator adalah alat simulasi matematis berbasis asumsi proyeksi dan bukan jaminan pendapatan pasti.
+
 ---
 
 ### 3.4 Klausul Ahli Waris & Kepatuhan Hukum
@@ -247,6 +261,11 @@ Afiliator berhak memperoleh komisi atas keuntungan yang dibukukan oleh *downline
 *   **FR-AFF-06 (Materi Promosi & Berbagi Bahan Pemasaran):**
     *   Mengakses umpan (*feed*) materi promosi resmi Master Trader yang kronologis dan dapat dicari.
     *   Menyediakan tombol cepat Salin Caption, Unduh Foto, dan Bagikan langsung (*Web Share API*) ke aplikasi WhatsApp / media sosial.
+*   **FR-AFF-07 (Kalkulator Komisi Afiliator):**
+    *   Mengakses kalkulator proyeksi pendapatan komisi afiliasi interaktif (`/member/affiliates-calculator`) dengan otentikasi member aktif.
+    *   Menyediakan simulasi investor secara dinamis tanpa batasan kuota dengan konfigurasi modal awal, persentase profit bulanan dinamis, serta evaluasi otomatis skema 4-Tier komisi.
+    *   Menghitung proyeksi akumulasi 3 bulan dengan pola 60% penarikan laba (*withdrawal*) dan 40% pemupukan modal (*compounding*) ke modal trading bulan berikutnya.
+    *   Menampilkan rincian tabel per bulan (Modal Awal, Estimasi Profit, Tagihan Master Fee 30%, Komisi Afiliator, Estimasi WD Investor, dan Penambahan Modal) serta pernyataan sanggahan (*disclaimer*).
 *   **FR-MBR-01 (Tiket Bantuan & Pelaporan Kendala Member):**
     *   Seluruh member terautentikasi (termasuk member berstatus pending KYC) dapat membuat tiket bantuan dengan penomoran unik bulanan `TKT-YYYYMM-XXXX`.
     *   Menyematkan berkas tangkapan layar bukti kendala (hingga 10 MB per gambar dengan kompresi senyap sisi klien).

@@ -18,7 +18,7 @@ defineProps({
                 title="Materi Promosi"
                 subtitle="Bahan promosi dan rekap bukti profit Master Trader. Siap salin dan bagikan ke calon mitra Anda."
                 :breadcrumbs="[
-                    { label: 'Menu Utama', href: '/member/dashboard' },
+                    { label: 'Program Kemitraan' },
                     { label: 'Materi Promosi' },
                 ]"
             />

@@ -1,25 +1,49 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { usePage, router } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
 import { Info, X } from 'lucide-vue-next';
 
 const page = usePage();
 const isDismissed = ref(false);
+
+// Periksa apakah banner sudah pernah di-dismiss di tab sesi ini
+try {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('first_period_notice_dismissed') === 'true') {
+        isDismissed.value = true;
+    }
+} catch (_) {}
 
 const notice = computed(() => page.props.first_period_notice);
 const show = computed(() => !isDismissed.value && !!notice.value);
 
 const dismiss = () => {
     isDismissed.value = true;
-    router.post(
-        route('member.first_period_banner.dismiss'),
-        {},
-        {
-            preserveScroll: true,
-            preserveState: true,
-            onError: () => {},
-        }
-    );
+
+    try {
+        sessionStorage.setItem('first_period_notice_dismissed', 'true');
+    } catch (_) {}
+
+    // Kirim request background menggunakan fetch (bukan router.post)
+    // agar dismiss banner bersifat instan, tidak memicu reload prop halaman penuh,
+    // dan 100% bebas dari dialog modal "All Inertia requests must receive a valid Inertia response".
+    try {
+        const xsrfCookie = document.cookie
+            .split('; ')
+            .find((row) => row.startsWith('XSRF-TOKEN='));
+        const xsrfToken = xsrfCookie ? decodeURIComponent(xsrfCookie.split('=')[1]) : '';
+        const metaCsrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+        fetch(route('member.first_period_banner.dismiss'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                ...(metaCsrf ? { 'X-CSRF-TOKEN': metaCsrf } : {}),
+                ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+            },
+            credentials: 'same-origin',
+        }).catch(() => {});
+    } catch (_) {}
 };
 </script>
 
