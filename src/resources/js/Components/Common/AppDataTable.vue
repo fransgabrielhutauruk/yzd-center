@@ -485,7 +485,7 @@ defineExpose({
                         @focus="isSearchFocused = true"
                         @blur="isSearchFocused = false"
                         @keydown.enter.prevent="handleSearchEnter"
-                        class="w-full pl-9 pr-9 py-1.5 text-xs bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all placeholder:text-muted-foreground"
+                        class="w-full h-8 min-h-[36px] pl-9 pr-9 py-1.5 text-xs bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all placeholder:text-muted-foreground shadow-2xs"
                     />
                     <div class="absolute inset-y-0 right-0 pr-2.5 flex items-center gap-1.5">
                         <Loader2 v-if="isLoading" class="w-3.5 h-3.5 animate-spin text-primary-600 pointer-events-none" />
@@ -518,38 +518,46 @@ defineExpose({
                     <slot name="actions" />
 
                     <!-- Filters Toggle Button (di samping kiri elemen 'Baris: x') -->
-                    <button
+                    <AppButton
                         v-if="$slots.filters"
-                        type="button"
-                        @click="isFilterOpen = !isFilterOpen"
+                        type="custom"
+                        variant="outline"
+                        size="sm"
+                        :icon="ListFilter"
+                        icon-position="right"
                         :class="[
-                            'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer select-none',
                             isFilterOpen
-                                ? 'bg-muted/80 text-foreground border-border shadow-2xs'
-                                : 'bg-background hover:bg-muted/50 text-foreground border-input shadow-2xs'
+                                ? 'bg-muted text-foreground ring-1 ring-border shadow-2xs'
+                                : 'bg-card text-foreground shadow-2xs'
                         ]"
                         :aria-expanded="isFilterOpen"
                         aria-label="Toggle filter"
+                        @click="isFilterOpen = !isFilterOpen"
                     >
                         <span>Filters</span>
-                        <ListFilter class="w-3.5 h-3.5 text-muted-foreground" :class="{ 'text-foreground': isFilterOpen }" />
                         <span
                             v-if="activeFilterCount > 0"
-                            class="ml-0.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 text-[10px] font-bold rounded-full bg-primary-600 text-white leading-none"
+                            class="inline-flex items-center justify-center min-w-[16px] h-4 px-1 text-[10px] font-bold rounded-full bg-primary-600 text-white leading-none"
                         >
                             {{ activeFilterCount }}
                         </span>
-                    </button>
+                    </AppButton>
 
-                    <!-- Per-Page Selector Card (mirip dengan desain Filters) -->
+                    <!-- Per-Page Selector Card (menggunakan AppButton agar ukuran & radius selaras) -->
                     <div
                         v-if="showPerPage"
-                        class="relative inline-flex items-center bg-background hover:bg-muted/50 text-foreground border border-input rounded-lg px-3 py-1.5 text-xs font-medium shadow-2xs transition-all cursor-pointer select-none ml-auto sm:ml-0"
+                        class="relative inline-flex items-center ml-auto sm:ml-0 group"
                     >
-                        <div class="flex items-center gap-1.5 pointer-events-none">
-                            <span>Baris: {{ perPage }}</span>
-                            <ChevronDown class="w-3.5 h-3.5 text-muted-foreground ml-0.5" />
-                        </div>
+                        <AppButton
+                            type="custom"
+                            variant="outline"
+                            size="sm"
+                            :label="`Baris: ${perPage}`"
+                            :icon="ChevronDown"
+                            icon-position="right"
+                            tabindex="-1"
+                            class="pointer-events-none group-hover:bg-muted group-active:scale-[0.98] group-focus-within:ring-2 group-focus-within:ring-primary-500/50"
+                        />
                         <select
                             :value="perPage"
                             @change="onPerPageChange"
