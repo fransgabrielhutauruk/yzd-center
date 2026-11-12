@@ -34,10 +34,6 @@ import {
     AtSign,
 } from 'lucide-vue-next';
 
-// === [DEV ONLY: AUTO-FILL] Hapus blok import di bawah ini kelak jika tidak diperlukan lagi ===
-import DevRegisterAutoFill from '@/Components/Dev/DevRegisterAutoFill.vue';
-// === [END DEV ONLY: AUTO-FILL] ===
-
 const props = defineProps({
     invitation: {
         type: Object,
@@ -611,21 +607,7 @@ const submit = () => {
                         <span class="text-muted-foreground text-[11px]">Tautan Aktif</span>
                     </div>
                 </div>
-                <div
-                    class="bg-primary-600 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-xs"
-                >
-                    <CheckCircle2 class="h-3.5 w-3.5" />
-                    <span>{{ invitation.invitation?.target_role_label }}</span>
-                </div>
             </div>
-
-            <!-- === [DEV ONLY: AUTO-FILL] Hapus blok komponen di bawah ini kelak jika tidak diperlukan lagi === -->
-            <DevRegisterAutoFill
-                :form="form"
-                :ktp-info="ktpInfo"
-                @update:ktp-info="(val) => (ktpInfo = val)"
-            />
-            <!-- === [END DEV ONLY: AUTO-FILL] === -->
 
             <!-- ========================================== -->
             <!-- STEPPER INDICATOR (DESKTOP)               -->
