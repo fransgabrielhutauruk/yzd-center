@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('tipe_akun', 50); // cent, standard, private_vps
             $table->string('nomor_akun_trading', 50);
             $table->string('server_broker', 100)->nullable();
+            $table->string('myfxbook_url', 255)->nullable();
             $table->text('master_password')->nullable();   // encrypted via Crypt::encryptString()
             $table->text('investor_password')->nullable(); // encrypted via Crypt::encryptString()
             $table->decimal('modal_riil', 15, 2)->unsigned();

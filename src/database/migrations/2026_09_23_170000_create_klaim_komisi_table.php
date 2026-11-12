@@ -62,8 +62,10 @@ return new class extends Migration
             $table->decimal('gross_profit', 15, 2)->nullable();
             $table->decimal('master_share_pct', 5, 2)->default(30.00);
             $table->decimal('master_gross_share', 15, 2)->nullable();
+            $table->unsignedBigInteger('master_gross_share_idr')->default(0);
             $table->decimal('affiliate_share_pct', 5, 2)->default(20.00);
             $table->decimal('affiliate_commission', 15, 2)->nullable();
+            $table->unsignedBigInteger('affiliate_commission_idr')->default(0);
             $table->decimal('master_net_share', 15, 2)->nullable();
             $table->decimal('investor_net_profit', 15, 2)->nullable();
             $table->decimal('profit_master', 15, 2)->nullable();

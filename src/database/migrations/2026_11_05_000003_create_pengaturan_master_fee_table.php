@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('nomor_rekening', 100)->nullable();
             $table->string('atas_nama', 150)->nullable();
             $table->unsignedTinyInteger('fee_persen')->default(30);
+            $table->unsignedTinyInteger('wd_maks_persen')->default(60);
             $table->timestamps();
         });
 
@@ -26,6 +27,7 @@ return new class extends Migration
             'nomor_rekening' => '1234567890',
             'atas_nama'      => 'Master YZD Trading',
             'fee_persen'     => 30,
+            'wd_maks_persen' => 60,
             'created_at'     => now(),
             'updated_at'     => now(),
         ]);

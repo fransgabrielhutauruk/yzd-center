@@ -38,8 +38,10 @@ return new class extends Migration
             $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('verified_at')->nullable();
             $table->timestamps();
+            $table->softDeletes();
+            $table->string('deleted_by', 100)->nullable();
 
-            $table->unique(['akun_copytrade_id', 'periode_ke']);
+            $table->index(['akun_copytrade_id', 'periode_ke']);
             $table->index(['periode_akhir', 'status']);
         });
     }
