@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class CopytradeController extends Controller
 {
@@ -57,6 +58,20 @@ class CopytradeController extends Controller
                 'akt_username'       => $akt['username'] ?: null,
             ],
         ]);
+    }
+
+    /**
+     * Ekspor data copytrade sesuai tab aktif (verifikasi / akun aktif) ke format XLSX.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $tab = $request->query('tab', 'verifikasi');
+
+        if ($tab === 'aktif') {
+            return $this->copytradeService->exportActiveAccountsXlsx($request->all());
+        }
+
+        return $this->copytradeService->exportVerificationXlsx($request->all());
     }
 
     /**

@@ -234,6 +234,8 @@ const missingColumns = [
                     :columns="laporanColumns"
                     :filters="filters"
                     fetch-url="/admin/master-fee"
+                    exportable
+                    :extra-params="{ tab: 'laporan' }"
                     param-prefix="laporan_"
                     search-placeholder="Cari nomor laporan, nama member, atau nomor akun..."
                 >
@@ -396,6 +398,8 @@ const missingColumns = [
                     :columns="missingColumns"
                     :filters="filters"
                     fetch-url="/admin/master-fee"
+                    exportable
+                    :extra-params="{ tab: 'belum_lapor' }"
                     param-prefix="missing_"
                     search-placeholder="Cari nomor akun atau nama investor..."
                 >

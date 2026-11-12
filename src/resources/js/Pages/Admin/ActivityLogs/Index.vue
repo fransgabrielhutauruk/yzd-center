@@ -84,19 +84,6 @@ const closeDetailModal = () => {
     selectedLog.value = null;
 };
 
-// Ekspor XLSX (Excel)
-const exportXlsx = () => {
-    const params = new URLSearchParams();
-    if (props.filters.search) params.append('search', props.filters.search);
-    if (props.filters.kategori) params.append('kategori', props.filters.kategori);
-    if (props.filters.user_role) params.append('user_role', props.filters.user_role);
-    if (props.filters.tingkat) params.append('tingkat', props.filters.tingkat);
-    if (props.filters.start_date) params.append('start_date', props.filters.start_date);
-    if (props.filters.end_date) params.append('end_date', props.filters.end_date);
-
-    window.location.href = `/admin/activity-logs/export?${params.toString()}`;
-};
-
 // Helper Gaya & Label Peran Pengguna (Administrator, Member, Guest)
 const getRoleBadgeClass = (role) => {
     const normalized = (role || '').toLowerCase();
@@ -220,16 +207,6 @@ const comparedFields = computed(() => {
     >
         <Head title="Log Aktivitas Sistem - Admin" />
 
-        <template #header-actions>
-            <AppButton
-                type="export"
-                label="Ekspor XLSX"
-                :icon="FileSpreadsheet"
-                @click="exportXlsx"
-                title="Unduh seluruh data sesuai filter dalam format Excel (.xlsx)"
-            />
-        </template>
-
         <div class="space-y-6">
             <!-- Tabel Log Aktivitas via AppDataTable -->
             <AppDataTable
@@ -237,6 +214,7 @@ const comparedFields = computed(() => {
                 :columns="columns"
                 :filters="filters"
                 fetch-url="/admin/activity-logs"
+                exportable
                 search-placeholder="Cari deskripsi, pengguna, IP..."
                 empty-title="Tidak Ada Jejak Log Ditemukan"
                 empty-message="Belum ada aktivitas tercatat atau sesuaikan kriteria filter pencarian Anda."

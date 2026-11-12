@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Models\Invitation;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class InvitationService
 {
@@ -286,6 +288,96 @@ class InvitationService
             $invitations->each->delete();
 
             return $invitations->count();
+        });
+    }
+
+    /**
+     * Ekspor data manajemen tautan undangan ke format XLSX.
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function exportXlsx(array $filters = []): BinaryFileResponse
+    {
+        $columns = [
+            ['label' => 'ID', 'width' => 8, 'align' => 'center'],
+            ['label' => 'Label Kegiatan', 'width' => 25],
+            ['label' => 'Kuota Terpakai', 'width' => 16, 'align' => 'center', 'type' => 'number'],
+            ['label' => 'Kuota Maksimal', 'width' => 16, 'align' => 'center', 'type' => 'number'],
+            ['label' => 'Status', 'width' => 18, 'align' => 'center'],
+            ['label' => 'Tanggal Dibuat', 'width' => 20],
+            ['label' => 'Masa Berlaku', 'width' => 20],
+            ['label' => 'Dibuat Oleh', 'width' => 20],
+            ['label' => 'Tautan Registrasi', 'width' => 45],
+        ];
+
+        $query = Invitation::query();
+
+        if (!empty($filters['search'])) {
+            $search = trim((string) $filters['search']);
+            $query->where(function ($q) use ($search) {
+                $q->where('label', 'like', "%{$search}%");
+            });
+        }
+
+        if (!empty($filters['status'])) {
+            match ($filters['status']) {
+                'active' => $query->where('is_active', true)
+                    ->where(fn ($q) => $q->whereNull('expired_at')->orWhere('expired_at', '>', now()))
+                    ->whereColumn('total_terpakai', '<', 'kuota_maksimal'),
+                'expired'    => $query->whereNotNull('expired_at')->where('expired_at', '<=', now()),
+                'quota_full' => $query->whereColumn('total_terpakai', '>=', 'kuota_maksimal'),
+                default      => null,
+            };
+        }
+
+        $allowedSorts = ['invitation_id', 'label', 'total_terpakai', 'created_at', 'expired_at'];
+        $sortBy = in_array($filters['sort_by'] ?? '', $allowedSorts, true) ? $filters['sort_by'] : 'invitation_id';
+        $sortDirection = strtolower($filters['sort_direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        $query->orderBy($sortBy, $sortDirection);
+
+        // Audit Log
+        $actor = Auth::user();
+        if ($actor) {
+            $this->auditLogService->record(
+                kategori: 'undangan',
+                aksi: 'ekspor_data',
+                deskripsi: AuditLogService::formatActor($actor) . ' mengekspor data tautan undangan ke format XLSX.',
+                tingkat: 'info',
+                user: $actor
+            );
+        }
+
+        $xlsxService = app(XlsxExportService::class);
+
+        return $xlsxService->download('tautan_undangan_yzd', 'Undangan', $columns, function ($addRow) use ($query): void {
+            $query->chunk(500, function ($invitations) use ($addRow): void {
+                foreach ($invitations as $inv) {
+                    $isExpired = $inv->isExpired();
+                    $isQuotaFull = $inv->isQuotaFull();
+
+                    $statusLabel = 'Aktif';
+                    if (!$inv->is_active) {
+                        $statusLabel = 'Nonaktif';
+                    } elseif ($isQuotaFull) {
+                        $statusLabel = 'Kuota Habis';
+                    } elseif ($isExpired) {
+                        $statusLabel = 'Kedaluwarsa';
+                    }
+
+                    $addRow([
+                        (string) $inv->invitation_id,
+                        $inv->label,
+                        $inv->total_terpakai,
+                        $inv->kuota_maksimal,
+                        $statusLabel,
+                        $inv->created_at ? $inv->created_at->format('Y-m-d H:i') : '-',
+                        $inv->expired_at ? $inv->expired_at->format('Y-m-d H:i') : 'Tanpa Batas',
+                        $inv->created_by ?? '-',
+                        url('/register?invite=' . $inv->token),
+                    ]);
+                }
+            });
         });
     }
 }

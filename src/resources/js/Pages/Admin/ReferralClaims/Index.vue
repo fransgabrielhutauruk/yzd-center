@@ -116,6 +116,7 @@ const columns = [
                 :columns="columns"
                 :filters="filters"
                 :fetch-url="route('admin.referral_claims.index')"
+                exportable
                 search-placeholder="Cari nama affiliator atau downline..."
                 empty-title="Tidak Ada Permohonan Klaim"
                 empty-message="Belum ada permohonan klaim referral susulan yang diajukan atau sesuaikan filter pencarian Anda."

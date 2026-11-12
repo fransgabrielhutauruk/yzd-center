@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class TiketBantuanController extends Controller
 {
@@ -43,6 +44,16 @@ class TiketBantuanController extends Controller
             'counts'        => $counts,
             'status_labels' => TiketBantuan::STATUS_LABELS,
         ]);
+    }
+
+    /**
+     * Ekspor data seluruh tiket bantuan ke format berkas XLSX.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $filters = $request->only(['search', 'status']);
+
+        return $this->tiketService->exportXlsx($filters);
     }
 
     /**

@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class UserController extends Controller
 {
@@ -29,6 +30,16 @@ class UserController extends Controller
             'stats'   => $data['stats'],
             'filters' => $data['filters'],
         ]);
+    }
+
+    /**
+     * Ekspor seluruh data pengguna ke format berkas XLSX.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $filters = $request->only(['search', 'role', 'status', 'is_active', 'sort_by', 'sort_direction']);
+
+        return $this->userService->exportXlsx($filters);
     }
 
     /**

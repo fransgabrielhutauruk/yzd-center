@@ -195,6 +195,7 @@ const formatDate = (dateString) => {
                 :columns="columns"
                 :filters="filters"
                 :fetch-url="route('admin.tickets.index')"
+                exportable
                 search-placeholder="Cari nomor tiket, subjek, nama atau username member..."
                 empty-title="Tidak Ada Tiket Bantuan"
                 empty-message="Belum ada tiket bantuan yang diajukan oleh member atau sesuaikan kriteria filter pencarian Anda."

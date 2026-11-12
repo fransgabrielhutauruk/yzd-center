@@ -9,12 +9,14 @@ use App\Notifications\CopytradeAccountStatusChangedNotification;
 use App\Notifications\NewCopytradeSubmittedNotification;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpWord\Settings;
 use PhpOffice\PhpWord\TemplateProcessor;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class CopytradeService
 {
@@ -678,5 +680,224 @@ class CopytradeService
 
         return $tempFile;
 
+    }
+
+    /**
+     * Ekspor data antrean verifikasi copytrade ke format berkas XLSX.
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function exportVerificationXlsx(array $filters = []): BinaryFileResponse
+    {
+        $columns = [
+            ['label' => 'ID', 'width' => 8, 'align' => 'center'],
+            ['label' => 'Tanggal Diajukan', 'width' => 20],
+            ['label' => 'Nama Investor', 'width' => 25],
+            ['label' => 'Username', 'width' => 18],
+            ['label' => 'Pengajuan Ke-', 'width' => 16, 'align' => 'center'],
+            ['label' => 'Tier', 'width' => 14, 'align' => 'center'],
+            ['label' => 'Broker', 'width' => 20],
+            ['label' => 'Tipe Akun', 'width' => 16, 'align' => 'center'],
+            ['label' => 'Nomor Akun Trading', 'width' => 22, 'type' => 'text'],
+            ['label' => 'Modal Riil (USD)', 'width' => 18, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Nama Bank', 'width' => 20],
+            ['label' => 'Nomor Rekening', 'width' => 22, 'type' => 'text'],
+            ['label' => 'Atas Nama Rekening', 'width' => 25],
+            ['label' => 'Status Verifikasi', 'width' => 18, 'align' => 'center'],
+            ['label' => 'Diverifikasi Oleh', 'width' => 22],
+            ['label' => 'Waktu Verifikasi', 'width' => 20],
+            ['label' => 'Catatan Admin', 'width' => 35],
+        ];
+
+        $search = trim((string) ($filters['ver_search'] ?? $filters['search'] ?? ''));
+        $status = trim((string) ($filters['ver_status'] ?? $filters['status'] ?? ''));
+        $tier = trim((string) ($filters['ver_tier'] ?? $filters['tier'] ?? ''));
+        $sort = $filters['ver_sort_by'] ?? $filters['sort_by'] ?? 'created_at';
+        $dir = strtolower($filters['ver_sort_direction'] ?? $filters['sort_direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if (!in_array($sort, self::VERIFY_SORTS, true)) {
+            $sort = 'created_at';
+        }
+
+        $query = AkunCopytrade::query()
+            ->with(['user', 'verifier'])
+            ->whereIn('status', in_array($status, ['pending', 'rejected', 'all'], true) ? ($status === 'all' ? ['pending', 'rejected'] : [$status]) : ['pending']);
+
+        $this->applyAdminSearch($query, $search);
+
+        if (in_array($tier, self::TIERS, true)) {
+            $query->where('tier', $tier);
+        }
+
+        $query->orderBy($sort, $dir)->orderBy('id', $dir);
+
+        // Audit Log
+        $actor = Auth::user();
+        if ($actor) {
+            $this->auditLogService->record(
+                kategori: 'copytrade',
+                aksi: 'ekspor_data',
+                deskripsi: AuditLogService::formatActor($actor) . ' mengekspor antrean verifikasi copytrade ke format XLSX.',
+                tingkat: 'info',
+                user: $actor
+            );
+        }
+
+        $xlsxService = app(XlsxExportService::class);
+
+        return $xlsxService->download('verifikasi_copytrade_yzd', 'Verifikasi Copytrade', $columns, function ($addRow) use ($query): void {
+            $query->chunk(500, function ($accounts) use ($addRow): void {
+                foreach ($accounts as $akun) {
+                    $pengajuanKe = $this->calculateSubmissionSequence($akun);
+                    $tierLabel = match ($akun->tier) {
+                        'tier_1' => 'Tier 1',
+                        'tier_2' => 'Tier 2',
+                        'tier_3' => 'Tier 3',
+                        default  => $akun->tier,
+                    };
+
+                    $statusLabel = match ($akun->status) {
+                        'active'   => 'Disetujui',
+                        'rejected' => 'Ditolak',
+                        default    => 'Menunggu Verifikasi',
+                    };
+
+                    $addRow([
+                        (string) $akun->id,
+                        $akun->created_at ? $akun->created_at->format('Y-m-d H:i') : '-',
+                        $akun->user?->name ?? 'Investor',
+                        $akun->user?->username ? '@' . $akun->user->username : '-',
+                        $pengajuanKe !== null ? "Pengajuan ke-{$pengajuanKe}" : '-',
+                        $tierLabel,
+                        $akun->broker,
+                        strtoupper($akun->tipe_akun),
+                        (string) $akun->nomor_akun_trading,
+                        (float) $akun->modal_riil,
+                        $akun->nama_bank ?? '-',
+                        (string) ($akun->nomor_rekening ?? '-'),
+                        $akun->atas_nama_rekening ?? '-',
+                        $statusLabel,
+                        $akun->verifier?->name ?? '-',
+                        $akun->verified_at ? $akun->verified_at->format('Y-m-d H:i') : '-',
+                        $akun->catatan_admin ?? '-',
+                    ]);
+                }
+            });
+        });
+    }
+
+    /**
+     * Ekspor data pemantauan akun copytrade aktif ke format berkas XLSX.
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function exportActiveAccountsXlsx(array $filters = []): BinaryFileResponse
+    {
+        $columns = [
+            ['label' => 'ID', 'width' => 8, 'align' => 'center'],
+            ['label' => 'Mulai Investasi', 'width' => 18],
+            ['label' => 'Durasi Aktif', 'width' => 16, 'align' => 'center'],
+            ['label' => 'Nama Investor', 'width' => 25],
+            ['label' => 'Username', 'width' => 18],
+            ['label' => 'Tier', 'width' => 14, 'align' => 'center'],
+            ['label' => 'Broker', 'width' => 20],
+            ['label' => 'Tipe Akun', 'width' => 16, 'align' => 'center'],
+            ['label' => 'Nomor Akun Trading', 'width' => 22, 'type' => 'text'],
+            ['label' => 'Modal Awal (USD)', 'width' => 18, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Profit Terakhir (USD)', 'width' => 20, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'ROI (%)', 'width' => 14, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Saldo Terakhir (USD)', 'width' => 20, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Periode Catatan Terakhir', 'width' => 24],
+            ['label' => 'Sudah Lapor Bulan Ini', 'width' => 22, 'align' => 'center'],
+            ['label' => 'Tautan Myfxbook', 'width' => 45],
+        ];
+
+        $search = trim((string) ($filters['akt_search'] ?? $filters['search'] ?? ''));
+        $tier = trim((string) ($filters['akt_tier'] ?? $filters['tier'] ?? ''));
+        $catatan = trim((string) ($filters['akt_catatan'] ?? $filters['catatan'] ?? ''));
+        $username = trim((string) ($filters['akt_username'] ?? $filters['username'] ?? ''));
+        $sort = $filters['akt_sort_by'] ?? $filters['sort_by'] ?? 'tanggal_mulai';
+        $dir = strtolower($filters['akt_sort_direction'] ?? $filters['sort_direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if (!in_array($sort, self::ACTIVE_SORTS, true)) {
+            $sort = 'tanggal_mulai';
+        }
+
+        $monthStart = now()->startOfMonth()->toDateString();
+        $monthEnd = now()->endOfMonth()->toDateString();
+        $inThisMonth = fn ($q) => $q->whereBetween('periode_akhir', [$monthStart, $monthEnd]);
+
+        $query = AkunCopytrade::query()
+            ->with(['user', 'verifier', 'latestLaporanProfit'])
+            ->withExists(['laporanProfit as recorded_this_month' => $inThisMonth])
+            ->where('status', 'active');
+
+        $this->applyAdminSearch($query, $search);
+
+        if (in_array($tier, self::TIERS, true)) {
+            $query->where('tier', $tier);
+        }
+
+        if (!empty($username)) {
+            $query->whereHas('user', fn ($uq) => $uq->where('username', $username));
+        }
+
+        if ($catatan === 'belum') {
+            $query->whereDoesntHave('laporanProfit', $inThisMonth);
+        }
+
+        $query->orderBy($sort, $dir)->orderBy('id', $dir);
+
+        // Audit Log
+        $actor = Auth::user();
+        if ($actor) {
+            $this->auditLogService->record(
+                kategori: 'copytrade',
+                aksi: 'ekspor_data',
+                deskripsi: AuditLogService::formatActor($actor) . ' mengekspor daftar akun copytrade aktif ke format XLSX.',
+                tingkat: 'info',
+                user: $actor
+            );
+        }
+
+        $xlsxService = app(XlsxExportService::class);
+
+        return $xlsxService->download('akun_copytrade_aktif_yzd', 'Akun Aktif', $columns, function ($addRow) use ($query): void {
+            $query->chunk(500, function ($accounts) use ($addRow): void {
+                foreach ($accounts as $akun) {
+                    $latest = $akun->latestLaporanProfit;
+                    $modal = (float) $akun->modal_riil;
+                    $profit = $latest ? (float) $latest->profit_usd : null;
+                    $balance = $profit !== null ? $modal + $profit : null;
+                    $profitPct = ($profit !== null && $modal > 0) ? round(($profit / $modal) * 100.0, 2) : null;
+
+                    $tierLabel = match ($akun->tier) {
+                        'tier_1' => 'Tier 1',
+                        'tier_2' => 'Tier 2',
+                        'tier_3' => 'Tier 3',
+                        default  => $akun->tier,
+                    };
+
+                    $addRow([
+                        (string) $akun->id,
+                        $akun->tanggal_mulai ? \Carbon\Carbon::parse($akun->tanggal_mulai)->format('Y-m-d') : '-',
+                        $this->formatActiveDuration($akun->tanggal_mulai),
+                        $akun->user?->name ?? 'Investor',
+                        $akun->user?->username ? '@' . $akun->user->username : '-',
+                        $tierLabel,
+                        $akun->broker,
+                        strtoupper($akun->tipe_akun),
+                        (string) $akun->nomor_akun_trading,
+                        $modal,
+                        $profit !== null ? round($profit, 2) : 0,
+                        $profitPct !== null ? $profitPct : 0,
+                        $balance !== null ? round($balance, 2) : $modal,
+                        $latest?->periode_akhir ? \Carbon\Carbon::parse($latest->periode_akhir)->format('Y-m-d') : '-',
+                        $akun->recorded_this_month ? 'Ya' : 'Belum',
+                        $akun->myfxbook_url ?? '-',
+                    ]);
+                }
+            });
+        });
     }
 }

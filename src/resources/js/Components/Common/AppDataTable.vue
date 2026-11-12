@@ -2,6 +2,7 @@
 import { ref, computed, watch, watchEffect } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppCheckbox from '@/Components/Common/AppCheckbox.vue';
+import AppButton from '@/Components/Common/AppButton.vue';
 import {
     Search,
     ArrowUpDown,
@@ -13,6 +14,7 @@ import {
     Inbox,
     Loader2,
     ListFilter,
+    FileSpreadsheet,
     X
 } from 'lucide-vue-next';
 
@@ -83,6 +85,18 @@ const props = defineProps({
     only: {
         type: Array,
         default: () => [],
+    },
+    exportable: {
+        type: Boolean,
+        default: false,
+    },
+    exportUrl: {
+        type: String,
+        default: '',
+    },
+    exportLabel: {
+        type: String,
+        default: 'Ekspor XLSX',
     },
 });
 
@@ -336,6 +350,52 @@ const getAlignmentClass = (align) => {
 };
 
 // ==========================================
+// Logika Ekspor Data ke Berkas XLSX
+// ==========================================
+const handleExport = () => {
+    const params = new URLSearchParams();
+
+    // 1. Sertakan extraParams jika ada
+    if (props.extraParams && typeof props.extraParams === 'object') {
+        for (const [key, val] of Object.entries(props.extraParams)) {
+            if (val !== undefined && val !== null && val !== '') {
+                params.set(key, String(val));
+            }
+        }
+    }
+
+    // 2. Sertakan filter aktif dari props.filters
+    if (props.filters && typeof props.filters === 'object') {
+        for (const [key, val] of Object.entries(props.filters)) {
+            if (val !== undefined && val !== null && val !== '') {
+                // Abaikan parameter paginasi
+                if (key === 'page' || key === 'per_page' || key === perPageKey.value || key === pageKey.value) {
+                    continue;
+                }
+                params.set(key, String(val));
+            }
+        }
+    }
+
+    // 3. Sertakan search aktif
+    if (search.value) {
+        params.set(searchKey.value, search.value);
+    }
+
+    // 4. Sertakan sorting aktif
+    if (sortBy.value) {
+        params.set(sortByKey.value, sortBy.value);
+        params.set(sortDirectionKey.value, sortDirection.value);
+    }
+
+    const baseUrl = props.exportUrl || (props.fetchUrl ? `${props.fetchUrl}/export` : '/export');
+    const queryString = params.toString();
+    const finalUrl = queryString ? `${baseUrl}?${queryString}` : baseUrl;
+
+    window.location.href = finalUrl;
+};
+
+// ==========================================
 // Logika Pilihan Batch (Checklist Masal)
 // ==========================================
 const getItemId = (item, index) => {
@@ -445,6 +505,16 @@ defineExpose({
 
                 <!-- Right Toolbar: Custom Actions, Filters Button & Per-Page Selector -->
                 <div class="flex items-center gap-2 sm:gap-2.5 justify-between sm:justify-end flex-wrap sm:flex-nowrap">
+                    <!-- Export Button -->
+                    <AppButton
+                        v-if="exportable"
+                        type="export"
+                        size="sm"
+                        :label="exportLabel"
+                        :icon="FileSpreadsheet"
+                        @click="handleExport"
+                    />
+
                     <slot name="actions" />
 
                     <!-- Filters Toggle Button (di samping kiri elemen 'Baris: x') -->

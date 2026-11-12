@@ -11,11 +11,13 @@ use App\Notifications\ReferralClaimSubmittedNotification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ReferralService
 {
@@ -709,5 +711,192 @@ class ReferralService
                     'downlines_list'  => $downlinesList,
                 ];
             });
+    }
+
+    /**
+     * Ekspor data klaim susulan referral ke format berkas XLSX.
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function exportClaimsXlsx(array $filters = []): BinaryFileResponse
+    {
+        $columns = [
+            ['label' => 'ID', 'width' => 8, 'align' => 'center'],
+            ['label' => 'Tanggal Diajukan', 'width' => 20],
+            ['label' => 'Nama Affiliator', 'width' => 25],
+            ['label' => 'Username Affiliator', 'width' => 18],
+            ['label' => 'Kode Referral', 'width' => 16, 'align' => 'center'],
+            ['label' => 'Nama Calon Downline', 'width' => 25],
+            ['label' => 'Username Downline', 'width' => 18],
+            ['label' => 'Email Downline', 'width' => 25],
+            ['label' => 'Alasan Klaim', 'width' => 35],
+            ['label' => 'Status', 'width' => 18, 'align' => 'center'],
+            ['label' => 'Ditinjau Oleh', 'width' => 22],
+            ['label' => 'Waktu Peninjauan', 'width' => 20],
+            ['label' => 'Catatan Admin', 'width' => 35],
+        ];
+
+        $query = KlaimReferral::query()
+            ->with(['affiliator', 'downline', 'reviewer']);
+
+        $search = trim((string) ($filters['claim_search'] ?? $filters['search'] ?? ''));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('affiliator', fn ($sub) => $sub->where('name', 'like', "%{$search}%")->orWhere('username', 'like', "%{$search}%"))
+                    ->orWhereHas('downline', fn ($sub) => $sub->where('name', 'like', "%{$search}%")->orWhere('username', 'like', "%{$search}%"));
+            });
+        }
+
+        $status = $filters['claim_status'] ?? $filters['status'] ?? null;
+        if (!empty($status)) {
+            $query->where('status', $status);
+        }
+
+        $allowedSorts = ['created_at', 'status'];
+        $rawSort = $filters['claim_sort_by'] ?? $filters['sort_by'] ?? '';
+        $sortBy = in_array($rawSort, $allowedSorts, true) ? $rawSort : 'created_at';
+        $sortDirection = strtolower($filters['claim_sort_direction'] ?? $filters['sort_direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        $query->orderBy($sortBy, $sortDirection);
+
+        // Audit Log
+        $actor = Auth::user();
+        if ($actor) {
+            $this->auditLogService->record(
+                kategori: 'afiliasi',
+                aksi: 'ekspor_data',
+                deskripsi: AuditLogService::formatActor($actor) . ' mengekspor data klaim referral susulan ke format XLSX.',
+                tingkat: 'info',
+                user: $actor
+            );
+        }
+
+        $xlsxService = app(XlsxExportService::class);
+
+        return $xlsxService->download('klaim_referral_susulan_yzd', 'Klaim Referral', $columns, function ($addRow) use ($query): void {
+            $query->chunk(500, function ($claims) use ($addRow): void {
+                foreach ($claims as $claim) {
+                    $statusLabel = match ($claim->status) {
+                        'approved' => 'Disetujui',
+                        'rejected' => 'Ditolak',
+                        default    => 'Menunggu Verifikasi',
+                    };
+
+                    $addRow([
+                        (string) $claim->id,
+                        $claim->created_at ? $claim->created_at->format('Y-m-d H:i') : '-',
+                        $claim->affiliator?->name ?? '-',
+                        $claim->affiliator?->username ? '@' . $claim->affiliator->username : '-',
+                        $claim->affiliator?->referral_code ?? '-',
+                        $claim->downline?->name ?? '-',
+                        $claim->downline?->username ? '@' . $claim->downline->username : '-',
+                        $claim->downline?->email ?? '-',
+                        $claim->alasan ?? '-',
+                        $statusLabel,
+                        $claim->reviewer?->name ?? '-',
+                        $claim->reviewed_at ? $claim->reviewed_at->format('Y-m-d H:i') : '-',
+                        $claim->catatan_admin ?? '-',
+                    ]);
+                }
+            });
+        });
+    }
+
+    /**
+     * Ekspor data rekapitulasi mitra affiliator ke format berkas XLSX.
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function exportAffiliatesXlsx(array $filters = []): BinaryFileResponse
+    {
+        $columns = [
+            ['label' => 'ID', 'width' => 8, 'align' => 'center'],
+            ['label' => 'Bergabung Sejak', 'width' => 18],
+            ['label' => 'Nama Affiliator', 'width' => 25],
+            ['label' => 'Username', 'width' => 18],
+            ['label' => 'No. Telepon', 'width' => 18],
+            ['label' => 'Kode Referral', 'width' => 16, 'align' => 'center'],
+            ['label' => 'Total Downline Aktif', 'width' => 20, 'align' => 'center', 'type' => 'number'],
+            ['label' => 'Total Akun Copytrade Downline', 'width' => 24, 'align' => 'center', 'type' => 'number'],
+            ['label' => 'Total Modal Downline (USD)', 'width' => 22, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Rincian Daftar Downline', 'width' => 50],
+        ];
+
+        $query = User::activeAffiliators()
+            ->with(['relasiDownlines' => function ($q) {
+                $q->whereHas('downline', fn ($sub) => $sub->where('is_active', true))
+                    ->with(['downline.akunCopytrades'])
+                    ->orderByDesc('joined_at');
+            }])
+            ->withCount([
+                'relasiDownlines as total_downlines' => function ($q) {
+                    $q->whereHas('downline', fn ($sub) => $sub->where('is_active', true));
+                },
+            ]);
+
+        $search = trim((string) ($filters['search'] ?? ''));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%")
+                    ->orWhere('referral_code', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        $query->orderByDesc('total_downlines');
+
+        // Audit Log
+        $actor = Auth::user();
+        if ($actor) {
+            $this->auditLogService->record(
+                kategori: 'afiliasi',
+                aksi: 'ekspor_data',
+                deskripsi: AuditLogService::formatActor($actor) . ' mengekspor data rekapitulasi mitra affiliator ke format XLSX.',
+                tingkat: 'info',
+                user: $actor
+            );
+        }
+
+        $xlsxService = app(XlsxExportService::class);
+
+        return $xlsxService->download('mitra_affiliator_yzd', 'Mitra Affiliator', $columns, function ($addRow) use ($query): void {
+            $query->chunk(500, function ($affiliators) use ($addRow): void {
+                foreach ($affiliators as $user) {
+                    $totalAkunDownline = 0;
+                    $totalModalDownline = 0.0;
+                    $downlineSummaryParts = [];
+
+                    foreach ($user->relasiDownlines as $rel) {
+                        $downline = $rel->downline;
+                        if (!$downline) {
+                            continue;
+                        }
+                        $accounts = $downline->akunCopytrades ?? collect();
+                        $activeAccounts = $accounts->where('status', 'active');
+                        $count = $activeAccounts->count();
+                        $sumModal = (float) $activeAccounts->sum('modal_riil');
+
+                        $totalAkunDownline += $count;
+                        $totalModalDownline += $sumModal;
+
+                        $downlineSummaryParts[] = "{$downline->name} (@{$downline->username}): {$count} akun (\${$sumModal})";
+                    }
+
+                    $addRow([
+                        (string) $user->id,
+                        $user->created_at ? $user->created_at->format('Y-m-d') : '-',
+                        $user->name,
+                        '@' . $user->username,
+                        $user->phone ?? '-',
+                        $user->referral_code ?? '-',
+                        $user->total_downlines ?? 0,
+                        $totalAkunDownline,
+                        round($totalModalDownline, 2),
+                        !empty($downlineSummaryParts) ? implode('; ', $downlineSummaryParts) : 'Belum ada downline',
+                    ]);
+                }
+            });
+        });
     }
 }

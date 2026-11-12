@@ -12,9 +12,11 @@ use App\Notifications\CommissionClaimSubmittedNotification;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class CommissionClaimService
 {
@@ -1185,6 +1187,128 @@ class CommissionClaimService
             );
 
             return $claim;
+        });
+    }
+
+    /**
+     * Ekspor data klaim pencairan komisi afiliasi ke format XLSX.
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function exportXlsx(array $filters = []): BinaryFileResponse
+    {
+        $columns = [
+            ['label' => 'Kode Klaim', 'width' => 18, 'type' => 'text'],
+            ['label' => 'Tanggal Pengajuan', 'width' => 20],
+            ['label' => 'Nama Affiliator', 'width' => 25],
+            ['label' => 'Username Affiliator', 'width' => 18],
+            ['label' => 'Nama Bank', 'width' => 18],
+            ['label' => 'Nomor Rekening', 'width' => 22, 'type' => 'text'],
+            ['label' => 'Atas Nama Rekening', 'width' => 25],
+            ['label' => 'Jumlah Investor Downline', 'width' => 24, 'align' => 'center', 'type' => 'number'],
+            ['label' => 'Jumlah Akun Copytrade', 'width' => 22, 'align' => 'center', 'type' => 'number'],
+            ['label' => 'Daftar Investor Downline', 'width' => 40],
+            ['label' => 'Total Modal Riil (USD)', 'width' => 22, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Estimasi Modal (IDR)', 'width' => 24, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Gross Profit (USD)', 'width' => 20, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Master Share (USD)', 'width' => 20, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Komisi Afiliasi (USD)', 'width' => 22, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Kurs Konversi (IDR)', 'width' => 20, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Nominal Transfer Komisi (IDR)', 'width' => 26, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Status Pencairan', 'width' => 22, 'align' => 'center'],
+            ['label' => 'Diproses Oleh', 'width' => 22],
+            ['label' => 'Waktu Diproses', 'width' => 20],
+            ['label' => 'Catatan Admin', 'width' => 35],
+        ];
+
+        $query = KlaimKomisi::with(['affiliator', 'processor', 'items.downline']);
+
+        if (!empty($filters['status']) && in_array($filters['status'], ['pending', 'approved_transferred', 'rejected'], true)) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (!empty($filters['search'])) {
+            $search = trim((string) $filters['search']);
+            $query->where(function ($q) use ($search) {
+                $q->where('kode_klaim', 'like', "%{$search}%")
+                    ->orWhereHas('affiliator', function ($sub) use ($search) {
+                        $sub->where('name', 'like', "%{$search}%")
+                            ->orWhere('username', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('items.downline', function ($sub) use ($search) {
+                        $sub->where('name', 'like', "%{$search}%")
+                            ->orWhere('username', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $sortBy = $filters['sort_by'] ?? 'created_at';
+        $direction = strtolower($filters['sort_direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        $allowedSorts = ['id', 'kode_klaim', 'total_downline', 'total_akun', 'total_modal_riil', 'total_nominal_transfer', 'status', 'created_at'];
+        if (in_array($sortBy, $allowedSorts, true)) {
+            $query->orderBy($sortBy, $direction);
+        } else {
+            $query->latest();
+        }
+
+        // Audit Log
+        $actor = Auth::user();
+        if ($actor) {
+            $this->getAuditLogService()->record(
+                kategori: 'komisi_afiliasi',
+                aksi: 'ekspor_data',
+                deskripsi: AuditLogService::formatActor($actor) . ' mengekspor data klaim pencairan komisi afiliasi ke format XLSX.',
+                tingkat: 'info',
+                user: $actor
+            );
+        }
+
+        $kursUsdIdr = $this->getUsdToIdrRate();
+        $xlsxService = app(XlsxExportService::class);
+
+        return $xlsxService->download('klaim_komisi_afiliasi_yzd', 'Klaim Komisi', $columns, function ($addRow) use ($query, $kursUsdIdr): void {
+            $query->chunk(500, function ($claims) use ($addRow, $kursUsdIdr): void {
+                foreach ($claims as $claim) {
+                    $uniqueDownlines = $claim->items->pluck('downline.name')->filter()->unique()->values();
+                    $downlinesSummary = $uniqueDownlines->isNotEmpty() ? $uniqueDownlines->join(', ') : '1 Investor';
+
+                    $statusLabel = match ($claim->status) {
+                        'approved_transferred' => 'Ditransfer (Selesai)',
+                        'rejected'             => 'Ditolak',
+                        default                => 'Menunggu Verifikasi',
+                    };
+
+                    $totalModalUsd = (float) $claim->total_modal_riil;
+                    $totalModalIdr = round($totalModalUsd * $kursUsdIdr, 2);
+
+                    $addRow([
+                        (string) $claim->kode_klaim,
+                        $claim->created_at ? $claim->created_at->format('Y-m-d H:i') : '-',
+                        $claim->affiliator?->name ?? '-',
+                        $claim->affiliator?->username ? '@' . $claim->affiliator->username : '-',
+                        $claim->nama_bank,
+                        (string) $claim->nomor_rekening,
+                        $claim->atas_nama_rekening,
+                        $claim->total_downline,
+                        $claim->total_akun,
+                        $downlinesSummary,
+                        $totalModalUsd,
+                        $totalModalIdr,
+                        $claim->total_gross_profit !== null ? (float) $claim->total_gross_profit : 0,
+                        $claim->total_master_gross_share !== null ? (float) $claim->total_master_gross_share : 0,
+                        $claim->total_affiliate_commission !== null ? (float) $claim->total_affiliate_commission : 0,
+                        $claim->kurs_konversi_idr !== null ? (float) $claim->kurs_konversi_idr : $kursUsdIdr,
+                        $claim->total_nominal_transfer_idr !== null ? (float) $claim->total_nominal_transfer_idr : ($claim->total_nominal_transfer ? round((float) $claim->total_nominal_transfer * $kursUsdIdr, 2) : 0),
+                        $statusLabel,
+                        $claim->processor?->name ?? '-',
+                        $claim->processed_at ? \Carbon\Carbon::parse($claim->processed_at)->format('Y-m-d H:i') : '-',
+                        $claim->catatan_admin ?? '-',
+                    ]);
+                }
+            });
         });
     }
 }

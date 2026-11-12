@@ -122,21 +122,25 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     // Manajemen Pengguna (Member)
+    Route::get('/users/export', [UserController::class, 'export'])->name('users.export');
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::get('/users/{id}', [UserController::class, 'show'])->name('users.show');
     Route::post('/users/{id}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle_status');
 
     // Manajemen Tautan Undangan
+    Route::get('/invitations/export', [InvitationController::class, 'export'])->name('invitations.export');
     Route::get('/invitations', [InvitationController::class, 'index'])->name('invitations.index');
     Route::post('/invitations', [InvitationController::class, 'store'])->name('invitations.store');
     Route::delete('/invitations/batch-delete', [InvitationController::class, 'batchDestroy'])->name('invitations.batch_destroy');
     Route::delete('/invitations/{id}', [InvitationController::class, 'destroy'])->name('invitations.destroy');
 
     // Verifikasi Pendaftaran (KYC & Akun Investor/Affiliator)
+    Route::get('/registrations/export', [RegistrationController::class, 'export'])->name('registrations.export');
     Route::get('/registrations', [RegistrationController::class, 'index'])->name('registrations.index');
     Route::post('/registrations/documents/{id}/verify', [RegistrationController::class, 'verify'])->name('registrations.verify');
 
     // Verifikasi Copytrade
+    Route::get('/copytrade/export', [AdminCopytradeController::class, 'export'])->name('copytrade.export');
     Route::get('/copytrade', [AdminCopytradeController::class, 'index'])->name('copytrade.index');
     Route::post('/copytrade/{id}/verify', [AdminCopytradeController::class, 'verify'])->name('copytrade.verify');
     Route::get('/copytrade/{id}/detail', [AdminCopytradeController::class, 'detail'])->whereNumber('id')->name('copytrade.detail');
@@ -145,13 +149,16 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::get('/settings/password', [AdminPasswordController::class, 'index'])->name('settings.password');
 
     // Verifikasi Permohonan Klaim Referral Susulan
+    Route::get('/referral-claims/export', [AdminReferralClaimController::class, 'export'])->name('referral_claims.export');
     Route::get('/referral-claims', [AdminReferralClaimController::class, 'index'])->name('referral_claims.index');
     Route::post('/referral-claims/{id}/verify', [AdminReferralClaimController::class, 'verify'])->name('referral_claims.verify');
 
     // Rekapitulasi Jaringan Mitra Affiliator
+    Route::get('/affiliates/export', [AdminAffiliateController::class, 'export'])->name('affiliates.export');
     Route::get('/affiliates', [AdminAffiliateController::class, 'index'])->name('affiliates.index');
 
     // Pencairan Komisi Afiliasi (Modul 05)
+    Route::get('/commissions/export', [AdminCommissionClaimController::class, 'export'])->name('commissions.export');
     Route::get('/commissions', [AdminCommissionClaimController::class, 'index'])->name('commissions.index');
     Route::post('/commissions/{id}/process', [AdminCommissionClaimController::class, 'process'])->name('commissions.process');
 
@@ -163,6 +170,7 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::delete('/profit-master/{post}', [AdminProfitMasterController::class, 'destroy'])->name('profit_master.destroy');
 
     // Tiket Bantuan & Pelaporan Kendala
+    Route::get('/tickets/export', [AdminTiketBantuanController::class, 'export'])->name('tickets.export');
     Route::get('/tickets', [AdminTiketBantuanController::class, 'index'])->name('tickets.index');
     Route::get('/tickets/{ticket}', [AdminTiketBantuanController::class, 'show'])->name('tickets.show');
     Route::post('/tickets/{ticket}/replies', [AdminTiketBantuanController::class, 'reply'])->name('tickets.reply');
@@ -173,6 +181,7 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::post('/settings/legal', [LegalContentController::class, 'update'])->name('settings.legal.update');
 
     // Pengaturan Master Fee & Kelola Laporan
+    Route::get('/master-fee/export', [AdminMasterFeeController::class, 'export'])->name('master_fee.export');
     Route::get('/master-fee', [AdminMasterFeeController::class, 'index'])->name('master_fee.index');
     Route::post('/master-fee/{id}/verify', [AdminMasterFeeController::class, 'verify'])->name('master_fee.verify');
     Route::post('/master-fee/{id}/reject', [AdminMasterFeeController::class, 'reject'])->name('master_fee.reject');

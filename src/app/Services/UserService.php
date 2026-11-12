@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Models\User;
 use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class UserService
 {
@@ -331,6 +333,141 @@ class UserService
             );
 
             return $user;
+        });
+    }
+
+    /**
+     * Ekspor data manajemen pengguna ke format XLSX.
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function exportXlsx(array $filters = []): BinaryFileResponse
+    {
+        $columns = [
+            ['label' => 'ID', 'width' => 8, 'align' => 'center'],
+            ['label' => 'Tanggal Terdaftar', 'width' => 20],
+            ['label' => 'Nama Lengkap', 'width' => 25],
+            ['label' => 'Username', 'width' => 18],
+            ['label' => 'Email', 'width' => 25],
+            ['label' => 'No. Telepon', 'width' => 18],
+            ['label' => 'NIK', 'width' => 20, 'type' => 'text'],
+            ['label' => 'Label Peran', 'width' => 22, 'align' => 'center'],
+            ['label' => 'Kode Referral', 'width' => 16, 'align' => 'center'],
+            ['label' => 'Nama Upline', 'width' => 24],
+            ['label' => 'Username Upline', 'width' => 18],
+            ['label' => 'Akun Copytrade Aktif', 'width' => 20, 'align' => 'center', 'type' => 'number'],
+            ['label' => 'Total Downline', 'width' => 16, 'align' => 'center', 'type' => 'number'],
+            ['label' => 'Status KYC', 'width' => 16, 'align' => 'center'],
+            ['label' => 'Status Akses', 'width' => 16, 'align' => 'center'],
+        ];
+
+        $search = trim((string) ($filters['search'] ?? ''));
+        $roleFilter = trim((string) ($filters['role'] ?? ''));
+        $statusFilter = trim((string) ($filters['status'] ?? ''));
+        $activeFilter = trim((string) ($filters['is_active'] ?? ''));
+        $sortField = trim((string) ($filters['sort_by'] ?? ($filters['sort'] ?? 'created_at')));
+        $sortDirection = strtolower(trim((string) ($filters['sort_direction'] ?? ($filters['direction'] ?? 'desc')))) === 'asc' ? 'asc' : 'desc';
+
+        $allowedSorts = ['name', 'username', 'email', 'role', 'status', 'is_active', 'created_at', 'created_at_date', 'copytrade_count'];
+        if (!in_array($sortField, $allowedSorts, true)) {
+            $sortField = 'created_at';
+        }
+        if ($sortField === 'created_at_date') {
+            $sortField = 'created_at';
+        }
+
+        $query = User::query()
+            ->where('role', 'member')
+            ->with([
+                'ahliWaris',
+                'dokumen',
+                'akunCopytrades',
+                'relasiUpline.affiliator',
+                'relasiDownlines',
+            ])->withCount([
+                'akunCopytrades as active_copytrade_count' => function ($q) {
+                    $q->where('status', 'active');
+                },
+            ]);
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('nik', 'like', "%{$search}%");
+            });
+        }
+
+        if ($roleFilter === 'investor') {
+            $query->whereHas('akunCopytrade', fn ($q) => $q->where('status', 'active'));
+        } elseif ($roleFilter === 'affiliator') {
+            $query->whereHas('relasiDownlines.downline', fn ($q) => $q->where('is_active', true));
+        } elseif ($roleFilter === 'member') {
+            $query->whereDoesntHave('akunCopytrade', fn ($q) => $q->where('status', 'active'))
+                ->whereDoesntHave('relasiDownlines.downline', fn ($q) => $q->where('is_active', true));
+        }
+
+        if ($statusFilter !== '' && in_array($statusFilter, ['pending', 'active'], true)) {
+            $query->where('status', $statusFilter);
+        }
+
+        if ($activeFilter === 'active' || $activeFilter === '1') {
+            $query->where('is_active', true);
+        } elseif ($activeFilter === 'inactive' || $activeFilter === '0') {
+            $query->where('is_active', false);
+        }
+
+        if ($sortField === 'copytrade_count') {
+            $query->orderBy('active_copytrade_count', $sortDirection)
+                ->orderBy('created_at', 'desc');
+        } else {
+            $query->orderBy($sortField, $sortDirection);
+        }
+
+        // Audit Log
+        $actor = Auth::user();
+        if ($actor) {
+            $this->auditLogService->record(
+                kategori: 'pengguna',
+                aksi: 'ekspor_data',
+                deskripsi: AuditLogService::formatActor($actor) . ' mengekspor data manajemen pengguna ke format XLSX.',
+                tingkat: 'info',
+                user: $actor
+            );
+        }
+
+        $xlsxService = app(XlsxExportService::class);
+
+        return $xlsxService->download('data_pengguna_yzd', 'Pengguna', $columns, function ($addRow) use ($query): void {
+            $query->chunk(500, function ($users) use ($addRow): void {
+                foreach ($users as $user) {
+                    $labels = $user->getDerivedLabels();
+                    $roleLabel = !empty($labels) ? implode(', ', $labels) : 'Member';
+                    $upline = $user->relasiUpline?->affiliator;
+                    $activeCopytrade = (int) ($user->active_copytrade_count ?? $user->akunCopytrades->where('status', 'active')->count());
+                    $totalDownline = $user->relasiDownlines->count();
+
+                    $addRow([
+                        (string) $user->id,
+                        $user->created_at ? $user->created_at->format('Y-m-d H:i') : '-',
+                        $user->name,
+                        '@' . $user->username,
+                        $user->email,
+                        $user->phone ?? '-',
+                        (string) ($user->nik ?? '-'),
+                        $roleLabel,
+                        $user->referral_code ?? '-',
+                        $upline?->name ?? '-',
+                        $upline?->username ? '@' . $upline->username : '-',
+                        $activeCopytrade,
+                        $totalDownline,
+                        strtoupper($user->status),
+                        $user->is_active ? 'Aktif' : 'Dinonaktifkan',
+                    ]);
+                }
+            });
         });
     }
 }

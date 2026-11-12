@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class MasterFeeController extends Controller
 {
@@ -91,6 +92,21 @@ class MasterFeeController extends Controller
             'filters'     => $filters,
             'current_tab' => $currentTab,
         ]);
+    }
+
+    /**
+     * Ekspor data master fee sesuai tab aktif (laporan profit / akun belum lapor) ke format XLSX.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $tab = $request->query('tab', 'laporan');
+        $filters = $request->only(['periode', 'status', 'search', 'perlu_koreksi']);
+
+        if ($tab === 'belum_lapor') {
+            return $this->masterFeeService->exportMissingReportsXlsx($filters);
+        }
+
+        return $this->masterFeeService->exportReportsXlsx($filters);
     }
 
     /**

@@ -201,6 +201,9 @@ const submitVerify = () => {
                     :columns="affiliateColumns"
                     :filters="filters"
                     :fetch-url="route('admin.affiliates.index')"
+                    exportable
+                    :export-url="route('admin.affiliates.export')"
+                    :extra-params="{ tab: 'affiliates' }"
                     search-placeholder="Cari nama, username, nomor HP, atau kode referral..."
                     empty-title="Belum Ada Mitra Affiliator"
                     empty-message="Belum ada mitra affiliator aktif yang terdaftar dalam sistem."
@@ -267,6 +270,9 @@ const submitVerify = () => {
                     :filters="claimFilters"
                     param-prefix="claim"
                     :fetch-url="route('admin.affiliates.index', { tab: 'claims' })"
+                    exportable
+                    :export-url="route('admin.affiliates.export')"
+                    :extra-params="{ tab: 'claims' }"
                     search-placeholder="Cari nama affiliator atau calon downline..."
                     empty-title="Tidak Ada Permohonan Klaim Susulan"
                     empty-message="Belum ada permohonan klaim referral susulan yang diajukan oleh mitra affiliator."

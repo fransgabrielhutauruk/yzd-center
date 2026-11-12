@@ -15,9 +15,11 @@ use App\Support\ProfitPeriod;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class MasterFeeService
 {
@@ -874,5 +876,237 @@ class MasterFeeService
         );
 
         return $settings;
+    }
+
+    /**
+     * Ekspor data laporan profit bulanan / master fee ke format XLSX.
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function exportReportsXlsx(array $filters = []): BinaryFileResponse
+    {
+        $columns = [
+            ['label' => 'No. Laporan', 'width' => 18, 'type' => 'text'],
+            ['label' => 'Nama Investor', 'width' => 25],
+            ['label' => 'Username', 'width' => 18],
+            ['label' => 'Nomor Akun Trading', 'width' => 22, 'type' => 'text'],
+            ['label' => 'Broker', 'width' => 20],
+            ['label' => 'Tier', 'width' => 14, 'align' => 'center'],
+            ['label' => 'Modal Awal (USD)', 'width' => 18, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Periode Ke-', 'width' => 14, 'align' => 'center', 'type' => 'number'],
+            ['label' => 'Periode Awal', 'width' => 16],
+            ['label' => 'Periode Akhir', 'width' => 16],
+            ['label' => 'Profit (USD)', 'width' => 18, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Penarikan WD (USD)', 'width' => 20, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Penarikan WD (IDR)', 'width' => 20, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Kurs Riil (IDR)', 'width' => 18, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Persentase Fee (%)', 'width' => 18, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Master Fee (USD)', 'width' => 18, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Master Fee (IDR)', 'width' => 20, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Status Pembayaran', 'width' => 20, 'align' => 'center'],
+            ['label' => 'Perlu Koreksi', 'width' => 16, 'align' => 'center'],
+            ['label' => 'Diverifikasi Oleh', 'width' => 22],
+            ['label' => 'Waktu Verifikasi', 'width' => 20],
+            ['label' => 'Catatan Admin/Koreksi', 'width' => 35],
+        ];
+
+        $query = LaporanProfitBulanan::query()
+            ->with(['akun', 'user', 'verifier']);
+
+        if (!empty($filters['status'])) {
+            $st = $filters['status'];
+            if ($st === 'perlu_koreksi') {
+                $query->where('perlu_koreksi', true)->where('status', '!=', LaporanProfitBulanan::STATUS_LUNAS);
+            } elseif ($st === 'lunas') {
+                $query->where('status', LaporanProfitBulanan::STATUS_LUNAS);
+            } elseif ($st === 'tanpa_fee') {
+                $query->where('status', LaporanProfitBulanan::STATUS_TANPA_FEE);
+            } elseif ($st === 'menunggu_verifikasi') {
+                $query->where('status', LaporanProfitBulanan::STATUS_MENUNGGU_VERIFIKASI)->where('perlu_koreksi', false);
+            } elseif ($st === 'ditolak') {
+                $query->where('status', LaporanProfitBulanan::STATUS_DITOLAK)->where('perlu_koreksi', false);
+            } elseif ($st === 'belum_dibayar') {
+                $query->where('status', LaporanProfitBulanan::STATUS_BELUM_DIBAYAR)->where('perlu_koreksi', false);
+            }
+        }
+
+        if (!empty($filters['periode'])) {
+            $query->where('periode_akhir', 'like', $filters['periode'] . '%');
+        }
+
+        if (isset($filters['perlu_koreksi']) && $filters['perlu_koreksi'] !== '') {
+            $query->where('perlu_koreksi', (bool) $filters['perlu_koreksi']);
+        }
+
+        if (!empty($filters['search'])) {
+            $search = trim((string) $filters['search']);
+            $query->where(function ($q) use ($search) {
+                $q->where('nomor', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($uq) use ($search) {
+                        $uq->where('name', 'like', "%{$search}%")
+                            ->orWhere('username', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('akun', function ($aq) use ($search) {
+                        $aq->where('nomor_akun_trading', 'like', "%{$search}%")
+                            ->orWhere('broker', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $query->orderByDesc('periode_akhir')->orderByDesc('id');
+
+        // Audit Log
+        $actor = Auth::user();
+        if ($actor) {
+            $this->auditLogService->record(
+                kategori: 'master_fee',
+                aksi: 'ekspor_data',
+                deskripsi: AuditLogService::formatActor($actor) . ' mengekspor data laporan profit master fee ke format XLSX.',
+                tingkat: 'info',
+                user: $actor
+            );
+        }
+
+        $xlsxService = app(XlsxExportService::class);
+
+        return $xlsxService->download('laporan_master_fee_yzd', 'Laporan Master Fee', $columns, function ($addRow) use ($query): void {
+            $query->chunk(500, function ($laporans) use ($addRow): void {
+                foreach ($laporans as $l) {
+                    $statusLabel = match ($l->status) {
+                        LaporanProfitBulanan::STATUS_LUNAS               => 'Lunas',
+                        LaporanProfitBulanan::STATUS_MENUNGGU_VERIFIKASI => 'Menunggu Verifikasi',
+                        LaporanProfitBulanan::STATUS_BELUM_DIBAYAR       => 'Belum Dibayar',
+                        LaporanProfitBulanan::STATUS_TANPA_FEE           => 'Tanpa Fee',
+                        LaporanProfitBulanan::STATUS_DITOLAK             => 'Ditolak',
+                        default                                          => ucfirst($l->status),
+                    };
+
+                    $tierLabel = match ($l->akun?->tier) {
+                        'tier_1' => 'Tier 1',
+                        'tier_2' => 'Tier 2',
+                        'tier_3' => 'Tier 3',
+                        default  => $l->akun?->tier ?? '-',
+                    };
+
+                    $addRow([
+                        (string) $l->nomor,
+                        $l->user?->name ?? '-',
+                        $l->user?->username ? '@' . $l->user->username : '-',
+                        (string) ($l->akun?->nomor_akun_trading ?? '-'),
+                        $l->akun?->broker ?? '-',
+                        $tierLabel,
+                        (float) ($l->akun?->modal_riil ?? 0),
+                        $l->periode_ke,
+                        $l->periode_awal ? Carbon::parse($l->periode_awal)->format('Y-m-d') : '-',
+                        $l->periode_akhir ? Carbon::parse($l->periode_akhir)->format('Y-m-d') : '-',
+                        (float) $l->profit_usd,
+                        $l->wd_usd !== null ? (float) $l->wd_usd : 0,
+                        $l->wd_idr !== null ? (float) $l->wd_idr : 0,
+                        $l->kurs_riil !== null ? (float) $l->kurs_riil : 0,
+                        (float) $l->fee_persen,
+                        (float) $l->fee_usd,
+                        (float) $l->fee_idr,
+                        $statusLabel,
+                        $l->perlu_koreksi ? 'Ya' : 'Tidak',
+                        $l->verifier?->name ?? '-',
+                        $l->verified_at ? Carbon::parse($l->verified_at)->format('Y-m-d H:i') : '-',
+                        $l->perlu_koreksi ? ($l->catatan_koreksi ?? '-') : ($l->catatan_admin ?? '-'),
+                    ]);
+                }
+            });
+        });
+    }
+
+    /**
+     * Ekspor data akun copytrade aktif yang belum lapor master fee ke format XLSX.
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function exportMissingReportsXlsx(array $filters = []): BinaryFileResponse
+    {
+        $columns = [
+            ['label' => 'Nomor Akun Trading', 'width' => 22, 'type' => 'text'],
+            ['label' => 'Nama Investor', 'width' => 25],
+            ['label' => 'Username', 'width' => 18],
+            ['label' => 'Broker', 'width' => 20],
+            ['label' => 'Tier', 'width' => 14, 'align' => 'center'],
+            ['label' => 'Modal Awal (USD)', 'width' => 18, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Periode Terbuka Ke-', 'width' => 20, 'align' => 'center', 'type' => 'number'],
+            ['label' => 'Tanggal Periode Terbuka', 'width' => 24],
+            ['label' => 'Jatuh Tempo Laporan', 'width' => 20],
+            ['label' => 'Tautan Myfxbook', 'width' => 45],
+        ];
+
+        $today = Carbon::now();
+        $activeAccounts = AkunCopytrade::query()
+            ->with('user')
+            ->where('status', 'active');
+
+        if (!empty($filters['search'])) {
+            $search = trim((string) $filters['search']);
+            $activeAccounts->where(function ($q) use ($search) {
+                $q->where('nomor_akun_trading', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($uq) use ($search) {
+                        $uq->where('name', 'like', "%{$search}%")
+                            ->orWhere('username', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $allActive = $activeAccounts->get();
+        $missing = [];
+
+        foreach ($allActive as $akun) {
+            $next = ProfitPeriod::nextReportablePeriod($akun, $today);
+            if ($next !== null) {
+                $akun->next_periode_ke = $next['ke'];
+                $akun->next_periode_awal = $next['awal']->toDateString();
+                $akun->next_periode_akhir = $next['akhir']->toDateString();
+                $akun->next_open_date = $next['open_date']->toDateString();
+                $akun->next_periode_label = $next['awal']->translatedFormat('d M Y') . ' - ' . $next['akhir']->translatedFormat('d M Y');
+                $missing[] = $akun;
+            }
+        }
+
+        // Audit Log
+        $actor = Auth::user();
+        if ($actor) {
+            $this->auditLogService->record(
+                kategori: 'master_fee',
+                aksi: 'ekspor_data',
+                deskripsi: AuditLogService::formatActor($actor) . ' mengekspor data akun belum lapor master fee ke format XLSX.',
+                tingkat: 'info',
+                user: $actor
+            );
+        }
+
+        $xlsxService = app(XlsxExportService::class);
+
+        return $xlsxService->download('akun_belum_lapor_master_fee_yzd', 'Belum Lapor', $columns, function ($addRow) use ($missing): void {
+            foreach ($missing as $akun) {
+                $tierLabel = match ($akun->tier) {
+                    'tier_1' => 'Tier 1',
+                    'tier_2' => 'Tier 2',
+                    'tier_3' => 'Tier 3',
+                    default  => $akun->tier,
+                };
+
+                $periodeTerbukaLabel = ($akun->next_periode_awal ?? '-') . ' s/d ' . ($akun->next_periode_akhir ?? '-');
+                $jatuhTempoLabel = $akun->next_periode_akhir ? Carbon::parse($akun->next_periode_akhir)->addDays(5)->format('Y-m-d') : '-';
+
+                $addRow([
+                    (string) $akun->nomor_akun_trading,
+                    $akun->user?->name ?? '-',
+                    $akun->user?->username ? '@' . $akun->user->username : '-',
+                    $akun->broker,
+                    $tierLabel,
+                    (float) $akun->modal_riil,
+                    $akun->next_periode_ke ?? 1,
+                    $periodeTerbukaLabel,
+                    $jatuhTempoLabel,
+                    $akun->myfxbook_url ?? '-',
+                ]);
+            }
+        });
     }
 }

@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class RegistrationController extends Controller
 {
@@ -139,6 +140,16 @@ class RegistrationController extends Controller
                 'per_page'       => $perPage,
             ],
         ]);
+    }
+
+    /**
+     * Ekspor seluruh data antrean pendaftaran / KYC ke berkas XLSX.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $filters = $request->only(['search', 'status', 'sort_by', 'sort_direction', 'sort', 'direction']);
+
+        return $this->kycService->exportRegistrationsXlsx($filters);
     }
 
     /**
