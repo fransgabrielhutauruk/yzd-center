@@ -505,6 +505,7 @@ class EducationTest extends TestCase
 
     public function test_admin_can_upload_article_media(): void
     {
+        Storage::fake('local');
         Storage::fake('public');
 
         $file = UploadedFile::fake()->image('panduan_screenshot.png', 600, 400);
@@ -518,7 +519,33 @@ class EducationTest extends TestCase
             ->assertJsonStructure(['url', 'filename']);
 
         $filename = $response->json('filename');
-        Storage::disk('public')->assertExists('education/articles/' . $filename);
+        $expectedUrl = route('documents.education_media', ['filename' => $filename], false);
+
+        $this->assertSame($expectedUrl, $response->json('url'));
+        Storage::disk('local')->assertExists('education/articles/' . $filename);
+
+        $this->actingAs($this->admin)->get($expectedUrl)->assertOk();
+        $this->actingAs($this->investor)->get($expectedUrl)->assertOk();
+    }
+
+    public function test_education_media_stream_supports_legacy_public_disk_and_rejects_guests(): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
+
+        $legacyFilename = 'help_legacy_test.png';
+        Storage::disk('public')->put(
+            'education/articles/' . $legacyFilename,
+            UploadedFile::fake()->image($legacyFilename, 300, 200)->getContent()
+        );
+
+        $url = route('documents.education_media', ['filename' => $legacyFilename], false);
+
+        $this->get($url)->assertRedirect(route('login'));
+        $this->actingAs($this->investor)->get($url)->assertOk();
+        $this->actingAs($this->investor)
+            ->get(route('documents.education_media', ['filename' => 'tidak_ada.png'], false))
+            ->assertNotFound();
     }
 
     public function test_non_admin_cannot_access_admin_education_management(): void

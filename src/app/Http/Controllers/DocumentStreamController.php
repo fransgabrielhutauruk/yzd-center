@@ -481,4 +481,43 @@ class DocumentStreamController extends Controller
             ]
         );
     }
+
+    /**
+     * Tampilkan (stream) media gambar artikel pusat bantuan terotentikasi.
+     */
+    public function showEducationMedia(Request $request, string $filename): StreamedResponse
+    {
+        $user = $request->user();
+
+        if (!$user || !in_array($user->role, ['administrator', 'member'], true)) {
+            abort(403, 'Anda tidak memiliki hak akses untuk melihat media pusat bantuan ini.');
+        }
+
+        if (!preg_match('/^[A-Za-z0-9_.-]+$/', $filename) || str_contains($filename, '..')) {
+            abort(404, 'Nama berkas media tidak valid.');
+        }
+
+        $relativePath = "education/articles/{$filename}";
+        $diskName = match (true) {
+            Storage::disk('local')->exists($relativePath)  => 'local',
+            Storage::disk('public')->exists($relativePath) => 'public',
+            default                                        => null,
+        };
+
+        if ($diskName === null) {
+            abort(404, 'Berkas fisik media pusat bantuan tidak ditemukan di penyimpanan server.');
+        }
+
+        $headers = [
+            'Cache-Control'          => 'private, max-age=86400',
+            'X-Content-Type-Options' => 'nosniff',
+        ];
+
+        $mimeType = Storage::disk($diskName)->mimeType($relativePath);
+        if (is_string($mimeType) && $mimeType !== '') {
+            $headers['Content-Type'] = $mimeType;
+        }
+
+        return Storage::disk($diskName)->response($relativePath, $filename, $headers);
+    }
 }

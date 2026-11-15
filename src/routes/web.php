@@ -85,6 +85,10 @@ Route::get('/documents/master-fee/{id}/myfxbook', [DocumentStreamController::cla
 Route::get('/documents/master-fee/{id}/wd', [DocumentStreamController::class, 'showWdProof'])
     ->middleware('auth')
     ->name('documents.master_fee_wd');
+Route::get('/documents/education-media/{filename}', [DocumentStreamController::class, 'showEducationMedia'])
+    ->where('filename', '[A-Za-z0-9_.-]+')
+    ->middleware('auth')
+    ->name('documents.education_media');
 
 // Notifikasi In-App (Terotentikasi)
 Route::middleware('auth')->prefix('notifications')->name('notifications.')->group(function () {
