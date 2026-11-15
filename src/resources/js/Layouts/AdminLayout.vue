@@ -25,6 +25,8 @@ import {
     History,
     TrendingUp,
     LifeBuoy,
+    Receipt,
+    Settings,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import { usePwaInstall } from '@/composables/usePwaInstall';
@@ -192,6 +194,12 @@ const navSections = [
                 routeName: 'admin.copytrade.index',
             },
             {
+                label: 'Master Fee',
+                href: '/admin/master-fee',
+                icon: Receipt,
+                routeName: 'admin.master_fee.index',
+            },
+            {
                 label: 'Pengguna',
                 href: '/admin/users',
                 icon: Users,
@@ -266,12 +274,30 @@ const navSections = [
                 icon: FileText,
                 routeName: 'admin.settings.legal',
             },
+            {
+                label: 'Pengaturan Master Fee',
+                href: '/admin/settings/master-fee',
+                icon: Settings,
+                routeName: 'admin.settings.master_fee',
+            },
         ],
     },
 ];
 
-const isActive = (item) => {
-    return page.url.startsWith(item.href);
+const isActive = (itemOrHref) => {
+    const href = typeof itemOrHref === 'string' ? itemOrHref : itemOrHref?.href;
+    const currentPath = (page.url || '').split('?')[0].replace(/\/+$/, '') || '/';
+    const targetPath = (href || '').split('?')[0].replace(/\/+$/, '') || '/';
+
+    if (currentPath === targetPath) {
+        return true;
+    }
+
+    if (targetPath !== '/admin' && targetPath !== '' && currentPath.startsWith(targetPath + '/')) {
+        return true;
+    }
+
+    return false;
 };
 
 const logout = () => {

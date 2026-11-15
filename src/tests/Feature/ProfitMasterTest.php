@@ -134,8 +134,10 @@ class ProfitMasterTest extends TestCase
         $this->assertEquals('Caption revisi terbaru', $post->caption);
         $this->assertCount(2, $post->images);
 
-        // image1 fisik harus sudah terhapus
-        Storage::disk('local')->assertMissing($image1->file_path);
+        // image1 fisik tetap ada (soft delete tidak menghapus berkas)
+        Storage::disk('local')->assertExists($image1->file_path);
+        // image1 di DB berstatus soft delete
+        $this->assertSoftDeleted('profit_master_post_images', ['id' => $image1->id]);
         // image2 tetap ada
         Storage::disk('local')->assertExists($image2->file_path);
 
@@ -188,11 +190,12 @@ class ProfitMasterTest extends TestCase
         $response->assertSessionHasNoErrors();
         $response->assertRedirect();
 
-        $this->assertDatabaseMissing('profit_master_posts', ['id' => $post->id]);
-        $this->assertDatabaseMissing('profit_master_post_images', ['post_id' => $post->id]);
+        $this->assertSoftDeleted('profit_master_posts', ['id' => $post->id]);
+        $this->assertSoftDeleted('profit_master_post_images', ['post_id' => $post->id]);
 
-        Storage::disk('local')->assertMissing($path1);
-        Storage::disk('local')->assertMissing($path2);
+        // Berkas fisik tetap ada saat soft delete
+        Storage::disk('local')->assertExists($path1);
+        Storage::disk('local')->assertExists($path2);
 
         // Cek log aktivitas
         $this->assertDatabaseHas('log_aktivitas', [

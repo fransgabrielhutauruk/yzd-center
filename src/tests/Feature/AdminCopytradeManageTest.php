@@ -3,8 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\AkunCopytrade;
-use App\Models\RiwayatBalanceCopytrade;
+use App\Models\LaporanProfitBulanan;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -43,15 +44,23 @@ class AdminCopytradeManageTest extends TestCase
 
     private function makeRecord(AkunCopytrade $akun, string $date, float $balance): void
     {
-        RiwayatBalanceCopytrade::create([
-            'akun_copytrade_id'            => $akun->id,
-            'user_id'                      => $this->investor->id,
-            'tanggal_pencatatan'           => $date,
-            'balance'                      => $balance,
-            'keuntungan_nominal'           => $balance - $akun->modal_riil,
-            'keuntungan_persen'            => 0,
-            'keuntungan_kumulatif'         => 0,
-            'pertumbuhan_kumulatif_persen' => 0,
+        $modal = (float) $akun->modal_riil;
+        $profit = $balance - $modal;
+        static $counter = 1;
+        LaporanProfitBulanan::create([
+            'nomor'               => sprintf('MFE-%s-%04d', now()->format('Ym'), $counter++),
+            'akun_copytrade_id'   => $akun->id,
+            'user_id'             => $this->investor->id,
+            'periode_ke'          => $counter,
+            'periode_awal'        => Carbon::parse($date)->startOfMonth()->toDateString(),
+            'periode_akhir'       => $date,
+            'jatuh_tempo'         => Carbon::parse($date)->addDay()->toDateString(),
+            'profit_usd'          => $profit,
+            'bukti_myfxbook_path' => 'myfxbook/test.jpg',
+            'fee_persen'          => 30,
+            'fee_usd'             => $profit > 0 ? round($profit * 0.3, 2) : 0,
+            'fee_idr'             => $profit > 0 ? (int) round($profit * 0.3 * 16000) : 0,
+            'status'              => 'lunas',
         ]);
     }
 

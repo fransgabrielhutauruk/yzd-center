@@ -24,7 +24,7 @@ Dokumen ini memuat spesifikasi teknis dan aturan bisnis untuk penyambungan akun 
 
 ## 2. Entitas Database Terkait
 
-- **`akun_copytrade`**: Menyimpan seluruh data akun trading investor (`user_id`, `tier`, `broker`, `tipe_akun`, `nomor_akun_trading`, `server_broker`, `master_password`, `investor_password`, `modal_riil`, `surat_perjanjian_path`, `url_mql5`, `tanggal_mulai`, `tanggal_selesai`, `nama_bank`, `nomor_rekening`, `atas_nama_rekening`, `status`, `catatan_admin`, `verified_by`, `copy_started_at`).
+- **`akun_copytrade`**: Menyimpan seluruh data akun trading investor (`user_id`, `tier`, `broker`, `tipe_akun`, `nomor_akun_trading`, `server_broker`, `master_password`, `investor_password`, `modal_riil`, `surat_perjanjian_path`, `url_mql5, myfxbook_url`, `tanggal_mulai`, `tanggal_selesai`, `nama_bank`, `nomor_rekening`, `atas_nama_rekening`, `status`, `catatan_admin`, `verified_by`, `copy_started_at`).
 - **`pengaturan_master`**: Menyimpan konfigurasi dinamis CMS (`link_referral_broker`, `link_master_akun`, `tier_1_min`, `tier_2_min`, `tier_3_min`, `tier_1_desc`, `tier_2_desc`, `tier_3_desc`, `tier_1_pdf_path`, `tier_2_pdf_path`, `tier_3_pdf_path`).
 - **Sistem Panduan 3-Tier Hybrid:**
   - **Instruksi On-Screen Web (Mobile-First):** Poin-poin langkah pendaftaran akun broker, leverage, dan tata cara koneksi per tier dikelola dinamis di CMS dan tampil langsung di `/investor/copytrade`.
@@ -57,10 +57,10 @@ Dokumen ini memuat spesifikasi teknis dan aturan bisnis untuk penyambungan akun 
 
 ---
 
-## 4. Peran Kritis `copy_started_at` untuk Hak Komisi Afiliasi
+## 4. Baseline Kelayakan Komisi Afiliasi Berbasis 3 Laporan Bulanan
 
-- Kolom `copy_started_at` mencatat tanggal dan waktu persis ketika akun copytrade investor resmi disetujui aktif menyalin (*active*).
-- Kolom ini menjadi **titik tolak mutlak (baseline waktu)** untuk menghitung pemenuhan syarat minimal keaktifan 3 bulan pro-rata saat upline/affiliator mengajukan klaim komisi di Modul 05.
+- Kelayakan klaim komisi kemitraan kini dievaluasi berdasarkan **penyelesaian 3 laporan profit bulanan pertama (`periode_ke` 1, 2, 3)** pada akun copytrade downline, menggantikan batasan kalender kaku 90 hari.
+- Tautan Myfxbook publik (`myfxbook_url`) wajib disertakan saat mendaftar akun copytrade agar performa dapat diaudit secara transparan oleh affiliator dan master trader.
 
 ---
 

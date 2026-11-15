@@ -8,10 +8,12 @@ use App\Models\UserDokumen;
 use App\Notifications\KycDocumentReuploadedNotification;
 use App\Notifications\KycDocumentStatusChangedNotification;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class KycService
 {
@@ -213,5 +215,126 @@ class KycService
         }
 
         return $user;
+    }
+
+    /**
+     * Ekspor data verifikasi pendaftaran / antrean KYC ke format XLSX.
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function exportRegistrationsXlsx(array $filters = []): BinaryFileResponse
+    {
+        $columns = [
+            ['label' => 'ID', 'width' => 8, 'align' => 'center'],
+            ['label' => 'Tanggal Daftar', 'width' => 20],
+            ['label' => 'Nama Lengkap', 'width' => 25],
+            ['label' => 'Username', 'width' => 18],
+            ['label' => 'Email', 'width' => 25],
+            ['label' => 'No. Telepon', 'width' => 18],
+            ['label' => 'NIK', 'width' => 20, 'type' => 'text'],
+            ['label' => 'Tempat/Tgl Lahir', 'width' => 25],
+            ['label' => 'Pekerjaan', 'width' => 20],
+            ['label' => 'Alamat', 'width' => 35],
+            ['label' => 'Upline Referral', 'width' => 25],
+            ['label' => 'Nama Ahli Waris', 'width' => 22],
+            ['label' => 'Hubungan Ahli Waris', 'width' => 20],
+            ['label' => 'No. HP Ahli Waris', 'width' => 18],
+            ['label' => 'Status Berkas KTP', 'width' => 20, 'align' => 'center'],
+            ['label' => 'Catatan Admin KTP', 'width' => 35],
+        ];
+
+        $search = trim((string) ($filters['search'] ?? ''));
+        $statusFilter = trim((string) ($filters['status'] ?? ''));
+        $sortField = trim((string) ($filters['sort_by'] ?? ($filters['sort'] ?? 'created_at')));
+        $sortDirection = strtolower(trim((string) ($filters['sort_direction'] ?? ($filters['direction'] ?? 'desc')))) === 'asc' ? 'asc' : 'desc';
+
+        $allowedSorts = ['name', 'email', 'created_at', 'status'];
+        if (!in_array($sortField, $allowedSorts, true)) {
+            $sortField = 'created_at';
+        }
+
+        $query = User::query()
+            ->where('role', 'member')
+            ->where('status', '!=', 'active')
+            ->with(['ahliWaris', 'dokumen', 'relasiUpline.affiliator']);
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%")
+                    ->orWhereHas('relasiUpline.affiliator', function ($uplineQuery) use ($search) {
+                        $uplineQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('username', 'like', "%{$search}%")
+                            ->orWhere('referral_code', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        if ($statusFilter !== '') {
+            if ($statusFilter === 'pending') {
+                $query->whereDoesntHave('dokumen', function ($q) {
+                    $q->where('status', 'revision_needed');
+                });
+            } elseif ($statusFilter === 'revision_needed') {
+                $query->whereHas('dokumen', function ($q) {
+                    $q->where('status', 'revision_needed');
+                });
+            }
+        }
+
+        $query->orderBy($sortField, $sortDirection);
+
+        // Audit Log
+        $actor = Auth::user();
+        if ($actor) {
+            $this->auditLogService->record(
+                kategori: 'kyc',
+                aksi: 'ekspor_data',
+                deskripsi: AuditLogService::formatActor($actor) . ' mengekspor data verifikasi pendaftaran KYC ke format XLSX.',
+                tingkat: 'info',
+                user: $actor
+            );
+        }
+
+        $xlsxService = app(XlsxExportService::class);
+
+        return $xlsxService->download('verifikasi_pendaftaran_kyc_yzd', 'KYC', $columns, function ($addRow) use ($query): void {
+            $query->chunk(500, function ($users) use ($addRow): void {
+                foreach ($users as $user) {
+                    $ktp = $user->dokumen->firstWhere('tipe_dokumen', 'ktp');
+                    $upline = $user->relasiUpline?->affiliator;
+                    $ahliWaris = $user->ahliWaris;
+
+                    $ttl = ($user->tempat_lahir ?? '-') . ' / ' . ($user->tanggal_lahir ? $user->tanggal_lahir->format('Y-m-d') : '-');
+
+                    $statusKtp = match ($ktp?->status) {
+                        'approved'        => 'Disetujui',
+                        'revision_needed' => 'Perlu Revisi',
+                        'rejected'        => 'Ditolak',
+                        'pending'         => 'Menunggu Verifikasi',
+                        default           => 'Belum Diunggah',
+                    };
+
+                    $addRow([
+                        (string) $user->id,
+                        $user->created_at ? $user->created_at->format('Y-m-d H:i') : '-',
+                        $user->name,
+                        '@' . $user->username,
+                        $user->email,
+                        $user->phone ?? '-',
+                        (string) ($user->nik ?? '-'),
+                        $ttl,
+                        $user->pekerjaan ?? '-',
+                        $user->alamat ?? '-',
+                        $upline ? "{$upline->name} (@{$upline->username})" : '-',
+                        $ahliWaris?->nama ?? '-',
+                        $ahliWaris?->hubungan_keluarga ?? '-',
+                        $ahliWaris?->no_hp ?? '-',
+                        $statusKtp,
+                        $ktp?->catatan_admin ?? '-',
+                    ]);
+                }
+            });
+        });
     }
 }

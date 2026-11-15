@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProfitMasterPostImage;
+use App\Models\RelasiReferral;
 use App\Models\TiketBantuanLampiran;
 use App\Models\UserDokumen;
 use App\Services\AuditLogService;
@@ -355,6 +356,126 @@ class DocumentStreamController extends Controller
             $lampiran->file_name,
             [
                 'Content-Type'           => $lampiran->mime_type,
+                'Cache-Control'          => 'private, max-age=86400',
+                'X-Content-Type-Options' => 'nosniff',
+            ]
+        );
+    }
+
+    /**
+     * Tampilkan (stream) berkas bukti transfer master fee privat terotentikasi.
+     */
+    public function showMasterFeeProof(Request $request, int $id): StreamedResponse
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $laporan = \App\Models\LaporanProfitBulanan::with('user')->findOrFail($id);
+
+        // Otorisasi: Admin, Pemilik Laporan, atau Afiliator langsung yang terdaftar pada RelasiReferral
+        $isDirectAffiliator = $user->id !== $laporan->user_id && !$user->isAdmin()
+            ? RelasiReferral::where('affiliator_id', $user->id)
+                ->where('downline_id', $laporan->user_id)
+                ->exists()
+            : false;
+
+        if (!$user->isAdmin() && $user->id !== $laporan->user_id && !$isDirectAffiliator) {
+            abort(403, 'Anda tidak memiliki hak akses untuk melihat bukti transfer ini.');
+        }
+
+        $path = $laporan->bukti_transfer_path;
+        if (!$path || !Storage::disk('local')->exists($path)) {
+            $fallback = $path ? preg_replace('#^private/#', '', $path) : '';
+            if ($fallback && Storage::disk('local')->exists($fallback)) {
+                $path = $fallback;
+            } else {
+                abort(404, 'Berkas fisik bukti transfer tidak ditemukan di penyimpanan server.');
+            }
+        }
+
+        return Storage::disk('local')->response(
+            $path,
+            basename($path),
+            [
+                'Cache-Control'          => 'private, max-age=86400',
+                'X-Content-Type-Options' => 'nosniff',
+            ]
+        );
+    }
+
+    /**
+     * Tampilkan (stream) screenshot Myfxbook privat terotentikasi.
+     */
+    public function showMyfxbookProof(Request $request, int $id): StreamedResponse
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $laporan = \App\Models\LaporanProfitBulanan::with('user')->findOrFail($id);
+
+        // Otorisasi: Hanya Admin atau Pemilik Laporan yang dapat mengakses (Afiliator TIDAK boleh)
+        if (!$user->isAdmin() && $user->id !== $laporan->user_id) {
+            abort(403, 'Anda tidak memiliki hak akses untuk melihat screenshot Myfxbook ini.');
+        }
+
+        $path = $laporan->bukti_myfxbook_path;
+        if (!$path || !Storage::disk('local')->exists($path)) {
+            $fallback = $path ? preg_replace('#^private/#', '', $path) : '';
+            if ($fallback && Storage::disk('local')->exists($fallback)) {
+                $path = $fallback;
+            } else {
+                abort(404, 'Berkas fisik screenshot Myfxbook tidak ditemukan di penyimpanan server.');
+            }
+        }
+
+        return Storage::disk('local')->response(
+            $path,
+            basename($path),
+            [
+                'Cache-Control'          => 'private, max-age=86400',
+                'X-Content-Type-Options' => 'nosniff',
+            ]
+        );
+    }
+
+    /**
+     * Tampilkan (stream) screenshot bukti penarikan (WD) broker privat terotentikasi.
+     */
+    public function showWdProof(Request $request, int $id): StreamedResponse
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $laporan = \App\Models\LaporanProfitBulanan::with('user')->findOrFail($id);
+
+        // Otorisasi: Hanya Admin atau Pemilik Laporan yang dapat mengakses (Afiliator TIDAK boleh)
+        if (!$user->isAdmin() && $user->id !== $laporan->user_id) {
+            abort(403, 'Anda tidak memiliki hak akses untuk melihat screenshot penarikan broker ini.');
+        }
+
+        $path = $laporan->bukti_wd_path;
+        if (!$path || !Storage::disk('local')->exists($path)) {
+            $fallback = $path ? preg_replace('#^private/#', '', $path) : '';
+            if ($fallback && Storage::disk('local')->exists($fallback)) {
+                $path = $fallback;
+            } else {
+                abort(404, 'Berkas fisik screenshot penarikan broker tidak ditemukan di penyimpanan server.');
+            }
+        }
+
+        return Storage::disk('local')->response(
+            $path,
+            basename($path),
+            [
                 'Cache-Control'          => 'private, max-age=86400',
                 'X-Content-Type-Options' => 'nosniff',
             ]

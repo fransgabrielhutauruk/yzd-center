@@ -96,6 +96,7 @@ class RegisterRequest extends FormRequest
             'nik.size'                     => 'Nomor NIK harus tepat 16 digit angka.',
             'nik.regex'                    => 'Nomor NIK hanya boleh berupa angka.',
             'alamat.required'              => 'Alamat domisili lengkap wajib diisi.',
+            'alamat.min'                   => 'Alamat minimal 5 karakter.',
             'tempat_lahir.required'        => 'Tempat lahir wajib diisi.',
             'tanggal_lahir.required'       => 'Tanggal lahir wajib diisi.',
             'tanggal_lahir.date'           => 'Format tanggal lahir tidak valid.',

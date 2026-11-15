@@ -2,16 +2,56 @@
 
 namespace App\Models;
 
+use App\Traits\TracksDeletedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class PanduanBantuan extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes, TracksDeletedBy;
 
     protected $table = 'panduan_bantuan';
+
+    protected static function booted(): void
+    {
+        static::deleting(function (self $article): void {
+            if (!$article->isForceDeleting()) {
+                $article->applyTrashSlug();
+            }
+        });
+    }
+
+    public function applyTrashSlug(): void
+    {
+        if (!str_contains($this->slug, '--trashed-')) {
+            $maxLen = 255;
+            $suffix = "--trashed-{$this->id}";
+            $baseSlug = Str::limit($this->slug, $maxLen - strlen($suffix), '');
+            $this->slug = $baseSlug . $suffix;
+            $this->saveQuietly();
+        }
+    }
+
+    public function restoreSlugOrFail(): void
+    {
+        if (preg_match('/^(.*)--trashed-' . $this->id . '$/', $this->slug, $matches)) {
+            $originalSlug = $matches[1];
+            $exists = static::where('slug', $originalSlug)
+                ->where('id', '!=', $this->id)
+                ->exists();
+
+            if ($exists) {
+                throw new \DomainException("Slug '{$originalSlug}' sudah digunakan oleh artikel panduan aktif lainnya.");
+            }
+
+            $this->slug = $originalSlug;
+            $this->saveQuietly();
+        }
+    }
 
     protected $fillable = [
         'kategori_id',

@@ -10,6 +10,7 @@ use App\Services\ReferralService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AdminAffiliateController extends Controller
 {
@@ -49,5 +50,19 @@ class AdminAffiliateController extends Controller
                 'pending_claims'    => $pendingClaimsCount,
             ],
         ]);
+    }
+
+    /**
+     * Ekspor data mitra affiliator atau klaim susulan sesuai tab aktif ke format XLSX.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $tab = $request->query('tab', 'affiliates');
+
+        if ($tab === 'claims') {
+            return $this->referralService->exportClaimsXlsx($request->all());
+        }
+
+        return $this->referralService->exportAffiliatesXlsx($request->all());
     }
 }

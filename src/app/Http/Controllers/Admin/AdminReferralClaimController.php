@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AdminReferralClaimController extends Controller
 {
@@ -29,6 +30,16 @@ class AdminReferralClaimController extends Controller
             'filters'      => $filters,
             'pendingCount' => KlaimReferral::where('status', 'pending')->count(),
         ]);
+    }
+
+    /**
+     * Ekspor data permohonan klaim referral susulan ke format XLSX.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $filters = $request->only(['search', 'status', 'sort_by', 'sort_direction', 'claim_search', 'claim_status', 'claim_sort_by', 'claim_sort_direction']);
+
+        return $this->referralService->exportClaimsXlsx($filters);
     }
 
     /**

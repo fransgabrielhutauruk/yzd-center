@@ -355,6 +355,7 @@ Mengelola status verifikasi 2-tahap akun MT4 investor hingga aktif menyalin Mast
 | `step2_copy_status` | `ENUM` | `'locked', 'pending', 'active_copying', 'rejected'` | Gembok terbuka setelah step 1 verified. |
 | `step2_copy_verified_at` | `TIMESTAMP` | `NULLABLE` | Waktu admin menyetujui penyalinan copy. |
 | `step3_mql5_url` | `VARCHAR(255)` | `NULLABLE` | URL portofolio publik pribadi investor (opsional). |
+| `myfxbook_url` | `VARCHAR(255)` | `NULLABLE` | Tautan portofolio Myfxbook publik untuk pemantauan performa transparan. |
 | `copy_started_at` | `DATETIME` | `NULLABLE` | **Titik awal perhitungan 3 bulan aktif untuk klaim komisi.** |
 | `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
 
@@ -395,6 +396,8 @@ Menampung kamus istilah trading yang dikelola admin dan dibaca oleh seluruh inve
 | `kategori` | `VARCHAR(50)` | `NOT NULL` | Kategori istilah (Dasar, Teknikal, Manajemen Risiko). |
 | `definisi` | `TEXT` | `NOT NULL` | Penjelasan istilah dalam bahasa yang ramah pemula. |
 | `created_by` | `BIGINT UNSIGNED` | `FK -> users.id` | ID admin yang menambahkan. |
+| `deleted_at` | `TIMESTAMP` | `NULLABLE` | Timestamp soft delete. |
+| `deleted_by` | `VARCHAR(100)` | `NULLABLE` | Username/aktor penghapus. |
 | `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
 
 ---
@@ -411,6 +414,8 @@ Menyimpan panduan pendaftaran, deposit broker, panduan copytrade, dan tutorial v
 | `konten` | `LONGTEXT` | `NOT NULL` | Isi panduan lengkap. |
 | `video_url` | `VARCHAR(255)` | `NULLABLE` | URL embed tutorial YouTube jika ada. |
 | `is_published` | `BOOLEAN` | `DEFAULT TRUE` | Status tayang artikel. |
+| `deleted_at` | `TIMESTAMP` | `NULLABLE` | Timestamp soft delete. |
+| `deleted_by` | `VARCHAR(100)` | `NULLABLE` | Username/aktor penghapus. |
 | `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
 
 ---
@@ -455,6 +460,8 @@ Menyimpan materi publikasi rekap profit Master Trader beserta lampiran foto bukt
 | `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik postingan materi promosi. |
 | `caption` | `TEXT` | `NOT NULL` | Teks materi promosi/arahan (maks. 20.000 karakter). |
 | `created_by` | `BIGINT UNSIGNED` | `FK -> users.id, CASCADE` | ID Administrator yang menerbitkan materi. |
+| `deleted_at` | `TIMESTAMP` | `NULLABLE` | Timestamp soft delete. |
+| `deleted_by` | `VARCHAR(100)` | `NULLABLE` | Username/aktor penghapus. |
 | `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE, INDEX(created_at)` | Timestamps & Index untuk feed kronologis. |
 
 #### Tabel `profit_master_post_images`
@@ -467,6 +474,8 @@ Menyimpan materi publikasi rekap profit Master Trader beserta lampiran foto bukt
 | `file_size` | `INT UNSIGNED` | `DEFAULT 0` | Ukuran berkas dalam bytes. |
 | `mime_type` | `VARCHAR(255)` | `NOT NULL` | MIME type gambar (mis. `image/png`). |
 | `urutan` | `SMALLINT UNSIGNED` | `DEFAULT 0` | Urutan tampil foto di galeri. |
+| `deleted_at` | `TIMESTAMP` | `NULLABLE` | Timestamp soft delete (cascade dari post). |
+| `deleted_by` | `VARCHAR(100)` | `NULLABLE` | Username/aktor penghapus. |
 | `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
 
 ---
@@ -508,6 +517,61 @@ Modul saluran komunikasi pelaporan kendala teknis, akun, verifikasi, atau transa
 | `file_name` | `VARCHAR(255)` | `NOT NULL` | Nama asli berkas lampiran. |
 | `file_size` | `INT UNSIGNED` | `DEFAULT 0` | Ukuran berkas dalam bytes. |
 | `mime_type` | `VARCHAR(100)` | `NOT NULL` | Tipe MIME berkas gambar (JPG, PNG, WEBP). |
+| `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
+
+---
+
+### 3.16 Tabel `laporan_profit_bulanan` (Laporan Profit Bulanan & Master Fee)
+Menyimpan laporan profit trading bulanan per akun copytrade (didukung screenshot Myfxbook dan screenshot penarikan WD broker) serta penagihan Master Fee.
+- **Model Laravel:** `App\Models\LaporanProfitBulanan` (`protected $table = 'laporan_profit_bulanan';`)
+
+| Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
+|---|---|---|---|
+| `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik laporan. |
+| `nomor` | `VARCHAR(20)` | `UNIQUE, NOT NULL` | Nomor tagihan/laporan (format: `MFE-YYYYMM-XXXX`). |
+| `akun_copytrade_id` | `BIGINT UNSIGNED` | `FK -> akun_copytrade.id, CASCADE` | Akun copytrade terkait. |
+| `user_id` | `BIGINT UNSIGNED` | `FK -> users.id, CASCADE` | Investor pemilik akun / pelapor. |
+| `periode_ke` | `SMALLINT UNSIGNED` | `NOT NULL` | Periode pelaporan bulanan ke-1, ke-2, ke-3, dst. |
+| `periode_awal` | `DATE` | `NOT NULL` | Tanggal mulai rentang periode performa. |
+| `periode_akhir` | `DATE` | `NOT NULL` | Tanggal akhir rentang periode performa. |
+| `jatuh_tempo` | `DATE` | `NOT NULL` | Batas waktu pelaporan/pembayaran fee. |
+| `profit_usd` | `DECIMAL(15,2)` | `NOT NULL` | Nominal profit/loss trading periode berjalan (USD). Boleh negatif. |
+| `bukti_myfxbook_path` | `VARCHAR(255)` | `NOT NULL` | Path screenshot pembuktian profit dari Myfxbook di disk privat. |
+| `wd_usd` | `DECIMAL(15,2)` | `NULLABLE` | Nominal penarikan dana ke rekening broker dalam USD (30% - 60% jika profit > 0). |
+| `wd_idr` | `DECIMAL(18,0)` | `NULLABLE` | Nominal penarikan dana yang diterima dalam Rupiah (IDR). |
+| `bukti_wd_path` | `VARCHAR(255)` | `NULLABLE` | Path screenshot mutasi penarikan WD dari broker di disk privat. |
+| `kurs_riil` | `DECIMAL(15,2)` | `NULLABLE` | Nilai tukar riil dari penarikan broker (`wd_idr / wd_usd`). |
+| `fee_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 30.00` | Persentase Master Fee platform (%). |
+| `fee_usd` | `DECIMAL(15,2)` | `NOT NULL, DEFAULT 0` | Nominal tagihan fee dalam USD (`profit_usd * fee_persen / 100`). |
+| `fee_idr` | `DECIMAL(18,0)` | `NOT NULL, DEFAULT 0` | Nominal tagihan fee dalam IDR (`fee_usd * kurs_riil`). |
+| `status` | `VARCHAR(25)` | `INDEX, DEFAULT 'belum_dibayar'` | Status tagihan (`belum_dibayar`, `menunggu_verifikasi`, `lunas`, `tanpa_fee`). |
+| `bukti_transfer_path` | `VARCHAR(255)` | `NULLABLE` | Path resi transfer pelunasan Master Fee ke rekening Master Trader. |
+| `dibayar_at` | `TIMESTAMP` | `NULLABLE` | Waktu pengunggahan resi transfer fee. |
+| `catatan_admin` | `TEXT` | `NULLABLE` | Alasan penolakan dari admin jika resi ditolak. |
+| `perlu_koreksi` | `BOOLEAN` | `DEFAULT FALSE` | Status penandaan revisi input oleh admin. |
+| `catatan_koreksi` | `TEXT` | `NULLABLE` | Instruksi koreksi data laporan dari admin kepada member. |
+| `verified_by` | `BIGINT UNSIGNED` | `FK -> users.id, NULLABLE` | Admin pemverifikasi. |
+| `verified_at` | `TIMESTAMP` | `NULLABLE` | Waktu laporan & fee diverifikasi lunas. |
+| `deleted_at` | `TIMESTAMP` | `NULLABLE` | Timestamp soft delete laporan. |
+| `deleted_by` | `VARCHAR(100)` | `NULLABLE` | Username/aktor penghapus. |
+| `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
+
+> Catatan: Constraint `(akun_copytrade_id, periode_ke)` menggunakan indeks biasa (bukan unique index basis data) agar tidak memblokir input ulang periode setelah soft delete; pencegahan duplikasi diverifikasi secara transaksional di aplikasi.
+
+---
+
+### 3.17 Tabel `pengaturan_master_fee` (Pengaturan Rekening & Fee Master Trader)
+Menyimpan rekening tujuan transfer Master Fee dan persentase fee global.
+- **Model Laravel:** `App\Models\PengaturanMasterFee` (`protected $table = 'pengaturan_master_fee';`)
+
+| Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
+|---|---|---|---|
+| `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik (Single Row). |
+| `nama_bank` | `VARCHAR(100)` | `NULLABLE` | Nama bank rekening penampung Master Trader. |
+| `nomor_rekening` | `VARCHAR(100)` | `NULLABLE` | Nomor rekening bank Master Trader. |
+| `atas_nama` | `VARCHAR(150)` | `NULLABLE` | Nama pemilik rekening bank Master Trader. |
+| `fee_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 30.00` | Persentase performance fee default platform (%). |
+| `wd_maks_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 60.00` | Batas persentase maksimal penarikan WD broker (%). |
 | `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
 
 ---

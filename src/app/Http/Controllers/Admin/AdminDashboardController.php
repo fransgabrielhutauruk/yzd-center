@@ -7,8 +7,11 @@ use App\Models\AkunCopytrade;
 use App\Models\Invitation;
 use App\Models\KlaimKomisi;
 use App\Models\KlaimReferral;
+use App\Models\LaporanProfitBulanan;
 use App\Models\TiketBantuan;
 use App\Models\User;
+use App\Support\ProfitPeriod;
+use Carbon\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -41,7 +44,41 @@ class AdminDashboardController extends Controller
             ->butuhResponsAdmin()
             ->count();
 
-        // 2. Metrik ekosistem
+        $pendingMasterFee = LaporanProfitBulanan::query()
+            ->where('status', LaporanProfitBulanan::STATUS_MENUNGGU_VERIFIKASI)
+            ->count();
+
+        // 2. Monitoring tagihan & laporan Master Fee investor (belum kirim bukti & belum lapor periode terbuka)
+        $unpaidReports = LaporanProfitBulanan::query()
+            ->whereIn('status', [
+                LaporanProfitBulanan::STATUS_BELUM_DIBAYAR,
+                LaporanProfitBulanan::STATUS_DITOLAK,
+            ])
+            ->get(['id', 'user_id', 'status', 'fee_usd', 'fee_idr']);
+
+        $unpaidReportsCount = $unpaidReports->count();
+        $unpaidOnlyCount = $unpaidReports->where('status', LaporanProfitBulanan::STATUS_BELUM_DIBAYAR)->count();
+        $rejectedReportsCount = $unpaidReports->where('status', LaporanProfitBulanan::STATUS_DITOLAK)->count();
+        $unpaidInvestorsCount = $unpaidReports->pluck('user_id')->filter()->unique()->count();
+        $unpaidTotalUsd = round((float) $unpaidReports->sum('fee_usd'), 2);
+        $unpaidTotalIdr = (int) $unpaidReports->sum('fee_idr');
+
+        $today = Carbon::now();
+        $activeCopytradeAccounts = AkunCopytrade::query()
+            ->where('status', 'active')
+            ->get(['id', 'user_id', 'tanggal_mulai', 'status']);
+
+        $missingAccountsCount = 0;
+        $missingInvestorIds = [];
+        foreach ($activeCopytradeAccounts as $acc) {
+            if (ProfitPeriod::nextReportablePeriod($acc, $today) !== null) {
+                $missingAccountsCount++;
+                $missingInvestorIds[$acc->user_id] = true;
+            }
+        }
+        $missingInvestorsCount = count($missingInvestorIds);
+
+        // 3. Metrik ekosistem
         $memberCount = User::where('role', 'member')->count();
         $activeMemberCount = User::where('role', 'member')->where('is_active', true)->count();
 
@@ -61,7 +98,18 @@ class AdminDashboardController extends Controller
                 'referral_claims'   => $pendingReferralClaims,
                 'commission_claims' => $pendingCommissionClaims,
                 'tickets'           => $pendingTickets,
-                'total'             => $pendingKyc + $pendingCopytrade + $pendingReferralClaims + $pendingCommissionClaims + $pendingTickets,
+                'master_fee'        => $pendingMasterFee,
+                'total'             => $pendingKyc + $pendingCopytrade + $pendingReferralClaims + $pendingCommissionClaims + $pendingTickets + $pendingMasterFee,
+            ],
+            'master_fee_monitoring' => [
+                'unpaid_reports_count'    => $unpaidReportsCount,
+                'unpaid_only_count'       => $unpaidOnlyCount,
+                'rejected_reports_count'  => $rejectedReportsCount,
+                'unpaid_investors_count'  => $unpaidInvestorsCount,
+                'unpaid_total_usd'        => $unpaidTotalUsd,
+                'unpaid_total_idr'        => $unpaidTotalIdr,
+                'missing_accounts_count'  => $missingAccountsCount,
+                'missing_investors_count' => $missingInvestorsCount,
             ],
             'stats' => [
                 'member_count'            => $memberCount,

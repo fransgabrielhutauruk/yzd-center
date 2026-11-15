@@ -4,10 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\AkunCopytrade;
 use App\Models\KlaimKomisi;
+use App\Models\LaporanProfitBulanan;
 use App\Models\PengaturanMaster;
 use App\Models\RelasiReferral;
-use App\Models\RiwayatBalanceCopytrade;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -47,20 +48,30 @@ class MemberDashboardTest extends TestCase
             'nomor_rekening'     => '1234567890',
             'atas_nama_rekening' => 'Member Test',
             'status'             => $status,
+            'myfxbook_url'       => 'https://www.myfxbook.com/members/demo/dash',
         ]);
     }
 
-    private function makeRecord(AkunCopytrade $akun, string $date, float $balance): void
+    private function makeReport(AkunCopytrade $akun, int $periodeKe, string $awal, string $akhir, float $profit): LaporanProfitBulanan
     {
-        RiwayatBalanceCopytrade::create([
-            'akun_copytrade_id'            => $akun->id,
-            'user_id'                      => $this->member->id,
-            'tanggal_pencatatan'           => $date,
-            'balance'                      => $balance,
-            'keuntungan_nominal'           => 0,
-            'keuntungan_persen'            => 0,
-            'keuntungan_kumulatif'         => 0,
-            'pertumbuhan_kumulatif_persen' => 0,
+        return LaporanProfitBulanan::create([
+            'nomor'               => 'MFE-' . uniqid(),
+            'akun_copytrade_id'   => $akun->id,
+            'user_id'             => $this->member->id,
+            'periode_ke'          => $periodeKe,
+            'periode_awal'        => $awal,
+            'periode_akhir'       => $akhir,
+            'jatuh_tempo'         => Carbon::parse($akhir)->addDay()->toDateString(),
+            'profit_usd'          => $profit,
+            'fee_persen'          => 30.00,
+            'fee_usd'             => round($profit * 0.30, 2),
+            'wd_usd'              => round($profit * 0.40, 2),
+            'wd_idr'              => (int) round($profit * 0.40 * 16000),
+            'kurs_riil'           => 16000.00,
+            'fee_idr'             => (int) round($profit * 0.30 * 16000),
+            'bukti_myfxbook_path' => 'reports/myfx.jpg',
+            'bukti_wd_path'       => 'reports/wd.jpg',
+            'status'              => 'lunas',
         ]);
     }
 
@@ -72,7 +83,7 @@ class MemberDashboardTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Member/Dashboard')
                 ->where('dashboard.stage', 'no_account')
-                ->where('dashboard.trend', [])
+                ->has('dashboard.trend', 6)
                 ->has('dashboard.accounts', 0)
             );
     }
@@ -100,7 +111,7 @@ class MemberDashboardTest extends TestCase
                 ->component('Member/Dashboard')
                 ->where('dashboard.stage', 'pending_account')
                 ->where('dashboard.portfolio.pending_accounts_count', 1)
-                ->has('dashboard.accounts', 1)
+                ->has('dashboard.accounts', 0)
             );
     }
 
@@ -116,30 +127,26 @@ class MemberDashboardTest extends TestCase
             );
     }
 
-    public function test_running_stage_uses_real_balance_records_and_computes_mom(): void
+    public function test_running_stage_uses_real_profit_reports(): void
     {
         $akun = $this->makeAccount('active', 1000.00);
-        $this->makeRecord($akun, now()->startOfMonth()->subMonth()->toDateString(), 1100.00);
-        $this->makeRecord($akun, now()->startOfMonth()->toDateString(), 1210.00);
+        $this->makeReport($akun, 1, '2026-01-01', '2026-01-31', 100.00);
+        $this->makeReport($akun, 2, '2026-02-01', '2026-02-28', 110.00);
 
         $this->actingAs($this->member)
             ->get(route('member.dashboard'))
             ->assertInertia(fn ($page) => $page
                 ->component('Member/Dashboard')
                 ->where('dashboard.stage', 'running')
-                ->where('dashboard.portfolio.total_current_balance', 1210)
-                ->where('dashboard.portfolio.total_all_time_profit', 210)
-                ->where('dashboard.mom_change', 110)
-                ->where('dashboard.balance_recorded_this_month', true)
-                ->where('dashboard.unrecorded_accounts_count', 0)
-                ->has('dashboard.trend', 2)
+                ->where('dashboard.portfolio.total_current_balance', fn ($v) => (float) $v === 1210.0)
+                ->where('dashboard.portfolio.total_all_time_profit', fn ($v) => (float) $v === 210.0)
+                ->has('dashboard.trend', 6)
             );
     }
 
     public function test_running_stage_flags_unrecorded_account_this_month(): void
     {
-        $akun = $this->makeAccount('active', 1000.00);
-        $this->makeRecord($akun, now()->startOfMonth()->subMonth()->toDateString(), 1100.00);
+        $this->makeAccount('active', 1000.00);
 
         $this->actingAs($this->member)
             ->get(route('member.dashboard'))
@@ -148,39 +155,6 @@ class MemberDashboardTest extends TestCase
                 ->where('dashboard.stage', 'running')
                 ->where('dashboard.balance_recorded_this_month', false)
                 ->where('dashboard.unrecorded_accounts_count', 1)
-                ->where('dashboard.mom_change', null)
-            );
-    }
-
-    public function test_running_stage_computes_mom_when_account_has_historical_records(): void
-    {
-        $akun = AkunCopytrade::create([
-            'user_id'            => $this->member->id,
-            'tier'               => 'tier_2',
-            'broker'             => 'XM',
-            'tipe_akun'          => 'standard',
-            'nomor_akun_trading' => 'MT4-HISTORICAL',
-            'modal_riil'         => 10000.00,
-            'tanggal_mulai'      => now()->toDateString(),
-            'nama_bank'          => 'BCA',
-            'nomor_rekening'     => '1234567890',
-            'atas_nama_rekening' => 'Member Historical',
-            'status'             => 'active',
-        ]);
-
-        $this->makeRecord($akun, now()->startOfMonth()->subMonth()->toDateString(), 9000.00);
-        $this->makeRecord($akun, now()->startOfMonth()->toDateString(), 20000.00);
-
-        $this->actingAs($this->member)
-            ->get(route('member.dashboard'))
-            ->assertInertia(fn ($page) => $page
-                ->component('Member/Dashboard')
-                ->where('dashboard.stage', 'running')
-                ->where('dashboard.portfolio.total_current_balance', 20000)
-                ->where('dashboard.mom_change', 11000)
-                ->where('dashboard.mom_change_pct', 122.2)
-                ->where('dashboard.balance_recorded_this_month', true)
-                ->has('dashboard.trend', 2)
             );
     }
 
@@ -250,5 +224,27 @@ class MemberDashboardTest extends TestCase
                 ->where('affiliate.commission.klaim_disetujui', 1)
                 ->where('affiliate.commission.downline_siap_diklaim', 0)
             );
+    }
+
+    public function test_first_period_banner_dismiss_returns_back_for_inertia_requests(): void
+    {
+        $response = $this->actingAs($this->member)
+            ->from(route('member.dashboard'))
+            ->post(route('member.first_period_banner.dismiss'), [], [
+                'X-Inertia' => 'true',
+            ]);
+
+        $response->assertRedirect(route('member.dashboard'));
+        $this->assertTrue(session('first_period_notice_dismissed'));
+    }
+
+    public function test_first_period_banner_dismiss_returns_json_for_api_requests(): void
+    {
+        $response = $this->actingAs($this->member)
+            ->postJson(route('member.first_period_banner.dismiss'));
+
+        $response->assertOk();
+        $response->assertExactJson(['status' => 'dismissed']);
+        $this->assertTrue(session('first_period_notice_dismissed'));
     }
 }

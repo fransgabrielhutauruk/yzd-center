@@ -1234,7 +1234,7 @@ watch(sentinelRef, () => {
         <AppConfirmDialog
             :show="deleteDialog.show"
             title="Hapus Materi Promosi"
-            message="Apakah Anda yakin ingin menghapus materi promosi ini? Seluruh gambar dan konten di dalamnya akan dihapus secara permanen."
+            message="Apakah Anda yakin ingin menghapus materi promosi ini? Materi promosi akan dihapus dari daftar."
             confirm-text="Hapus Post"
             type="danger"
             :loading="deleteDialog.loading"

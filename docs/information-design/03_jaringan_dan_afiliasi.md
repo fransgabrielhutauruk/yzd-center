@@ -66,6 +66,15 @@ stateDiagram-v2
 
 ---
 
+## 5. Transparansi Kinerja Akun Downline (Myfxbook & Laporan Profit)
+
+Untuk mendukung transparansi performa kemitraan tanpa melanggar privasi finansial:
+- Mitra Affiliator dapat melihat daftar akun copytrade milik downline pada modal **Kinerja Akun** (`/member/affiliates`).
+- Data yang disajikan mencakup: nomor akun trading, broker, tier, tanggal mulai, tautan Myfxbook publik, serta riwayat laporan profit bulanan (periode ke-X, profit USD, dan status lunas/belum bayar).
+- Data sensitif finansial seperti saldo modal riil, nilai penarikan (WD), kurs riil, berkas perjanjian, dan screenshot bukti privat **disembunyikan** dari tampilan affiliator.
+
+---
+
 ## 5. Catatan Teknis & Indexing Database
 
 - **Constraint Integritas Kuat:** Kolom `downline_id` pada tabel `relasi_referral` diberi constraint `UNIQUE`. Database MySQL secara otomatis menolak dan membatalkan transaksi jika ada usaha menduplikasi downline ke lebih dari 1 affiliator.

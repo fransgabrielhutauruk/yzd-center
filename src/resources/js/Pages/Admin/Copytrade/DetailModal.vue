@@ -1,6 +1,6 @@
 <script setup>
 import { watch } from 'vue';
-import { Server, Loader2 } from 'lucide-vue-next';
+import { Server, Loader2, ExternalLink } from 'lucide-vue-next';
 import AppModal from '@/Components/Common/AppModal.vue';
 import { useCopytradeDetail } from '@/lib/useCopytradeDetail';
 
@@ -77,6 +77,20 @@ const profitClass = (v) => {
                             <dt class="text-muted-foreground">Broker &amp; Tipe:</dt>
                             <dd class="text-foreground font-semibold">
                                 {{ copytrade.broker }} ({{ copytrade.tipe_akun }})
+                            </dd>
+                        </div>
+                        <div v-if="copytrade.myfxbook_url" class="flex justify-between items-center">
+                            <dt class="text-muted-foreground">Myfxbook:</dt>
+                            <dd class="text-foreground font-semibold">
+                                <a
+                                    :href="copytrade.myfxbook_url"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="text-primary hover:underline inline-flex items-center gap-1 font-mono text-xs"
+                                >
+                                    <span>Buka Myfxbook</span>
+                                    <ExternalLink class="h-3 w-3" />
+                                </a>
                             </dd>
                         </div>
                         <div class="flex justify-between">

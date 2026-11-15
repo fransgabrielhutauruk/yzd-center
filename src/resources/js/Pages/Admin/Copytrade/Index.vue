@@ -129,6 +129,8 @@ const selectClass =
                     :filters="verFilters"
                     param-prefix="ver_"
                     fetch-url="/admin/copytrade"
+                    exportable
+                    :extra-params="{ tab: 'verifikasi' }"
                     search-placeholder="Cari investor, username, nomor akun..."
                     empty-title="Tidak Ada Pendaftaran Ditemukan"
                     empty-message="Tidak ada pendaftaran akun copytrade yang cocok dengan filter saat ini."
@@ -253,6 +255,8 @@ const selectClass =
                     :filters="aktFilters"
                     param-prefix="akt_"
                     fetch-url="/admin/copytrade"
+                    exportable
+                    :extra-params="{ tab: 'aktif' }"
                     search-placeholder="Cari investor, username, nomor akun..."
                     empty-title="Belum Ada Akun Aktif"
                     empty-message="Tidak ada akun copytrade aktif yang cocok dengan filter saat ini."

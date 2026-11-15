@@ -15,10 +15,20 @@ class StoreCommissionClaimRequest extends FormRequest
     }
 
     /**
-     * Normalisasi input downline_ids dari berbagai variasi payload (array downline_ids, downline_id tunggal, atau claims array).
+     * Normalisasi input akun_copytrade_ids dan downline_ids dari berbagai variasi payload.
      */
     protected function prepareForValidation(): void
     {
+        if ($this->has('akun_copytrade_id') && !$this->has('akun_copytrade_ids')) {
+            $this->merge([
+                'akun_copytrade_ids' => [(int) $this->input('akun_copytrade_id')],
+            ]);
+        } elseif ($this->has('account_ids') && !$this->has('akun_copytrade_ids')) {
+            $this->merge([
+                'akun_copytrade_ids' => array_map('intval', (array) $this->input('account_ids')),
+            ]);
+        }
+
         if ($this->has('downline_id') && !$this->has('downline_ids')) {
             $this->merge([
                 'downline_ids' => [(int) $this->input('downline_id')],
@@ -42,12 +52,29 @@ class StoreCommissionClaimRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'downline_ids'       => ['required', 'array', 'min:1'],
-            'downline_ids.*'     => ['required', 'integer', 'exists:users,id'],
-            'nama_bank'          => ['required', 'string', 'max:100'],
-            'nomor_rekening'     => ['required', 'string', 'max:50'],
-            'atas_nama_rekening' => ['required', 'string', 'max:100'],
+            'akun_copytrade_ids'   => ['nullable', 'array'],
+            'akun_copytrade_ids.*' => ['integer', 'exists:akun_copytrade,id'],
+            'downline_ids'         => ['nullable', 'array'],
+            'downline_ids.*'       => ['integer', 'exists:users,id'],
+            'nama_bank'            => ['required', 'string', 'max:100'],
+            'nomor_rekening'       => ['required', 'string', 'max:50'],
+            'atas_nama_rekening'   => ['required', 'string', 'max:100'],
         ];
+    }
+
+    /**
+     * Pastikan minimal salah satu dari akun_copytrade_ids atau downline_ids terisi.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $hasAccounts = filled($this->input('akun_copytrade_ids'));
+            $hasDownlines = filled($this->input('downline_ids'));
+
+            if (!$hasAccounts && !$hasDownlines) {
+                $validator->errors()->add('akun_copytrade_ids', 'Pilih minimal satu akun copytrade investor downline yang telah aktif minimal 3 bulan.');
+            }
+        });
     }
 
     /**

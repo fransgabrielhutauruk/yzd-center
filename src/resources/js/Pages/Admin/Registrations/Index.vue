@@ -180,6 +180,7 @@ const getStatusBadge = (status) => {
                 :columns="columns"
                 :filters="filters"
                 fetch-url="/admin/registrations"
+                exportable
                 search-placeholder="Cari nama, username, upline..."
                 empty-title="Tidak Ada Antrean Verifikasi"
                 empty-message="Semua pendaftaran telah diproses atau tidak ada antrean verifikasi yang sesuai dengan kriteria filter Anda."

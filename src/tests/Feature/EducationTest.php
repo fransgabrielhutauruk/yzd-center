@@ -357,7 +357,7 @@ class EducationTest extends TestCase
             ->delete(route('admin.education.glossary.destroy', $item->id));
 
         $deleteResponse->assertRedirect(route('admin.education.glossary.index'));
-        $this->assertDatabaseMissing('edukasi_glosarium', ['id' => $item->id]);
+        $this->assertSoftDeleted('edukasi_glosarium', ['id' => $item->id]);
     }
 
     public function test_admin_can_create_update_and_delete_help_category(): void
@@ -394,7 +394,7 @@ class EducationTest extends TestCase
             ->delete(route('admin.education.help.categories.destroy', $category->id));
 
         $deleteResponse->assertRedirect(route('admin.education.help.index', ['tab' => 'categories']));
-        $this->assertDatabaseMissing('panduan_kategori', ['id' => $category->id]);
+        $this->assertSoftDeleted('panduan_kategori', ['id' => $category->id]);
     }
 
     public function test_admin_cannot_delete_category_that_has_articles(): void
@@ -461,7 +461,7 @@ class EducationTest extends TestCase
             ->delete(route('admin.education.help.articles.destroy', $article->id));
 
         $deleteResponse->assertRedirect(route('admin.education.help.index', ['tab' => 'articles']));
-        $this->assertDatabaseMissing('panduan_bantuan', ['id' => $article->id]);
+        $this->assertSoftDeleted('panduan_bantuan', ['id' => $article->id]);
     }
 
     public function test_admin_can_access_create_and_edit_article_pages(): void
@@ -691,13 +691,13 @@ class EducationTest extends TestCase
             ->delete(route('admin.education.faq.destroy', $faq->id));
 
         $deleteFaqResponse->assertRedirect(route('admin.education.faq.index', ['tab' => 'faqs']));
-        $this->assertDatabaseMissing('edukasi_faq', ['id' => $faq->id]);
+        $this->assertSoftDeleted('edukasi_faq', ['id' => $faq->id]);
 
         // 6. Sekarang topik dapat dihapus
         $deleteTopicSuccess = $this->actingAs($this->admin)
             ->delete(route('admin.education.faq.topics.destroy', $topic->id));
 
         $deleteTopicSuccess->assertRedirect(route('admin.education.faq.index', ['tab' => 'topics']));
-        $this->assertDatabaseMissing('edukasi_faq_topik', ['id' => $topic->id]);
+        $this->assertSoftDeleted('edukasi_faq_topik', ['id' => $topic->id]);
     }
 }

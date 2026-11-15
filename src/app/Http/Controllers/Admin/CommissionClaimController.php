@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class CommissionClaimController extends Controller
 {
@@ -40,16 +41,31 @@ class CommissionClaimController extends Controller
     }
 
     /**
+     * Ekspor data permohonan klaim pencairan komisi afiliasi ke format XLSX.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $filters = array_filter([
+            'search'         => $request->query('search'),
+            'status'         => $request->query('status'),
+            'sort_by'        => $request->query('sort_by'),
+            'sort_direction' => $request->query('sort_direction'),
+        ], fn ($val) => filled($val));
+
+        return $this->commissionClaimService->exportXlsx($filters);
+    }
+
+    /**
      * Eksekusi keputusan persetujuan pencairan transfer atau penolakan klaim komisi.
      */
     public function process(ProcessCommissionClaimRequest $request, int $id): RedirectResponse
     {
         $status = $request->string('status')->value();
-        $profitMaster = $request->filled('profit_master') ? (float) $request->input('profit_master') : null;
         $kursKonversiIdr = $request->filled('kurs_konversi_idr') ? (float) $request->input('kurs_konversi_idr') : null;
-        $itemizedProfits = $request->input('items');
         $buktiTransfer = $request->file('bukti_transfer');
         $catatanAdmin = $request->input('catatan_admin');
+        $itemizedProfits = $request->input('items');
+        $profitMaster = $request->filled('profit_master') ? (float) $request->input('profit_master') : null;
 
         $claim = $this->commissionClaimService->processClaim(
             $id,

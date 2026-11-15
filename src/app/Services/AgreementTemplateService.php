@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use PhpOffice\PhpWord\Settings;
 use PhpOffice\PhpWord\TemplateProcessor;
 
 class AgreementTemplateService
@@ -21,7 +22,7 @@ class AgreementTemplateService
     {
         $map = [
             'tier_1' => storage_path('app/templates/perjanjian/tier_1_hfm.docx'),
-            'tier_2' => storage_path('app/templates/perjanjian/tier_2_xm.docx'),
+            'tier_2' => storage_path('app/templates/perjanjian/tier_2_hfm.docx'),
             'tier_3' => storage_path('app/templates/perjanjian/tier_3_xm.docx'),
         ];
 
@@ -41,6 +42,7 @@ class AgreementTemplateService
             abort(404, "Template perjanjian untuk {$tier} tidak ditemukan.");
         }
 
+        Settings::setOutputEscapingEnabled(true);
         $template = new TemplateProcessor($templatePath);
         $placeholders = $this->buildPlaceholders($tier, $data);
 

@@ -2,16 +2,21 @@
 
 namespace App\Models;
 
+use App\Traits\CascadesSoftDeletes;
+use App\Traits\TracksDeletedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class EdukasiFaqTopik extends Model
 {
-    use HasFactory;
+    use CascadesSoftDeletes, HasFactory, SoftDeletes, TracksDeletedBy;
 
     protected $table = 'edukasi_faq_topik';
+
+    protected array $cascadeSoftDeletes = ['faqs'];
 
     protected $fillable = [
         'nama',

@@ -574,3 +574,31 @@ Seluruh tim Administrator berpegang pada Service Level Agreement (SLA) operasion
 
 ---
 *Buku Panduan Operasional Administrator YZD Center — Hak Cipta Dilindungi Undang-Undang.*
+
+
+---
+
+## Bab 12: Manajemen Laporan Profit Bulanan & Verifikasi Master Fee
+
+Menu **Master Fee** (`/admin/master-fee`) memungkinkan Administrator mengawasi antrean pelaporan performa investor dan memvalidasi pembayaran bagi hasil Master Trader secara terpadu.
+
+### 12.1 Struktur Tampilan AppTabs
+- **Tab Laporan Profit & Fee:** Menampilkan seluruh laporan yang telah diajukan member, dilengkapi filter status (*Semua, Menunggu Verifikasi, Belum Bayar, Lunas, Perlu Koreksi*) dan filter bulan/tahun.
+- **Tab Akun Belum Lapor Profit:** Menampilkan daftar akun aktif yang periodenya telah selesai namun belum melaporkan profit ke sistem.
+
+### 12.2 Verifikasi 3-Titik & Keputusan Admin
+Klik tombol **"Verifikasi"** pada antrean laporan untuk membuka jendela verifikasi 3-titik:
+1. **Screenshot Myfxbook:** Periksa kecocokan profit USD dengan tangkapan layar Myfxbook.
+2. **Screenshot Penarikan (WD) Broker:** Periksa mutasi penarikan dana broker (30% - 60% jika profit > 0), nominal USD & IDR, serta kewajaran kurs riil.
+3. **Screenshot Bukti Transfer Fee:** Periksa resi transfer pembayaran ke rekening Master Trader.
+
+**Opsi Keputusan Admin:**
+- **Verifikasi Lunas:** Klik untuk menyetujui laporan & pembayaran fee. Status berubah menjadi `lunas` permanen.
+- **Perlu Koreksi:** Klik jika investor keliru menginput angka atau screenshot tertukar. Wajib mengisi catatan koreksi agar investor dapat merevisi mandiri.
+- **Tolak Bukti:** Klik jika resi transfer palsu atau tidak terbaca. Wajib mengisi alasan penolakan.
+
+### 12.3 Pengaturan Global Master Fee (`/admin/settings/master-fee`)
+Administrator dapat mengatur:
+- Rekening bank resmi Master Trader (Nama Bank, Nomor Rekening, Atas Nama).
+- Persentase Master Fee platform (default 30%).
+- Batas maksimal penarikan dana WD broker (default 60%).

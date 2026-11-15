@@ -17,8 +17,15 @@ class PanduanKategoriRequest extends FormRequest
         $categoryId = $this->route('id') ?? $this->route('category')?->id;
 
         return [
-            'nama'      => ['required', 'string', 'max:100'],
-            'slug'      => ['nullable', 'string', 'max:100', Rule::unique('panduan_kategori', 'slug')->ignore($categoryId)],
+            'nama' => ['required', 'string', 'max:100'],
+            'slug' => [
+                'nullable',
+                'string',
+                'max:100',
+                Rule::unique('panduan_kategori', 'slug')
+                    ->ignore($categoryId)
+                    ->whereNull('deleted_at'),
+            ],
             'deskripsi' => ['nullable', 'string', 'max:20000'],
             'icon'      => ['nullable', 'string', 'max:50'],
             'urutan'    => ['nullable', 'integer', 'min:0'],

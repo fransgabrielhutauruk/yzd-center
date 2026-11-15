@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppModal from '@/Components/Common/AppModal.vue';
+import PeriodBreakdownCards from '@/Components/Commission/PeriodBreakdownCards.vue';
 import { Button } from '@/Components/ui/button';
 import { compressImageFile } from '@/lib/imageCompression';
 import {
@@ -14,7 +15,6 @@ import {
     Loader2,
     ShieldAlert,
     TrendingUp,
-    ArrowRightLeft,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -40,8 +40,6 @@ const decision = ref('approved_transferred'); // 'approved_transferred' | 'rejec
 
 const form = useForm({
     status: 'approved_transferred',
-    kurs_konversi_idr: '',
-    items: [],
     bukti_transfer: null,
     catatan_admin: '',
 });
@@ -66,21 +64,7 @@ watch(
         if (newClaim) {
             form.reset();
             form.status = decision.value;
-            form.kurs_konversi_idr = newClaim.kurs_konversi_idr
-                ? String(Math.round(Number(newClaim.kurs_konversi_idr)))
-                : '';
             filePreviewName.value = '';
-
-            if (newClaim.items && newClaim.items.length > 0) {
-                form.items = newClaim.items.map((it) => ({
-                    id: it.id,
-                    roi_percentage: it.roi_percentage !== null && it.roi_percentage !== undefined ? it.roi_percentage : '',
-                    master_share_pct: it.master_share_pct !== null && it.master_share_pct !== undefined ? it.master_share_pct : 30.0,
-                    affiliate_share_pct: it.affiliate_share_pct !== null && it.affiliate_share_pct !== undefined ? it.affiliate_share_pct : (it.persentase_tier || 20.0),
-                }));
-            } else {
-                form.items = [];
-            }
         }
     },
     { immediate: true }
@@ -91,110 +75,77 @@ watch(decision, (val) => {
 });
 
 // Perhitungan profit, drawdown guard, bagi hasil master, dan komisi afiliator per akun
-const calculatedItems = computed(() => {
+const displayItems = computed(() => {
     if (!props.claim?.items) return [];
 
-    return props.claim.items.map((it, idx) => {
-        const itemForm = form.items[idx] || {};
+    return props.claim.items.map((it) => {
         const deposit = Number(it.deposit_amount || it.modal_riil) || 0;
-        const roiRaw = itemForm.roi_percentage;
-        const roi = (roiRaw !== '' && roiRaw !== null && !isNaN(roiRaw)) ? Number(roiRaw) : null;
-        const masterSharePct = Number(itemForm.master_share_pct ?? 30.0);
-        const affiliateSharePct = Number(itemForm.affiliate_share_pct ?? it.persentase_tier ?? 20.0);
-
-        if (roi === null) {
-            return {
-                ...it,
-                deposit,
-                roi: 0,
-                hasInput: false,
-                gross_profit: 0,
-                master_gross_share: 0,
-                affiliate_commission: 0,
-                master_net_share: 0,
-                investor_net_profit: 0,
-                is_drawdown: false,
-                transfer: 0,
-            };
-        }
-
-        const grossProfit = deposit * (roi / 100);
-
-        if (grossProfit <= 0) {
-            return {
-                ...it,
-                deposit,
-                roi,
-                hasInput: true,
-                gross_profit: grossProfit,
-                master_gross_share: 0,
-                affiliate_commission: 0,
-                master_net_share: 0,
-                investor_net_profit: grossProfit,
-                is_drawdown: true,
-                transfer: 0,
-            };
-        }
-
-        const masterGrossShare = grossProfit * (masterSharePct / 100);
-        const affiliateCommission = masterGrossShare * (affiliateSharePct / 100);
-        const masterNetShare = masterGrossShare - affiliateCommission;
-        const investorNetProfit = grossProfit - masterGrossShare;
+        const grossProfit = Number(it.gross_profit ?? 0);
+        const masterGrossShare = Number(it.master_gross_share ?? it.profit_master ?? 0);
+        const masterGrossShareIdr = Number(it.master_gross_share_idr ?? 0);
+        const affiliateCommission = Number(it.affiliate_commission ?? it.nominal_transfer ?? 0);
+        const affiliateCommissionIdr = Number(it.affiliate_commission_idr ?? 0);
+        const masterNetShare = Number(it.master_net_share ?? (masterGrossShare - affiliateCommission));
+        const investorNetProfit = Number(it.investor_net_profit ?? (grossProfit - masterGrossShare));
+        const isDrawdown = masterGrossShare <= 0 || grossProfit <= 0;
 
         return {
             ...it,
             deposit,
-            roi,
-            hasInput: true,
             gross_profit: grossProfit,
             master_gross_share: masterGrossShare,
+            master_gross_share_idr: masterGrossShareIdr,
             affiliate_commission: affiliateCommission,
+            affiliate_commission_idr: affiliateCommissionIdr,
             master_net_share: masterNetShare,
             investor_net_profit: investorNetProfit,
-            is_drawdown: false,
+            is_drawdown: isDrawdown,
             transfer: affiliateCommission,
         };
     });
 });
 
 const totalCalculatedTransfer = computed(() => {
-    return calculatedItems.value.reduce((acc, it) => acc + (it.transfer || 0), 0);
-});
-
-const parsedKursMt4 = computed(() => {
-    const raw = form.kurs_konversi_idr;
-    if (raw === '' || raw === null || isNaN(raw)) return 0;
-    return Math.max(0, Number(raw));
+    if (props.claim?.total_affiliate_commission !== null && props.claim?.total_affiliate_commission !== undefined) {
+        return Number(props.claim.total_affiliate_commission);
+    }
+    return displayItems.value.reduce((acc, it) => acc + (it.transfer || 0), 0);
 });
 
 const totalCalculatedTransferIdr = computed(() => {
-    if (parsedKursMt4.value <= 0) return 0;
-    return Math.round(totalCalculatedTransfer.value * parsedKursMt4.value);
+    if (props.claim?.total_nominal_transfer_idr !== null && props.claim?.total_nominal_transfer_idr !== undefined && Number(props.claim.total_nominal_transfer_idr) > 0) {
+        return Math.round(Number(props.claim.total_nominal_transfer_idr));
+    }
+    const sum = displayItems.value.reduce((acc, it) => acc + (Number(it.affiliate_commission_idr) || 0), 0);
+    return Math.round(sum);
 });
 
 const totalCalculatedGrossProfit = computed(() => {
-    return calculatedItems.value.reduce((acc, it) => acc + (it.gross_profit || 0), 0);
+    if (props.claim?.total_gross_profit !== null && props.claim?.total_gross_profit !== undefined) {
+        return Number(props.claim.total_gross_profit);
+    }
+    return displayItems.value.reduce((acc, it) => acc + (it.gross_profit || 0), 0);
 });
 
 const totalCalculatedMasterGrossShare = computed(() => {
-    return calculatedItems.value.reduce((acc, it) => acc + (it.master_gross_share || 0), 0);
+    if (props.claim?.total_master_gross_share !== null && props.claim?.total_master_gross_share !== undefined) {
+        return Number(props.claim.total_master_gross_share);
+    }
+    return displayItems.value.reduce((acc, it) => acc + (it.master_gross_share || 0), 0);
 });
 
 const totalCalculatedMasterNetShare = computed(() => {
-    return calculatedItems.value.reduce((acc, it) => acc + (it.master_net_share || 0), 0);
+    if (props.claim?.total_master_net_share !== null && props.claim?.total_master_net_share !== undefined) {
+        return Number(props.claim.total_master_net_share);
+    }
+    return displayItems.value.reduce((acc, it) => acc + (it.master_net_share || 0), 0);
 });
 
 const totalCalculatedInvestorNetProfit = computed(() => {
-    return calculatedItems.value.reduce((acc, it) => acc + (it.investor_net_profit || 0), 0);
-});
-
-const allItemsHaveRoi = computed(() => {
-    if (calculatedItems.value.length === 0) return false;
-    return calculatedItems.value.every((it) => it.hasInput);
-});
-
-const hasValidKursIdr = computed(() => {
-    return parsedKursMt4.value > 0;
+    if (props.claim?.total_investor_net_profit !== null && props.claim?.total_investor_net_profit !== undefined) {
+        return Number(props.claim.total_investor_net_profit);
+    }
+    return displayItems.value.reduce((acc, it) => acc + (it.investor_net_profit || 0), 0);
 });
 
 const handleFileChange = async (event) => {
@@ -237,7 +188,7 @@ const submit = () => {
     <AppModal
         :show="isVisible"
         title="Proses Verifikasi & Pencairan Komisi Afiliasi"
-        max-width="3xl"
+        max-width="4xl"
         @close="$emit('close')"
     >
         <div v-if="claim" class="space-y-4 text-xs">
@@ -326,7 +277,17 @@ const submit = () => {
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-muted/30 rounded-lg p-2 border border-border/40 text-[10px] font-mono">
+                            <!-- Rincian 3 Periode + Akumulasi (jika tersedia) atau Fallback Ringkas -->
+                            <PeriodBreakdownCards
+                                v-if="it.periods_breakdown && it.periods_breakdown.length > 0"
+                                :periods="it.periods_breakdown"
+                                :accumulation="it.periods_accumulation || null"
+                                :persentase-tier="it.affiliate_share_pct ?? it.persentase_tier"
+                                :tier-level="it.tier_level"
+                                :modal-riil="it.deposit_amount || it.modal_riil"
+                                :modal-idr="it.modal_idr"
+                            />
+                            <div v-else class="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-muted/30 rounded-lg p-2 border border-border/40 text-[10px] font-mono">
                                 <div>
                                     <span class="text-muted-foreground block font-sans">Gross Profit:</span>
                                     <strong class="text-foreground">{{ formatUSD(it.gross_profit) }}</strong>
@@ -352,39 +313,12 @@ const submit = () => {
                     </div>
 
                     <div v-if="claim.status === 'approved_transferred'" class="space-y-2.5 pt-2 border-t border-border/40">
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-xs">
-                            <div>
-                                <span class="text-muted-foreground block text-[10px] font-sans">Total Gross Profit:</span>
-                                <strong>{{ formatUSD(claim.total_gross_profit) }}</strong>
-                            </div>
-                            <div>
-                                <span class="text-muted-foreground block text-[10px] font-sans">Total Hak Master:</span>
-                                <strong>{{ formatUSD(claim.total_master_gross_share ?? claim.total_profit_master) }}</strong>
-                            </div>
-                            <div>
-                                <span class="text-muted-foreground block text-[10px] font-sans">Total Komisi (USD):</span>
-                                <strong class="text-emerald-700 dark:text-emerald-400 text-sm">{{ formatUSD(claim.total_affiliate_commission ?? claim.total_nominal_transfer) }}</strong>
-                            </div>
-                            <div>
-                                <span class="text-muted-foreground block text-[10px] font-sans">Total Net Investor:</span>
-                                <strong>{{ formatUSD(claim.total_investor_net_profit) }}</strong>
-                            </div>
-                        </div>
-
-                        <!-- Info Kurs Konversi Riil MT4 & Nominal Transfer Rupiah -->
+                        <!-- Info Kurs Konversi Efektif & Nominal Transfer Rupiah -->
                         <div
                             v-if="claim.kurs_konversi_idr || claim.total_nominal_transfer_idr"
                             class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 flex items-center justify-between flex-wrap gap-2"
                         >
                             <div class="space-y-0.5">
-                                <span class="text-[10px] font-semibold text-emerald-900 dark:text-emerald-200 block">
-                                    Kurs Konversi Riil MT4 (Diinput Admin):
-                                </span>
-                                <strong class="font-mono text-xs text-foreground">
-                                    {{ formatRupiah(claim.kurs_konversi_idr) }} / $1 USD
-                                </strong>
-                            </div>
-                            <div class="text-right space-y-0.5">
                                 <span class="text-[10px] font-semibold text-emerald-900 dark:text-emerald-200 block">
                                     Total Nominal Ditransfer (Rupiah):
                                 </span>
@@ -392,15 +326,7 @@ const submit = () => {
                                     {{ formatRupiah(claim.total_nominal_transfer_idr) }}
                                 </strong>
                             </div>
-                        </div>
-                    </div>
-
-                    <div v-if="claim.catatan_admin" class="text-[11px] pt-1 border-t border-border/40">
-                        <span class="text-muted-foreground font-semibold">Catatan Admin: </span>
-                        <span class="text-foreground italic">{{ claim.catatan_admin }}</span>
-                    </div>
-
-                    <div v-if="claim.bukti_transfer_url" class="pt-2">
+                                                <div v-if="claim.bukti_transfer_url" class="pt-2">
                         <a
                             :href="claim.bukti_transfer_url"
                             target="_blank"
@@ -408,8 +334,15 @@ const submit = () => {
                             class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition-colors"
                         >
                             <ExternalLink class="h-3.5 w-3.5" />
-                            <span>Lihat Resi Transfer Bank</span>
+                            <span>Lihat Resi Transfer</span>
                         </a>
+                    </div>
+                        </div>
+                    </div>
+
+                    <div v-if="claim.catatan_admin" class="text-[11px] pt-1 border-t border-border/40">
+                        <span class="text-muted-foreground font-semibold">Catatan Admin: </span>
+                        <span class="text-foreground italic">{{ claim.catatan_admin }}</span>
                     </div>
                 </div>
             </div>
@@ -460,7 +393,7 @@ const submit = () => {
                             <div class="flex items-center gap-2">
                                 <TrendingUp class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                                 <h4 class="text-foreground text-xs font-bold uppercase tracking-wider">
-                                    Kalkulasi Komisi Per Akun Copytrade (Tier Terpisah)
+                                    Kalkulasi Komisi Per Akun Copytrade
                                 </h4>
                             </div>
                             <span class="text-[11px] font-mono text-muted-foreground">
@@ -469,9 +402,9 @@ const submit = () => {
                         </div>
 
                         <!-- Card Akun Copytrade -->
-                        <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
+                        <div class="space-y-3 max-h-[34rem] overflow-y-auto pr-1">
                             <div
-                                v-for="(it, idx) in calculatedItems"
+                                v-for="(it, idx) in displayItems"
                                 :key="it.id || idx"
                                 class="rounded-xl border border-border bg-muted/20 p-3 space-y-2.5"
                             >
@@ -485,18 +418,6 @@ const submit = () => {
                                         <span class="text-muted-foreground font-mono text-[10px]">({{ it.broker }} - {{ it.nomor_akun_trading }})</span>
                                     </div>
                                     <div class="flex items-center gap-1.5">
-                                        <span
-                                            v-if="it.is_akun_pertama"
-                                            class="rounded bg-sky-500/10 text-sky-800 dark:text-sky-300 border border-sky-500/30 px-1.5 py-0.2 text-[9px] font-bold"
-                                        >
-                                            Akun Pertama (Acuan)
-                                        </span>
-                                        <span
-                                            v-else
-                                            class="rounded bg-purple-500/10 text-purple-800 dark:text-purple-300 border border-purple-500/30 px-1.5 py-0.2 text-[9px] font-semibold"
-                                        >
-                                            Akun Tambahan
-                                        </span>
                                         <span class="rounded bg-primary-500/10 text-primary-800 dark:text-primary-300 border border-primary-500/30 px-1.5 py-0.2 font-semibold text-[10px]">
                                             Tier {{ it.tier_level }} ({{ it.persentase_tier }}%)
                                         </span>
@@ -509,7 +430,7 @@ const submit = () => {
                                         Periode: <strong class="text-foreground">{{ it.tanggal_mulai }} s/d {{ it.tanggal_selesai }}</strong>
                                     </span>
                                     <span>
-                                        Dihitung: <strong class="text-emerald-700 dark:text-emerald-400 font-bold">{{ it.hari_kehitung }} Hari</strong>
+                                        Status: <strong class="text-emerald-700 dark:text-emerald-400 font-bold">3 Periode Selesai</strong>
                                     </span>
                                     <span>
                                         Modal Akun: <strong class="text-foreground font-mono text-xs">{{ formatUSD(it.deposit) }}</strong>
@@ -517,64 +438,8 @@ const submit = () => {
                                     </span>
                                 </div>
 
-                                <!-- Input Parameter: ROI %, Hak Master %, Jatah Afiliator % -->
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-                                    <div class="space-y-1">
-                                        <label class="text-muted-foreground text-[10px] block font-semibold">
-                                            ROI Master Periode Ini (%) <span class="text-rose-500">*</span>:
-                                        </label>
-                                        <div class="relative">
-                                            <input
-                                                type="number"
-                                                v-model="form.items[idx].roi_percentage"
-                                                placeholder="cth: 20"
-                                                step="0.01"
-                                                required
-                                                class="bg-background border-input focus:ring-primary-500 h-8 w-full rounded-lg border px-2.5 pr-6 text-xs font-mono focus:ring-2 focus:outline-none"
-                                            />
-                                            <span class="absolute right-2 top-2 text-[10px] text-muted-foreground font-bold">%</span>
-                                        </div>
-                                    </div>
-
-                                    <div class="space-y-1">
-                                        <label class="text-muted-foreground text-[10px] block font-semibold">
-                                            Bagi Hasil Hak Master (%):
-                                        </label>
-                                        <div class="relative">
-                                            <input
-                                                type="number"
-                                                v-model="form.items[idx].master_share_pct"
-                                                placeholder="30"
-                                                step="0.1"
-                                                min="0"
-                                                max="100"
-                                                class="bg-background border-input focus:ring-primary-500 h-8 w-full rounded-lg border px-2.5 pr-6 text-xs font-mono focus:ring-2 focus:outline-none"
-                                            />
-                                            <span class="absolute right-2 top-2 text-[10px] text-muted-foreground font-bold">%</span>
-                                        </div>
-                                    </div>
-
-                                    <div class="space-y-1">
-                                        <label class="text-muted-foreground text-[10px] block font-semibold">
-                                            Jatah Afiliator Tier {{ it.tier_level }} (%):
-                                        </label>
-                                        <div class="relative">
-                                            <input
-                                                type="number"
-                                                v-model="form.items[idx].affiliate_share_pct"
-                                                placeholder="20"
-                                                step="0.1"
-                                                min="0"
-                                                max="100"
-                                                class="bg-background border-input focus:ring-primary-500 h-8 w-full rounded-lg border px-2.5 pr-6 text-xs font-mono focus:ring-2 focus:outline-none"
-                                            />
-                                            <span class="absolute right-2 top-2 text-[10px] text-muted-foreground font-bold">%</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Box Hasil Live Perhitungan Akun -->
-                                <div v-if="it.hasInput" class="pt-1">
+                                <!-- Box Hasil Kalkulasi Akun dari Tagihan Lunas -->
+                                <div class="pt-1 space-y-2.5">
                                     <!-- Drawdown Guard Alert jika Rugi / Impas -->
                                     <div
                                         v-if="it.is_drawdown"
@@ -589,9 +454,20 @@ const submit = () => {
                                         </div>
                                     </div>
 
-                                    <!-- Hasil Untung -->
+                                    <!-- Rincian 3 Periode + Akumulasi (jika tersedia) -->
+                                    <PeriodBreakdownCards
+                                        v-if="it.periods_breakdown && it.periods_breakdown.length > 0"
+                                        :periods="it.periods_breakdown"
+                                        :accumulation="it.periods_accumulation || null"
+                                        :persentase-tier="it.affiliate_share_pct ?? it.persentase_tier"
+                                        :tier-level="it.tier_level"
+                                        :modal-riil="it.deposit"
+                                        :modal-idr="it.modal_idr"
+                                    />
+
+                                    <!-- Fallback Hasil Untung (untuk klaim legacy tanpa periode bulanan) -->
                                     <div
-                                        v-else
+                                        v-else-if="!it.is_drawdown"
                                         class="grid grid-cols-2 sm:grid-cols-5 gap-2 rounded-lg bg-card border border-border/60 p-2.5 text-[10px] font-mono"
                                     >
                                         <div>
@@ -600,11 +476,13 @@ const submit = () => {
                                         </div>
                                         <div>
                                             <span class="text-muted-foreground block font-sans">Hak Kotor Master:</span>
-                                            <strong class="text-foreground text-xs">{{ formatUSD(it.master_gross_share) }}</strong>
+                                            <strong class="text-foreground text-xs block">{{ formatRupiah(it.master_gross_share_idr) }}</strong>
+                                            <span class="text-muted-foreground text-[9px]">({{ formatUSD(it.master_gross_share) }})</span>
                                         </div>
                                         <div class="rounded-md bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5">
                                             <span class="text-emerald-800 dark:text-emerald-300 block font-sans font-bold">Komisi Afiliator:</span>
-                                            <strong class="text-emerald-800 dark:text-emerald-300 text-xs">{{ formatUSD(it.affiliate_commission) }}</strong>
+                                            <strong class="text-emerald-800 dark:text-emerald-300 text-xs block">{{ formatRupiah(it.affiliate_commission_idr) }}</strong>
+                                            <span class="text-emerald-700/80 dark:text-emerald-400/80 text-[9px]">({{ formatUSD(it.affiliate_commission) }})</span>
                                         </div>
                                         <div>
                                             <span class="text-muted-foreground block font-sans">Net Bersih Master:</span>
@@ -619,68 +497,29 @@ const submit = () => {
                             </div>
                         </div>
 
-                        <!-- Ringkasan Total Akumulasi USD & Input Manual Kurs Konversi MT4 ke Rupiah -->
+                        <!-- Ringkasan Total Akumulasi Finansial & Transfer Rupiah -->
                         <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 space-y-3 text-xs">
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[11px] pb-2 border-b border-emerald-500/20">
-                                <div>
-                                    <span class="text-muted-foreground block font-sans text-[10px]">Total Gross Profit:</span>
-                                    <span class="font-bold text-foreground">{{ formatUSD(totalCalculatedGrossProfit) }}</span>
-                                </div>
-                                <div>
-                                    <span class="text-muted-foreground block font-sans text-[10px]">Total Hak Master:</span>
-                                    <span class="font-bold text-foreground">{{ formatUSD(totalCalculatedMasterGrossShare) }}</span>
-                                </div>
-                                <div>
-                                    <span class="text-muted-foreground block font-sans text-[10px]">Total Net Master:</span>
-                                    <span class="font-bold text-foreground">{{ formatUSD(totalCalculatedMasterNetShare) }}</span>
-                                </div>
-                                <div>
-                                    <span class="text-muted-foreground block font-sans text-[10px]">Total Net Investor:</span>
-                                    <span class="font-bold text-foreground">{{ formatUSD(totalCalculatedInvestorNetProfit) }}</span>
-                                </div>
-                            </div>
 
-                            <!-- Input Manual Kurs Konversi Riil MT4 (Rp per $1 USD) -->
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center pt-0.5">
-                                <div class="space-y-1">
-                                    <label class="text-foreground text-xs font-bold flex items-center gap-1.5">
-                                        <ArrowRightLeft class="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400" />
-                                        <span>Kurs Konversi Riil MT4 (Rp / $1 USD) <span class="text-rose-500">*</span>:</span>
-                                    </label>
+
+                            <!-- Total Wajib Ditransfer Otomatis dari Tagihan Rupiah -->
+                            <div class="rounded-xl bg-card/90 border border-emerald-500/30 p-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                <div class="space-y-0.5">
+                                    <span class="text-muted-foreground text-[11px] block">
+                                        Total Komisi Berdasarkan Fee Rupiah Investor (30% Profit):
+                                    </span>
+                                    <div class="flex items-baseline gap-2 flex-wrap">
+                                        <span class="font-mono text-emerald-800 dark:text-emerald-300 text-lg sm:text-xl font-extrabold">
+                                            {{ formatRupiah(totalCalculatedTransferIdr) }}
+                                        </span>
+                                    </div>
                                     <p class="text-[10px] text-muted-foreground">
-                                        Input nilai kurs penarikan riil sesuai kondisi MT4 saat pencairan.
-                                    </p>
-                                    <div class="relative">
-                                        <span class="absolute left-2.5 top-2 text-xs font-mono font-bold text-muted-foreground">Rp</span>
-                                        <input
-                                            type="number"
-                                            v-model="form.kurs_konversi_idr"
-                                            placeholder="cth: 16250"
-                                            step="1"
-                                            min="1"
-                                            required
-                                            class="bg-background border-input focus:ring-emerald-500 h-8 w-full rounded-lg border pl-8 pr-12 text-xs font-mono font-bold focus:ring-2 focus:outline-none"
-                                        />
-                                        <span class="absolute right-2.5 top-2 text-[10px] text-muted-foreground font-mono">/ $1</span>
-                                    </div>
-                                    <p v-if="form.errors.kurs_konversi_idr" class="text-rose-500 text-[10px]">
-                                        {{ form.errors.kurs_konversi_idr }}
+                                        Dihitung otomatis dari akumulasi pembayaran Rupiah Master Fee investor pada 3 laporan profit bulanan.
                                     </p>
                                 </div>
-
-                                <div class="rounded-xl bg-card/90 border border-emerald-500/30 p-3 space-y-1 text-right">
-                                    <div class="flex items-center justify-between text-[11px]">
-                                        <span class="text-muted-foreground">Total Komisi (USD):</span>
-                                        <strong class="font-mono text-foreground">{{ formatUSD(totalCalculatedTransfer) }}</strong>
-                                    </div>
-                                    <div class="flex items-center justify-between border-t border-border/60 pt-1">
-                                        <span class="font-bold text-emerald-900 dark:text-emerald-300 text-xs">
-                                            Wajib Ditransfer (IDR):
-                                        </span>
-                                        <span class="font-mono text-emerald-800 dark:text-emerald-300 text-base font-extrabold">
-                                            {{ hasValidKursIdr ? formatRupiah(totalCalculatedTransferIdr) : 'Input Kurs MT4' }}
-                                        </span>
-                                    </div>
+                                <div class="text-left sm:text-right text-[11px] bg-muted/40 rounded-lg p-2.5 border border-border/50 shrink-0">
+                                    <span class="text-muted-foreground block text-[10px]">Rekening Tujuan:</span>
+                                    <strong class="text-foreground uppercase font-mono block">{{ claim.nama_bank }} - {{ claim.nomor_rekening }}</strong>
+                                    <span class="text-muted-foreground text-[10px]">a.n. {{ claim.atas_nama_rekening }}</span>
                                 </div>
                             </div>
                         </div>
@@ -694,7 +533,7 @@ const submit = () => {
                         <p class="text-muted-foreground text-[11px]">
                             Lakukan transfer dana komisi senilai
                             <strong class="text-foreground font-mono">
-                                {{ hasValidKursIdr ? `${formatRupiah(totalCalculatedTransferIdr)} (${formatUSD(totalCalculatedTransfer)})` : formatUSD(totalCalculatedTransfer) }}
+                                {{ formatRupiah(totalCalculatedTransferIdr) }}
                             </strong>
                             ke rekening tujuan di atas, lalu unggah struk pembayarannya.
                         </p>
@@ -736,7 +575,7 @@ const submit = () => {
                         <textarea
                             v-model="form.catatan_admin"
                             rows="2"
-                            placeholder="cth: Transfer berhasil via m-Banking BCA sesuai kurs MT4 hari ini."
+                            placeholder="cth: Transfer berhasil..."
                             class="bg-background border-input focus:ring-primary-500 w-full rounded-lg border p-2.5 text-xs focus:ring-2 focus:outline-none"
                         ></textarea>
                     </div>
@@ -772,7 +611,7 @@ const submit = () => {
 
                     <Button
                         type="submit"
-                        :disabled="form.processing || isCompressing || (decision === 'approved_transferred' && (!form.bukti_transfer || !allItemsHaveRoi || !hasValidKursIdr))"
+                        :disabled="form.processing || isCompressing || (decision === 'approved_transferred' && !form.bukti_transfer)"
                         :class="[
                             decision === 'approved_transferred'
                                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
@@ -781,7 +620,7 @@ const submit = () => {
                     >
                         <Loader2 v-if="form.processing" class="h-4 w-4 animate-spin mr-1.5" />
                         <span v-if="decision === 'approved_transferred'">
-                            Selesaikan Pencairan ({{ hasValidKursIdr ? formatRupiah(totalCalculatedTransferIdr) : formatUSD(totalCalculatedTransfer) }})
+                            Selesaikan Pencairan ({{ formatRupiah(totalCalculatedTransferIdr) }})
                         </span>
                         <span v-else>
                             Tolak Permohonan Klaim

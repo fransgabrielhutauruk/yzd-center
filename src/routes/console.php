@@ -16,18 +16,18 @@ Schedule::command('app:update-usd-exchange-rate')
         app(\App\Services\Monitoring\TelegramErrorNotifier::class)->notifyScheduleFailure('app:update-usd-exchange-rate', $exception);
     });
 
-Schedule::command('app:send-balance-recap-reminder')
-    ->monthlyOn(1, '07:00')
-    ->timezone('Asia/Jakarta')
-    ->onFailure(function ($e = null) {
-        $exception = $e instanceof Throwable ? $e : new RuntimeException('Scheduled task app:send-balance-recap-reminder gagal');
-        app(\App\Services\Monitoring\TelegramErrorNotifier::class)->notifyScheduleFailure('app:send-balance-recap-reminder', $exception);
-    });
-
 Schedule::command('app:close-resolved-tickets --days=7')
     ->dailyAt('02:00')
     ->timezone('Asia/Jakarta')
     ->onFailure(function ($e = null) {
         $exception = $e instanceof Throwable ? $e : new RuntimeException('Scheduled task app:close-resolved-tickets gagal');
         app(\App\Services\Monitoring\TelegramErrorNotifier::class)->notifyScheduleFailure('app:close-resolved-tickets', $exception);
+    });
+
+Schedule::command('app:send-master-fee-reminders')
+    ->dailyAt('08:00')
+    ->timezone('Asia/Jakarta')
+    ->onFailure(function ($e = null) {
+        $exception = $e instanceof Throwable ? $e : new RuntimeException('Scheduled task app:send-master-fee-reminders gagal');
+        app(\App\Services\Monitoring\TelegramErrorNotifier::class)->notifyScheduleFailure('app:send-master-fee-reminders', $exception);
     });

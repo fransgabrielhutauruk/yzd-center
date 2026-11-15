@@ -8,9 +8,9 @@ import AppTableAction from '@/Components/Common/AppTableAction.vue';
 import AppButton from '@/Components/Common/AppButton.vue';
 import AppTabs from '@/Components/Common/AppTabs.vue';
 import AppCheckbox from '@/Components/Common/AppCheckbox.vue';
-import { Button } from '@/Components/ui/button';
 import SubmitClaimModal from './SubmitClaimModal.vue';
 import DetailModal from './DetailModal.vue';
+import PeriodBreakdownCards from '@/Components/Commission/PeriodBreakdownCards.vue';
 import {
     Clock,
     CheckCircle2,
@@ -23,6 +23,7 @@ import {
     CheckSquare,
     Square,
     Lock,
+    Minus,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -57,7 +58,7 @@ const activeTab = ref('downlines'); // 'downlines' | 'claims'
 const tabs = computed(() => [
     {
         key: 'downlines',
-        label: 'Status Komisi Downline (3 Bulan)',
+        label: 'Status Komisi Akun (3 Periode)',
         icon: Users,
     },
     {
@@ -123,27 +124,19 @@ const filteredDownlines = computed(() => {
 
     return list.filter((d) => {
         if (status === 'eligible' && !d.is_eligible) return false;
-        if (
-            status === 'progress' &&
-            (d.is_eligible || d.is_pending || d.is_claimed || d.jumlah_akun === 0)
-        )
-            return false;
+        if (status === 'progress' && (d.is_eligible || d.is_pending || d.is_claimed)) return false;
         if (status === 'pending' && !d.is_pending) return false;
         if (status === 'claimed' && !d.is_claimed) return false;
-        if (status === 'no_account' && d.jumlah_akun > 0) return false;
 
         if (!q) return true;
         return (
             d.name?.toLowerCase().includes(q) ||
             d.username?.toLowerCase().includes(q) ||
             d.phone?.toLowerCase().includes(q) ||
-            d.accounts?.some(
-                (acc) =>
-                    acc.broker?.toLowerCase().includes(q) ||
-                    String(acc.nomor_akun || '')
-                        .toLowerCase()
-                        .includes(q)
-            )
+            d.broker?.toLowerCase().includes(q) ||
+            String(d.nomor_akun || '')
+                .toLowerCase()
+                .includes(q)
         );
     });
 });
@@ -160,7 +153,9 @@ const isAllEligibleSelected = computed(() => {
 const isIndeterminateEligible = computed(() => {
     const totalEligible = eligibleDownlinesList.value.length;
     if (totalEligible === 0) return false;
-    const selectedCount = eligibleDownlinesList.value.filter((d) => selectedDownlineIds.value.includes(d.id)).length;
+    const selectedCount = eligibleDownlinesList.value.filter((d) =>
+        selectedDownlineIds.value.includes(d.id)
+    ).length;
     return selectedCount > 0 && selectedCount < totalEligible;
 });
 
@@ -238,8 +233,8 @@ const formatIDR = (val) => {
 
 const tableColumns = [
     { key: 'kode_klaim', label: 'Kode Klaim / Waktu', sortable: true },
-    { key: 'rincian_downline', label: 'Investor Downline & Akun' },
-    { key: 'total_modal', label: 'Total Modal Riil', sortable: true },
+    { key: 'rincian_downline', label: 'Investor Downline' },
+    { key: 'total_modal', label: 'Total Modal', sortable: true },
     { key: 'nominal_transfer', label: 'Hak Komisi / Transfer' },
     { key: 'status', label: 'Status Pencairan', sortable: true },
     { key: 'actions', label: 'Aksi' },
@@ -275,7 +270,7 @@ const getStatusBadge = (status) => {
 
     <MemberLayout
         title="Klaim Komisi Afiliasi"
-        subtitle="Pantau masa aktif periode 3 bulan copytrade downline Anda dan ajukan pencairan komisi."
+        subtitle="Pantau progres 3 periode laporan bulanan copytrade downline Anda dan ajukan pencairan komisi."
         :breadcrumbs="[{ label: 'Program Kemitraan' }, { label: 'Klaim Komisi' }]"
     >
         <template #header-actions>
@@ -284,7 +279,7 @@ const getStatusBadge = (status) => {
                 :icon="PlusCircle"
                 :label="
                     selectedDownlineIds.length > 0
-                        ? `Ajukan Klaim Komisi (${selectedDownlineIds.length} Investor)`
+                        ? `Ajukan Klaim Komisi (${selectedDownlineIds.length} Akun)`
                         : 'Ajukan Klaim Komisi'
                 "
                 :disabled="selectedDownlineIds.length === 0"
@@ -386,13 +381,13 @@ const getStatusBadge = (status) => {
             <AppTabs v-model="activeTab" :items="tabs">
                 <template #badge-downlines>
                     <span
-                        class="text-foreground rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold dark:bg-slate-800 shrink-0"
+                        class="text-foreground shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold dark:bg-slate-800"
                     >
                         {{ eligibleDownlines.length }}
                     </span>
                     <span
                         v-if="eligibleDownlinesList.length > 0"
-                        class="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-300 shrink-0"
+                        class="shrink-0 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-300"
                     >
                         {{ eligibleDownlinesList.length }} Siap
                     </span>
@@ -424,48 +419,43 @@ const getStatusBadge = (status) => {
                                 class="border-input bg-background text-foreground focus:border-primary-500 focus:ring-primary-500/20 h-9 rounded-lg border px-3 text-xs transition-all focus:ring-2 focus:outline-none"
                             >
                                 <option value="">Semua Status</option>
-                                <option value="eligible">Siap Diklaim (3 Bulan)</option>
-                                <option value="progress">Masa Tunggu (&lt; 3 Bulan)</option>
+                                <option value="eligible">Siap Diklaim (3 Periode)</option>
+                                <option value="progress">
+                                    Dalam Progres (&lt; 3 Periode / Ada Tunggakan)
+                                </option>
                                 <option value="pending">Menunggu Verifikasi</option>
                                 <option value="claimed">Sudah Dicairkan</option>
-                                <option value="no_account">Belum Copytrade</option>
                             </select>
                         </div>
 
                         <div class="flex flex-wrap items-center gap-2">
-                            <Button
-                                type="button"
+                            <AppButton
+                                type="custom"
                                 variant="outline"
                                 size="sm"
-                                @click="toggleSelectAll"
+                                :icon="isAllEligibleSelected ? CheckSquare : Square"
+                                :label="
+                                    isAllEligibleSelected
+                                        ? 'Batalkan Semua Pilihan'
+                                        : `Pilih Semua yang Siap (${eligibleDownlinesList.length})`
+                                "
                                 :disabled="eligibleDownlinesList.length === 0"
-                                class="h-9 cursor-pointer text-xs"
-                            >
-                                <component
-                                    :is="isAllEligibleSelected ? CheckSquare : Square"
-                                    class="text-primary-600 mr-1.5 h-3.5 w-3.5"
-                                />
-                                <span>
-                                    {{
-                                        isAllEligibleSelected
-                                            ? 'Batalkan Semua Pilihan'
-                                            : `Pilih Semua yang Siap (${eligibleDownlinesList.length})`
-                                    }}
-                                </span>
-                            </Button>
+                                class="h-9"
+                                @click="toggleSelectAll"
+                            />
 
                             <AppButton
                                 v-if="selectedDownlineIds.length > 0"
                                 type="create"
                                 :icon="PlusCircle"
                                 size="sm"
-                                :label="`Klaim Terpilih (${selectedDownlineIds.length})`"
+                                :label="`Klaim Terpilih (${selectedDownlineIds.length} Akun)`"
                                 @click="openBatchClaimModal"
                             />
                         </div>
                     </div>
 
-                    <!-- Tabel Daftar Downline & Progres 3 Bulan -->
+                    <!-- Tabel Daftar Akun Copytrade & Progres 3 Periode -->
                     <div class="border-border overflow-x-auto rounded-xl border">
                         <table class="w-full text-left text-xs">
                             <thead
@@ -478,14 +468,14 @@ const getStatusBadge = (status) => {
                                             :indeterminate="isIndeterminateEligible"
                                             :disabled="eligibleDownlinesList.length === 0"
                                             @change="toggleSelectAll"
-                                            title="Pilih semua investor yang siap diklaim"
-                                            aria-label="Pilih semua investor yang siap diklaim"
+                                            title="Pilih semua akun yang siap diklaim"
+                                            aria-label="Pilih semua akun yang siap diklaim"
                                         />
                                     </th>
                                     <th class="px-4 py-3">Investor</th>
-                                    <th class="px-4 py-3">Periode 3 Bulan &amp; Progres</th>
-                                    <th class="px-4 py-3">Akun Tergabung</th>
-                                    <th class="px-4 py-3">Total Modal &amp; Tier</th>
+                                    <th class="px-4 py-3">Akun Trading</th>
+                                    <th class="px-4 py-3">Modal &amp; Tier</th>
+                                    <th class="px-4 py-3">Progres 3 Periode</th>
                                     <th class="px-4 py-3">Status Kelayakan</th>
                                     <th class="px-4 py-3 text-right">Aksi</th>
                                 </tr>
@@ -497,11 +487,11 @@ const getStatusBadge = (status) => {
                                         class="text-muted-foreground px-4 py-10 text-center"
                                     >
                                         <p class="text-foreground text-xs font-semibold">
-                                            Tidak Ada Data Downline
+                                            Tidak Ada Data Akun
                                         </p>
                                         <p class="mt-0.5 text-[11px]">
-                                            Belum ada investor downline yang sesuai dengan filter
-                                            pencarian Anda.
+                                            Belum ada akun copytrade downline yang sesuai dengan
+                                            filter pencarian Anda.
                                         </p>
                                     </td>
                                 </tr>
@@ -521,8 +511,10 @@ const getStatusBadge = (status) => {
                                         <AppCheckbox
                                             :checked="isDownlineSelected(downline.id)"
                                             :disabled="!downline.is_eligible"
-                                            @change="downline.is_eligible && toggleDownline(downline.id)"
-                                            :aria-label="`Pilih downline ${downline.name}`"
+                                            @change="
+                                                downline.is_eligible && toggleDownline(downline.id)
+                                            "
+                                            :aria-label="`Pilih akun ${downline.nomor_akun} (${downline.name})`"
                                         />
                                     </td>
 
@@ -543,112 +535,109 @@ const getStatusBadge = (status) => {
                                         </div>
                                     </td>
 
-                                    <!-- 3. Kolom Periode 3 Bulan & Progres -->
+                                    <!-- 3. Kolom Akun Trading -->
                                     <td class="px-4 py-3.5 align-middle">
-                                        <div v-if="downline.first_started_at" class="space-y-1">
-                                            <p
-                                                class="text-foreground text-xs font-medium whitespace-nowrap"
-                                            >
-                                                {{ downline.first_started_at }} &ndash;
-                                                {{ downline.period_end_date }}
-                                            </p>
-                                            <div class="flex items-center gap-2">
-                                                <div
-                                                    class="bg-muted h-1.5 w-24 overflow-hidden rounded-full"
-                                                >
-                                                    <div
-                                                        class="h-full rounded-full transition-all"
-                                                        :class="
-                                                            downline.active_days >=
-                                                            (downline.target_days || 90)
-                                                                ? 'bg-emerald-500'
-                                                                : 'bg-sky-500'
-                                                        "
-                                                        :style="{
-                                                            width: `${Math.min(100, Math.round((downline.active_days / (downline.target_days || 90)) * 100))}%`,
-                                                        }"
-                                                    ></div>
-                                                </div>
-                                                <span
-                                                    class="text-muted-foreground font-mono text-[11px] font-semibold"
-                                                >
-                                                    {{ downline.active_days }}/{{
-                                                        downline.target_days || 90
-                                                    }}
-                                                    Hari
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <span v-else class="text-muted-foreground text-xs">-</span>
-                                    </td>
-
-                                    <!-- 4. Kolom Akun Tergabung -->
-                                    <td class="px-4 py-3.5 align-middle">
-                                        <div v-if="downline.accounts?.length" class="space-y-1">
-                                            <div class="flex flex-wrap items-center gap-1">
-                                                <span
-                                                    v-for="(acc, idx) in downline.accounts.slice(
-                                                        0,
-                                                        2
-                                                    )"
-                                                    :key="idx"
-                                                    class="border-border bg-muted/40 text-foreground inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono text-[10px]"
-                                                >
-                                                    <strong>{{ acc.broker }}</strong>
-                                                    <span>({{ acc.hari_kehitung }} hr)</span>
-                                                </span>
-                                                <span
-                                                    v-if="downline.accounts.length > 2"
-                                                    class="bg-muted text-muted-foreground rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
-                                                >
-                                                    +{{ downline.accounts.length - 2 }} lainnya
-                                                </span>
-                                            </div>
-                                            <p
-                                                v-if="downline.has_multi_copytrade"
-                                                class="text-muted-foreground text-[10px]"
-                                            >
-                                                {{ downline.jumlah_akun }} akun digabung
-                                                (proporsional)
-                                            </p>
-                                        </div>
-                                        <span v-else class="text-muted-foreground text-xs"
-                                            >Belum Ada Akun</span
-                                        >
-                                    </td>
-
-                                    <!-- 5. Kolom Total Modal & Tier -->
-                                    <td class="px-4 py-3.5 align-middle">
-                                        <div v-if="downline.total_modal_riil > 0" class="space-y-1">
+                                        <div class="space-y-0.5">
                                             <p class="text-foreground font-mono text-xs font-bold">
-                                                {{ formatUSD(downline.total_modal_riil) }}
+                                                #{{ downline.nomor_akun }}
+                                            </p>
+                                            <p class="text-muted-foreground text-[11px]">
+                                                <span class="font-semibold">{{
+                                                    downline.broker
+                                                }}</span>
+                                                <span v-if="downline.first_started_at">
+                                                    &bull; Mulai: {{ downline.first_started_at }}
+                                                </span>
+                                            </p>
+                                        </div>
+                                    </td>
+
+                                    <!-- 4. Kolom Modal & Tier -->
+                                    <td class="px-4 py-3.5 align-middle">
+                                        <div class="space-y-1">
+                                            <p class="text-foreground font-mono text-xs font-bold">
+                                                {{ formatUSD(downline.modal_riil) }}
                                             </p>
                                             <p
-                                                v-if="downline.total_modal_idr"
+                                                v-if="downline.modal_idr"
                                                 class="text-muted-foreground font-mono text-[10px]"
                                             >
-                                                &asymp; {{ formatIDR(downline.total_modal_idr) }}
+                                                &asymp; {{ formatIDR(downline.modal_idr) }}
                                             </p>
-                                            <div
-                                                v-if="downline.accounts?.length > 1"
-                                                class="flex flex-wrap gap-1 pt-0.5"
-                                            >
+                                            <div>
                                                 <span
-                                                    v-for="(acc, accIdx) in downline.accounts"
-                                                    :key="accIdx"
                                                     class="border-primary-500/30 bg-primary-500/10 text-primary-800 dark:text-primary-300 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold"
                                                 >
-                                                    Akun {{ accIdx + 1 }}: Tier {{ acc.tier_level }} ({{ acc.persentase_tier }}%)
+                                                    Tier {{ downline.tier_level }} ({{
+                                                        downline.persentase_tier
+                                                    }}%)
                                                 </span>
                                             </div>
-                                            <span
-                                                v-else
-                                                class="border-primary-500/30 bg-primary-500/10 text-primary-800 dark:text-primary-300 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold"
+                                        </div>
+                                    </td>
+
+                                    <!-- 5. Kolom Progres 3 Periode -->
+                                    <td class="px-4 py-3.5 align-middle">
+                                        <div
+                                            v-if="downline.periods_progress?.length"
+                                            class="space-y-1.5"
+                                        >
+                                            <!-- 3-Langkah Stepper -->
+                                            <div class="flex items-center gap-1.5">
+                                                <template
+                                                    v-for="(p, pIdx) in downline.periods_progress"
+                                                    :key="p.periode_ke"
+                                                >
+                                                    <span
+                                                        :title="
+                                                            p.periode_label
+                                                                ? `Periode ${p.periode_ke}: ${p.periode_label} (${p.status_tampil})`
+                                                                : `Periode ${p.periode_ke}: ${p.status_tampil}`
+                                                        "
+                                                        :class="[
+                                                            'inline-flex cursor-help items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-bold transition-colors',
+                                                            p.state === 'settled'
+                                                                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                                                                : p.state === 'unsettled'
+                                                                  ? 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                                                                  : 'bg-muted/60 text-muted-foreground border-border/60',
+                                                        ]"
+                                                    >
+                                                        <CheckCircle2
+                                                            v-if="p.state === 'settled'"
+                                                            class="h-3 w-3"
+                                                        />
+                                                        <Clock
+                                                            v-else-if="p.state === 'unsettled'"
+                                                            class="h-3 w-3"
+                                                        />
+                                                        <Minus v-else class="h-3 w-3" />
+                                                        <span>{{ p.label }}</span>
+                                                    </span>
+                                                    <span
+                                                        v-if="
+                                                            pIdx <
+                                                            downline.periods_progress.length - 1
+                                                        "
+                                                        class="text-muted-foreground/40 text-xs font-bold"
+                                                        >&rsaquo;</span
+                                                    >
+                                                </template>
+                                            </div>
+                                            <p
+                                                class="text-muted-foreground text-[11px] font-medium"
                                             >
-                                                Tier {{ downline.accounts?.[0]?.tier_level ?? downline.tier_info?.tier_level }} ({{
-                                                    downline.accounts?.[0]?.persentase_tier ?? downline.tier_info?.persentase_tier
-                                                }}%)
-                                            </span>
+                                                <span
+                                                    v-if="downline.completed_periods_count === 3"
+                                                    class="font-semibold text-emerald-600 dark:text-emerald-400"
+                                                >
+                                                    3/3 Periode Lengkap
+                                                </span>
+                                                <span v-else>
+                                                    {{ downline.completed_periods_count || 0 }}/3
+                                                    Periode Selesai
+                                                </span>
+                                            </p>
                                         </div>
                                         <span v-else class="text-muted-foreground text-xs">-</span>
                                     </td>
@@ -686,24 +675,15 @@ const getStatusBadge = (status) => {
                                             <span>Sudah Dicairkan</span>
                                         </span>
 
-                                        <!-- Masa Tunggu (< 3 Bulan) -->
+                                        <!-- Dalam Progres / Ada Tunggakan -->
                                         <span
-                                            v-else-if="downline.jumlah_akun > 0"
+                                            v-else
                                             class="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap text-amber-800 dark:text-amber-300"
                                         >
                                             <Clock
                                                 class="h-3 w-3 text-amber-600 dark:text-amber-400"
                                             />
                                             <span>{{ downline.status_label }}</span>
-                                        </span>
-
-                                        <!-- Belum Copytrade -->
-                                        <span
-                                            v-else
-                                            class="border-border bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap"
-                                        >
-                                            <Lock class="h-3 w-3" />
-                                            <span>Belum Copytrade</span>
                                         </span>
                                     </td>
 
@@ -720,20 +700,10 @@ const getStatusBadge = (status) => {
                                                 @click="claimSingleDownline(downline)"
                                             />
                                             <AppTableAction
-                                                v-if="downline.accounts?.length > 0"
                                                 type="detail"
-                                                title="Rincian Akun Downline"
+                                                title="Rincian Akun & Periode"
                                                 @click="openDownlineBreakdown(downline)"
                                             />
-                                            <span
-                                                v-if="
-                                                    !downline.is_eligible &&
-                                                    !downline.accounts?.length
-                                                "
-                                                class="text-muted-foreground text-xs"
-                                            >
-                                                -
-                                            </span>
                                         </div>
                                     </td>
                                 </tr>
@@ -802,21 +772,6 @@ const getStatusBadge = (status) => {
                                     }}
                                 </span>
                             </div>
-                            <div class="flex flex-wrap items-center gap-1">
-                                <span
-                                    v-for="(accItem, idx) in item.items.slice(0, 3)"
-                                    :key="idx"
-                                    class="bg-muted text-muted-foreground rounded px-1.5 py-0.5 font-mono text-[10px]"
-                                >
-                                    {{ accItem.broker }} ({{ accItem.hari_kehitung }} hari)
-                                </span>
-                                <span
-                                    v-if="item.items.length > 3"
-                                    class="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium"
-                                >
-                                    +{{ item.items.length - 3 }} akun lainnya
-                                </span>
-                            </div>
                         </div>
                     </template>
 
@@ -835,35 +790,13 @@ const getStatusBadge = (status) => {
                     <!-- Kolom Profit & Transfer -->
                     <template #column-nominal_transfer="{ item }">
                         <div v-if="item.status === 'approved_transferred'" class="space-y-0.5">
-                            <div class="flex items-center gap-1.5 flex-wrap">
+                            <div class="flex flex-wrap items-center gap-1.5">
                                 <span
                                     class="font-mono text-xs font-extrabold text-emerald-700 dark:text-emerald-400"
-                                >
-                                    {{
-                                        formatUSD(
-                                            item.total_affiliate_commission ??
-                                                item.total_nominal_transfer
-                                        )
-                                    }}
-                                </span>
-                                <span
-                                    v-if="item.total_nominal_transfer_idr !== null && item.total_nominal_transfer_idr !== undefined"
-                                    class="rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-800 dark:text-emerald-300"
                                 >
                                     {{ formatIDR(item.total_nominal_transfer_idr) }}
                                 </span>
                             </div>
-                            <p v-if="item.kurs_konversi_idr" class="text-muted-foreground font-mono text-[10px]">
-                                Kurs MT4: {{ formatIDR(item.kurs_konversi_idr) }}/$1
-                            </p>
-                            <p class="text-muted-foreground text-[10px]">
-                                Dari Profit:
-                                {{
-                                    formatUSD(
-                                        item.total_master_gross_share ?? item.total_profit_master
-                                    )
-                                }}
-                            </p>
                         </div>
                         <div v-else class="text-muted-foreground text-xs italic">
                             Menunggu Verifikasi
@@ -895,121 +828,103 @@ const getStatusBadge = (status) => {
             </div>
         </div>
 
-        <!-- Modal Rincian Akun Tergabung per Downline (Tab 1) -->
+        <!-- Modal Rincian Akun & Periode (Tab 1) -->
         <AppModal
             :show="isAccountBreakdownModalOpen"
-            :title="`Rincian Akun Copytrade: ${selectedDownlineForBreakdown?.name || ''}`"
-            max-width="xl"
+            :title="`Rincian Akun Copytrade: ${selectedDownlineForBreakdown?.name || ''} (#${selectedDownlineForBreakdown?.nomor_akun || ''})`"
+            max-width="3xl"
             @close="isAccountBreakdownModalOpen = false"
         >
-            <div v-if="selectedDownlineForBreakdown" class="space-y-3.5 text-xs">
+            <div v-if="selectedDownlineForBreakdown" class="space-y-4 text-xs">
+                <!-- Info Header Akun -->
                 <div
-                    class="border-border bg-muted/30 flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3"
+                    class="border-border bg-muted/30 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3.5"
                 >
-                    <div class="space-y-0.5">
-                        <p class="text-foreground font-bold">
-                            {{ selectedDownlineForBreakdown.name }}
-                            <span class="text-muted-foreground font-mono font-normal">
-                                (@{{ selectedDownlineForBreakdown.username }})
-                            </span>
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-foreground text-sm font-bold">{{
+                                selectedDownlineForBreakdown.name
+                            }}</span>
+                            <span class="text-muted-foreground font-mono text-xs"
+                                >(@{{ selectedDownlineForBreakdown.username }})</span
+                            >
+                        </div>
+                        <p class="text-muted-foreground text-[11px]">
+                            Akun:
+                            <strong class="text-foreground font-mono"
+                                >#{{ selectedDownlineForBreakdown.nomor_akun }}</strong
+                            >
+                            &bull; Broker: {{ selectedDownlineForBreakdown.broker }}
                         </p>
                         <p class="text-muted-foreground text-[11px]">
-                            Periode 3 Bulan Acuan:
-                            {{ selectedDownlineForBreakdown.first_started_at }} s/d
-                            {{ selectedDownlineForBreakdown.period_end_date }}
+                            Mulai Investasi:
+                            <strong class="text-foreground">{{
+                                selectedDownlineForBreakdown.first_started_at || '-'
+                            }}</strong>
                         </p>
                     </div>
-                    <div class="text-right">
+                    <div class="space-y-1 text-right">
                         <span class="text-muted-foreground block text-[10px]"
-                            >Total Akumulasi Modal:</span
+                            >Modal Awal Akun:</span
                         >
-                        <span class="text-foreground font-mono text-sm font-extrabold">
-                            {{ formatUSD(selectedDownlineForBreakdown.total_modal_riil) }}
+                        <span class="text-foreground font-mono text-base font-extrabold">
+                            {{ formatUSD(selectedDownlineForBreakdown.modal_riil) }}
                         </span>
                         <span
-                            v-if="selectedDownlineForBreakdown.total_modal_idr"
+                            v-if="selectedDownlineForBreakdown.modal_idr"
                             class="text-muted-foreground block font-mono text-[10px]"
                         >
-                            &asymp; {{ formatIDR(selectedDownlineForBreakdown.total_modal_idr) }}
+                            &asymp; {{ formatIDR(selectedDownlineForBreakdown.modal_idr) }}
                         </span>
+                        <div>
+                            <span
+                                class="border-primary-500/30 bg-primary-500/10 text-primary-800 dark:text-primary-300 rounded border px-2 py-0.5 text-[10px] font-bold"
+                            >
+                                Tier {{ selectedDownlineForBreakdown.tier_level }} ({{
+                                    selectedDownlineForBreakdown.persentase_tier
+                                }}%)
+                            </span>
+                        </div>
                     </div>
                 </div>
 
+                <!-- Rincian 3 Periode (Kartu Vertikal) + Akumulasi -->
                 <div class="space-y-2">
-                    <div
-                        v-for="(acc, idx) in selectedDownlineForBreakdown.accounts"
-                        :key="idx"
-                        class="border-border bg-card flex flex-col justify-between gap-2 rounded-xl border p-3 sm:flex-row sm:items-center"
-                    >
-                        <div class="space-y-1">
-                            <div class="flex flex-wrap items-center gap-1.5">
-                                <span class="text-foreground font-bold">{{ acc.broker }}</span>
-                                <span class="text-muted-foreground font-mono text-[11px]"
-                                    >No. {{ acc.nomor_akun }}</span
-                                >
-                                <span
-                                    v-if="acc.is_first"
-                                    class="rounded border border-sky-500/30 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-bold text-sky-800 dark:text-sky-300"
-                                >
-                                    Akun Pertama (Acuan 3 Bulan)
-                                </span>
-                                <span
-                                    v-else
-                                    class="rounded border border-purple-500/30 bg-purple-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-purple-800 dark:text-purple-300"
-                                >
-                                    Akun Tambahan (+{{ acc.selisih_hari }} hari)
-                                </span>
-                            </div>
-                            <p class="text-muted-foreground text-[11px]">
-                                Mulai: {{ acc.tanggal_mulai }} s/d {{ acc.tanggal_selesai }}
-                            </p>
-                        </div>
-
-                        <div class="flex items-center gap-3 self-end sm:self-center">
-                            <div class="text-right">
-                                <span class="text-muted-foreground block text-[10px]"
-                                    >Modal Riil:</span
-                                >
-                                <span class="text-foreground font-mono font-bold">{{
-                                    formatUSD(acc.modal_riil)
-                                }}</span>
-                            </div>
-                            <div
-                                class="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-center"
-                            >
-                                <span class="text-muted-foreground block text-[9px]"
-                                    >Dihitung:</span
-                                >
-                                <span
-                                    class="font-mono text-xs font-extrabold text-emerald-800 dark:text-emerald-300"
-                                >
-                                    {{ acc.hari_kehitung }} Hari
-                                </span>
-                            </div>
-                        </div>
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-foreground text-xs font-bold tracking-wider uppercase">
+                            Rincian 3 Periode Laporan Bulanan &amp; Bukti Transfer
+                        </h4>
+                        <span class="text-muted-foreground font-mono text-[11px]">
+                            {{ selectedDownlineForBreakdown.completed_periods_count || 0 }}/3
+                            Periode Selesai
+                        </span>
                     </div>
+
+                    <PeriodBreakdownCards
+                        :periods="selectedDownlineForBreakdown.periods_progress || []"
+                        :accumulation="selectedDownlineForBreakdown.periods_accumulation || null"
+                        :persentase-tier="selectedDownlineForBreakdown.persentase_tier"
+                        :tier-level="selectedDownlineForBreakdown.tier_level"
+                        :modal-riil="selectedDownlineForBreakdown.modal_riil"
+                        :modal-idr="selectedDownlineForBreakdown.modal_idr"
+                    />
                 </div>
 
                 <div class="border-border flex justify-end gap-2 border-t pt-3">
-                    <Button
-                        type="button"
-                        variant="outline"
+                    <AppButton
+                        type="cancel"
+                        label="Tutup"
                         @click="isAccountBreakdownModalOpen = false"
-                        class="text-xs"
-                    >
-                        Tutup
-                    </Button>
-                    <Button
+                    />
+                    <AppButton
                         v-if="selectedDownlineForBreakdown.is_eligible"
-                        type="button"
+                        type="process"
+                        label="Klaim Komisi Akun Ini"
                         @click="
                             isAccountBreakdownModalOpen = false;
                             claimSingleDownline(selectedDownlineForBreakdown);
                         "
-                        class="bg-primary-600 hover:bg-primary-700 cursor-pointer text-xs text-white"
-                    >
-                        Klaim Komisi Investor Ini
-                    </Button>
+                    />
                 </div>
             </div>
         </AppModal>

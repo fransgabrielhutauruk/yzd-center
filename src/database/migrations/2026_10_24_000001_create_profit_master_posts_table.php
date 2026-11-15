@@ -16,6 +16,8 @@ return new class extends Migration
             $table->text('caption');
             $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
             $table->timestamps();
+            $table->softDeletes();
+            $table->string('deleted_by', 100)->nullable();
 
             $table->index('created_at');
         });
@@ -29,6 +31,8 @@ return new class extends Migration
             $table->string('mime_type');
             $table->unsignedSmallInteger('urutan')->default(0);
             $table->timestamps();
+            $table->softDeletes();
+            $table->string('deleted_by', 100)->nullable();
 
             $table->index(['post_id', 'urutan']);
         });

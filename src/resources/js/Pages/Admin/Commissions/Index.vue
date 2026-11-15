@@ -74,6 +74,7 @@ const tableColumns = [
                 :columns="tableColumns"
                 :filters="filters"
                 fetch-url="/admin/commissions"
+                exportable
                 search-placeholder="Cari kode klaim, affiliator, downline..."
                 empty-title="Tidak Ada Antrean Klaim Komisi"
                 empty-message="Saat ini belum ada permohonan klaim komisi affiliator yang perlu diproses."

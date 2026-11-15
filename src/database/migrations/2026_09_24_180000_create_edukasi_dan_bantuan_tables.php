@@ -18,6 +18,8 @@ return new class extends Migration
             $table->text('definisi');
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
+            $table->softDeletes();
+            $table->string('deleted_by', 100)->nullable();
 
             $table->index('istilah');
         });
@@ -32,6 +34,8 @@ return new class extends Migration
             $table->integer('urutan')->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
+            $table->softDeletes();
+            $table->string('deleted_by', 100)->nullable();
 
             $table->index(['is_active', 'urutan']);
         });
@@ -49,6 +53,8 @@ return new class extends Migration
             $table->unsignedInteger('views_count')->default(0);
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
+            $table->softDeletes();
+            $table->string('deleted_by', 100)->nullable();
 
             $table->index(['kategori_id', 'is_published']);
             $table->index('slug');
@@ -62,6 +68,8 @@ return new class extends Migration
             $table->integer('urutan')->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
+            $table->softDeletes();
+            $table->string('deleted_by', 100)->nullable();
 
             $table->index(['is_active', 'urutan']);
         });
@@ -76,6 +84,8 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
+            $table->softDeletes();
+            $table->string('deleted_by', 100)->nullable();
 
             $table->index(['topik_id', 'is_active', 'urutan']);
         });

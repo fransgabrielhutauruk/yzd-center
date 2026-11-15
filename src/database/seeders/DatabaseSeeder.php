@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             PengaturanMasterSeeder::class,
             EdukasiDanBantuanSeeder::class,
             TiketBantuanSeeder::class,
+            MasterFeeSeeder::class,
         ]);
     }
 }

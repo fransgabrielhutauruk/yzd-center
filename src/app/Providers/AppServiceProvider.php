@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\ServiceProvider;
+use PhpOffice\PhpWord\Settings as PhpWordSettings;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,6 +27,9 @@ class AppServiceProvider extends ServiceProvider
     {
         Carbon::setLocale(config('app.locale', 'id'));
         date_default_timezone_set(config('app.timezone', 'Asia/Jakarta'));
+
+        // Aktifkan auto-escaping XML untuk template dokumen PhpWord agar karakter khusus (&, <, >) tidak merusak file .docx
+        PhpWordSettings::setOutputEscapingEnabled(true);
 
         // Pemantauan kegagalan antrean job (Queue Failing Alert)
         Queue::failing(function (JobFailed $event): void {

@@ -13,9 +13,11 @@ use App\Notifications\TiketStatusDiubahNotification;
 use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class TiketBantuanService
 {
@@ -462,5 +464,86 @@ class TiketBantuanService
                 'mime_type'  => $mimeType,
             ]);
         }
+    }
+
+    /**
+     * Ekspor seluruh tiket bantuan ke format berkas XLSX.
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function exportXlsx(array $filters = []): BinaryFileResponse
+    {
+        $columns = [
+            ['label' => 'Nomor Tiket', 'width' => 18, 'type' => 'text'],
+            ['label' => 'Tanggal Dibuat', 'width' => 20],
+            ['label' => 'Subjek Kendala', 'width' => 35],
+            ['label' => 'Nama Pelapor', 'width' => 25],
+            ['label' => 'Username Pelapor', 'width' => 18],
+            ['label' => 'Email Pelapor', 'width' => 25],
+            ['label' => 'Status Tiket', 'width' => 20, 'align' => 'center'],
+            ['label' => 'Jumlah Balasan', 'width' => 16, 'align' => 'center', 'type' => 'number'],
+            ['label' => 'Balasan Terakhir Oleh', 'width' => 22],
+            ['label' => 'Waktu Pembaruan Terakhir', 'width' => 20],
+        ];
+
+        $query = TiketBantuan::query()
+            ->with(['user', 'balasan.user' => fn ($q) => $q->latest()->limit(1)])
+            ->withCount('balasan');
+
+        if (!empty($filters['search'])) {
+            $search = trim((string) $filters['search']);
+            $query->where(function ($q) use ($search) {
+                $q->where('nomor', 'like', "%{$search}%")
+                    ->orWhere('subjek', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($uq) use ($search) {
+                        $uq->where('name', 'like', "%{$search}%")
+                            ->orWhere('username', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        if (!empty($filters['status']) && $filters['status'] !== 'all') {
+            $query->where('status', $filters['status']);
+        }
+
+        $query->orderByDesc('last_reply_at')->orderByDesc('created_at');
+
+        // Audit Log
+        $actor = Auth::user();
+        if ($actor) {
+            $this->auditLogService->record(
+                kategori: 'bantuan',
+                aksi: 'ekspor_data',
+                deskripsi: AuditLogService::formatActor($actor) . ' mengekspor data tiket bantuan ke format XLSX.',
+                tingkat: 'info',
+                user: $actor
+            );
+        }
+
+        $xlsxService = app(XlsxExportService::class);
+
+        return $xlsxService->download('tiket_bantuan_yzd', 'Tiket Bantuan', $columns, function ($addRow) use ($query): void {
+            $query->chunk(500, function ($tickets) use ($addRow): void {
+                foreach ($tickets as $tiket) {
+                    $statusLabel = TiketBantuan::STATUS_LABELS[$tiket->status] ?? ucfirst($tiket->status);
+                    $lastReply = $tiket->balasan->first();
+                    $lastReplyBy = $lastReply?->user?->name ?? '-';
+
+                    $addRow([
+                        (string) $tiket->nomor,
+                        $tiket->created_at ? $tiket->created_at->format('Y-m-d H:i') : '-',
+                        $tiket->subjek,
+                        $tiket->user?->name ?? '-',
+                        $tiket->user?->username ? '@' . $tiket->user->username : '-',
+                        $tiket->user?->email ?? '-',
+                        $statusLabel,
+                        $tiket->balasan_count ?? 0,
+                        $lastReplyBy,
+                        $tiket->updated_at ? $tiket->updated_at->format('Y-m-d H:i') : '-',
+                    ]);
+                }
+            });
+        });
     }
 }

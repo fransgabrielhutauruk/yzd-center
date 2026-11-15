@@ -196,6 +196,7 @@ const getStatusBadgeClass = (statusKey) => {
                 id-key="invitation_id"
                 v-model:selected="selectedInvitationIds"
                 fetch-url="/admin/invitations"
+                exportable
                 search-placeholder="Cari label..."
                 empty-title="Belum Ada Tautan Undangan"
                 empty-message="Tidak ditemukan data undangan yang sesuai dengan kriteria filter Anda."

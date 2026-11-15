@@ -20,7 +20,6 @@ import {
     LineChart,
     Loader2,
     Minus,
-    PlusCircle,
     ShieldCheck,
     Sparkles,
     Trash2,
@@ -28,15 +27,20 @@ import {
     TrendingUp,
     Wallet,
     XCircle,
+    Lock,
+    Eye,
+    Receipt,
 } from 'lucide-vue-next';
 import MemberLayout from '@/Layouts/MemberLayout.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
 import AppConfirmDialog from '@/Components/Common/AppConfirmDialog.vue';
 import AppTableAction from '@/Components/Common/AppTableAction.vue';
 import AppButton from '@/Components/Common/AppButton.vue';
+import AppTabs from '@/Components/Common/AppTabs.vue';
 import { Button } from '@/Components/ui/button';
 import { toast } from 'vue-sonner';
-import AddInvestmentAccountModal from './AddInvestmentAccountModal.vue';
+import { compressImageFile } from '@/lib/imageCompression';
+import InvestorFlow from './InvestorFlow.vue';
 
 const props = defineProps({
     consolidated: {
@@ -79,6 +83,16 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    onboarding: {
+        type: Object,
+        default: () => ({
+            modal_usd: null,
+            tier: null,
+            completed_steps: [],
+            draft_data: {},
+            status: 'in_progress',
+        }),
+    },
 });
 
 // Helper formatting
@@ -91,18 +105,19 @@ const formatUSD = (val) => {
     }).format(val || 0);
 };
 
+const formatIDR = (val) => {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        maximumFractionDigits: 0,
+    }).format(val || 0);
+};
+
 const getProfitStatus = (val) => {
     if (val === null || val === undefined) return 'zero';
     const num = Number(val);
     if (Math.abs(num) < 0.005) return 'zero';
     return num > 0 ? 'positive' : 'negative';
-};
-
-const profitRowClass = (val) => {
-    const status = getProfitStatus(val);
-    if (status === 'positive') return 'text-emerald-700 dark:text-emerald-300';
-    if (status === 'negative') return 'text-destructive';
-    return 'text-muted-foreground';
 };
 
 const profitTooltipClass = (val) => {
@@ -158,6 +173,53 @@ const copyToClipboard = (text, label) => {
 const activeAccounts = computed(() => props.accounts.filter((a) => a.status === 'active'));
 const pendingAccounts = computed(() => props.accounts.filter((a) => a.status === 'pending'));
 const hasActiveAccounts = computed(() => activeAccounts.value.length > 0);
+
+// -----------------------------------------------------------------------------
+// Tabs: Alur Memulai Investasi (Flow) vs Portofolio Akun
+// -----------------------------------------------------------------------------
+const hasAccounts = computed(() => props.accounts.length > 0);
+const defaultTab = computed(() => {
+    if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabFromUrl = urlParams.get('tab');
+        if (tabFromUrl && ['onboarding', 'portfolio'].includes(tabFromUrl)) {
+            return tabFromUrl;
+        }
+    }
+    return hasAccounts.value ? 'portfolio' : 'onboarding';
+});
+const activeTab = ref(defaultTab.value);
+
+watch(activeTab, (newTab) => {
+    if (typeof window !== 'undefined') {
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.set('tab', String(newTab));
+            window.history.replaceState({}, '', url.toString());
+        } catch {
+            // Fallback
+        }
+    }
+});
+
+const tabItems = computed(() => {
+    const items = [
+        {
+            key: 'onboarding',
+            label: 'Alur Memulai Investasi',
+            icon: Sparkles,
+        },
+    ];
+    if (hasAccounts.value) {
+        items.push({
+            key: 'portfolio',
+            label: 'Portofolio Akun',
+            icon: Wallet,
+            count: props.accounts.length,
+        });
+    }
+    return items;
+});
 
 const selectedAccountId = ref(props.selected_account_id);
 const selectedPeriod = ref(props.filters.period || 'all');
@@ -321,157 +383,31 @@ const applyFilter = () => {
 };
 
 // -----------------------------------------------------------------------------
-// Modal Tambah Akun Investasi
+// Modal Lengkapi / Perbarui Tautan Myfxbook
 // -----------------------------------------------------------------------------
-const isAddModalOpen = ref(false);
-const selectedTierForAdd = ref('');
+const isMyfxbookModalOpen = ref(false);
+const accountForMyfxbook = ref(null);
 
-const openAddModal = (tier = '') => {
-    selectedTierForAdd.value = tier;
-    isAddModalOpen.value = true;
-};
-
-// -----------------------------------------------------------------------------
-// Modal Input Saldo Tanggal 1 (Khusus Akun Aktif)
-// -----------------------------------------------------------------------------
-const isBalanceModalOpen = ref(false);
-const isEditingBalance = ref(false);
-const editingRecordId = ref(null);
-
-const getDefaultDate = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    return `${year}-${month}-01`;
-};
-
-const balanceForm = useForm({
-    akun_copytrade_id: props.selected_account_id,
-    tanggal_pencatatan: getDefaultDate(),
-    balance: '',
+const myfxbookForm = useForm({
+    myfxbook_url: '',
 });
 
-const modalAccount = computed(() => {
-    return (
-        props.accounts.find((a) => a.id === balanceForm.akun_copytrade_id) ||
-        selectedAccountData.value ||
-        null
-    );
-});
-
-watch(selectedAccountId, (newId) => {
-    if (newId) {
-        balanceForm.akun_copytrade_id = newId;
-    }
-});
-
-const openBalanceModalForAccount = (accId) => {
-    const targetAcc = props.accounts.find((a) => a.id === accId) || activeAccounts.value[0];
-    if (targetAcc && targetAcc.status !== 'active') {
-        toast.error('Catatan saldo hanya dapat diisi setelah akun disetujui oleh Administrator.');
-        return;
-    }
-
-    if (!targetAcc) {
-        toast.error('Belum ada akun investasi aktif untuk mencatat saldo.');
-        return;
-    }
-
-    isEditingBalance.value = false;
-    editingRecordId.value = null;
-    balanceForm.reset();
-    balanceForm.clearErrors();
-    balanceForm.akun_copytrade_id = targetAcc.id;
-    balanceForm.tanggal_pencatatan = getDefaultDate();
-    balanceForm.balance = '';
-    isBalanceModalOpen.value = true;
+const openMyfxbookModal = (account) => {
+    accountForMyfxbook.value = account;
+    myfxbookForm.reset();
+    myfxbookForm.clearErrors();
+    myfxbookForm.myfxbook_url = account.myfxbook_url || '';
+    isMyfxbookModalOpen.value = true;
 };
 
-const openEditBalanceModal = (record) => {
-    isEditingBalance.value = true;
-    editingRecordId.value = record.id;
-    balanceForm.clearErrors();
-    balanceForm.akun_copytrade_id = selectedAccountId.value;
-    balanceForm.tanggal_pencatatan = record.tanggal_pencatatan;
-    balanceForm.balance = record.balance;
-    isBalanceModalOpen.value = true;
-};
+const submitMyfxbook = () => {
+    if (!accountForMyfxbook.value) return;
 
-const closeBalanceModal = () => {
-    isBalanceModalOpen.value = false;
-    isEditingBalance.value = false;
-    editingRecordId.value = null;
-    balanceForm.reset();
-    balanceForm.clearErrors();
-};
-
-// Live Preview Perhitungan Keuntungan saat input saldo
-const liveBaseBalance = computed(() => {
-    if (!props.summary) return 0;
-    const formDate = balanceForm.tanggal_pencatatan;
-    const history = props.summary.history || [];
-    const prev = history
-        .filter(
-            (h) =>
-                (!editingRecordId.value || h.id !== editingRecordId.value) &&
-                h.tanggal_pencatatan < formDate
-        )
-        .slice(-1)[0];
-
-    return prev ? prev.balance : props.summary.account?.modal_riil || 0;
-});
-
-const liveProfitNominal = computed(() => {
-    const bal = Number(balanceForm.balance) || 0;
-    return bal - liveBaseBalance.value;
-});
-
-const liveProfitPct = computed(() => {
-    if (liveBaseBalance.value <= 0) return 0;
-    return (liveProfitNominal.value / liveBaseBalance.value) * 100;
-});
-
-const submitBalance = () => {
-    if (isEditingBalance.value && editingRecordId.value) {
-        balanceForm.put(route('member.investments.balance.update', editingRecordId.value), {
-            preserveScroll: true,
-            onSuccess: () => {
-                closeBalanceModal();
-            },
-        });
-    } else {
-        balanceForm.post(route('member.investments.balance.store'), {
-            preserveScroll: true,
-            onSuccess: () => {
-                closeBalanceModal();
-            },
-        });
-    }
-};
-
-// -----------------------------------------------------------------------------
-// Hapus Catatan Saldo
-// -----------------------------------------------------------------------------
-const isConfirmDeleteOpen = ref(false);
-const recordToDelete = ref(null);
-const isDeletingBalance = ref(false);
-
-const confirmDeleteRecord = (record) => {
-    recordToDelete.value = record;
-    isConfirmDeleteOpen.value = true;
-};
-
-const executeDeleteRecord = () => {
-    if (!recordToDelete.value) return;
-    isDeletingBalance.value = true;
-    router.delete(route('member.investments.balance.destroy', recordToDelete.value.id), {
+    myfxbookForm.put(route('member.investments.myfxbook.update', accountForMyfxbook.value.id), {
         preserveScroll: true,
         onSuccess: () => {
-            isConfirmDeleteOpen.value = false;
-            recordToDelete.value = null;
-        },
-        onFinish: () => {
-            isDeletingBalance.value = false;
+            isMyfxbookModalOpen.value = false;
+            accountForMyfxbook.value = null;
         },
     });
 };
@@ -709,10 +645,35 @@ onMounted(() => {
     <Head title="Portofolio Investasi" />
     <MemberLayout
         title="Portofolio Investasi"
-        subtitle="Pantau seluruh investasi Anda, BEP, dan catat saldo bulanan secara disiplin."
+        subtitle="Alur mandiri panduan investasi copytrade, pendaftaran akun baru, dan pemantauan portofolio."
         :breadcrumbs="[{ label: 'Menu Utama' }, { label: 'Portofolio Investasi' }]"
     >
-        <div class="space-y-8">
+        <div class="space-y-6">
+            <!-- Tab Navigasi: Alur Memulai Investasi vs Portofolio Akun -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <AppTabs v-model="activeTab" :items="tabItems" />
+
+                <div v-if="hasAccounts && activeTab === 'portfolio'">
+                    <AppButton
+                        type="add"
+                        label="Mulai Investasi Akun Baru"
+                        @click="activeTab = 'onboarding'"
+                    />
+                </div>
+            </div>
+
+            <!-- TAB 1: FLOW INVESTOR (PANDUAN LANGKAH & CHECKLIST) -->
+            <div v-show="activeTab === 'onboarding'">
+                <InvestorFlow
+                    :onboarding="onboarding"
+                    :exchange-rate="exchange_rate_meta?.rate || 16796"
+                    :has-existing="has_existing"
+                    @account-submitted="activeTab = 'portfolio'"
+                />
+            </div>
+
+            <!-- TAB 2: PORTOFOLIO AKUN & ANALISIS KINERJA -->
+            <div v-show="activeTab === 'portfolio'" class="space-y-8">
             <!-- ================================================================= -->
             <!-- 1. RINGKASAN KONSOLIDASI TOTAL PORTOFOLIO (Semua Akun / Tier)    -->
             <!-- ================================================================= -->
@@ -930,9 +891,6 @@ onMounted(() => {
                             <p class="text-muted-foreground max-w-3xl text-xs leading-relaxed">
                                 Anda telah mendaftarkan akun copytrade (investasi). Tim administrator saat ini
                                 sedang memverifikasi dan dokumen kemitraan Anda.
-                                Ringkasan statistik portofolio, analisis keuntungan, dan
-                                kalkulasi balik modal (BEP) akan aktif secara otomatis setelah
-                                permohonan disetujui.
                             </p>
                         </div>
                     </div>
@@ -950,14 +908,6 @@ onMounted(() => {
                             Daftar Akun Investasi Anda
                         </h2>
                     </div>
-
-                    <AppButton
-                        type="create"
-                        :icon="PlusCircle"
-                        label="Tambah Akun Baru"
-                        size="sm"
-                        @click="openAddModal()"
-                    />
                 </div>
 
                 <!-- Grid Kartu Akun -->
@@ -1117,10 +1067,9 @@ onMounted(() => {
 
                         <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
                             <AppButton
-                                type="create"
-                                :icon="PlusCircle"
-                                label="Ajukan Akun Investasi Baru"
-                                @click="openAddModal()"
+                                type="add"
+                                label="Mulai Investasi Akun Baru"
+                                @click="activeTab = 'onboarding'"
                             />
                             <Link
                                 href="/member/education/help?kategori=investasi-tiering"
@@ -1209,9 +1158,7 @@ onMounted(() => {
                             </div>
                             <p class="text-muted-foreground max-w-3xl text-xs leading-relaxed">
                                 Akun ini telah didaftarkan dan sedang menunggu verifikasi
-                                oleh Administrator. Evaluasi kinerja bulanan, grafik tren saldo,
-                                dan formulir pencatatan saldo tanggal 1 akan otomatis aktif segera
-                                setelah permohonan disetujui.
+                                oleh Administrator.
                             </p>
                         </div>
                     </div>
@@ -1281,6 +1228,24 @@ onMounted(() => {
                                         >
                                             {{ selectedAccountData.broker }}
                                         </span>
+                                        <a
+                                            v-if="selectedAccountData.myfxbook_url"
+                                            :href="selectedAccountData.myfxbook_url"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="border-border text-primary bg-primary/10 hover:bg-primary/20 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors"
+                                        >
+                                            <span>Myfxbook</span>
+                                            <ExternalLink class="h-2.5 w-2.5" />
+                                        </a>
+                                        <button
+                                            v-else
+                                            type="button"
+                                            @click="openMyfxbookModal(selectedAccountData)"
+                                            class="border-amber-500/30 text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer"
+                                        >
+                                            <span>+ Lengkapi Myfxbook</span>
+                                        </button>
                                     </div>
                                     <p class="text-muted-foreground mt-1 text-xs">
                                         Mulai Investasi:
@@ -1300,12 +1265,14 @@ onMounted(() => {
                             </div>
 
                             <div class="flex shrink-0 items-center gap-2 self-start sm:self-center">
-                                <AppButton
-                                    type="create"
-                                    label="Input Saldo Tanggal 1"
-                                    size="sm"
-                                    @click="openBalanceModalForAccount(selectedAccountId)"
-                                />
+                                <Link :href="route('member.master_fee.index')">
+                                    <AppButton
+                                        type="custom"
+                                        label="Laporan Profit & Master Fee"
+                                        size="sm"
+                                        :icon="Receipt"
+                                    />
+                                </Link>
                             </div>
                         </div>
 
@@ -1810,343 +1777,55 @@ onMounted(() => {
                                 otomatis aktif setelah Anda mencatat saldo pada bulan kedua.
                             </p>
                         </div>
-
-                        <!-- ============================================================= -->
-                        <!-- TABEL RIWAYAT SALDO TANGGAL 1 (Akun Terpilih)                 -->
-                        <!-- ============================================================= -->
-                        <div class="border-border/60 space-y-3 border-t pt-2">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-2">
-                                    <Calendar class="text-primary h-4 w-4" />
-                                    <h4 class="text-foreground text-xs font-bold sm:text-sm">
-                                        Riwayat Catatan Saldo & Keuntungan Month-on-Month (MoM)
-                                    </h4>
-                                </div>
-                                <span class="text-muted-foreground font-mono text-[11px]">
-                                    {{ summary?.history?.length || 0 }} Catatan
-                                </span>
-                            </div>
-
-                            <!-- State Jika Belum Ada Catatan Riwayat Saldo -->
-                            <div
-                                v-if="!summary || !summary.history || summary.history.length === 0"
-                                class="border-border space-y-3 rounded-xl border border-dashed p-8 text-center"
-                            >
-                                <Clock class="text-muted-foreground mx-auto h-8 w-8 opacity-50" />
-                                <div class="space-y-1">
-                                    <p class="text-foreground text-xs font-bold">
-                                        Belum Ada Catatan Saldo Bulanan
-                                    </p>
-                                    <p class="text-muted-foreground mx-auto max-w-md text-[11px]">
-                                        Mulai catat saldo Anda setiap tanggal 1 untuk memantau
-                                        performa keuntungan bulanan (MoM) dan kalkulasi balik modal
-                                        (BEP).
-                                    </p>
-                                </div>
-                                <AppButton
-                                    type="create"
-                                    label="Input Saldo Pertama Sekarang"
-                                    size="sm"
-                                    @click="openBalanceModalForAccount(selectedAccountId)"
-                                />
-                            </div>
-
-                            <!-- Tabel Riwayat (Jika Ada Catatan) -->
-                            <div v-else class="border-border/60 overflow-x-auto rounded-xl border">
-                                <table class="w-full text-left text-xs">
-                                    <thead>
-                                        <tr
-                                            class="border-border bg-muted/40 text-muted-foreground border-b text-[11px]"
-                                        >
-                                            <th class="px-3 py-2.5 font-semibold">
-                                                Tanggal Pencatatan
-                                            </th>
-                                            <th class="px-3 py-2.5 font-mono font-semibold">
-                                                Saldo (USD)
-                                            </th>
-                                            <th class="px-3 py-2.5 font-semibold">
-                                                Keuntungan MoM
-                                            </th>
-                                            <th class="px-3 py-2.5 font-semibold">
-                                                Keuntungan Kumulatif
-                                            </th>
-                                            <th class="px-3 py-2.5 text-center font-semibold">
-                                                Aksi
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-border/60 bg-card divide-y">
-                                        <tr
-                                            v-for="rec in summary.history"
-                                            :key="rec.id"
-                                            class="hover:bg-muted/30 transition-colors"
-                                        >
-                                            <td
-                                                class="text-foreground px-3 py-3 font-medium whitespace-nowrap"
-                                            >
-                                                {{ rec.tanggal_formatted }}
-                                            </td>
-                                            <td
-                                                class="text-foreground px-3 py-3 font-mono font-bold whitespace-nowrap"
-                                            >
-                                                {{ formatUSD(rec.balance) }}
-                                            </td>
-                                            <td class="px-3 py-3 whitespace-nowrap">
-                                                <span
-                                                    :class="[
-                                                        'inline-flex items-center gap-1 font-mono font-bold',
-                                                        profitRowClass(rec.keuntungan_nominal),
-                                                    ]"
-                                                >
-                                                    <component
-                                                        :is="profitIcon(rec.keuntungan_nominal)"
-                                                        class="h-3 w-3"
-                                                    />
-                                                    <span
-                                                        >{{ Number(rec.keuntungan_nominal) > 0 ? '+' : ''
-                                                        }}{{
-                                                            formatUSD(rec.keuntungan_nominal)
-                                                        }}</span
-                                                    >
-                                                    <span class="text-[10px]"
-                                                        >({{ Number(rec.keuntungan_persen) > 0 ? '+' : ''
-                                                        }}{{ rec.keuntungan_persen }}%)</span
-                                                    >
-                                                </span>
-                                            </td>
-                                            <td class="px-3 py-3 whitespace-nowrap">
-                                                <span
-                                                    :class="[
-                                                        'font-mono font-semibold',
-                                                        Number(rec.keuntungan_kumulatif) > 0
-                                                            ? 'text-foreground'
-                                                            : Number(rec.keuntungan_kumulatif) < 0
-                                                              ? 'text-destructive'
-                                                              : 'text-muted-foreground',
-                                                    ]"
-                                                >
-                                                    {{ Number(rec.keuntungan_kumulatif) > 0 ? '+' : ''
-                                                    }}{{ formatUSD(rec.keuntungan_kumulatif) }}
-                                                    <span class="text-muted-foreground text-[10px]"
-                                                        >({{
-                                                            rec.pertumbuhan_kumulatif_persen
-                                                        }}%)</span
-                                                    >
-                                                </span>
-                                            </td>
-                                            <td class="px-3 py-3 text-center whitespace-nowrap">
-                                                <div
-                                                    class="flex items-center justify-center gap-1.5"
-                                                >
-                                                    <AppTableAction
-                                                        type="edit"
-                                                        title="Edit Saldo"
-                                                        @click="openEditBalanceModal(rec)"
-                                                    />
-                                                    <AppTableAction
-                                                        type="delete"
-                                                        title="Hapus Saldo"
-                                                        @click="confirmDeleteRecord(rec)"
-                                                    />
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
                     </div>
                 </div>
+            </div>
             </div>
         </div>
 
         <!-- ===================================================================== -->
-        <!-- MODAL: Tambah Akun Investasi                                          -->
-        <!-- ===================================================================== -->
-        <AddInvestmentAccountModal
-            :show="isAddModalOpen"
-            :has-existing="has_existing || accounts.length > 0"
-            :default-tier="selectedTierForAdd"
-            @close="isAddModalOpen = false"
-        />
-
-        <!-- ===================================================================== -->
-        <!-- MODAL: Input Saldo Tanggal 1 (Hanya Akun Aktif)                       -->
+        <!-- MODAL: Lengkapi / Perbarui Tautan Myfxbook                            -->
         <!-- ===================================================================== -->
         <AppModal
-            :show="isBalanceModalOpen"
-            :title="isEditingBalance ? 'Edit Catatan Saldo MT4' : 'Input Saldo MT4 Tanggal 1'"
+            :show="isMyfxbookModalOpen"
+            title="Lengkapi Tautan Myfxbook"
             max-width="md"
-            @close="closeBalanceModal"
+            @close="isMyfxbookModalOpen = false"
         >
-            <form @submit.prevent="submitBalance" class="space-y-4 p-1">
-                <!-- Informasi Akun Trading (Read-only / Bersifat Informasi Saja) -->
+            <form @submit.prevent="submitMyfxbook" class="space-y-4 p-1">
+                <p class="text-xs text-muted-foreground leading-relaxed">
+                    Masukkan tautan publik sistem Myfxbook akun trading Anda. Tautan ini wajib diisi agar Anda dapat mengirimkan laporan profit bulanan.
+                </p>
+
                 <div class="space-y-1.5">
-                    <label class="text-muted-foreground block text-xs font-semibold">
-                        Akun Trading MT4
-                    </label>
-                    <div
-                        v-if="modalAccount"
-                        class="bg-muted/40 border-border flex items-center justify-between rounded-xl border p-3"
-                    >
-                        <div class="flex min-w-0 items-center gap-2.5">
-                            <div
-                                class="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-lg font-mono text-xs font-bold"
-                            >
-                                MT4
-                            </div>
-                            <div class="min-w-0">
-                                <div class="flex items-center gap-1.5">
-                                    <span
-                                        class="text-foreground truncate font-mono text-xs font-bold"
-                                    >
-                                        No. {{ modalAccount.nomor_akun_trading }}
-                                    </span>
-                                    <span class="text-muted-foreground text-xs">&bull;</span>
-                                    <span
-                                        class="text-muted-foreground truncate text-xs font-medium"
-                                    >
-                                        {{ modalAccount.broker }}
-                                    </span>
-                                </div>
-                                <span class="text-muted-foreground block truncate text-[11px]">
-                                    {{
-                                        modalAccount.tier_label ||
-                                        getTierBadge(modalAccount.tier).label
-                                    }}
-                                </span>
-                            </div>
-                        </div>
-
-                        <span
-                            class="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold"
-                            :class="
-                                modalAccount.status === 'active'
-                                    ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-                                    : 'border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400'
-                            "
-                        >
-                            {{ modalAccount.status === 'active' ? 'Aktif' : 'Pending' }}
-                        </span>
-                    </div>
-
-                    <p v-if="balanceForm.errors.akun_copytrade_id" class="text-destructive text-xs">
-                        {{ balanceForm.errors.akun_copytrade_id }}
-                    </p>
-                </div>
-
-                <!-- Tanggal Pencatatan -->
-                <div class="space-y-1.5">
-                    <label class="text-foreground block text-xs font-semibold">
-                        Tanggal Pencatatan Saldo <span class="text-destructive">*</span>
+                    <label class="block text-xs font-semibold text-foreground">
+                        Tautan Myfxbook (Domain: myfxbook.com) <span class="text-destructive">*</span>
                     </label>
                     <input
-                        v-model="balanceForm.tanggal_pencatatan"
-                        type="date"
+                        v-model="myfxbookForm.myfxbook_url"
+                        type="url"
+                        placeholder="https://www.myfxbook.com/members/username/system-name/12345"
                         class="bg-background border-input focus:ring-primary w-full rounded-lg border px-3 py-2 text-xs focus:ring-2 focus:outline-none"
+                        required
                     />
-                    <p class="text-muted-foreground text-[11px]">
-                        Disarankan mencatat setiap tanggal 1 untuk sinkronisasi evaluasi bulanan.
+                    <p v-if="myfxbookForm.errors.myfxbook_url" class="text-destructive text-xs">
+                        {{ myfxbookForm.errors.myfxbook_url }}
                     </p>
-                    <p
-                        v-if="balanceForm.errors.tanggal_pencatatan"
-                        class="text-destructive text-xs"
-                    >
-                        {{ balanceForm.errors.tanggal_pencatatan }}
-                    </p>
-                </div>
-
-                <!-- Nilai Saldo (Balance) USD -->
-                <div class="space-y-1.5">
-                    <label class="text-foreground block text-xs font-semibold">
-                        Nilai Saldo Terkini (USD) <span class="text-destructive">*</span>
-                    </label>
-                    <div class="relative">
-                        <span
-                            class="text-muted-foreground absolute inset-y-0 left-0 flex items-center pl-3 font-mono text-xs font-bold"
-                            >$</span
-                        >
-                        <input
-                            v-model="balanceForm.balance"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            placeholder="0.00"
-                            class="bg-background border-input focus:ring-primary w-full rounded-lg border py-2 pr-3 pl-7 font-mono text-xs focus:ring-2 focus:outline-none"
-                        />
-                    </div>
-                    <p v-if="balanceForm.errors.balance" class="text-destructive text-xs">
-                        {{ balanceForm.errors.balance }}
-                    </p>
-                </div>
-
-                <!-- Live Preview Perhitungan Keuntungan -->
-                <div
-                    v-if="balanceForm.balance"
-                    :class="[
-                        'space-y-1 rounded-xl border p-3 text-xs',
-                        liveProfitNominal >= 0
-                            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200'
-                            : 'border-destructive/30 bg-destructive/10 text-destructive',
-                    ]"
-                >
-                    <div class="flex items-center justify-between font-semibold">
-                        <span>Estimasi Keuntungan:</span>
-                        <span class="font-mono font-bold">
-                            {{ liveProfitNominal >= 0 ? '+' : ''
-                            }}{{ formatUSD(liveProfitNominal) }} ({{ liveProfitPct >= 0 ? '+' : ''
-                            }}{{ liveProfitPct.toFixed(2) }}%)
-                        </span>
-                    </div>
-                    <span class="text-muted-foreground block text-[10px]">
-                        Dihitung dari basis saldo sebelumnya: ${{
-                            Number(liveBaseBalance).toFixed(2)
-                        }}
-                    </span>
                 </div>
 
                 <div class="border-border flex items-center justify-end gap-2 border-t pt-4">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        @click="closeBalanceModal"
-                        :disabled="balanceForm.processing"
-                        class="cursor-pointer"
-                    >
-                        Batal
-                    </Button>
-                    <Button
-                        type="submit"
-                        class="bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer gap-2"
-                        :disabled="balanceForm.processing"
-                    >
-                        <Loader2 v-if="balanceForm.processing" class="h-4 w-4 animate-spin" />
-                        <CheckCircle2 v-else class="h-4 w-4" />
-                        <span>{{
-                            balanceForm.processing
-                                ? 'Menyimpan...'
-                                : isEditingBalance
-                                  ? 'Simpan Perubahan'
-                                  : 'Simpan Saldo'
-                        }}</span>
-                    </Button>
+                    <AppButton
+                        type="cancel"
+                        :disabled="myfxbookForm.processing"
+                        @click="isMyfxbookModalOpen = false"
+                    />
+                    <AppButton
+                        type="save"
+                        :loading="myfxbookForm.processing"
+                        label="Simpan Tautan"
+                    />
                 </div>
             </form>
         </AppModal>
-
-        <!-- ===================================================================== -->
-        <!-- DIALOG KONFIRMASI HAPUS SALDO                                         -->
-        <!-- ===================================================================== -->
-        <AppConfirmDialog
-            :show="isConfirmDeleteOpen"
-            :loading="isDeletingBalance"
-            title="Hapus Catatan Saldo"
-            message="Apakah Anda yakin ingin menghapus catatan saldo ini? Seluruh persentase keuntungan MoM setelah tanggal ini akan otomatis direkalkulasi."
-            confirm-text="Hapus Catatan"
-            cancel-text="Batal"
-            type="danger"
-            @confirm="executeDeleteRecord"
-            @cancel="isConfirmDeleteOpen = false"
-        />
     </MemberLayout>
 </template>

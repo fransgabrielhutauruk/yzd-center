@@ -203,6 +203,7 @@ const filterByQuick = (type, val) => {
                 :columns="columns"
                 :filters="filters"
                 fetch-url="/admin/users"
+                exportable
                 search-placeholder="Cari nama, username, email, telepon, NIK..."
                 empty-title="Tidak Ada Pengguna Ditemukan"
                 empty-message="Belum ada data pengguna atau tidak ada hasil yang sesuai dengan kriteria filter pencarian."

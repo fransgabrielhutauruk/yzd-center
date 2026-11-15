@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Models\UserDokumen;
 use App\Notifications\KycDocumentStatusChangedNotification;
 use App\Notifications\ReferralClaimStatusChangedNotification;
-use App\Services\BalanceService;
 use App\Services\CopytradeService;
 use App\Services\KycService;
 use Carbon\Carbon;
@@ -273,45 +272,7 @@ class InAppNotificationTest extends TestCase
         $this->assertStringContainsString('Nomor akun MT4 salah.', $notification->data['message']);
     }
 
-    public function test_investor_receives_monthly_balance_recap_reminder_notification_during_recap_period(): void
-    {
-        Carbon::setTestNow('2026-10-02 10:00:00');
-
-        $akun = AkunCopytrade::create([
-            'user_id'            => $this->investor->id,
-            'tier'               => 'tier_1',
-            'broker'             => 'HFM',
-            'tipe_akun'          => 'cent',
-            'nomor_akun_trading' => '11223344',
-            'modal_riil'         => 1000,
-            'tanggal_mulai'      => '2026-09-01',
-            'nama_bank'          => 'BCA',
-            'nomor_rekening'     => '1234567890',
-            'atas_nama_rekening' => 'Investor Tester',
-            'status'             => 'active',
-        ]);
-
-        $balanceService = app(BalanceService::class);
-        $result = $balanceService->sendMonthlyBalanceReminderIfNeeded($this->investor);
-
-        $this->assertTrue($result);
-        $this->assertEquals(1, $this->investor->unreadNotifications()->count());
-
-        $notification = $this->investor->unreadNotifications()->first();
-        $this->assertEquals('balance_recap_reminder', $notification->data['type']);
-        $this->assertEquals('Waktunya Rekapitulasi Saldo Tanggal 1!', $notification->data['title']);
-        $this->assertEquals('/member/investments#kinerja-dan-riwayat-akun', $notification->data['url']);
-        $this->assertEquals('calendar', $notification->data['icon']);
-
-        // Pastikan tidak dikirim berulang (idempotent / tidak duplikat)
-        $secondResult = $balanceService->sendMonthlyBalanceReminderIfNeeded($this->investor);
-        $this->assertFalse($secondResult);
-        $this->assertEquals(1, $this->investor->unreadNotifications()->count());
-
-        Carbon::setTestNow();
-    }
-
-    public function test_send_monthly_balance_recap_reminder_artisan_command(): void
+    public function test_send_master_fee_reminder_artisan_command(): void
     {
         Carbon::setTestNow('2026-10-01 07:00:00');
 
@@ -329,11 +290,21 @@ class InAppNotificationTest extends TestCase
             'nomor_rekening'     => '987654321',
             'atas_nama_rekening' => 'Investor Tester',
             'status'             => 'active',
+            'myfxbook_url'       => 'https://www.myfxbook.com/members/demo/notif',
         ]);
 
-        $this->artisan('app:send-balance-recap-reminder')
+        $this->artisan('app:send-master-fee-reminders')
             ->assertSuccessful();
 
+        $this->assertEquals(1, $this->investor->unreadNotifications()->count());
+
+        $notification = $this->investor->unreadNotifications()->first();
+        $this->assertEquals('master_fee_input_reminder', $notification->data['type']);
+        $this->assertEquals('/member/master-fee', $notification->data['url']);
+
+        // Pastikan tidak dikirim berulang di hari yang sama (idempotent)
+        $this->artisan('app:send-master-fee-reminders')
+            ->assertSuccessful();
         $this->assertEquals(1, $this->investor->unreadNotifications()->count());
 
         Carbon::setTestNow();

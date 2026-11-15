@@ -551,7 +551,7 @@ const articleColumns = [
         <AppConfirmDialog
             :show="isDeleteArticleModalOpen"
             title="Hapus Artikel Panduan"
-            :message="`Apakah Anda yakin ingin menghapus artikel '${deletingArticle?.judul}'? Tindakan ini tidak dapat dibatalkan.`"
+            :message="`Apakah Anda yakin ingin menghapus artikel '${deletingArticle?.judul}' dari daftar?`"
             confirm-text="Ya, Hapus"
             cancel-text="Batal"
             type="danger"

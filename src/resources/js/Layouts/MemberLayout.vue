@@ -20,6 +20,7 @@ import {
     Newspaper,
     TrendingUp,
     LifeBuoy,
+    Receipt,
 } from 'lucide-vue-next';
 import { useDarkMode } from '@/composables/useDarkMode';
 import { usePwaInstall } from '@/composables/usePwaInstall';
@@ -27,6 +28,7 @@ import AppToaster from '@/Components/Common/AppToaster.vue';
 import AppNotificationBell from '@/Components/Common/AppNotificationBell.vue';
 import AppPwaInstallButton from '@/Components/Common/AppPwaInstallButton.vue';
 import AppPageHeader from '@/Components/Common/AppPageHeader.vue';
+import FirstPeriodBanner from '@/Components/Common/FirstPeriodBanner.vue';
 
 defineProps({
     title: {
@@ -191,6 +193,12 @@ const navSections = computed(() => {
                     routeName: 'member.investments.index',
                 },
                 {
+                    label: 'Master Fee',
+                    href: '/member/master-fee',
+                    icon: Receipt,
+                    routeName: 'member.master_fee.index',
+                },
+                {
                     label: 'Kalkulator Proyeksi',
                     href: '/member/education/calculator',
                     icon: Calculator,
@@ -212,6 +220,12 @@ const navSections = computed(() => {
                     href: '/member/commissions',
                     icon: Banknote,
                     routeName: 'member.commissions.index',
+                },
+                {
+                    label: 'Kalkulator Komisi',
+                    href: '/member/affiliates-calculator',
+                    icon: Calculator,
+                    routeName: 'member.affiliates.calculator',
                 },
                 {
                     label: 'Materi Promosi',
@@ -253,8 +267,20 @@ const navSections = computed(() => {
     ];
 });
 
-const isActive = (href) => {
-    return page.url.startsWith(href);
+const isActive = (itemOrHref) => {
+    const href = typeof itemOrHref === 'string' ? itemOrHref : itemOrHref?.href;
+    const currentPath = (page.url || '').split('?')[0].replace(/\/+$/, '') || '/';
+    const targetPath = (href || '').split('?')[0].replace(/\/+$/, '') || '/';
+
+    if (currentPath === targetPath) {
+        return true;
+    }
+
+    if (targetPath !== '/member' && targetPath !== '' && currentPath.startsWith(targetPath + '/')) {
+        return true;
+    }
+
+    return false;
 };
 
 const logout = () => {
@@ -532,6 +558,7 @@ const logout = () => {
 
             <!-- Main Content Area -->
             <main class="flex-1 overflow-y-auto bg-white p-4 sm:p-6 lg:p-8 dark:bg-slate-950">
+                <FirstPeriodBanner />
                 <AppPageHeader
                     v-if="breadcrumbs && breadcrumbs.length > 0"
                     :breadcrumbs="breadcrumbs"

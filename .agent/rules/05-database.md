@@ -195,3 +195,35 @@ Aplikasi memiliki susunan seeder terstruktur di `database/seeders/`:
        return;
    }
    ```
+
+---
+
+## Standar Kebijakan Soft Delete Menyeluruh
+
+Semua entitas data utama yang dapat dihapus oleh pengguna atau admin wajib menerapkan Soft Delete untuk mencegah kehilangan data permanen (*accidental data loss*):
+
+1. **Model & Traits:**
+   - Gunakan trait `Illuminate\Database\Eloquent\SoftDeletes` dan `App\Traits\TracksDeletedBy`.
+   - `TracksDeletedBy` secara otomatis mengisi kolom `deleted_by` (berisi `username`, `email`, atau `id` aktor penghapus; `null` jika via CLI/seeder) pada event `deleting` dan mengosongkannya kembali saat model di-`restore`.
+   - Untuk model berelasi induk-anak (misal: `PanduanKategori` -> `PanduanBantuan`, `EdukasiFaqTopik` -> `EdukasiFaq`, `ProfitMasterPost` -> `ProfitMasterPostImage`), gunakan trait `App\Traits\CascadesSoftDeletes` dan deklarasikan properti `protected array $cascadeSoftDeletes = ['relasi']`.
+   - Cascade soft delete menyamakan timestamp `deleted_at` anak persis dengan induknya. Saat induk dipulihkan (*restore*), hanya anak dengan `deleted_at` identik yang ikut dipulihkan. Anak yang dihapus terpisah sebelum induk tidak akan dipulihkan secara tidak sengaja.
+   - Pada `forceDeleting`, trait akan melakukan *force delete* pada seluruh anak terkait.
+
+2. **Migrasi Kolom:**
+   - Tabel yang mendukung soft delete wajib memiliki kolom:
+     `$table->softDeletes();`
+     `$table->string('deleted_by', 100)->nullable();`
+
+3. **Konvensi Kolom Unik & Slug:**
+   - Model dengan kolom slug (`PanduanKategori`, `PanduanBantuan`) mengubah slug menjadi `{slug}--trashed-{id}` saat di-soft delete agar slug asli langsung dapat dipakai kembali oleh record baru.
+   - Model menyediakan method `restoreSlugOrFail()` yang memverifikasi ketersediaan slug asli sebelum memulihkan data. Jika terjadi bentrok slug, pemulihan ditolak dengan pesan yang jelas.
+   - Validasi FormRequest unik (`Rule::unique`) wajib menyertakan `->whereNull('deleted_at')`.
+   - Pada tabel dengan *composite unique index* (seperti `laporan_profit_bulanan` pada `(akun_copytrade_id, periode_ke)`), constraint unique di tingkat basis data diganti menjadi indeks biasa, dan pencegahan duplikasi ditangani secara transaksional di aplikasi (`lockForUpdate` + pengecekan laporan aktif).
+
+4. **Pengelolaan Berkas Fisik:**
+   - Berkas fisik (foto profit master, screenshot transfer, bukti Myfxbook, bukti WD) **DILARANG** dihapus saat operasi *soft delete*. Berkas hanya boleh dihapus saat operasi *purge* permanen.
+
+5. **Perintah Developer Pemulihan & Pembersihan (`app:trash:*`):**
+   - Daftar item terhapus: `php artisan app:trash:list {model?}`
+   - Pemulihan item: `php artisan app:trash:restore {model} {id}`
+   - Pembersihan permanen: `php artisan app:trash:purge --days=30 {--model=} {--force}` (parameter `--days` wajib diisi eksplisit; tidak dijadwalkan otomatis di cron).
