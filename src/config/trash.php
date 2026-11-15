@@ -57,17 +57,13 @@ return [
     ],
 
     'profit-master' => [
-        'model'    => \App\Models\ProfitMasterPost::class,
-        'label'    => 'Post Profit Master',
-        'category' => 'profit_master',
-        'display'  => 'caption',
-        'files'    => function ($post, $disk) {
-            $dir = "profit_master/{$post->id}";
-            if ($disk->exists($dir)) {
-                $disk->deleteDirectory($dir);
-            }
-        },
-        'children' => ['images'],
+        'model'       => \App\Models\ProfitMasterPost::class,
+        'label'       => 'Post Profit Master',
+        'category'    => 'profit_master',
+        'display'     => 'caption',
+        'files'       => [],
+        'directories' => ['profit_master/{id}'],
+        'children'    => ['images'],
     ],
 
     'profit-master-foto' => [

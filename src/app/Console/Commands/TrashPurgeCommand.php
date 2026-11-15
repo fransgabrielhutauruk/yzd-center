@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Services\AuditLogService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
 
 class TrashPurgeCommand extends Command
@@ -139,17 +140,7 @@ class TrashPurgeCommand extends Command
             $purgedForModel = 0;
 
             foreach ($items as $item) {
-                // Hapus berkas fisik jika ada
-                if (is_callable($entry['files'] ?? null)) {
-                    ($entry['files'])($item, $disk);
-                } elseif (is_array($entry['files'] ?? null)) {
-                    foreach ($entry['files'] as $field) {
-                        $filePath = $item->{$field} ?? null;
-                        if ($filePath && $disk->exists($filePath)) {
-                            $disk->delete($filePath);
-                        }
-                    }
-                }
+                $this->purgeItemAssets($item, $entry, $disk);
 
                 $item->forceDelete();
                 $purgedForModel++;
@@ -169,5 +160,43 @@ class TrashPurgeCommand extends Command
         $this->info("Pembersihan permanen selesai: Berhasil menghapus {$totalPurged} data beserta berkas terkait.");
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Hapus berkas fisik dan direktori terkait berdasarkan konfigurasi trash modul.
+     *
+     * @param array<string, mixed> $entry
+     */
+    private function purgeItemAssets(object $item, array $entry, Filesystem $disk): void
+    {
+        foreach ($entry['files'] ?? [] as $field) {
+            $filePath = $item->{$field} ?? null;
+            if ($filePath && $disk->exists($filePath)) {
+                $disk->delete($filePath);
+            }
+        }
+
+        foreach ($entry['directories'] ?? [] as $template) {
+            $missingAttribute = false;
+            $directory = preg_replace_callback('/\{([a-zA-Z0-9_]+)\}/', static function (array $matches) use ($item, &$missingAttribute): string {
+                $value = $item->{$matches[1]} ?? null;
+                if ($value === null || $value === '') {
+                    $missingAttribute = true;
+
+                    return '';
+                }
+
+                return (string) $value;
+            }, (string) $template);
+
+            // Jangan hapus direktori jika placeholder kosong agar tidak menghapus folder induk secara tidak sengaja
+            if ($missingAttribute || !$directory || str_contains($directory, '..')) {
+                continue;
+            }
+
+            if ($disk->exists($directory)) {
+                $disk->deleteDirectory($directory);
+            }
+        }
     }
 }

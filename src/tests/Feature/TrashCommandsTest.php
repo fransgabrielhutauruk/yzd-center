@@ -311,5 +311,33 @@ class TrashCommandsTest extends TestCase
 
         // Berkas fisik & foldernya terhapus dari disk
         Storage::disk('local')->assertMissing($filePath);
+        Storage::disk('local')->assertMissing("profit_master/{$post->id}");
+    }
+
+    public function test_config_files_contain_no_closures_and_are_serializable(): void
+    {
+        $config = config()->all();
+        $closures = [];
+
+        $walk = function (mixed $value, string $path) use (&$walk, &$closures): void {
+            if ($value instanceof \Closure) {
+                $closures[] = $path;
+
+                return;
+            }
+
+            if (is_array($value)) {
+                foreach ($value as $key => $item) {
+                    $walk($item, $path === '' ? (string) $key : "{$path}.{$key}");
+                }
+            }
+        };
+
+        $walk($config, '');
+
+        $this->assertSame([], $closures, 'Konfigurasi tidak boleh mengandung Closure agar config:cache berhasil.');
+
+        $exported = var_export(config('trash'), true);
+        $this->assertIsArray(eval("return {$exported};"));
     }
 }
