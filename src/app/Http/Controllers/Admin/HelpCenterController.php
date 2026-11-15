@@ -92,10 +92,10 @@ class HelpCenterController extends Controller
 
         $file = $request->file('image');
         $filename = 'help_' . time() . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
-        $path = $file->storeAs('education/articles', $filename, 'public');
+        $file->storeAs('education/articles', $filename, 'local');
 
         return response()->json([
-            'url'      => asset('storage/' . $path),
+            'url'      => route('documents.education_media', ['filename' => $filename], false),
             'filename' => $filename,
         ]);
     }
