@@ -16,6 +16,8 @@ import {
     Clock,
     LifeBuoy,
     Receipt,
+    AlertTriangle,
+    FileWarning,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -29,6 +31,19 @@ const props = defineProps({
             tickets: 0,
             master_fee: 0,
             total: 0,
+        }),
+    },
+    master_fee_monitoring: {
+        type: Object,
+        default: () => ({
+            unpaid_reports_count: 0,
+            unpaid_only_count: 0,
+            rejected_reports_count: 0,
+            unpaid_investors_count: 0,
+            unpaid_total_usd: 0,
+            unpaid_total_idr: 0,
+            missing_accounts_count: 0,
+            missing_investors_count: 0,
         }),
     },
     stats: {
@@ -123,6 +138,65 @@ const pendingList = computed(() => {
     }
 
     return list;
+});
+
+const formatUSD = (val) => {
+    const num = Number(val ?? 0);
+    if (isNaN(num)) return '$0.00';
+    return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+const formatRupiah = (val) => {
+    const num = Math.round(Number(val ?? 0));
+    if (isNaN(num)) return 'Rp 0';
+    return 'Rp ' + num.toLocaleString('id-ID');
+};
+
+const monitoringTotal = computed(() => {
+    const mfm = props.master_fee_monitoring || {};
+    return Number(mfm.unpaid_reports_count || 0) + Number(mfm.missing_accounts_count || 0);
+});
+
+const monitoringCards = computed(() => {
+    const mfm = props.master_fee_monitoring || {};
+    const unpaidCount = Number(mfm.unpaid_reports_count || 0);
+    const unpaidOnlyCount = Number(mfm.unpaid_only_count || 0);
+    const rejectedCount = Number(mfm.rejected_reports_count || 0);
+    const unpaidInvestors = Number(mfm.unpaid_investors_count || 0);
+    const missingCount = Number(mfm.missing_accounts_count || 0);
+    const missingInvestors = Number(mfm.missing_investors_count || 0);
+
+    const unpaidStatusQuery = unpaidOnlyCount === 0 && rejectedCount > 0 ? 'ditolak' : 'belum_dibayar';
+    const rejectedNote = rejectedCount > 0 ? ` (${rejectedCount} bukti ditolak)` : '';
+
+    return [
+        {
+            id: 'unpaid_master_fee',
+            title: 'Belum Kirim Bukti Fee',
+            desc: 'Laporan profit > $0 yang belum dibayar atau bukti transfernya ditolak oleh admin.',
+            count: unpaidCount,
+            unit: 'Laporan',
+            subInfo: unpaidCount > 0
+                ? `dari ${unpaidInvestors} Investor • Tagihan: ${formatRupiah(mfm.unpaid_total_idr)} (${formatUSD(mfm.unpaid_total_usd)})${rejectedNote}`
+                : 'Tidak ada tagihan Master Fee tertunggak.',
+            href: `/admin/master-fee?tab=laporan&status=${unpaidStatusQuery}`,
+            ctaLabel: 'Lihat Tagihan',
+            icon: AlertTriangle,
+        },
+        {
+            id: 'missing_master_fee_report',
+            title: 'Belum Lapor Bulanan',
+            desc: 'Akun copytrade aktif yang sudah memasuki jadwal periode laporan tetapi belum input laporan.',
+            count: missingCount,
+            unit: 'Akun',
+            subInfo: missingCount > 0
+                ? `dari ${missingInvestors} Investor • Periode laporan bulanan telah terbuka`
+                : 'Seluruh akun aktif telah melapor sesuai jadwal.',
+            href: '/admin/master-fee?tab=belum_lapor',
+            ctaLabel: 'Lihat Akun',
+            icon: FileWarning,
+        },
+    ];
 });
 
 const shortcuts = [
@@ -242,7 +316,105 @@ const shortcuts = [
                 </div>
             </section>
 
-            <!-- 2. SEKSI RINGKASAN EKOSISTEM (4 KARTU METRIK) -->
+            <!-- 2. SEKSI MONITORING TAGIHAN & LAPORAN MASTER FEE INVESTOR -->
+            <section class="space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Monitoring Tagihan &amp; Laporan Master Fee
+                        </h2>
+                        <span
+                            v-if="monitoringTotal > 0"
+                            class="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-300"
+                        >
+                            <AlertTriangle class="h-3 w-3" />
+                            <span>{{ monitoringTotal }} Menunggu Tindak Lanjut Investor</span>
+                        </span>
+                        <span
+                            v-else
+                            class="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-300"
+                        >
+                            <CheckCircle2 class="h-3 w-3" />
+                            <span>Semua Terkendali</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div
+                        v-for="card in monitoringCards"
+                        :key="card.id"
+                        :class="[
+                            'bg-card rounded-2xl border p-5 shadow-xs transition-colors flex flex-col justify-between gap-4',
+                            card.count > 0
+                                ? 'border-amber-500/40 hover:border-amber-500/60'
+                                : 'border-border hover:border-emerald-500/40',
+                        ]"
+                    >
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="space-y-1">
+                                <h3 class="text-sm font-bold text-foreground">
+                                    {{ card.title }}
+                                </h3>
+                                <p class="text-xs text-muted-foreground leading-relaxed">
+                                    {{ card.desc }}
+                                </p>
+                            </div>
+                            <div
+                                :class="[
+                                    'shrink-0 w-10 h-10 rounded-xl flex items-center justify-center',
+                                    card.count > 0
+                                        ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                                        : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+                                ]"
+                            >
+                                <component
+                                    :is="card.count > 0 ? card.icon : CheckCircle2"
+                                    class="w-5 h-5"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="pt-2.5 border-t border-border/60 flex flex-wrap items-center justify-between gap-2">
+                            <div class="space-y-0.5">
+                                <div class="flex items-baseline gap-1.5">
+                                    <span
+                                        :class="[
+                                            'font-mono text-xl font-black',
+                                            card.count > 0
+                                                ? 'text-amber-800 dark:text-amber-300'
+                                                : 'text-emerald-700 dark:text-emerald-300',
+                                        ]"
+                                    >
+                                        {{ card.count }}
+                                    </span>
+                                    <span class="text-xs font-medium text-muted-foreground">
+                                        {{ card.unit }}
+                                    </span>
+                                </div>
+                                <p class="text-[11px] font-medium text-muted-foreground">
+                                    {{ card.subInfo }}
+                                </p>
+                            </div>
+
+                            <Link
+                                :href="card.href"
+                                :class="[
+                                    'inline-flex min-h-[36px] items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors shrink-0',
+                                    card.count > 0
+                                        ? 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-900 dark:text-amber-200'
+                                        : 'bg-muted hover:bg-muted/80 text-foreground',
+                                ]"
+                            >
+                                <span>{{ card.ctaLabel }}</span>
+                                <ArrowRight class="w-3.5 h-3.5" />
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. SEKSI RINGKASAN EKOSISTEM (4 KARTU METRIK) -->
             <section class="space-y-3">
                 <h2 class="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     Ringkasan Ekosistem Trading

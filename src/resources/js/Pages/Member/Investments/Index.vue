@@ -891,9 +891,6 @@ onMounted(() => {
                             <p class="text-muted-foreground max-w-3xl text-xs leading-relaxed">
                                 Anda telah mendaftarkan akun copytrade (investasi). Tim administrator saat ini
                                 sedang memverifikasi dan dokumen kemitraan Anda.
-                                Ringkasan statistik portofolio, analisis keuntungan, dan
-                                kalkulasi balik modal (BEP) akan aktif secara otomatis setelah
-                                permohonan disetujui.
                             </p>
                         </div>
                     </div>
@@ -1161,9 +1158,7 @@ onMounted(() => {
                             </div>
                             <p class="text-muted-foreground max-w-3xl text-xs leading-relaxed">
                                 Akun ini telah didaftarkan dan sedang menunggu verifikasi
-                                oleh Administrator. Evaluasi kinerja bulanan, grafik tren saldo,
-                                dan formulir pencatatan saldo tanggal 1 akan otomatis aktif segera
-                                setelah permohonan disetujui.
+                                oleh Administrator.
                             </p>
                         </div>
                     </div>

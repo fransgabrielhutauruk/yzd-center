@@ -6,8 +6,10 @@ use App\Models\AkunCopytrade;
 use App\Models\Invitation;
 use App\Models\KlaimKomisi;
 use App\Models\KlaimReferral;
+use App\Models\LaporanProfitBulanan;
 use App\Models\RelasiReferral;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -39,6 +41,10 @@ class AdminDashboardTest extends TestCase
             ->where('pending_actions.referral_claims', 0)
             ->where('pending_actions.commission_claims', 0)
             ->where('pending_actions.total', 0)
+            ->where('master_fee_monitoring.unpaid_reports_count', 0)
+            ->where('master_fee_monitoring.unpaid_investors_count', 0)
+            ->where('master_fee_monitoring.missing_accounts_count', 0)
+            ->where('master_fee_monitoring.missing_investors_count', 0)
             ->where('stats.investor_count', 0)
             ->where('stats.affiliator_count', 0)
             ->where('stats.active_copytrade_count', 0)
@@ -178,5 +184,140 @@ class AdminDashboardTest extends TestCase
 
         $response = $this->actingAs($member)->get(route('admin.dashboard'));
         $response->assertForbidden();
+    }
+
+    public function test_admin_dashboard_computes_master_fee_monitoring_unpaid_and_missing_reports(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-06-05 10:00:00'));
+
+        try {
+            $investorA = User::factory()->create(['role' => 'member', 'status' => 'active', 'is_active' => true]);
+            $investorB = User::factory()->create(['role' => 'member', 'status' => 'active', 'is_active' => true]);
+
+            // Akun A1: mulai 2026-04-10 (P1: 10 Apr - 30 Apr terbuka sejak 1 Mei), sudah ada laporan P1 belum_dibayar & P2 menunggu_verifikasi
+            $akunA1 = AkunCopytrade::create([
+                'user_id'            => $investorA->id,
+                'tier'               => 'tier_4',
+                'broker'             => 'HFM',
+                'tipe_akun'          => 'standard',
+                'nomor_akun_trading' => 'MF-MON-001',
+                'modal_riil'         => 1000,
+                'tanggal_mulai'      => '2026-04-10',
+                'nama_bank'          => 'BCA',
+                'nomor_rekening'     => '1111111111',
+                'atas_nama_rekening' => $investorA->name,
+                'status'             => 'active',
+            ]);
+
+            LaporanProfitBulanan::create([
+                'nomor'               => 'MFE-202605-0001',
+                'akun_copytrade_id'   => $akunA1->id,
+                'user_id'             => $investorA->id,
+                'periode_ke'          => 1,
+                'periode_awal'        => '2026-04-10',
+                'periode_akhir'       => '2026-04-30',
+                'jatuh_tempo'         => '2026-05-01',
+                'profit_usd'          => 200.00,
+                'bukti_myfxbook_path' => 'master_fee/myfxbook/a1.png',
+                'wd_usd'              => 100.00,
+                'wd_idr'              => 1600000,
+                'bukti_wd_path'       => 'master_fee/wd/a1.png',
+                'kurs_riil'           => 16000.00,
+                'fee_persen'          => 30.00,
+                'fee_usd'             => 60.00,
+                'fee_idr'             => 960000,
+                'status'              => LaporanProfitBulanan::STATUS_BELUM_DIBAYAR,
+            ]);
+
+            // P2 sudah lapor & upload bukti (menunggu verifikasi admin, tidak masuk unpaid)
+            LaporanProfitBulanan::create([
+                'nomor'               => 'MFE-202606-0002',
+                'akun_copytrade_id'   => $akunA1->id,
+                'user_id'             => $investorA->id,
+                'periode_ke'          => 2,
+                'periode_awal'        => '2026-05-01',
+                'periode_akhir'       => '2026-05-31',
+                'jatuh_tempo'         => '2026-06-01',
+                'profit_usd'          => 300.00,
+                'bukti_myfxbook_path' => 'master_fee/myfxbook/a2.png',
+                'wd_usd'              => 150.00,
+                'wd_idr'              => 2400000,
+                'bukti_wd_path'       => 'master_fee/wd/a2.png',
+                'kurs_riil'           => 16000.00,
+                'fee_persen'          => 30.00,
+                'fee_usd'             => 90.00,
+                'fee_idr'             => 1440000,
+                'status'              => LaporanProfitBulanan::STATUS_MENUNGGU_VERIFIKASI,
+            ]);
+
+            // Akun A2 milik investorA: mulai 2026-04-10, punya 1 laporan ditolak + belum lapor P2
+            $akunA2 = AkunCopytrade::create([
+                'user_id'            => $investorA->id,
+                'tier'               => 'tier_4',
+                'broker'             => 'XM',
+                'tipe_akun'          => 'standard',
+                'nomor_akun_trading' => 'MF-MON-002',
+                'modal_riil'         => 1500,
+                'tanggal_mulai'      => '2026-04-10',
+                'nama_bank'          => 'BCA',
+                'nomor_rekening'     => '1111111111',
+                'atas_nama_rekening' => $investorA->name,
+                'status'             => 'active',
+            ]);
+
+            LaporanProfitBulanan::create([
+                'nomor'               => 'MFE-202605-0003',
+                'akun_copytrade_id'   => $akunA2->id,
+                'user_id'             => $investorA->id,
+                'periode_ke'          => 1,
+                'periode_awal'        => '2026-04-10',
+                'periode_akhir'       => '2026-04-30',
+                'jatuh_tempo'         => '2026-05-01',
+                'profit_usd'          => 100.00,
+                'bukti_myfxbook_path' => 'master_fee/myfxbook/a2_p1.png',
+                'wd_usd'              => 50.00,
+                'wd_idr'              => 800000,
+                'bukti_wd_path'       => 'master_fee/wd/a2_p1.png',
+                'kurs_riil'           => 16000.00,
+                'fee_persen'          => 30.00,
+                'fee_usd'             => 30.00,
+                'fee_idr'             => 480000,
+                'status'              => LaporanProfitBulanan::STATUS_DITOLAK,
+            ]);
+
+            // Akun B1 milik investorB: mulai 2026-05-05, belum lapor P1 sama sekali (P1: 5 Mei - 31 Mei terbuka 1 Juni)
+            AkunCopytrade::create([
+                'user_id'            => $investorB->id,
+                'tier'               => 'tier_4',
+                'broker'             => 'IC Markets',
+                'tipe_akun'          => 'standard',
+                'nomor_akun_trading' => 'MF-MON-003',
+                'modal_riil'         => 2000,
+                'tanggal_mulai'      => '2026-05-05',
+                'nama_bank'          => 'Mandiri',
+                'nomor_rekening'     => '2222222222',
+                'atas_nama_rekening' => $investorB->name,
+                'status'             => 'active',
+            ]);
+
+            $response = $this->actingAs($this->admin)->get(route('admin.dashboard'));
+
+            $response->assertOk();
+            $response->assertInertia(fn ($page) => $page
+                ->component('Admin/Dashboard')
+                ->where('pending_actions.master_fee', 1)
+                ->where('pending_actions.total', 1)
+                ->where('master_fee_monitoring.unpaid_reports_count', 2)
+                ->where('master_fee_monitoring.unpaid_only_count', 1)
+                ->where('master_fee_monitoring.rejected_reports_count', 1)
+                ->where('master_fee_monitoring.unpaid_investors_count', 1) // hanya investorA
+                ->where('master_fee_monitoring.unpaid_total_usd', 90)
+                ->where('master_fee_monitoring.unpaid_total_idr', 1440000)
+                ->where('master_fee_monitoring.missing_accounts_count', 2) // akunA2 (P2) & akunB1 (P1)
+                ->where('master_fee_monitoring.missing_investors_count', 2) // investorA & investorB
+            );
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 }

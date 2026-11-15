@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import AppModal from '@/Components/Common/AppModal.vue';
+import PeriodBreakdownCards from '@/Components/Commission/PeriodBreakdownCards.vue';
 import { Button } from '@/Components/ui/button';
 import {
     Banknote,
@@ -76,7 +77,7 @@ const statusBadge = computed(() => {
     <AppModal
         :show="isVisible"
         title="Rincian Permohonan Klaim Komisi"
-        max-width="3xl"
+        max-width="4xl"
         @close="$emit('close')"
     >
         <div v-if="claim" class="space-y-4 text-xs">
@@ -140,12 +141,9 @@ const statusBadge = computed(() => {
                             Rincian Akun Copytrade yang Diklaim ({{ claim.items?.length || 0 }})
                         </h4>
                     </div>
-                    <span class="text-[11px] font-mono text-muted-foreground">
-                        Total Deposit: {{ formatUSD(claim.total_deposit_amount || claim.total_modal_riil) }}
-                    </span>
                 </div>
 
-                <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
+                <div class="space-y-3 max-h-[34rem] overflow-y-auto pr-1">
                     <div
                         v-for="(item, idx) in claim.items"
                         :key="item.id || idx"
@@ -160,18 +158,6 @@ const statusBadge = computed(() => {
                                 <span class="text-muted-foreground font-mono text-[11px]">@{{ item.downline_username }}</span>
                             </div>
                             <div class="flex items-center gap-1.5">
-                                <span
-                                    v-if="item.is_akun_pertama"
-                                    class="rounded bg-sky-500/10 border border-sky-500/30 px-2 py-0.5 text-[10px] font-bold text-sky-800 dark:text-sky-300"
-                                >
-                                    Akun Utama (Acuan)
-                                </span>
-                                <span
-                                    v-else
-                                    class="rounded bg-purple-500/10 border border-purple-500/30 px-2 py-0.5 text-[10px] font-bold text-purple-800 dark:text-purple-300"
-                                >
-                                    Akun Tambahan
-                                </span>
                                 <span class="rounded bg-primary-500/10 text-primary-800 dark:text-primary-300 px-2 py-0.5 font-semibold text-[10px]">
                                     Tier {{ item.tier_level }} ({{ item.affiliate_share_pct || item.persentase_tier }}%)
                                 </span>
@@ -197,8 +183,20 @@ const statusBadge = computed(() => {
                             </div>
                         </div>
 
-                        <!-- Rincian Hasil Kalkulasi Jika Sudah Disetujui -->
-                        <div v-if="claim.status === 'approved_transferred'" class="pt-1">
+                        <!-- Rincian 3 Periode + Akumulasi (jika tersedia) -->
+                        <div v-if="item.periods_breakdown && item.periods_breakdown.length > 0" class="pt-1">
+                            <PeriodBreakdownCards
+                                :periods="item.periods_breakdown"
+                                :accumulation="item.periods_accumulation || null"
+                                :persentase-tier="item.affiliate_share_pct || item.persentase_tier"
+                                :tier-level="item.tier_level"
+                                :modal-riil="item.deposit_amount || item.modal_riil"
+                                :modal-idr="item.modal_idr"
+                            />
+                        </div>
+
+                        <!-- Fallback Rincian Hasil Kalkulasi Legacy Jika Sudah Disetujui -->
+                        <div v-else-if="claim.status === 'approved_transferred'" class="pt-1">
                             <!-- Drawdown Guard jika rugi -->
                             <div
                                 v-if="(item.gross_profit ?? 0) <= 0 && item.roi_percentage !== null"
@@ -252,39 +250,12 @@ const statusBadge = computed(() => {
                         Hasil Pencairan Dana Komisi
                     </h4>
                 </div>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-xs">
-                    <div>
-                        <span class="text-muted-foreground text-[10px] font-sans block">Total Gross Profit:</span>
-                        <strong class="text-foreground">{{ formatUSD(claim.total_gross_profit) }}</strong>
-                    </div>
-                    <div>
-                        <span class="text-muted-foreground text-[10px] font-sans block">Total Hak Master:</span>
-                        <strong class="text-foreground">{{ formatUSD(claim.total_master_gross_share ?? claim.total_profit_master) }}</strong>
-                    </div>
-                    <div>
-                        <span class="text-muted-foreground text-[10px] font-sans block">Total Net Master:</span>
-                        <strong class="text-foreground">{{ formatUSD(claim.total_master_net_share) }}</strong>
-                    </div>
-                    <div class="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-2">
-                        <span class="text-emerald-800 dark:text-emerald-300 text-[10px] font-sans font-bold block">Komisi (USD):</span>
-                        <strong class="text-emerald-800 dark:text-emerald-300 text-sm font-extrabold">{{ formatUSD(claim.total_affiliate_commission ?? claim.total_nominal_transfer) }}</strong>
-                    </div>
-                </div>
-
                 <!-- Konversi Rupiah Sesuai Setoran Riil Investor / Kurs Efektif -->
                 <div
-                    v-if="claim.kurs_konversi_idr || claim.total_nominal_transfer_idr"
+                    v-if="claim.total_nominal_transfer_idr"
                     class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 flex items-center justify-between flex-wrap gap-2"
                 >
                     <div class="space-y-0.5">
-                        <span class="text-[10px] font-semibold text-emerald-900 dark:text-emerald-200 block">
-                            Kurs Konversi Efektif:
-                        </span>
-                        <strong class="font-mono text-xs text-foreground">
-                            {{ formatRupiah(claim.kurs_konversi_idr) }} / $1 USD
-                        </strong>
-                    </div>
-                    <div class="text-right space-y-0.5">
                         <span class="text-[10px] font-semibold text-emerald-900 dark:text-emerald-200 block">
                             Nominal Ditransfer ke Rekening (IDR):
                         </span>
@@ -292,14 +263,7 @@ const statusBadge = computed(() => {
                             {{ formatRupiah(claim.total_nominal_transfer_idr) }}
                         </strong>
                     </div>
-                </div>
-
-                <div v-if="claim.catatan_admin" class="rounded-lg bg-card/60 p-2.5 border border-border/40 text-[11px] space-y-0.5">
-                    <span class="text-muted-foreground font-semibold">Catatan Administrator:</span>
-                    <p class="text-foreground italic">{{ claim.catatan_admin }}</p>
-                </div>
-
-                <div v-if="claim.bukti_transfer_url" class="pt-1">
+                                    <div v-if="claim.bukti_transfer_url" class="pt-1">
                     <a
                         :href="claim.bukti_transfer_url"
                         target="_blank"
@@ -307,9 +271,16 @@ const statusBadge = computed(() => {
                         class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition-colors"
                     >
                         <ExternalLink class="h-3.5 w-3.5" />
-                        <span>Lihat Bukti Resi Transfer Bank</span>
+                        <span>Lihat Bukti Resi Transfer</span>
                     </a>
                 </div>
+                </div>
+
+                <div v-if="claim.catatan_admin" class="rounded-lg bg-card/60 p-2.5 border border-border/40 text-[11px] space-y-0.5">
+                    <span class="text-muted-foreground font-semibold">Catatan Administrator:</span>
+                    <p class="text-foreground italic">{{ claim.catatan_admin }}</p>
+                </div>
+
             </div>
 
             <!-- Bagian Ditolak -->

@@ -569,12 +569,12 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             : 'border-border bg-muted/20'
                     "
                 >
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex items-start gap-3">
+                    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div class="flex items-start gap-3 min-w-0 flex-1">
                             <button
                                 type="button"
                                 @click="toggleStep('step_1')"
-                                class="mt-0.5 text-emerald-600 transition-colors hover:text-emerald-700 focus:outline-hidden"
+                                class="mt-0.5 shrink-0 text-emerald-600 transition-colors hover:text-emerald-700 focus:outline-hidden"
                             >
                                 <CheckCircle2
                                     v-if="isStepCompleted('step_1')"
@@ -582,9 +582,9 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                 />
                                 <Circle v-else class="text-muted-foreground h-5 w-5" />
                             </button>
-                            <div class="space-y-1">
+                            <div class="space-y-1 min-w-0 flex-1">
                                 <h4
-                                    class="text-foreground flex items-center gap-2 text-xs font-bold sm:text-sm"
+                                    class="text-foreground flex flex-wrap items-center gap-2 text-xs font-bold sm:text-sm"
                                 >
                                     <span>Langkah 1: Daftar Akun di Broker HFM</span>
                                     <span
@@ -594,7 +594,7 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                         Selesai
                                     </span>
                                 </h4>
-                                <p class="text-muted-foreground text-xs">
+                                <p class="text-muted-foreground text-xs leading-relaxed">
                                     Buka akun myHF baru di broker HFM melalui tautan resmi kemitraan
                                     YZD Center. Lengkapi verifikasi profil (KYC) Anda di portal HFM.
                                 </p>
@@ -602,23 +602,23 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                         </div>
 
                         <!-- Tutorial & Action Link -->
-                        <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                        <div class="flex flex-wrap items-center gap-2 pl-8 sm:pl-0 sm:shrink-0 sm:justify-end">
                             <a
                                 href="https://register.hfmtrade-ind.com/sv/id/new-live-account/?refid=30570652"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="text-primary-600 hover:text-primary-700 bg-primary-500/10 border-primary-500/20 inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-semibold"
+                                class="text-primary-600 hover:text-primary-700 bg-primary-500/10 border-primary-500/20 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-[11px] font-semibold transition-colors"
                             >
-                                <ExternalLink class="h-3 w-3" />
+                                <ExternalLink class="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                 <span>Link Pendaftaran HFM</span>
                             </a>
                             <a
                                 :href="route('member.education.article', 'panduan-registrasi-broker-hfm')"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-semibold"
+                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-[11px] font-semibold transition-colors"
                             >
-                                <BookOpen class="h-3 w-3" />
+                                <BookOpen class="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                 <span>Panduan Registrasi</span>
                             </a>
                         </div>
@@ -634,12 +634,12 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             : 'border-border bg-muted/20'
                     "
                 >
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex items-start gap-3">
+                    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div class="flex items-start gap-3 min-w-0 flex-1">
                             <button
                                 type="button"
                                 @click="toggleStep('step_2')"
-                                class="mt-0.5 text-emerald-600 transition-colors hover:text-emerald-700 focus:outline-hidden"
+                                class="mt-0.5 shrink-0 text-emerald-600 transition-colors hover:text-emerald-700 focus:outline-hidden"
                             >
                                 <CheckCircle2
                                     v-if="isStepCompleted('step_2')"
@@ -647,9 +647,9 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                 />
                                 <Circle v-else class="text-muted-foreground h-5 w-5" />
                             </button>
-                            <div class="space-y-1">
+                            <div class="space-y-1 min-w-0 flex-1">
                                 <h4
-                                    class="text-foreground flex items-center gap-2 text-xs font-bold sm:text-sm"
+                                    class="text-foreground flex flex-wrap items-center gap-2 text-xs font-bold sm:text-sm"
                                 >
                                     <span>Langkah 2: Deposit Dana ke Wallet HFM</span>
                                     <span
@@ -659,7 +659,7 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                         Selesai
                                     </span>
                                 </h4>
-                                <p class="text-muted-foreground text-xs">
+                                <p class="text-muted-foreground text-xs leading-relaxed">
                                     Lakukan deposit saldo ke MyWallet akun HFM Anda sesuai modal yang telah ditentukan,
                                     <strong>{{ formatUSD(modalUsd) }}</strong> (&approx;
                                     {{ formatIDR(modalIdrEstimate) }}) menggunakan metode transfer
@@ -668,14 +668,14 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             </div>
                         </div>
 
-                        <div class="flex shrink-0 items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2 pl-8 sm:pl-0 sm:shrink-0 sm:justify-end">
                             <a
                                 :href="route('member.education.article', 'panduan-deposit-wallet-hfm')"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-semibold"
+                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-[11px] font-semibold transition-colors"
                             >
-                                <BookOpen class="h-3 w-3" />
+                                <BookOpen class="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                 <span>Panduan Deposit</span>
                             </a>
                         </div>
@@ -691,12 +691,12 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             : 'border-border bg-muted/20'
                     "
                 >
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex items-start gap-3">
+                    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div class="flex items-start gap-3 min-w-0 flex-1">
                             <button
                                 type="button"
                                 @click="toggleStep('step_3')"
-                                class="mt-0.5 text-emerald-600 transition-colors hover:text-emerald-700 focus:outline-hidden"
+                                class="mt-0.5 shrink-0 text-emerald-600 transition-colors hover:text-emerald-700 focus:outline-hidden"
                             >
                                 <CheckCircle2
                                     v-if="isStepCompleted('step_3')"
@@ -704,9 +704,9 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                 />
                                 <Circle v-else class="text-muted-foreground h-5 w-5" />
                             </button>
-                            <div class="space-y-1">
+                            <div class="space-y-1 min-w-0 flex-1">
                                 <h4
-                                    class="text-foreground flex items-center gap-2 text-xs font-bold sm:text-sm"
+                                    class="text-foreground flex flex-wrap items-center gap-2 text-xs font-bold sm:text-sm"
                                 >
                                     <span>Langkah 3: Follow Akun Master Strategi YZD</span>
                                     <span
@@ -716,7 +716,7 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                         Selesai
                                     </span>
                                 </h4>
-                                <p class="text-muted-foreground text-xs">
+                                <p class="text-muted-foreground text-xs leading-relaxed">
                                     Masuk ke menu <strong>HFM Copy</strong>, cari akun Master Trader
                                     YZD, lalu pilih
                                     <strong>Follow / Copy Strategy</strong> dan alokasikan saldo
@@ -725,14 +725,14 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             </div>
                         </div>
 
-                        <div class="flex shrink-0 items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2 pl-8 sm:pl-0 sm:shrink-0 sm:justify-end">
                             <a
                                 :href="route('member.education.article', 'panduan-follow-master-hfm')"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-semibold"
+                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-[11px] font-semibold transition-colors"
                             >
-                                <BookOpen class="h-3 w-3" />
+                                <BookOpen class="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                 <span>Panduan Follow Master</span>
                             </a>
                         </div>
@@ -748,12 +748,12 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             : 'border-border bg-muted/20'
                     "
                 >
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex items-start gap-3">
+                    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div class="flex items-start gap-3 min-w-0 flex-1">
                             <button
                                 type="button"
                                 @click="toggleStep('step_4')"
-                                class="mt-0.5 text-emerald-600 transition-colors hover:text-emerald-700 focus:outline-hidden"
+                                class="mt-0.5 shrink-0 text-emerald-600 transition-colors hover:text-emerald-700 focus:outline-hidden"
                             >
                                 <CheckCircle2
                                     v-if="isStepCompleted('step_4')"
@@ -761,9 +761,9 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                 />
                                 <Circle v-else class="text-muted-foreground h-5 w-5" />
                             </button>
-                            <div class="space-y-1">
+                            <div class="space-y-1 min-w-0 flex-1">
                                 <h4
-                                    class="text-foreground flex items-center gap-2 text-xs font-bold sm:text-sm"
+                                    class="text-foreground flex flex-wrap items-center gap-2 text-xs font-bold sm:text-sm"
                                 >
                                     <span>Langkah 4: Catat Nomor Akun MT4 Follower</span>
                                     <span
@@ -773,7 +773,7 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                         Selesai
                                     </span>
                                 </h4>
-                                <p class="text-muted-foreground text-xs">
+                                <p class="text-muted-foreground text-xs leading-relaxed">
                                     Setelah berhasil mengikuti (follow) akun Master Copytrade di portal HFM, broker akan menerbitkan nomor akun MT4 Follower Anda. Masukkan nomor akun tersebut ke formulir di bawah ini untuk identifikasi sistem YZD Center.
                                 </p>
                             </div>
@@ -815,12 +815,12 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             : 'border-border bg-muted/20'
                     "
                 >
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex items-start gap-3">
+                    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div class="flex items-start gap-3 min-w-0 flex-1">
                             <button
                                 type="button"
                                 @click="toggleStep('step_5')"
-                                class="mt-0.5 text-emerald-600 transition-colors hover:text-emerald-700 focus:outline-hidden"
+                                class="mt-0.5 shrink-0 text-emerald-600 transition-colors hover:text-emerald-700 focus:outline-hidden"
                             >
                                 <CheckCircle2
                                     v-if="isStepCompleted('step_5')"
@@ -828,9 +828,9 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                 />
                                 <Circle v-else class="text-muted-foreground h-5 w-5" />
                             </button>
-                            <div class="space-y-1">
+                            <div class="space-y-1 min-w-0 flex-1">
                                 <h4
-                                    class="text-foreground flex items-center gap-2 text-xs font-bold sm:text-sm"
+                                    class="text-foreground flex flex-wrap items-center gap-2 text-xs font-bold sm:text-sm"
                                 >
                                     <span
                                         >Langkah 5: Hubungkan Akun ke Aplikasi MetaTrader 4
@@ -843,20 +843,20 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                         Selesai
                                     </span>
                                 </h4>
-                                <p class="text-muted-foreground text-xs">
+                                <p class="text-muted-foreground text-xs leading-relaxed">
                                     Login ke aplikasi MT4 (HP atau Laptop) menggunakan Nomor Akun serta server dan password yang dikirimkan oleh broker HFM ke email Anda untuk memantau transaksi copytrade secara langsung dan transparan.
                                 </p>
                             </div>
                         </div>
 
-                        <div class="flex shrink-0 items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2 pl-8 sm:pl-0 sm:shrink-0 sm:justify-end">
                             <a
                                 :href="route('member.education.article', 'panduan-login-aplikasi-mt4')"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-semibold"
+                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-[11px] font-semibold transition-colors"
                             >
-                                <BookOpen class="h-3 w-3" />
+                                <BookOpen class="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                 <span>Panduan Login MT4</span>
                             </a>
                         </div>
@@ -872,12 +872,12 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             : 'border-border bg-muted/20'
                     "
                 >
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex items-start gap-3">
+                    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div class="flex items-start gap-3 min-w-0 flex-1">
                             <button
                                 type="button"
                                 @click="toggleStep('step_6')"
-                                class="mt-0.5 text-emerald-600 transition-colors hover:text-emerald-700 focus:outline-hidden"
+                                class="mt-0.5 shrink-0 text-emerald-600 transition-colors hover:text-emerald-700 focus:outline-hidden"
                             >
                                 <CheckCircle2
                                     v-if="isStepCompleted('step_6')"
@@ -885,9 +885,9 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                 />
                                 <Circle v-else class="text-muted-foreground h-5 w-5" />
                             </button>
-                            <div class="space-y-1">
+                            <div class="space-y-1 min-w-0 flex-1">
                                 <h4
-                                    class="text-foreground flex items-center gap-2 text-xs font-bold sm:text-sm"
+                                    class="text-foreground flex flex-wrap items-center gap-2 text-xs font-bold sm:text-sm"
                                 >
                                     <span
                                         >Langkah 6: Hubungkan ke Myfxbook & Daftarkan Akun ke YZD
@@ -900,7 +900,7 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                         Siap Dikirim
                                     </span>
                                 </h4>
-                                <p class="text-muted-foreground text-xs">
+                                <p class="text-muted-foreground text-xs leading-relaxed">
                                     Hubungkan akun MT4 Anda ke Myfxbook agar kinerja bulanan
                                     tercatat otomatis. Isi data final di
                                     bawah dan kirim pendaftaran.
@@ -908,23 +908,23 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             </div>
                         </div>
 
-                        <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                        <div class="flex flex-wrap items-center gap-2 pl-8 sm:pl-0 sm:shrink-0 sm:justify-end">
                             <a
                                 href="https://www.myfxbook.com"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="text-primary-600 hover:text-primary-700 bg-primary-500/10 border-primary-500/20 inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-semibold"
+                                class="text-primary-600 hover:text-primary-700 bg-primary-500/10 border-primary-500/20 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-[11px] font-semibold transition-colors"
                             >
-                                <ExternalLink class="h-3 w-3" />
+                                <ExternalLink class="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                 <span>Buka Myfxbook</span>
                             </a>
                             <a
                                 :href="route('member.education.article', 'panduan-menghubungkan-myfxbook')"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-semibold"
+                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-[11px] font-semibold transition-colors"
                             >
-                                <BookOpen class="h-3 w-3" />
+                                <BookOpen class="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                 <span>Panduan Myfxbook</span>
                             </a>
                         </div>
@@ -1116,12 +1116,12 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             : 'border-border bg-muted/20'
                     "
                 >
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex items-start gap-3">
+                    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div class="flex items-start gap-3 min-w-0 flex-1">
                             <button
                                 type="button"
                                 @click="toggleStep('step_1')"
-                                class="mt-0.5 text-purple-600 transition-colors hover:text-purple-700 focus:outline-hidden"
+                                class="mt-0.5 shrink-0 text-purple-600 transition-colors hover:text-purple-700 focus:outline-hidden"
                             >
                                 <CheckCircle2
                                     v-if="isStepCompleted('step_1')"
@@ -1129,9 +1129,9 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                 />
                                 <Circle v-else class="text-muted-foreground h-5 w-5" />
                             </button>
-                            <div class="space-y-1">
+                            <div class="space-y-1 min-w-0 flex-1">
                                 <h4
-                                    class="text-foreground flex items-center gap-2 text-xs font-bold sm:text-sm"
+                                    class="text-foreground flex flex-wrap items-center gap-2 text-xs font-bold sm:text-sm"
                                 >
                                     <span>Langkah 1: Daftar Akun di Broker XM</span>
                                     <span
@@ -1141,30 +1141,30 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                         Selesai
                                     </span>
                                 </h4>
-                                <p class="text-muted-foreground text-xs">
+                                <p class="text-muted-foreground text-xs leading-relaxed">
                                     Buka akun profil investor di broker XM melalui tautan resmi
                                     kemitraan YZD Center. Selesaikan proses verifikasi.
                                 </p>
                             </div>
                         </div>
 
-                        <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                        <div class="flex flex-wrap items-center gap-2 pl-8 sm:pl-0 sm:shrink-0 sm:justify-end">
                             <a
                                 href="https://affs.click/jeMVj"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="text-primary-600 hover:text-primary-700 bg-primary-500/10 border-primary-500/20 inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-semibold"
+                                class="text-primary-600 hover:text-primary-700 bg-primary-500/10 border-primary-500/20 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-[11px] font-semibold transition-colors"
                             >
-                                <ExternalLink class="h-3 w-3" />
+                                <ExternalLink class="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                 <span>Link Pendaftaran XM</span>
                             </a>
                             <a
                                 :href="route('member.education.article', 'panduan-registrasi-broker-xm')"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-semibold"
+                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-[11px] font-semibold transition-colors"
                             >
-                                <BookOpen class="h-3 w-3" />
+                                <BookOpen class="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                 <span>Panduan Registrasi</span>
                             </a>
                         </div>
@@ -1180,12 +1180,12 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             : 'border-border bg-muted/20'
                     "
                 >
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex items-start gap-3">
+                    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div class="flex items-start gap-3 min-w-0 flex-1">
                             <button
                                 type="button"
                                 @click="toggleStep('step_2')"
-                                class="mt-0.5 text-purple-600 transition-colors hover:text-purple-700 focus:outline-hidden"
+                                class="mt-0.5 shrink-0 text-purple-600 transition-colors hover:text-purple-700 focus:outline-hidden"
                             >
                                 <CheckCircle2
                                     v-if="isStepCompleted('step_2')"
@@ -1193,9 +1193,9 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                 />
                                 <Circle v-else class="text-muted-foreground h-5 w-5" />
                             </button>
-                            <div class="space-y-1">
+                            <div class="space-y-1 min-w-0 flex-1">
                                 <h4
-                                    class="text-foreground flex items-center gap-2 text-xs font-bold sm:text-sm"
+                                    class="text-foreground flex flex-wrap items-center gap-2 text-xs font-bold sm:text-sm"
                                 >
                                     <span>Langkah 2: Buka Akun Trading MT4 di XM</span>
                                     <span
@@ -1205,21 +1205,21 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                         Selesai
                                     </span>
                                 </h4>
-                                <p class="text-muted-foreground text-xs">
+                                <p class="text-muted-foreground text-xs leading-relaxed">
                                     Buka akun trading MT4 Standard dengan leverage yang
                                     direkomendasikan di Member Area XM untuk koneksi private VPS.
                                 </p>
                             </div>
                         </div>
 
-                        <div class="flex shrink-0 items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2 pl-8 sm:pl-0 sm:shrink-0 sm:justify-end">
                             <a
                                 :href="route('member.education.article', 'panduan-buka-akun-mt4-xm')"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-semibold"
+                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-[11px] font-semibold transition-colors"
                             >
-                                <BookOpen class="h-3 w-3" />
+                                <BookOpen class="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                 <span>Panduan Buka Akun MT4</span>
                             </a>
                         </div>
@@ -1235,12 +1235,12 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             : 'border-border bg-muted/20'
                     "
                 >
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex items-start gap-3">
+                    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div class="flex items-start gap-3 min-w-0 flex-1">
                             <button
                                 type="button"
                                 @click="toggleStep('step_3')"
-                                class="mt-0.5 text-purple-600 transition-colors hover:text-purple-700 focus:outline-hidden"
+                                class="mt-0.5 shrink-0 text-purple-600 transition-colors hover:text-purple-700 focus:outline-hidden"
                             >
                                 <CheckCircle2
                                     v-if="isStepCompleted('step_3')"
@@ -1248,9 +1248,9 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                 />
                                 <Circle v-else class="text-muted-foreground h-5 w-5" />
                             </button>
-                            <div class="space-y-1">
+                            <div class="space-y-1 min-w-0 flex-1">
                                 <h4
-                                    class="text-foreground flex items-center gap-2 text-xs font-bold sm:text-sm"
+                                    class="text-foreground flex flex-wrap items-center gap-2 text-xs font-bold sm:text-sm"
                                 >
                                     <span>Langkah 3: Catat Kredensial Akun MT4 XM</span>
                                     <span
@@ -1260,7 +1260,7 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                         Selesai
                                     </span>
                                 </h4>
-                                <p class="text-muted-foreground text-xs">
+                                <p class="text-muted-foreground text-xs leading-relaxed">
                                     Kredensial akun MT4 XM (Server, Master Password, dan Investor Password) diperlukan untuk instalasi robot trading di Dedicated Private VPS. Masukkan data ke formulir di bawah ini.
                                 </p>
                             </div>
@@ -1383,12 +1383,12 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             : 'border-border bg-muted/20'
                     "
                 >
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex items-start gap-3">
+                    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div class="flex items-start gap-3 min-w-0 flex-1">
                             <button
                                 type="button"
                                 @click="toggleStep('step_4')"
-                                class="mt-0.5 text-purple-600 transition-colors hover:text-purple-700 focus:outline-hidden"
+                                class="mt-0.5 shrink-0 text-purple-600 transition-colors hover:text-purple-700 focus:outline-hidden"
                             >
                                 <CheckCircle2
                                     v-if="isStepCompleted('step_4')"
@@ -1396,9 +1396,9 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                 />
                                 <Circle v-else class="text-muted-foreground h-5 w-5" />
                             </button>
-                            <div class="space-y-1">
+                            <div class="space-y-1 min-w-0 flex-1">
                                 <h4
-                                    class="text-foreground flex items-center gap-2 text-xs font-bold sm:text-sm"
+                                    class="text-foreground flex flex-wrap items-center gap-2 text-xs font-bold sm:text-sm"
                                 >
                                     <span>Langkah 4: Deposit Dana ke Akun MT4 XM</span>
                                     <span
@@ -1408,7 +1408,7 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                         Selesai
                                     </span>
                                 </h4>
-                                <p class="text-muted-foreground text-xs">
+                                <p class="text-muted-foreground text-xs leading-relaxed">
                                     Lakukan deposit saldo langsung ke akun MT4 XM sesuai modal yang telah ditentukan, senilai 
                                     <strong>{{ formatUSD(modalUsd) }}</strong> (&approx;
                                     {{ formatIDR(modalIdrEstimate) }}).
@@ -1416,14 +1416,14 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             </div>
                         </div>
 
-                        <div class="flex shrink-0 items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2 pl-8 sm:pl-0 sm:shrink-0 sm:justify-end">
                             <a
                                 :href="route('member.education.article', 'panduan-deposit-akun-mt4-xm')"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-semibold"
+                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-[11px] font-semibold transition-colors"
                             >
-                                <BookOpen class="h-3 w-3" />
+                                <BookOpen class="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                 <span>Panduan Deposit XM</span>
                             </a>
                         </div>
@@ -1439,12 +1439,12 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             : 'border-border bg-muted/20'
                     "
                 >
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex items-start gap-3">
+                    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div class="flex items-start gap-3 min-w-0 flex-1">
                             <button
                                 type="button"
                                 @click="toggleStep('step_5')"
-                                class="mt-0.5 text-purple-600 transition-colors hover:text-purple-700 focus:outline-hidden"
+                                class="mt-0.5 shrink-0 text-purple-600 transition-colors hover:text-purple-700 focus:outline-hidden"
                             >
                                 <CheckCircle2
                                     v-if="isStepCompleted('step_5')"
@@ -1452,9 +1452,9 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                 />
                                 <Circle v-else class="text-muted-foreground h-5 w-5" />
                             </button>
-                            <div class="space-y-1">
+                            <div class="space-y-1 min-w-0 flex-1">
                                 <h4
-                                    class="text-foreground flex items-center gap-2 text-xs font-bold sm:text-sm"
+                                    class="text-foreground flex flex-wrap items-center gap-2 text-xs font-bold sm:text-sm"
                                 >
                                     <span
                                         >Langkah 5: Hubungkan Akun ke Aplikasi MetaTrader 4
@@ -1467,21 +1467,21 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                         Selesai
                                     </span>
                                 </h4>
-                                <p class="text-muted-foreground text-xs">
+                                <p class="text-muted-foreground text-xs leading-relaxed">
                                     Login ke MT4 untuk memverifikasi dana modal telah masuk dan siap
                                     dipasangi algoritma trading oleh tim YZD Center.
                                 </p>
                             </div>
                         </div>
 
-                        <div class="flex shrink-0 items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2 pl-8 sm:pl-0 sm:shrink-0 sm:justify-end">
                             <a
                                 :href="route('member.education.article', 'panduan-login-aplikasi-mt4')"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-semibold"
+                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-[11px] font-semibold transition-colors"
                             >
-                                <BookOpen class="h-3 w-3" />
+                                <BookOpen class="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                 <span>Panduan Login MT4</span>
                             </a>
                         </div>
@@ -1497,12 +1497,12 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             : 'border-border bg-muted/20'
                     "
                 >
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex items-start gap-3">
+                    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div class="flex items-start gap-3 min-w-0 flex-1">
                             <button
                                 type="button"
                                 @click="toggleStep('step_6')"
-                                class="mt-0.5 text-purple-600 transition-colors hover:text-purple-700 focus:outline-hidden"
+                                class="mt-0.5 shrink-0 text-purple-600 transition-colors hover:text-purple-700 focus:outline-hidden"
                             >
                                 <CheckCircle2
                                     v-if="isStepCompleted('step_6')"
@@ -1510,9 +1510,9 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                 />
                                 <Circle v-else class="text-muted-foreground h-5 w-5" />
                             </button>
-                            <div class="space-y-1">
+                            <div class="space-y-1 min-w-0 flex-1">
                                 <h4
-                                    class="text-foreground flex items-center gap-2 text-xs font-bold sm:text-sm"
+                                    class="text-foreground flex flex-wrap items-center gap-2 text-xs font-bold sm:text-sm"
                                 >
                                     <span
                                         >Langkah 6: Hubungkan ke Myfxbook & Daftarkan Akun ke YZD
@@ -1525,7 +1525,7 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                         Siap Dikirim
                                     </span>
                                 </h4>
-                                <p class="text-muted-foreground text-xs">
+                                <p class="text-muted-foreground text-xs leading-relaxed">
                                     Hubungkan akun MT4 XM Anda ke Myfxbook untuk transparansi
                                     kinerja bulanan, lalu selesaikan pendaftaran akun ke sistem YZD
                                     Center.
@@ -1533,23 +1533,23 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             </div>
                         </div>
 
-                        <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                        <div class="flex flex-wrap items-center gap-2 pl-8 sm:pl-0 sm:shrink-0 sm:justify-end">
                             <a
                                 href="https://www.myfxbook.com"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="text-primary-600 hover:text-primary-700 bg-primary-500/10 border-primary-500/20 inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-semibold"
+                                class="text-primary-600 hover:text-primary-700 bg-primary-500/10 border-primary-500/20 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-[11px] font-semibold transition-colors"
                             >
-                                <ExternalLink class="h-3 w-3" />
+                                <ExternalLink class="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                 <span>Buka Myfxbook</span>
                             </a>
                             <a
                                 :href="route('member.education.article', 'panduan-menghubungkan-myfxbook')"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-semibold"
+                                class="text-muted-foreground hover:text-foreground bg-muted border-border inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-[11px] font-semibold transition-colors"
                             >
-                                <BookOpen class="h-3 w-3" />
+                                <BookOpen class="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                 <span>Panduan Myfxbook</span>
                             </a>
                         </div>

@@ -54,6 +54,7 @@ const activeId = computed(() => props.laporanId || props.tagihanId || null);
 const loading = ref(false);
 const detail = ref(null);
 const copied = ref(false);
+const fileInputRef = ref(null);
 
 const uploadForm = useForm({
     bukti_transfer: null,
@@ -87,9 +88,15 @@ watch(
         if (isOpen && activeId.value) {
             uploadForm.reset();
             uploadForm.clearErrors();
+            if (fileInputRef.value) {
+                fileInputRef.value.value = '';
+            }
             fetchDetail(activeId.value);
         } else if (!isOpen) {
             detail.value = null;
+            if (fileInputRef.value) {
+                fileInputRef.value.value = '';
+            }
         }
     }
 );
@@ -132,6 +139,7 @@ const copyRekening = async () => {
 };
 
 const handleProofChange = async (event) => {
+    uploadForm.clearErrors('bukti_transfer');
     const file = event.target.files?.[0];
     if (!file) {
         uploadForm.bukti_transfer = null;
@@ -147,7 +155,10 @@ const handleProofChange = async (event) => {
 
 const submitUpload = () => {
     if (uploadForm.processing) return;
-    if (!activeId.value || !uploadForm.bukti_transfer) {
+    if (!activeId.value) return;
+
+    if (!uploadForm.bukti_transfer) {
+        uploadForm.setError('bukti_transfer', 'Bukti transfer pembayaran Master Fee wajib diunggah.');
         toast.error('Pilih berkas bukti transfer terlebih dahulu.');
         return;
     }
@@ -206,7 +217,7 @@ const triggerEdit = () => {
                     <div class="text-right space-y-1">
                         <span
                             :class="[
-                                'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold',
+                                'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-nowrap',
                                 getStatusBadgeClass(laporan.status_tampil)
                             ]"
                         >
@@ -231,10 +242,10 @@ const triggerEdit = () => {
                             Master Fee ({{ Number(laporan.fee_persen) }}%)
                         </span>
                         <div class="font-mono text-xl font-black text-primary">
-                            ${{ Number(laporan.fee_usd).toFixed(2) }}
+                            {{ formatRupiah(laporan.fee_idr) }}
                         </div>
                         <div v-if="laporan.fee_idr > 0" class="text-xs font-semibold text-muted-foreground">
-                            ≈ {{ formatRupiah(laporan.fee_idr) }}
+                            ≈  ${{ Number(laporan.fee_usd).toFixed(2) }}
                         </div>
                     </div>
                     <div class="text-right text-xs space-y-0.5">
@@ -362,9 +373,11 @@ const triggerEdit = () => {
 
             <!-- 6. Form Unggah Bukti Transfer / Pratinjau Bukti -->
             <div v-if="Number(laporan.fee_usd) > 0" class="rounded-xl border border-border p-3.5 space-y-3">
-                <span class="text-xs font-bold text-foreground block">
-                    Bukti Pembayaran Master Fee
-                </span>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-foreground block">
+                        Bukti Pembayaran Master Fee <span class="text-destructive">*</span>
+                    </span>
+                </div>
 
                 <!-- Jika sudah ada bukti transfer dan status menunggu_verifikasi / lunas -->
                 <div v-if="urls.bukti_transfer && laporan.status !== 'ditolak'" class="space-y-2">
@@ -395,17 +408,22 @@ const triggerEdit = () => {
                     @submit.prevent="submitUpload"
                     class="space-y-3"
                 >
-                    <div class="space-y-1">
-                        <label class="text-[11px] font-semibold text-muted-foreground block">
-                            Pilih Gambar Bukti Transfer (JPG, PNG, WebP)
+                    <div class="space-y-1.5">
+                        <label class="text-[11px] font-semibold text-foreground flex items-center justify-between">
+                            <span>Pilih Gambar Bukti Transfer (JPG, PNG, WebP)</span>
                         </label>
                         <input
+                            ref="fileInputRef"
                             type="file"
                             accept="image/jpeg,image/png,image/jpg,image/webp"
+                            required
                             @change="handleProofChange"
                             class="bg-background border-input file:bg-primary file:text-primary-foreground focus:ring-primary w-full rounded-lg border file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-1.5 file:text-xs file:font-semibold text-xs focus:ring-2 focus:outline-none cursor-pointer"
                         />
-                        <p v-if="uploadForm.errors.bukti_transfer" class="text-xs text-destructive">
+                        <p class="text-[11px] text-muted-foreground">
+                            Unggah bukti struk transfer ATM / m-Banking / mutasi rekening.
+                        </p>
+                        <p v-if="uploadForm.errors.bukti_transfer" class="text-xs text-destructive font-medium">
                             {{ uploadForm.errors.bukti_transfer }}
                         </p>
                     </div>

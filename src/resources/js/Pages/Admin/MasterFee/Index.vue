@@ -147,7 +147,7 @@ const missingColumns = [
                 <div class="rounded-xl border border-border bg-card p-3.5 space-y-1">
                     <span class="text-[11px] font-semibold text-muted-foreground">Total Fee Masuk</span>
                     <div class="font-mono text-base font-black text-foreground">
-                        {{ formatUSD(summary.total_tagihan_usd) }}
+                        {{ formatRupiah(summary.total_tagihan_idr) }}
                     </div>
                     <span class="text-[10px] text-muted-foreground block">
                         {{ summary.total_tagihan_count }} laporan
@@ -158,7 +158,7 @@ const missingColumns = [
                 <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/10 p-3.5 space-y-1">
                     <span class="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">Fee Lunas</span>
                     <div class="font-mono text-base font-black text-emerald-700 dark:text-emerald-400">
-                        {{ formatUSD(summary.lunas_usd) }}
+                        {{ formatRupiah(summary.lunas_idr) }}
                     </div>
                     <span class="text-[10px] text-muted-foreground block">
                         {{ summary.lunas_count }} laporan
@@ -176,7 +176,7 @@ const missingColumns = [
                 >
                     <span class="text-[11px] font-semibold">Menunggu Verifikasi</span>
                     <div class="font-mono text-base font-black">
-                        {{ formatUSD(summary.menunggu_verifikasi_usd) }}
+                        {{ formatRupiah(summary.menunggu_verifikasi_idr) }}
                     </div>
                     <span class="text-[10px] block">
                         {{ summary.menunggu_verifikasi_count }} perlu verifikasi
@@ -187,7 +187,7 @@ const missingColumns = [
                 <div class="rounded-xl border border-border bg-card p-3.5 space-y-1">
                     <span class="text-[11px] font-semibold text-muted-foreground">Menunggu Pembayaran</span>
                     <div class="font-mono text-base font-black text-foreground">
-                        {{ formatUSD(summary.belum_dibayar_usd) }}
+                        {{ formatRupiah(summary.belum_dibayar_idr) }}
                     </div>
                     <span class="text-[10px] text-muted-foreground block">
                         {{ summary.belum_dibayar_count }} laporan

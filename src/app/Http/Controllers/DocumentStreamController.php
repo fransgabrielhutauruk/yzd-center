@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProfitMasterPostImage;
+use App\Models\RelasiReferral;
 use App\Models\TiketBantuanLampiran;
 use App\Models\UserDokumen;
 use App\Services\AuditLogService;
@@ -374,8 +375,14 @@ class DocumentStreamController extends Controller
 
         $laporan = \App\Models\LaporanProfitBulanan::with('user')->findOrFail($id);
 
-        // Otorisasi: Hanya Admin atau Pemilik Laporan yang dapat mengakses (Afiliator TIDAK boleh)
-        if (!$user->isAdmin() && $user->id !== $laporan->user_id) {
+        // Otorisasi: Admin, Pemilik Laporan, atau Afiliator langsung yang terdaftar pada RelasiReferral
+        $isDirectAffiliator = $user->id !== $laporan->user_id && !$user->isAdmin()
+            ? RelasiReferral::where('affiliator_id', $user->id)
+                ->where('downline_id', $laporan->user_id)
+                ->exists()
+            : false;
+
+        if (!$user->isAdmin() && $user->id !== $laporan->user_id && !$isDirectAffiliator) {
             abort(403, 'Anda tidak memiliki hak akses untuk melihat bukti transfer ini.');
         }
 

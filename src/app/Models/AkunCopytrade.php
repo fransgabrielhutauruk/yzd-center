@@ -89,6 +89,11 @@ class AkunCopytrade extends Model
         return $this->hasOne(LaporanProfitBulanan::class, 'akun_copytrade_id')->latestOfMany('periode_ke');
     }
 
+    public function klaimKomisiItems(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(KlaimKomisiItem::class, 'akun_copytrade_id');
+    }
+
     // -------------------------------------------------------------------------
     // Accessors
     // -------------------------------------------------------------------------

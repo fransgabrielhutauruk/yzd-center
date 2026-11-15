@@ -27,9 +27,13 @@ const props = defineProps({
     settings: { type: Object, default: () => ({}) },
     available_accounts: { type: Array, default: () => [] },
     total_menunggu_pembayaran: { type: Number, default: 0 },
+    total_menunggu_pembayaran_idr: { type: Number, default: 0 },
     total_menunggu_verifikasi: { type: Number, default: 0 },
+    total_menunggu_verifikasi_idr: { type: Number, default: 0 },
     total_lunas: { type: Number, default: 0 },
+    total_lunas_idr: { type: Number, default: 0 },
     total_belum_dibayar: { type: Number, default: 0 },
+    total_belum_dibayar_idr: { type: Number, default: 0 },
 });
 
 const getStatusBadgeClass = (status) => {
@@ -92,7 +96,7 @@ const columns = [
     { key: 'akun', label: 'Akun Trading' },
     { key: 'profit_usd', label: 'Profit (USD)', align: 'right' },
     { key: 'wd_usd', label: 'Penarikan (WD)', align: 'right' },
-    { key: 'kurs_riil', label: 'Kurs Riil', align: 'right' },
+    { key: 'kurs_riil', label: 'Kurs', align: 'right' },
     { key: 'fee', label: 'Master Fee', align: 'right' },
     { key: 'status', label: 'Status', align: 'center' },
     { key: 'actions', label: 'Aksi', align: 'center' },
@@ -100,6 +104,10 @@ const columns = [
 
 const formatUSD = (val) => {
     return '$' + Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+const formatIDR = (val) => {
+    return 'Rp ' + Math.round(Number(val || 0)).toLocaleString('id-ID');
 };
 
 const maxMonth = computed(() => {
@@ -127,8 +135,8 @@ const maxMonth = computed(() => {
                         <span class="text-xs font-semibold text-blue-800 dark:text-blue-300 uppercase tracking-wider">
                             Menunggu Pembayaran
                         </span>
-                        <div class="font-mono text-2xl font-black text-blue-700 dark:text-blue-400">
-                            {{ formatUSD(total_menunggu_pembayaran) }}
+                        <div class="font-mono text-xl sm:text-2xl font-black text-blue-700 dark:text-blue-400">
+                            {{ formatIDR(total_menunggu_pembayaran_idr) }}
                         </div>
                         <p class="text-[11px] text-muted-foreground">Siap ditransfer oleh Anda</p>
                     </div>
@@ -143,8 +151,8 @@ const maxMonth = computed(() => {
                         <span class="text-xs font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wider">
                             Menunggu Verifikasi
                         </span>
-                        <div class="font-mono text-2xl font-black text-amber-700 dark:text-amber-400">
-                            {{ formatUSD(total_menunggu_verifikasi) }}
+                        <div class="font-mono text-xl sm:text-2xl font-black text-amber-700 dark:text-amber-400">
+                            {{ formatIDR(total_menunggu_verifikasi_idr) }}
                         </div>
                         <p class="text-[11px] text-muted-foreground">Bukti transfer ditinjau admin</p>
                     </div>
@@ -159,8 +167,8 @@ const maxMonth = computed(() => {
                         <span class="text-xs font-semibold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
                             Total Fee Lunas
                         </span>
-                        <div class="font-mono text-2xl font-black text-emerald-700 dark:text-emerald-400">
-                            {{ formatUSD(total_lunas) }}
+                        <div class="font-mono text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-400">
+                            {{ formatIDR(total_lunas_idr) }}
                         </div>
                         <p class="text-[11px] text-muted-foreground">Master fee berhasil diverifikasi</p>
                     </div>

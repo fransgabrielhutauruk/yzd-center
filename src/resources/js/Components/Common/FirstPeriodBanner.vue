@@ -59,6 +59,7 @@ const dismiss = () => {
             <p class="leading-relaxed">
                 <span class="font-bold">Periode pertama akun #{{ notice.nomor_akun }}:</span>
                 {{ notice.tanggal_mulai }} – {{ notice.periode_akhir }}.
+                <br/>
                 <span class="font-semibold text-blue-700 dark:text-blue-300"
                     >Input profit dibuka {{ notice.input_dibuka }}.</span
                 >

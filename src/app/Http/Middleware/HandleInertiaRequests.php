@@ -97,7 +97,7 @@ class HandleInertiaRequests extends Middleware
                     'periode_akhir' => function_exists('tanggal_indo') ? tanggal_indo($p1End) : $p1End->toDateString(),
                     'input_dibuka'  => function_exists('tanggal_indo') ? tanggal_indo($openDate) : $openDate->toDateString(),
                     'other_count'   => $otherCount,
-                    'aturan'        => 'Mulai copy tgl 1–15 = s/d akhir bulan itu; tgl 16–31 = s/d akhir bulan berikutnya.',
+                    'aturan'        => 'Jika mulai investasi tanggal 1–15 maka periode sampai dengan akhir bulan itu. Jika tanggal 16–31 maka periode sampai dengan akhir bulan berikutnya',
                 ];
             },
             'flash' => fn () => [

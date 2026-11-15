@@ -282,6 +282,41 @@ class MasterFeeTest extends TestCase
         $this->assertNotNull($laporan->verified_at);
     }
 
+    public function test_member_cannot_submit_proof_without_file(): void
+    {
+        $laporan = LaporanProfitBulanan::create([
+            'nomor'               => 'MFE-202609-0099',
+            'akun_copytrade_id'   => $this->akun->id,
+            'user_id'             => $this->member->id,
+            'periode_ke'          => 1,
+            'periode_awal'        => '2026-08-03',
+            'periode_akhir'       => '2026-08-31',
+            'jatuh_tempo'         => '2026-09-01',
+            'profit_usd'          => 100.00,
+            'bukti_myfxbook_path' => 'master_fee/myfxbook/test.png',
+            'wd_usd'              => 50.00,
+            'wd_idr'              => 800000,
+            'bukti_wd_path'       => 'master_fee/wd/test.png',
+            'kurs_riil'           => 16000.00,
+            'fee_persen'          => 30.00,
+            'fee_usd'             => 30.00,
+            'fee_idr'             => 480000,
+            'status'              => 'belum_dibayar',
+        ]);
+
+        $response = $this->actingAs($this->member)->post("/member/master-fee/{$laporan->id}/proof", [
+            'bukti_transfer' => null,
+        ]);
+
+        $response->assertSessionHasErrors([
+            'bukti_transfer' => 'Bukti transfer pembayaran Master Fee wajib diunggah.',
+        ]);
+
+        $laporan->refresh();
+        $this->assertEquals('belum_dibayar', $laporan->status);
+        $this->assertNull($laporan->bukti_transfer_path);
+    }
+
     public function test_admin_can_reject_payment_proof_and_member_can_reupload(): void
     {
         $laporan = LaporanProfitBulanan::create([
@@ -421,10 +456,14 @@ class MasterFeeTest extends TestCase
         $this->actingAs($this->otherMember)->get("/documents/master-fee/{$laporan->id}/wd")->assertForbidden();
         $this->actingAs($this->otherMember)->get("/documents/master-fee/{$laporan->id}")->assertForbidden();
 
-        // Afiliator dilarang mengakses screenshot / berkas transfer downline (403 Forbidden)
+        // Afiliator langsung dilarang mengakses screenshot Myfxbook & WD, namun diizinkan melihat bukti transfer Master Fee
         $this->actingAs($this->affiliator)->get("/documents/master-fee/{$laporan->id}/myfxbook")->assertForbidden();
         $this->actingAs($this->affiliator)->get("/documents/master-fee/{$laporan->id}/wd")->assertForbidden();
-        $this->actingAs($this->affiliator)->get("/documents/master-fee/{$laporan->id}")->assertForbidden();
+        $this->actingAs($this->affiliator)->get("/documents/master-fee/{$laporan->id}")->assertOk();
+
+        // Afiliator tidak terkait (bukan upline langsung) dilarang mengakses bukti transfer Master Fee
+        $unrelatedUser = User::factory()->create(['role' => 'member', 'status' => 'active']);
+        $this->actingAs($unrelatedUser)->get("/documents/master-fee/{$laporan->id}")->assertForbidden();
     }
 
     public function test_affiliator_downline_report_strictly_hides_financial_details_and_proofs(): void
@@ -469,5 +508,90 @@ class MasterFeeTest extends TestCase
         $this->assertArrayNotHasKey('fee_idr', $laporanItem);
         $this->assertArrayNotHasKey('bukti_myfxbook_path', $laporanItem);
         $this->assertArrayNotHasKey('bukti_wd_path', $laporanItem);
+    }
+
+    public function test_member_and_admin_master_fee_summary_cards_provide_idr_totals(): void
+    {
+        LaporanProfitBulanan::create([
+            'nomor'               => 'MFE-202609-0101',
+            'akun_copytrade_id'   => $this->akun->id,
+            'user_id'             => $this->member->id,
+            'periode_ke'          => 1,
+            'periode_awal'        => '2026-08-03',
+            'periode_akhir'       => '2026-08-31',
+            'jatuh_tempo'         => '2026-09-01',
+            'profit_usd'          => 100.00,
+            'bukti_myfxbook_path' => 'master_fee/myfxbook/1.png',
+            'wd_usd'              => 50.00,
+            'wd_idr'              => 800000,
+            'bukti_wd_path'       => 'master_fee/wd/1.png',
+            'kurs_riil'           => 16000.00,
+            'fee_persen'          => 30.00,
+            'fee_usd'             => 30.00,
+            'fee_idr'             => 480000,
+            'status'              => LaporanProfitBulanan::STATUS_BELUM_DIBAYAR,
+        ]);
+
+        LaporanProfitBulanan::create([
+            'nomor'               => 'MFE-202610-0102',
+            'akun_copytrade_id'   => $this->akun->id,
+            'user_id'             => $this->member->id,
+            'periode_ke'          => 2,
+            'periode_awal'        => '2026-09-01',
+            'periode_akhir'       => '2026-09-30',
+            'jatuh_tempo'         => '2026-10-01',
+            'profit_usd'          => 200.00,
+            'bukti_myfxbook_path' => 'master_fee/myfxbook/2.png',
+            'wd_usd'              => 100.00,
+            'wd_idr'              => 1600000,
+            'bukti_wd_path'       => 'master_fee/wd/2.png',
+            'kurs_riil'           => 16000.00,
+            'fee_persen'          => 30.00,
+            'fee_usd'             => 60.00,
+            'fee_idr'             => 960000,
+            'status'              => LaporanProfitBulanan::STATUS_MENUNGGU_VERIFIKASI,
+        ]);
+
+        LaporanProfitBulanan::create([
+            'nomor'               => 'MFE-202611-0103',
+            'akun_copytrade_id'   => $this->akun->id,
+            'user_id'             => $this->member->id,
+            'periode_ke'          => 3,
+            'periode_awal'        => '2026-10-01',
+            'periode_akhir'       => '2026-10-31',
+            'jatuh_tempo'         => '2026-11-01',
+            'profit_usd'          => 300.00,
+            'bukti_myfxbook_path' => 'master_fee/myfxbook/3.png',
+            'wd_usd'              => 150.00,
+            'wd_idr'              => 2400000,
+            'bukti_wd_path'       => 'master_fee/wd/3.png',
+            'kurs_riil'           => 16000.00,
+            'fee_persen'          => 30.00,
+            'fee_usd'             => 90.00,
+            'fee_idr'             => 1440000,
+            'status'              => LaporanProfitBulanan::STATUS_LUNAS,
+        ]);
+
+        $this->actingAs($this->member)
+            ->get('/member/master-fee')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Member/MasterFee/Index')
+                ->where('total_menunggu_pembayaran_idr', 480000)
+                ->where('total_menunggu_verifikasi_idr', 960000)
+                ->where('total_lunas_idr', 1440000)
+                ->where('total_belum_dibayar_idr', 1440000)
+            );
+
+        $this->actingAs($this->admin)
+            ->get('/admin/master-fee')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/MasterFee/Index')
+                ->where('summary.total_tagihan_idr', 2880000)
+                ->where('summary.lunas_idr', 1440000)
+                ->where('summary.menunggu_verifikasi_idr', 960000)
+                ->where('summary.belum_dibayar_idr', 480000)
+            );
     }
 }

@@ -34,23 +34,25 @@ class MasterFeeController extends Controller
         $settings = $this->masterFeeService->getSettings();
         $availableAccounts = $this->masterFeeService->availableReportableAccounts($user);
 
-        $totalMenungguPembayaran = (float) LaporanProfitBulanan::query()
+        $userReports = LaporanProfitBulanan::query()
             ->where('user_id', $user->id)
-            ->whereIn('status', [
-                LaporanProfitBulanan::STATUS_BELUM_DIBAYAR,
-                LaporanProfitBulanan::STATUS_DITOLAK,
-            ])
-            ->sum('fee_usd');
+            ->get(['status', 'fee_usd', 'fee_idr']);
 
-        $totalMenungguVerifikasi = (float) LaporanProfitBulanan::query()
-            ->where('user_id', $user->id)
-            ->where('status', LaporanProfitBulanan::STATUS_MENUNGGU_VERIFIKASI)
-            ->sum('fee_usd');
+        $menungguPembayaranReports = $userReports->whereIn('status', [
+            LaporanProfitBulanan::STATUS_BELUM_DIBAYAR,
+            LaporanProfitBulanan::STATUS_DITOLAK,
+        ]);
+        $menungguVerifikasiReports = $userReports->where('status', LaporanProfitBulanan::STATUS_MENUNGGU_VERIFIKASI);
+        $lunasReports = $userReports->where('status', LaporanProfitBulanan::STATUS_LUNAS);
 
-        $totalLunas = (float) LaporanProfitBulanan::query()
-            ->where('user_id', $user->id)
-            ->where('status', LaporanProfitBulanan::STATUS_LUNAS)
-            ->sum('fee_usd');
+        $totalMenungguPembayaran = (float) $menungguPembayaranReports->sum('fee_usd');
+        $totalMenungguPembayaranIdr = (int) $menungguPembayaranReports->sum('fee_idr');
+
+        $totalMenungguVerifikasi = (float) $menungguVerifikasiReports->sum('fee_usd');
+        $totalMenungguVerifikasiIdr = (int) $menungguVerifikasiReports->sum('fee_idr');
+
+        $totalLunas = (float) $lunasReports->sum('fee_usd');
+        $totalLunasIdr = (int) $lunasReports->sum('fee_idr');
 
         // Transform collection to add formatted fields and URLs
         $reportsFormatted = $paginated->through(function (LaporanProfitBulanan $l) {
@@ -118,14 +120,18 @@ class MasterFeeController extends Controller
         }, $availableAccounts);
 
         return Inertia::render('Member/MasterFee/Index', [
-            'laporans'                  => $reportsFormatted,
-            'filters'                   => $filters,
-            'settings'                  => $settings,
-            'available_accounts'        => $availableAccountsFormatted,
-            'total_menunggu_pembayaran' => round($totalMenungguPembayaran, 2),
-            'total_menunggu_verifikasi' => round($totalMenungguVerifikasi, 2),
-            'total_lunas'               => round($totalLunas, 2),
-            'total_belum_dibayar'       => round($totalMenungguPembayaran + $totalMenungguVerifikasi, 2),
+            'laporans'                      => $reportsFormatted,
+            'filters'                       => $filters,
+            'settings'                      => $settings,
+            'available_accounts'            => $availableAccountsFormatted,
+            'total_menunggu_pembayaran'     => round($totalMenungguPembayaran, 2),
+            'total_menunggu_pembayaran_idr' => $totalMenungguPembayaranIdr,
+            'total_menunggu_verifikasi'     => round($totalMenungguVerifikasi, 2),
+            'total_menunggu_verifikasi_idr' => $totalMenungguVerifikasiIdr,
+            'total_lunas'                   => round($totalLunas, 2),
+            'total_lunas_idr'               => $totalLunasIdr,
+            'total_belum_dibayar'           => round($totalMenungguPembayaran + $totalMenungguVerifikasi, 2),
+            'total_belum_dibayar_idr'       => $totalMenungguPembayaranIdr + $totalMenungguVerifikasiIdr,
         ]);
     }
 
