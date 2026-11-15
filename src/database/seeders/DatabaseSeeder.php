@@ -18,10 +18,12 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             DemoUserSeeder::class,
             KontenLegalSeeder::class,
-            PengaturanMasterSeeder::class,
-            EdukasiDanBantuanSeeder::class,
-            TiketBantuanSeeder::class,
-            MasterFeeSeeder::class,
+            PanduanBantuanSeeder::class,
+            EdukasiGlosariumSeeder::class,
+            // PengaturanMasterSeeder::class,
+            // EdukasiFaqSeeder::class,
+            // TiketBantuanSeeder::class,
+            // MasterFeeSeeder::class,
         ]);
     }
 }
