@@ -30,6 +30,7 @@ import {
     Lock,
     Eye,
     Receipt,
+    Image as ImageIcon,
 } from 'lucide-vue-next';
 import MemberLayout from '@/Layouts/MemberLayout.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
@@ -380,6 +381,17 @@ const applyFilter = () => {
             preserveScroll: true,
         }
     );
+};
+
+// -----------------------------------------------------------------------------
+// Modal Pratinjau Screenshot Data Akun Trading
+// -----------------------------------------------------------------------------
+const isScreenshotModalOpen = ref(false);
+const screenshotAccount = ref(null);
+
+const openScreenshotModal = (account) => {
+    screenshotAccount.value = account;
+    isScreenshotModalOpen.value = true;
 };
 
 // -----------------------------------------------------------------------------
@@ -1155,6 +1167,18 @@ onMounted(() => {
                                 >
                                     {{ getTierBadge(selectedAccountData.tier).shortLabel }}
                                 </span>
+                                <button
+                                    v-if="
+                                        selectedAccountData.has_screenshot_akun &&
+                                        selectedAccountData.screenshot_akun_url
+                                    "
+                                    type="button"
+                                    @click="openScreenshotModal(selectedAccountData)"
+                                    class="border-border text-foreground bg-muted/50 hover:bg-muted inline-flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors"
+                                >
+                                    <ImageIcon class="h-3 w-3" />
+                                    <span>Screenshot Akun</span>
+                                </button>
                             </div>
                             <p class="text-muted-foreground max-w-3xl text-xs leading-relaxed">
                                 Akun ini telah didaftarkan dan sedang menunggu verifikasi
@@ -1245,6 +1269,18 @@ onMounted(() => {
                                             class="border-amber-500/30 text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer"
                                         >
                                             <span>+ Lengkapi Myfxbook</span>
+                                        </button>
+                                        <button
+                                            v-if="
+                                                selectedAccountData.has_screenshot_akun &&
+                                                selectedAccountData.screenshot_akun_url
+                                            "
+                                            type="button"
+                                            @click="openScreenshotModal(selectedAccountData)"
+                                            class="border-border text-foreground bg-muted/50 hover:bg-muted inline-flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors"
+                                        >
+                                            <ImageIcon class="h-3 w-3" />
+                                            <span>Screenshot Akun</span>
                                         </button>
                                     </div>
                                     <p class="text-muted-foreground mt-1 text-xs">
@@ -1826,6 +1862,53 @@ onMounted(() => {
                     />
                 </div>
             </form>
+        </AppModal>
+
+        <!-- ===================================================================== -->
+        <!-- MODAL: Pratinjau Screenshot Data Akun Trading                         -->
+        <!-- ===================================================================== -->
+        <AppModal
+            :show="isScreenshotModalOpen"
+            title="Screenshot Data Akun Trading"
+            max-width="2xl"
+            @close="isScreenshotModalOpen = false"
+        >
+            <div v-if="screenshotAccount" class="space-y-4 p-1">
+                <p class="text-muted-foreground text-xs">
+                    Akun Trading #{{ screenshotAccount.nomor_akun_trading }} ({{
+                        screenshotAccount.broker
+                    }})
+                </p>
+
+                <div
+                    class="border-border bg-muted/30 overflow-hidden rounded-xl border p-2 text-center"
+                >
+                    <img
+                        v-if="screenshotAccount.screenshot_akun_url"
+                        :src="screenshotAccount.screenshot_akun_url"
+                        :alt="`Screenshot Data Akun ${screenshotAccount.nomor_akun_trading}`"
+                        class="mx-auto max-h-[65vh] w-full rounded-lg object-contain"
+                    />
+                </div>
+
+                <div class="border-border flex flex-wrap items-center justify-end gap-2 border-t pt-4">
+                    <a
+                        v-if="screenshotAccount.screenshot_akun_url"
+                        :href="screenshotAccount.screenshot_akun_url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="border-border bg-background hover:bg-muted text-foreground inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold shadow-xs transition-colors"
+                    >
+                        <span>Buka di Tab Baru</span>
+                        <ExternalLink class="h-3.5 w-3.5" />
+                    </a>
+                    <AppButton
+                        type="cancel"
+                        label="Tutup"
+                        @click="isScreenshotModalOpen = false"
+                    />
+                </div>
+            </div>
         </AppModal>
     </MemberLayout>
 </template>

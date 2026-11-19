@@ -48,7 +48,8 @@ class StoreCopytradeRequest extends FormRequest
             ],
             'server_broker'     => ['required_if:tier_investasi,tier_3', 'nullable', 'string', 'max:50'],
             'master_password'   => ['required_if:tier_investasi,tier_3', 'nullable', 'string', 'max:100'],
-            'investor_password' => ['required_if:tier_investasi,tier_3', 'nullable', 'string', 'max:100'],
+            'investor_password' => ['nullable', 'string', 'max:100'],
+            'screenshot_akun'   => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
         ];
 
         if (!$hasAnyCopytrade) {
@@ -132,7 +133,10 @@ class StoreCopytradeRequest extends FormRequest
             'myfxbook_url.max'               => 'Tautan Myfxbook maksimal 255 karakter.',
             'server_broker.required_if'      => 'Server broker wajib diisi untuk pendaftaran Tier 3.',
             'master_password.required_if'    => 'Master password MT4 wajib diisi untuk pendaftaran Tier 3.',
-            'investor_password.required_if'  => 'Investor password MT4 wajib diisi untuk pendaftaran Tier 3.',
+            'screenshot_akun.required'       => 'Screenshot data akun trading wajib diunggah.',
+            'screenshot_akun.image'          => 'Screenshot data akun harus berupa berkas gambar yang valid.',
+            'screenshot_akun.mimes'          => 'Format screenshot data akun harus JPG, JPEG, PNG, atau WEBP.',
+            'screenshot_akun.max'            => 'Ukuran berkas screenshot data akun maksimal 10 MB.',
             'dokumen_perjanjian.required'    => 'Surat perjanjian kemitraan bermaterai wajib diunggah pada investasi/copytrade pertama.',
             'dokumen_perjanjian.mimes'       => 'Berkas perjanjian harus berupa file gambar (JPG, JPEG, PNG) atau PDF.',
             'dokumen_perjanjian.max'         => 'Ukuran berkas surat perjanjian maksimal 10 MB.',

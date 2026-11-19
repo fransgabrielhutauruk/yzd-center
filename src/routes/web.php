@@ -64,6 +64,10 @@ Route::get('/documents/claims/{id}', [DocumentStreamController::class, 'showClai
 Route::get('/documents/copytrade/{id}', [DocumentStreamController::class, 'showCopytradeAgreement'])
     ->middleware('auth')
     ->name('documents.copytrade');
+Route::get('/documents/copytrade/{id}/screenshot', [DocumentStreamController::class, 'showCopytradeScreenshot'])
+    ->middleware('auth')
+    ->whereNumber('id')
+    ->name('documents.copytrade_screenshot');
 Route::get('/documents/commissions/{id}/proof', [DocumentStreamController::class, 'showCommissionProof'])
     ->middleware('auth')
     ->name('documents.commission_proof');

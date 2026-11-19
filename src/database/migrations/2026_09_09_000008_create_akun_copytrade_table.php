@@ -24,6 +24,7 @@ return new class extends Migration
             $table->text('investor_password')->nullable(); // encrypted via Crypt::encryptString()
             $table->decimal('modal_riil', 15, 2)->unsigned();
             $table->string('surat_perjanjian_path')->nullable();
+            $table->string('screenshot_akun_path')->nullable();
             $table->date('tanggal_mulai');
             $table->date('tanggal_selesai')->nullable();
             $table->string('nama_bank', 100);

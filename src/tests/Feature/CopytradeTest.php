@@ -76,6 +76,7 @@ class CopytradeTest extends TestCase
         Notification::fake();
 
         $file = UploadedFile::fake()->create('perjanjian.pdf', 500, 'application/pdf');
+        $screenshot = UploadedFile::fake()->image('akun.jpg');
 
         $payload = [
             'tier_investasi'        => 'tier_1',
@@ -87,6 +88,7 @@ class CopytradeTest extends TestCase
             'nomor_rekening'        => '1234567890',
             'atas_nama_rekening'    => 'Investor Tester',
             'dokumen_perjanjian'    => $file,
+            'screenshot_akun'       => $screenshot,
         ];
 
         $response = $this->actingAs($this->investor)->post('/member/copytrade', $payload);
@@ -101,7 +103,10 @@ class CopytradeTest extends TestCase
 
         $akun = AkunCopytrade::where('nomor_akun_trading', '11223344')->first();
         $this->assertNotNull($akun->surat_perjanjian_path);
+        $this->assertNotNull($akun->screenshot_akun_path);
+        $this->assertStringStartsWith("copytrade_screenshots/{$this->investor->id}/", $akun->screenshot_akun_path);
         Storage::disk('local')->assertExists($akun->surat_perjanjian_path);
+        Storage::disk('local')->assertExists($akun->screenshot_akun_path);
 
         Notification::assertSentTo(
             $this->admin,
@@ -127,7 +132,7 @@ class CopytradeTest extends TestCase
             'status'             => 'active',
         ]);
 
-        // Pengajuan akun copytrade kedua tanpa dokumen
+        // Pengajuan akun copytrade kedua tanpa dokumen perjanjian, namun tetap menyertakan screenshot akun
         $payload = [
             'tier_investasi'        => 'tier_2',
             'nomor_akun_trading'    => '55667788',
@@ -137,6 +142,7 @@ class CopytradeTest extends TestCase
             'nama_bank'             => 'BCA',
             'nomor_rekening'        => '1234567890',
             'atas_nama_rekening'    => 'Investor Tester',
+            'screenshot_akun'       => UploadedFile::fake()->image('akun2.png'),
         ];
 
         $response = $this->actingAs($this->investor)->post('/member/copytrade', $payload);
@@ -167,7 +173,7 @@ class CopytradeTest extends TestCase
         $response->assertSessionHasErrors('modal_riil');
     }
 
-    public function test_tier_3_requires_server_and_passwords(): void
+    public function test_tier_3_requires_server_and_master_password_with_optional_investor_password(): void
     {
         $payload = [
             'tier_investasi'        => 'tier_3',
@@ -177,17 +183,19 @@ class CopytradeTest extends TestCase
             'nama_bank'             => 'BCA',
             'nomor_rekening'        => '1234567890',
             'atas_nama_rekening'    => 'Investor Tester',
-            // server_broker, master_password, investor_password sengaja kosong
+            // server_broker, master_password, investor_password, screenshot_akun sengaja kosong
         ];
 
         $response = $this->actingAs($this->investor)->post('/member/copytrade', $payload);
 
-        $response->assertSessionHasErrors(['server_broker', 'master_password', 'investor_password']);
+        $response->assertSessionHasErrors(['server_broker', 'master_password', 'screenshot_akun']);
+        $response->assertSessionDoesntHaveErrors('investor_password');
     }
 
     public function test_tier_3_stores_encrypted_credentials(): void
     {
         $file = UploadedFile::fake()->create('perjanjian.pdf', 500, 'application/pdf');
+        $screenshot = UploadedFile::fake()->image('akun_tier3.jpg');
 
         $payload = [
             'tier_investasi'        => 'tier_3',
@@ -202,6 +210,7 @@ class CopytradeTest extends TestCase
             'master_password'       => 'MasterSecret123',
             'investor_password'     => 'InvestorSecret456',
             'dokumen_perjanjian'    => $file,
+            'screenshot_akun'       => $screenshot,
         ];
 
         $response = $this->actingAs($this->investor)->post('/member/copytrade', $payload);
@@ -586,6 +595,7 @@ class CopytradeTest extends TestCase
             'nomor_rekening'        => '1234567890',
             'atas_nama_rekening'    => 'Investor Tester',
             'dokumen_perjanjian'    => $file,
+            'screenshot_akun'       => UploadedFile::fake()->image('akun.jpg'),
         ];
 
         $response = $this->actingAs($this->investor)->post('/member/copytrade', $payloadInvalidDomain);
@@ -663,5 +673,143 @@ class CopytradeTest extends TestCase
 
         $this->expectException(\Illuminate\Validation\ValidationException::class);
         $akun->update(['tanggal_mulai' => '2026-03-10']);
+    }
+
+    public function test_copytrade_registration_requires_screenshot_akun_for_first_and_subsequent_accounts(): void
+    {
+        $agreement = UploadedFile::fake()->create('perjanjian.pdf', 500, 'application/pdf');
+
+        // 1. Pengajuan pertama tanpa screenshot_akun harus ditolak
+        $firstWithoutScreenshot = [
+            'tier_investasi'        => 'tier_1',
+            'nomor_akun_trading'    => '11220001',
+            'myfxbook_url'          => 'https://www.myfxbook.com/members/tester/sys/101',
+            'modal_riil'            => 1000,
+            'tanggal_mulai_trading' => '2026-03-01',
+            'nama_bank'             => 'BCA',
+            'nomor_rekening'        => '1234567890',
+            'atas_nama_rekening'    => 'Investor Tester',
+            'dokumen_perjanjian'    => $agreement,
+        ];
+
+        $this->actingAs($this->investor)
+            ->post('/member/copytrade', $firstWithoutScreenshot)
+            ->assertSessionHasErrors('screenshot_akun');
+
+        // 2. Pengajuan dengan screenshot_akun berupa PDF harus ditolak (khusus gambar)
+        $this->actingAs($this->investor)
+            ->post('/member/copytrade', array_merge($firstWithoutScreenshot, [
+                'screenshot_akun' => UploadedFile::fake()->create('bukan_gambar.pdf', 200, 'application/pdf'),
+            ]))
+            ->assertSessionHasErrors('screenshot_akun');
+
+        // 3. Pengajuan pertama dengan screenshot gambar valid berhasil
+        $this->actingAs($this->investor)
+            ->post('/member/copytrade', array_merge($firstWithoutScreenshot, [
+                'screenshot_akun' => UploadedFile::fake()->image('akun_1.png'),
+            ]))
+            ->assertRedirect(route('member.investments.index'));
+
+        // 4. Pengajuan akun kedua tanpa screenshot_akun TETAP wajib dan harus ditolak
+        $this->actingAs($this->investor)
+            ->post('/member/copytrade', [
+                'tier_investasi'        => 'tier_2',
+                'nomor_akun_trading'    => '11220002',
+                'myfxbook_url'          => 'https://www.myfxbook.com/members/tester/sys/102',
+                'modal_riil'            => 10000,
+                'tanggal_mulai_trading' => '2026-04-01',
+            ])
+            ->assertSessionHasErrors('screenshot_akun');
+    }
+
+    public function test_tier_3_registration_succeeds_without_investor_password(): void
+    {
+        $agreement = UploadedFile::fake()->create('perjanjian_t3.pdf', 500, 'application/pdf');
+        $screenshot = UploadedFile::fake()->image('akun_t3.png');
+
+        $response = $this->actingAs($this->investor)->post('/member/copytrade', [
+            'tier_investasi'        => 'tier_3',
+            'nomor_akun_trading'    => '88997766',
+            'myfxbook_url'          => 'https://www.myfxbook.com/members/tester/tier3-opt/889977',
+            'modal_riil'            => 350000,
+            'tanggal_mulai_trading' => '2026-03-01',
+            'nama_bank'             => 'BCA',
+            'nomor_rekening'        => '1234567890',
+            'atas_nama_rekening'    => 'Investor Tier 3',
+            'server_broker'         => 'XMGlobal-Real 50',
+            'master_password'       => 'MasterOnly123!',
+            'dokumen_perjanjian'    => $agreement,
+            'screenshot_akun'       => $screenshot,
+        ]);
+
+        $response->assertRedirect(route('member.investments.index'));
+
+        $akun = AkunCopytrade::where('nomor_akun_trading', '88997766')->firstOrFail();
+        $this->assertEquals('MasterOnly123!', $akun->master_password);
+        $this->assertNull($akun->investor_password);
+        $this->assertNotNull($akun->screenshot_akun_path);
+        Storage::disk('local')->assertExists($akun->screenshot_akun_path);
+    }
+
+    public function test_copytrade_screenshot_streaming_authorization_and_audit(): void
+    {
+        $screenshot = UploadedFile::fake()->image('screenshot_akun.png');
+        $storedPath = $screenshot->store("copytrade_screenshots/{$this->investor->id}", 'local');
+
+        $akun = AkunCopytrade::create([
+            'user_id'              => $this->investor->id,
+            'tier'                 => 'tier_1',
+            'broker'               => 'HFM',
+            'tipe_akun'            => 'cent',
+            'nomor_akun_trading'   => '77441122',
+            'modal_riil'           => 1000,
+            'tanggal_mulai'        => '2026-03-01',
+            'nama_bank'            => 'BCA',
+            'nomor_rekening'       => '1234567890',
+            'atas_nama_rekening'   => 'Investor Tester',
+            'status'               => 'pending',
+            'screenshot_akun_path' => $storedPath,
+        ]);
+
+        // Pemilik akun dapat mengakses screenshot
+        $this->actingAs($this->investor)
+            ->get("/documents/copytrade/{$akun->id}/screenshot")
+            ->assertOk();
+
+        // Admin dapat mengakses screenshot dan tercatat di audit log
+        $this->actingAs($this->admin)
+            ->get("/documents/copytrade/{$akun->id}/screenshot")
+            ->assertOk();
+
+        $this->assertDatabaseHas('log_aktivitas', [
+            'kategori' => 'copytrade',
+            'aksi'     => 'lihat_dokumen',
+            'user_id'  => $this->admin->id,
+        ]);
+
+        // Member lain dilarang (403 Forbidden)
+        $otherMember = User::factory()->create(['role' => 'member', 'status' => 'active']);
+        $this->actingAs($otherMember)
+            ->get("/documents/copytrade/{$akun->id}/screenshot")
+            ->assertForbidden();
+
+        // Akun tanpa screenshot mengembalikan 404
+        $akunNoSs = AkunCopytrade::create([
+            'user_id'            => $this->investor->id,
+            'tier'               => 'tier_1',
+            'broker'             => 'HFM',
+            'tipe_akun'          => 'cent',
+            'nomor_akun_trading' => '77441199',
+            'modal_riil'         => 1000,
+            'tanggal_mulai'      => '2026-03-01',
+            'nama_bank'          => 'BCA',
+            'nomor_rekening'     => '1234567890',
+            'atas_nama_rekening' => 'Investor Tester',
+            'status'             => 'pending',
+        ]);
+
+        $this->actingAs($this->investor)
+            ->get("/documents/copytrade/{$akunNoSs->id}/screenshot")
+            ->assertNotFound();
     }
 }

@@ -252,15 +252,15 @@ Setiap akun trading MT4 yang didaftarkan oleh Member akan masuk ke antrean **Kel
    - **Tier 1:** Modal di bawah $\$5,000$.
    - **Tier 2:** Modal $\$5,000$ hingga $\$300,000$.
    - **Tier 3:** Modal $\ge \$300,000$.
-3. Verifikasi apakah nomor akun MT4 dan broker telah terdaftar dengan benar di bawah jaringan PAMM/Copytrade master broker.
+3. Verifikasi apakah nomor akun MT4, broker, tautan Myfxbook, serta **Screenshot Data Akun Trading** (pratinjau gambar di modal Verifikasi/Detail melalui tautan privat terotentikasi) telah sesuai dan valid.
 4. Klik **"Setujui & Aktifkan Akun"**.
 
 ---
 
 ### 4.3 Setup Kredensial MT4 & VPS Khusus Tier 3 ($300.000+)
 Khusus untuk investor Tier 3 dengan modal besar, sistem menyediakan pencatatan kredensial server terdedikasi:
-- Admin dapat menginput alamat IP VPS, port koneksi, username, dan password server VPS.
-- Seluruh kredensial tersimpan dalam basis data menggunakan enkripsi kuat Eloquent (`'encrypted'`) sehingga terhindar dari pembacaan teks mentah (*plaintext*).
+- Investor mengisi Server Broker dan Master Password MT4 (wajib) serta Investor Password MT4 (opsional), disertai unggahan **Screenshot Data Akun Trading**.
+- Seluruh kredensial tersimpan dalam basis data menggunakan enkripsi kuat Eloquent (`'encrypted'`) sehingga terhindar dari pembacaan teks mentah (*plaintext*) dan hanya dimuat *on-demand* dengan pencatatan audit log peringatan saat ditinjau Admin.
 
 ---
 

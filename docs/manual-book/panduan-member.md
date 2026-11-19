@@ -368,14 +368,22 @@ Halaman **Portofolio Investasi** (`/member/investments`) adalah pusat pengelolaa
 
 ### 5.2 Mendaftarkan Akun Investasi / Copytrade Baru
 1. Klik tombol **"Mulai Investasi Akun Baru"** pada header tab portofolio atau beralih ke tab **"Alur Memulai Investasi"**.
-2. Ikuti alur mandiri (onboarding 6 langkah) terstruktur:
-   - **Langkah 1:** Pemilihan Broker (HFM untuk Tier 1 & 2, atau XM untuk Tier 3).
-   - **Langkah 2:** Penentuan Modal Investasi (USD) dan verifikasi Tier.
-   - **Langkah 3:** Registrasi & Verifikasi Akun Broker.
-   - **Langkah 4:** Pembukaan Akun MT4 & Deposit Modal.
-   - **Langkah 5:** Pengisian Data Akun MT4 & Bukti Pendaftaran.
-   - **Langkah 6:** Sinkronisasi Myfxbook & Verifikasi Akhir.
-3. Klik **"Kirim Pengajuan Akun Investasi"**. Akun akan masuk antrean verifikasi Admin dengan status *Menunggu Verifikasi*.
+2. Isi **Langkah 1** (nominal modal USD) untuk menentukan tingkatan Tier & broker secara otomatis (Tier 1 & Tier 2: HFM; Tier 3: XM), lalu ikuti panduan 6 langkah pada **Langkah 2**:
+   - **Tier 1 & Tier 2 (HFM):**
+     1. Daftar akun broker HFM & verifikasi KYC.
+     2. Deposit dana ke MyWallet HFM.
+     3. Follow akun Master Strategi YZD.
+     4. **Catat Nomor Akun MT4 Follower & Upload Screenshot Data Akun Trading** (format gambar JPG/JPEG/PNG/WEBP, wajib untuk setiap pendaftaran akun).
+     5. Hubungkan akun ke aplikasi MetaTrader 4 (MT4).
+     6. Hubungkan ke Myfxbook, lengkapi data rekening/surat perjanjian (akun pertama), lalu kirim pendaftaran.
+   - **Tier 3 (XM Direct VPS):**
+     1. Daftar akun di broker XM & verifikasi.
+     2. Buka akun trading MT4 di XM.
+     3. **Catat Kredensial & Upload Screenshot Data Akun MT4 XM:** Isi Nomor Akun MT4, Server Broker XM, dan Master Password MT4 (wajib), **Investor Password MT4** (opsional), serta **unggah Screenshot Data Akun Trading** (wajib).
+     4. Deposit dana ke akun MT4 XM.
+     5. Hubungkan akun ke aplikasi MetaTrader 4 (MT4).
+     6. Hubungkan ke Myfxbook, lengkapi data rekening/surat perjanjian (akun pertama), lalu kirim pendaftaran.
+3. Klik **"Kirim Pendaftaran Akun Copytrade"**. Akun akan masuk antrean verifikasi Admin dengan status *Menunggu Verifikasi* dan screenshot data akun dapat ditinjau kembali lewat tombol **Screenshot Akun** di detail portofolio.
 
 ---
 

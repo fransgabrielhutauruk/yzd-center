@@ -29,10 +29,11 @@ class CopytradeService
      *
      * @param array $data Data form termasuk modal riil, tier, nomor akun, dsb.
      * @param UploadedFile|null $suratPerjanjian Berkas surat perjanjian (wajib pada pendaftaran awal)
+     * @param UploadedFile|null $screenshotAkun Screenshot data akun trading (wajib pada setiap pengajuan akun)
      */
-    public function storeCopytrade(User $user, array $data, ?UploadedFile $suratPerjanjian): AkunCopytrade
+    public function storeCopytrade(User $user, array $data, ?UploadedFile $suratPerjanjian, ?UploadedFile $screenshotAkun = null): AkunCopytrade
     {
-        return DB::transaction(function () use ($user, $data, $suratPerjanjian): AkunCopytrade {
+        return DB::transaction(function () use ($user, $data, $suratPerjanjian, $screenshotAkun): AkunCopytrade {
             $tier = $data['tier_investasi'] ?? $data['tier'] ?? 'tier_1';
 
             $broker = $data['broker'] ?? match ($tier) {
@@ -106,6 +107,10 @@ class CopytradeService
                 );
             } elseif ($existingValidAkun?->surat_perjanjian_path) {
                 $akunData['surat_perjanjian_path'] = $existingValidAkun->surat_perjanjian_path;
+            }
+
+            if ($screenshotAkun) {
+                $akunData['screenshot_akun_path'] = $screenshotAkun->store("copytrade_screenshots/{$user->id}", 'local');
             }
 
             $akun = AkunCopytrade::create($akunData);
@@ -551,6 +556,8 @@ class CopytradeService
             'myfxbook_url'         => $akun->myfxbook_url,
             'has_surat_perjanjian' => !empty($akun->surat_perjanjian_path),
             'surat_perjanjian_url' => $akun->surat_perjanjian_path ? route('documents.copytrade', $akun->id) : null,
+            'has_screenshot_akun'  => !empty($akun->screenshot_akun_path),
+            'screenshot_akun_url'  => $akun->screenshot_akun_path ? route('documents.copytrade_screenshot', $akun->id) : null,
             'created_at'           => tanggal_waktu_indo($akun->created_at),
             'verified_at'          => tanggal_waktu_indo($akun->verified_at),
             'verifier_name'        => $akun->verifier?->name,

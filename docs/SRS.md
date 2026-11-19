@@ -31,6 +31,7 @@
 *   **v1.6.0 (19-11-2026):** Standardisasi Terminologi & Refactor Menyeluruh **Master Fee** $\rightarrow$ **Performance Fee**:
     *   **Penyelarasan Istilah & UI:** Seluruh label menu, dasbor, kalkulator simulasi (Edukasi & Afiliator), notifikasi, dan ekspor laporan diperbarui dari *Master Fee* / *Fee Master* menjadi **Performance Fee**.
     *   **Cutover Route, Skema & Prefiks:** URL diperbarui ke `/admin/performance-fee`, `/admin/settings/performance-fee`, `/member/performance-fee`, dan `/documents/performance-fee/*`; tabel konfigurasi `pengaturan_performance_fee` (`PengaturanPerformanceFee`); prefiks nomor laporan `PFE-YYYYMM-XXXX`; direktori berkas privat `performance_fee/`; kategori audit `performance_fee`; serta perintah pengingat `app:send-performance-fee-reminders`.
+*   **v1.6.1 (19-11-2026):** Penambahan Unggah **Screenshot Data Akun Trading** (wajib pada setiap pengajuan akun baru di Langkah 4 Tier 1–2 & Langkah 3 Tier 3, dengan pratinjau terotentikasi untuk Member dan Admin) serta penyesuaian **Investor Password MT4** pada Tier 3 menjadi opsional.
 
 ---
 
@@ -114,7 +115,7 @@ Untuk menyesuaikan profil risiko, kapasitas dana, dan teknologi penyambungan bro
 | **Broker Rekanan** | **HFM** (HF Markets) | **XM** (XM Global) | **XM** (XM Global) |
 | **Tipe Akun Broker** | `Cent Account` | `Standard Account` | `Private VPS Account` |
 | **Metode Copy** | Copy Trading Pool Broker | Copy Trading Pool Broker | Direct Copy via Private VPS |
-| **Kredensial Tambahan** | Nomor Akun Trading | Nomor Akun Trading | Server Broker, Master Password, Investor Password (Enkripsi Kuat) |
+| **Kredensial Tambahan** | Nomor Akun Trading + Screenshot Data Akun | Nomor Akun Trading + Screenshot Data Akun | Server Broker, Master Password, Investor Password (Opsional, Enkripsi Kuat) + Screenshot Data Akun |
 | **Masa Komitmen** | Fleksibel | Fleksibel | **5 Tahun** (Kemitraan Jangka Panjang) |
 | **Template Perjanjian** | `tier_1_hfm.docx` | `tier_2_xm.docx` | `tier_3_xm.docx` |
 
@@ -229,7 +230,8 @@ Fasilitas simulasi interaktif sisi klien (`/member/affiliates-calculator`) bagi 
     *   Tautan Myfxbook dapat diperbarui sewaktu-waktu oleh investor pemilik akun secara mandiri.
     *   Investor dapat melihat tautan Myfxbook publik untuk melihat metrik real-time akun secara langsung.
     *   Formulir pendaftaran akun menyediakan fitur **Unduh Draf Surat Perjanjian Otomatis** (template Word `.docx` yang telah terisi data nama investor, nomor akun, modal, dan rekening bank). Investor mencetak dokumen, menempelkan materai, menandatangani, lalu mengunggahnya kembali.
-    *   Khusus Tier 3, formulir mewajibkan pengisian kredensial MT4/VPS (Server Broker, Master Password, Investor Password) yang disimpan dengan enkripsi reversibel aman.
+    *   Setiap pendaftaran akun baru (termasuk akun ke-2 dan seterusnya) wajib mengunggah **Screenshot Data Akun Trading** berformat gambar (`JPG`, `JPEG`, `PNG`, `WEBP`, maks. 10 MB) pada Langkah 4 (Tier 1 & Tier 2) atau Langkah 3 (Tier 3), dilengkapi kompresi otomatis sisi klien dan streaming privat terotentikasi.
+    *   Khusus Tier 3, formulir mewajibkan pengisian Server Broker dan Master Password MT4 (sementara **Investor Password MT4 bersifat opsional**) yang disimpan dengan enkripsi reversibel aman.
 *   **FR-INV-02 (Pemantauan Kinerja & BEP Berbasis Laporan Profit):**
     *   Kinerja portofolio dan pertumbuhan akun dievaluasi berbasis akumulasi laporan profit bulanan terverifikasi (`LaporanProfitBulanan`).
     *   Sistem otomatis menghitung keuntungan nominal ($USD & Rp IDR), persentase pertumbuhan akun (*growth rate*), serta metrik Break Even Point (BEP).

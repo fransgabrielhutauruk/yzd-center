@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import {
     DollarSign,
@@ -167,6 +167,7 @@ const form = useForm({
     nama_bank: draft.nama_bank || '',
     nomor_rekening: draft.nomor_rekening || '',
     atas_nama_rekening: draft.atas_nama_rekening || '',
+    screenshot_akun: null,
     dokumen_perjanjian: null,
 });
 
@@ -186,9 +187,10 @@ watch(modalUsd, (newModal) => {
 const showMasterPassword = ref(false);
 const showInvestorPassword = ref(false);
 
-// Dokumen Perjanjian Upload & Compression
+// Dokumen Perjanjian & Screenshot Data Akun Upload & Compression
 const agreementFileName = ref('');
 const isCompressing = ref(false);
+const isCompressingScreenshot = ref(false);
 
 const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
@@ -211,6 +213,28 @@ const handleFileUpload = async (event) => {
         agreementFileName.value = file.name;
     }
 };
+
+const handleScreenshotUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    isCompressingScreenshot.value = true;
+    let finalFile = file;
+    try {
+        const compressed = await compressImageFile(file);
+        finalFile = compressed?.file || compressed || file;
+    } catch {
+        finalFile = file;
+    } finally {
+        isCompressingScreenshot.value = false;
+    }
+
+    form.screenshot_akun = finalFile;
+    form.clearErrors('screenshot_akun');
+};
+
+const isUploadingOrCompressing = computed(() => isCompressing.value || isCompressingScreenshot.value);
+const activeErrorMessages = computed(() => Object.values(form.errors).filter(Boolean));
 
 // Auto-Save Debounce Mechanism ke Backend
 let autoSaveTimeout = null;
@@ -268,6 +292,7 @@ const resetAllFormFields = () => {
     form.nama_bank = '';
     form.nomor_rekening = '';
     form.atas_nama_rekening = '';
+    form.screenshot_akun = null;
     form.dokumen_perjanjian = null;
     form.clearErrors();
 
@@ -284,6 +309,7 @@ const resetAllFormFields = () => {
         nama_bank: '',
         nomor_rekening: '',
         atas_nama_rekening: '',
+        screenshot_akun: null,
         dokumen_perjanjian: null,
     });
 
@@ -346,6 +372,32 @@ const executeReset = () => {
     );
 };
 
+const focusFirstInvalidField = (errors) => {
+    if (!errors || typeof document === 'undefined') return;
+    const isTier3 = (selectedTier.value || 'tier_1') === 'tier_3';
+    const fieldIdMap = {
+        nomor_akun_trading: isTier3 ? 'tier3-nomor-akun' : 'tier12-nomor-akun',
+        server_broker: 'tier3-server-broker',
+        master_password: 'tier3-master-password',
+        investor_password: 'tier3-investor-password',
+        screenshot_akun: isTier3 ? 'tier3-screenshot-akun' : 'tier12-screenshot-akun',
+        myfxbook_url: isTier3 ? 'tier3-myfxbook-url' : 'tier12-myfxbook-url',
+        tanggal_mulai_trading: isTier3 ? 'tier3-tanggal-mulai' : 'tier12-tanggal-mulai',
+        nama_bank: isTier3 ? 'tier3-nama-bank' : 'tier12-nama-bank',
+        nomor_rekening: isTier3 ? 'tier3-nomor-rekening' : 'tier12-nomor-rekening',
+        atas_nama_rekening: isTier3 ? 'tier3-atas-nama-rekening' : 'tier12-atas-nama-rekening',
+        dokumen_perjanjian: isTier3 ? 'tier3-dokumen-perjanjian' : 'tier12-dokumen-perjanjian',
+    };
+
+    const firstKey = Object.keys(errors)[0];
+    const targetId = fieldIdMap[firstKey];
+    const targetEl = targetId ? document.getElementById(targetId) : null;
+    if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        targetEl.focus({ preventScroll: true });
+    }
+};
+
 // Kirim Pendaftaran Akun Copytrade
 const submitAccount = () => {
     form.tier_investasi = selectedTier.value || 'tier_1';
@@ -361,6 +413,9 @@ const submitAccount = () => {
         preserveScroll: true,
         onSuccess: () => {
             emit('accountSubmitted');
+        },
+        onError: (errors) => {
+            nextTick(() => focusFirstInvalidField(errors));
         },
     });
 };
@@ -765,7 +820,7 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                 <h4
                                     class="text-foreground flex flex-wrap items-center gap-2 text-xs font-bold sm:text-sm"
                                 >
-                                    <span>Langkah 4: Catat Nomor Akun MT4 Follower</span>
+                                    <span>Langkah 4: Catat Nomor Akun MT4 Follower &amp; Upload Screenshot Data Akun</span>
                                     <span
                                         v-if="isStepCompleted('step_4')"
                                         class="py-0.2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 text-[10px] text-emerald-700 dark:text-emerald-300"
@@ -774,33 +829,66 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                     </span>
                                 </h4>
                                 <p class="text-muted-foreground text-xs leading-relaxed">
-                                    Setelah berhasil mengikuti (follow) akun Master Copytrade di portal HFM, broker akan menerbitkan nomor akun MT4 Follower Anda. Masukkan nomor akun tersebut ke formulir di bawah ini untuk identifikasi sistem YZD Center.
+                                    Setelah berhasil mengikuti (follow) akun Master Copytrade di portal HFM, broker akan menerbitkan nomor akun MT4 Follower Anda. Masukkan nomor akun tersebut dan unggah tangkapan layar data akun MT4/broker Anda ke formulir di bawah ini.
                                 </p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Input Form Terintegrasi Langkah 4 -->
-                    <div class="bg-card border-border/80 mt-2 space-y-3 rounded-xl border p-3.5">
+                    <div class="bg-card border-border/80 mt-2 space-y-4 rounded-xl border p-3.5">
                         <div class="max-w-md space-y-1.5 text-xs">
-                            <label class="text-foreground block text-xs font-semibold">
-                                Nomor Akun Trading MT4 Follower <span class="text-rose-500">*</span>
+                            <label for="tier12-nomor-akun" class="text-foreground block text-xs font-semibold">
+                                Nomor Akun Trading MT4 Follower <span class="text-rose-500" aria-hidden="true">*</span>
                             </label>
                             <div class="relative">
                                 <span class="absolute left-3 top-2.5 text-xs font-mono font-bold text-muted-foreground">#</span>
                                 <input
+                                    id="tier12-nomor-akun"
                                     v-model="form.nomor_akun_trading"
                                     type="text"
                                     placeholder="Contoh: 3829104"
+                                    :aria-invalid="Boolean(form.errors.nomor_akun_trading)"
+                                    aria-describedby="tier12-nomor-akun-error"
                                     @input="triggerAutoSave"
                                     class="bg-background border-input focus:ring-primary-500 h-9 w-full rounded-lg border pl-8 pr-3 font-mono text-xs font-bold focus:ring-2 focus:outline-none"
                                 />
                             </div>
                             <p
                                 v-if="form.errors.nomor_akun_trading"
-                                class="text-[10px] text-rose-500"
+                                id="tier12-nomor-akun-error"
+                                role="alert"
+                                class="text-[11px] font-medium text-rose-600 dark:text-rose-400"
                             >
                                 {{ form.errors.nomor_akun_trading }}
+                            </p>
+                        </div>
+
+                        <div class="border-border/70 space-y-2 border-t pt-3">
+                            <label for="tier12-screenshot-akun" class="text-foreground block text-xs font-semibold">
+                                Screenshot Data Akun Trading <span class="text-rose-500" aria-hidden="true">*</span>
+                            </label>
+                            <p id="tier12-screenshot-help" class="text-muted-foreground text-[11px]">
+                                Unggah tangkapan layar data akun trading MT4/broker Anda (format JPG, JPEG, PNG, atau WEBP, maks. 10 MB).
+                            </p>
+                            <input
+                                id="tier12-screenshot-akun"
+                                name="screenshot_akun"
+                                type="file"
+                                accept="image/jpeg,image/png,image/jpg,image/webp"
+                                required
+                                :aria-invalid="Boolean(form.errors.screenshot_akun)"
+                                aria-describedby="tier12-screenshot-help tier12-screenshot-error"
+                                @change="handleScreenshotUpload"
+                                class="text-muted-foreground file:bg-primary-600 hover:file:bg-primary-700 block w-full cursor-pointer text-xs file:mr-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
+                            />
+                            <p
+                                v-if="form.errors.screenshot_akun"
+                                id="tier12-screenshot-error"
+                                role="alert"
+                                class="text-[11px] font-medium text-rose-600 dark:text-rose-400"
+                            >
+                                {{ form.errors.screenshot_akun }}
                             </p>
                         </div>
                     </div>
@@ -934,14 +1022,16 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                     <div class="bg-card border-border space-y-4 rounded-xl border p-4">
                         <div class="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
                             <div class="space-y-1 sm:col-span-2">
-                                <label class="text-foreground block text-xs font-semibold">
+                                <label for="tier12-myfxbook-url" class="text-foreground block text-xs font-semibold">
                                     Tautan Publik Portofolio Myfxbook
-                                    <span class="text-rose-500">*</span>
+                                    <span class="text-rose-500" aria-hidden="true">*</span>
                                 </label>
                                 <input
+                                    id="tier12-myfxbook-url"
                                     v-model="form.myfxbook_url"
                                     type="url"
                                     placeholder="Contoh: https://www.myfxbook.com/members/nama/akun/123456"
+                                    :aria-invalid="Boolean(form.errors.myfxbook_url)"
                                     @input="triggerAutoSave"
                                     class="bg-background border-input focus:ring-primary-500 h-9 w-full rounded-lg border px-3 font-mono text-xs focus:ring-2 focus:outline-none"
                                 />
@@ -954,12 +1044,14 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             </div>
 
                             <div class="space-y-1">
-                                <label class="text-foreground block text-xs font-semibold">
-                                    Tanggal Mulai Investasi <span class="text-rose-500">*</span>
+                                <label for="tier12-tanggal-mulai" class="text-foreground block text-xs font-semibold">
+                                    Tanggal Mulai Investasi <span class="text-rose-500" aria-hidden="true">*</span>
                                 </label>
                                 <input
+                                    id="tier12-tanggal-mulai"
                                     v-model="form.tanggal_mulai_trading"
                                     type="date"
+                                    :aria-invalid="Boolean(form.errors.tanggal_mulai_trading)"
                                     @input="triggerAutoSave"
                                     class="bg-background border-input focus:ring-primary-500 h-9 w-full rounded-lg border px-3 text-xs focus:ring-2 focus:outline-none"
                                 />
@@ -975,7 +1067,7 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                         <!-- KHUSUS AKUN PERTAMA: REKENING BANK & SURAT PERJANJIAN -->
                         <div v-if="!hasExisting" class="border-border/70 space-y-3 border-t pt-3">
                             <div class="flex items-center gap-1.5">
-                                <Shield class="text-primary-600 h-4 w-4" />
+                                <Shield class="h-4 w-4 text-primary-600" />
                                 <h5
                                     class="text-foreground text-xs font-bold tracking-wider uppercase"
                                 >
@@ -985,13 +1077,15 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
 
                             <div class="grid grid-cols-1 gap-3 text-xs sm:grid-cols-3">
                                 <div class="space-y-1">
-                                    <label class="text-foreground block text-xs font-semibold">
-                                        Nama Bank <span class="text-rose-500">*</span>
+                                    <label for="tier12-nama-bank" class="text-foreground block text-xs font-semibold">
+                                        Nama Bank <span class="text-rose-500" aria-hidden="true">*</span>
                                     </label>
                                     <input
+                                        id="tier12-nama-bank"
                                         v-model="form.nama_bank"
                                         type="text"
                                         placeholder="Contoh: BCA / Mandiri"
+                                        :aria-invalid="Boolean(form.errors.nama_bank)"
                                         @input="triggerAutoSave"
                                         class="bg-background border-input focus:ring-primary-500 h-9 w-full rounded-lg border px-3 text-xs focus:ring-2 focus:outline-none"
                                     />
@@ -1004,13 +1098,15 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                 </div>
 
                                 <div class="space-y-1">
-                                    <label class="text-foreground block text-xs font-semibold">
-                                        Nomor Rekening Bank <span class="text-rose-500">*</span>
+                                    <label for="tier12-nomor-rekening" class="text-foreground block text-xs font-semibold">
+                                        Nomor Rekening Bank <span class="text-rose-500" aria-hidden="true">*</span>
                                     </label>
                                     <input
+                                        id="tier12-nomor-rekening"
                                         v-model="form.nomor_rekening"
                                         type="text"
                                         placeholder="Nomor rekening Anda"
+                                        :aria-invalid="Boolean(form.errors.nomor_rekening)"
                                         @input="triggerAutoSave"
                                         class="bg-background border-input focus:ring-primary-500 h-9 w-full rounded-lg border px-3 font-mono text-xs font-bold focus:ring-2 focus:outline-none"
                                     />
@@ -1023,13 +1119,15 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                 </div>
 
                                 <div class="space-y-1">
-                                    <label class="text-foreground block text-xs font-semibold">
-                                        Atas Nama Rekening <span class="text-rose-500">*</span>
+                                    <label for="tier12-atas-nama-rekening" class="text-foreground block text-xs font-semibold">
+                                        Atas Nama Rekening <span class="text-rose-500" aria-hidden="true">*</span>
                                     </label>
                                     <input
+                                        id="tier12-atas-nama-rekening"
                                         v-model="form.atas_nama_rekening"
                                         type="text"
                                         placeholder="Nama pemilik rekening"
+                                        :aria-invalid="Boolean(form.errors.atas_nama_rekening)"
                                         @input="triggerAutoSave"
                                         class="bg-background border-input focus:ring-primary-500 h-9 w-full rounded-lg border px-3 text-xs focus:ring-2 focus:outline-none"
                                     />
@@ -1048,10 +1146,10 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             >
                                 <div class="flex flex-wrap items-center justify-between gap-2">
                                     <div class="space-y-0.5">
-                                        <span class="text-foreground block text-xs font-bold">
+                                        <label for="tier12-dokumen-perjanjian" class="text-foreground block text-xs font-bold">
                                             Surat Perjanjian Kemitraan (Bermaterai 10.000)
-                                            <span class="text-rose-500">*</span>
-                                        </span>
+                                            <span class="text-rose-500" aria-hidden="true">*</span>
+                                        </label>
                                         <p class="text-muted-foreground text-[11px]">
                                             Unduh draf perjanjian otomatis, tanda tangani di atas
                                             materai, lalu unggah foto/scan berkasnya.
@@ -1069,8 +1167,10 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
 
                                 <div class="flex items-center gap-2">
                                     <input
+                                        id="tier12-dokumen-perjanjian"
                                         type="file"
                                         accept="image/jpeg,image/png,image/jpg,application/pdf"
+                                        :aria-invalid="Boolean(form.errors.dokumen_perjanjian)"
                                         @change="handleFileUpload"
                                         class="text-muted-foreground file:bg-primary-600 hover:file:bg-primary-700 block w-full cursor-pointer text-xs file:mr-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
                                     />
@@ -1084,6 +1184,22 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             </div>
                         </div>
 
+                        <!-- Ringkasan Error Validasi -->
+                        <div
+                            v-if="activeErrorMessages.length > 0"
+                            role="alert"
+                            aria-live="polite"
+                            class="border-destructive/40 bg-destructive/10 text-destructive flex items-start gap-2.5 rounded-xl border p-3 text-xs"
+                        >
+                            <AlertCircle class="mt-0.5 h-4 w-4 shrink-0" />
+                            <div class="space-y-1">
+                                <p class="font-bold">Lengkapi kolom wajib sebelum mengirim pendaftaran:</p>
+                                <ul class="list-disc space-y-0.5 pl-4">
+                                    <li v-for="(msg, idx) in activeErrorMessages" :key="idx">{{ msg }}</li>
+                                </ul>
+                            </div>
+                        </div>
+
                         <!-- Tombol Submit Akhir -->
                         <div
                             class="border-border flex items-center justify-end gap-2 border-t pt-2"
@@ -1091,13 +1207,8 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             <AppButton
                                 type="submit"
                                 label="Kirim Pendaftaran Akun Copytrade"
-                                :loading="form.processing || isCompressing"
-                                :disabled="
-                                    form.processing ||
-                                    isCompressing ||
-                                    !form.nomor_akun_trading ||
-                                    !form.myfxbook_url
-                                "
+                                :loading="form.processing || isUploadingOrCompressing"
+                                :disabled="form.processing || isUploadingOrCompressing"
                                 @click="submitAccount"
                             />
                         </div>
@@ -1252,7 +1363,7 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                 <h4
                                     class="text-foreground flex flex-wrap items-center gap-2 text-xs font-bold sm:text-sm"
                                 >
-                                    <span>Langkah 3: Catat Kredensial Akun MT4 XM</span>
+                                    <span>Langkah 3: Catat Kredensial &amp; Upload Screenshot Data Akun MT4 XM</span>
                                     <span
                                         v-if="isStepCompleted('step_3')"
                                         class="py-0.2 rounded-full border border-purple-500/20 bg-purple-500/10 px-2 text-[10px] text-purple-700 dark:text-purple-300"
@@ -1261,23 +1372,25 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                     </span>
                                 </h4>
                                 <p class="text-muted-foreground text-xs leading-relaxed">
-                                    Kredensial akun MT4 XM (Server, Master Password, dan Investor Password) diperlukan untuk instalasi robot trading di Dedicated Private VPS. Masukkan data ke formulir di bawah ini.
+                                    Kredensial akun MT4 XM (Server Broker dan Master Password wajib diisi; Investor Password bersifat opsional) serta screenshot data akun diperlukan untuk instalasi dan verifikasi Dedicated Private VPS. Masukkan data ke formulir di bawah ini.
                                 </p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Input Form Terintegrasi Langkah 3 (Tier 3) -->
-                    <div class="bg-card border-border/80 mt-2 space-y-3 rounded-xl border p-3.5">
+                    <div class="bg-card border-border/80 mt-2 space-y-4 rounded-xl border p-3.5">
                         <div class="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2 lg:grid-cols-4">
                             <div class="space-y-1">
-                                <label class="text-foreground block text-xs font-semibold">
-                                    Nomor Akun Trading (MT4) <span class="text-rose-500">*</span>
+                                <label for="tier3-nomor-akun" class="text-foreground block text-xs font-semibold">
+                                    Nomor Akun Trading (MT4) <span class="text-rose-500" aria-hidden="true">*</span>
                                 </label>
                                 <input
+                                    id="tier3-nomor-akun"
                                     v-model="form.nomor_akun_trading"
                                     type="text"
                                     placeholder="Contoh: 8192301"
+                                    :aria-invalid="Boolean(form.errors.nomor_akun_trading)"
                                     @input="triggerAutoSave"
                                     class="bg-background border-input focus:ring-primary-500 h-9 w-full rounded-lg border px-3 font-mono text-xs font-bold focus:ring-2 focus:outline-none"
                                 />
@@ -1290,13 +1403,15 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             </div>
 
                             <div class="space-y-1">
-                                <label class="text-foreground block text-xs font-semibold">
-                                    Server Broker XM <span class="text-rose-500">*</span>
+                                <label for="tier3-server-broker" class="text-foreground block text-xs font-semibold">
+                                    Server Broker XM <span class="text-rose-500" aria-hidden="true">*</span>
                                 </label>
                                 <input
+                                    id="tier3-server-broker"
                                     v-model="form.server_broker"
                                     type="text"
                                     placeholder="Contoh: XMGlobal-Real 50"
+                                    :aria-invalid="Boolean(form.errors.server_broker)"
                                     @input="triggerAutoSave"
                                     class="bg-background border-input focus:ring-primary-500 h-9 w-full rounded-lg border px-3 text-xs focus:ring-2 focus:outline-none"
                                 />
@@ -1309,22 +1424,26 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             </div>
 
                             <div class="space-y-1">
-                                <label class="text-foreground block text-xs font-semibold">
-                                    Master Password MT4 <span class="text-rose-500">*</span>
+                                <label for="tier3-master-password" class="text-foreground block text-xs font-semibold">
+                                    Master Password MT4 <span class="text-rose-500" aria-hidden="true">*</span>
                                 </label>
                                 <div class="relative">
                                     <input
+                                        id="tier3-master-password"
                                         v-model="form.master_password"
                                         :type="showMasterPassword ? 'text' : 'password'"
+                                        autocomplete="new-password"
                                         placeholder="Kata sandi eksekusi"
+                                        :aria-invalid="Boolean(form.errors.master_password)"
                                         @input="triggerAutoSave"
                                         class="bg-background border-input focus:ring-primary-500 h-9 w-full rounded-lg border pr-8 pl-3 font-mono text-xs focus:ring-2 focus:outline-none"
                                     />
                                     <button
                                         type="button"
                                         @click="showMasterPassword = !showMasterPassword"
+                                        :aria-pressed="showMasterPassword"
+                                        :aria-label="showMasterPassword ? 'Sembunyikan master password' : 'Lihat master password'"
                                         class="text-muted-foreground hover:text-foreground absolute top-2.5 right-2.5 cursor-pointer"
-                                        tabindex="-1"
                                         :title="showMasterPassword ? 'Sembunyikan password' : 'Lihat password'"
                                     >
                                         <EyeOff v-if="showMasterPassword" class="h-4 w-4" />
@@ -1340,22 +1459,27 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             </div>
 
                             <div class="space-y-1">
-                                <label class="text-foreground block text-xs font-semibold">
-                                    Investor Password MT4 <span class="text-rose-500">*</span>
+                                <label for="tier3-investor-password" class="text-foreground block text-xs font-semibold">
+                                    Investor Password MT4
+                                    <span class="text-muted-foreground font-normal">(Opsional)</span>
                                 </label>
                                 <div class="relative">
                                     <input
+                                        id="tier3-investor-password"
                                         v-model="form.investor_password"
                                         :type="showInvestorPassword ? 'text' : 'password'"
-                                        placeholder="Kata sandi read-only"
+                                        autocomplete="new-password"
+                                        placeholder="Kata sandi read-only (opsional)"
+                                        :aria-invalid="Boolean(form.errors.investor_password)"
                                         @input="triggerAutoSave"
                                         class="bg-background border-input focus:ring-primary-500 h-9 w-full rounded-lg border pr-8 pl-3 font-mono text-xs focus:ring-2 focus:outline-none"
                                     />
                                     <button
                                         type="button"
                                         @click="showInvestorPassword = !showInvestorPassword"
+                                        :aria-pressed="showInvestorPassword"
+                                        :aria-label="showInvestorPassword ? 'Sembunyikan investor password' : 'Lihat investor password'"
                                         class="text-muted-foreground hover:text-foreground absolute top-2.5 right-2.5 cursor-pointer"
-                                        tabindex="-1"
                                         :title="showInvestorPassword ? 'Sembunyikan password' : 'Lihat password'"
                                     >
                                         <EyeOff v-if="showInvestorPassword" class="h-4 w-4" />
@@ -1371,6 +1495,33 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             </div>
                         </div>
 
+                        <div class="border-border/70 space-y-2 border-t pt-3">
+                            <label for="tier3-screenshot-akun" class="text-foreground block text-xs font-semibold">
+                                Screenshot Data Akun Trading <span class="text-rose-500" aria-hidden="true">*</span>
+                            </label>
+                            <p id="tier3-screenshot-help" class="text-muted-foreground text-[11px]">
+                                Unggah tangkapan layar data akun trading MT4/broker Anda (format JPG, JPEG, PNG, atau WEBP, maks. 10 MB).
+                            </p>
+                            <input
+                                id="tier3-screenshot-akun"
+                                name="screenshot_akun"
+                                type="file"
+                                accept="image/jpeg,image/png,image/jpg,image/webp"
+                                required
+                                :aria-invalid="Boolean(form.errors.screenshot_akun)"
+                                aria-describedby="tier3-screenshot-help tier3-screenshot-error"
+                                @change="handleScreenshotUpload"
+                                class="text-muted-foreground file:bg-primary-600 hover:file:bg-primary-700 block w-full cursor-pointer text-xs file:mr-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
+                            />
+                            <p
+                                v-if="form.errors.screenshot_akun"
+                                id="tier3-screenshot-error"
+                                role="alert"
+                                class="text-[11px] font-medium text-rose-600 dark:text-rose-400"
+                            >
+                                {{ form.errors.screenshot_akun }}
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -1559,14 +1710,16 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                     <div class="bg-card border-border space-y-4 rounded-xl border p-4">
                         <div class="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
                             <div class="space-y-1 sm:col-span-2">
-                                <label class="text-foreground block text-xs font-semibold">
+                                <label for="tier3-myfxbook-url" class="text-foreground block text-xs font-semibold">
                                     Tautan Publik Portofolio Myfxbook
-                                    <span class="text-rose-500">*</span>
+                                    <span class="text-rose-500" aria-hidden="true">*</span>
                                 </label>
                                 <input
+                                    id="tier3-myfxbook-url"
                                     v-model="form.myfxbook_url"
                                     type="url"
                                     placeholder="Contoh: https://www.myfxbook.com/members/nama/akun/123456"
+                                    :aria-invalid="Boolean(form.errors.myfxbook_url)"
                                     @input="triggerAutoSave"
                                     class="bg-background border-input focus:ring-primary-500 h-9 w-full rounded-lg border px-3 font-mono text-xs focus:ring-2 focus:outline-none"
                                 />
@@ -1579,12 +1732,14 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             </div>
 
                             <div class="space-y-1">
-                                <label class="text-foreground block text-xs font-semibold">
-                                    Tanggal Mulai Trading <span class="text-rose-500">*</span>
+                                <label for="tier3-tanggal-mulai" class="text-foreground block text-xs font-semibold">
+                                    Tanggal Mulai Trading <span class="text-rose-500" aria-hidden="true">*</span>
                                 </label>
                                 <input
+                                    id="tier3-tanggal-mulai"
                                     v-model="form.tanggal_mulai_trading"
                                     type="date"
+                                    :aria-invalid="Boolean(form.errors.tanggal_mulai_trading)"
                                     @input="triggerAutoSave"
                                     class="bg-background border-input focus:ring-primary-500 h-9 w-full rounded-lg border px-3 text-xs focus:ring-2 focus:outline-none"
                                 />
@@ -1610,13 +1765,15 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
 
                             <div class="grid grid-cols-1 gap-3 text-xs sm:grid-cols-3">
                                 <div class="space-y-1">
-                                    <label class="text-foreground block text-xs font-semibold">
-                                        Nama Bank <span class="text-rose-500">*</span>
+                                    <label for="tier3-nama-bank" class="text-foreground block text-xs font-semibold">
+                                        Nama Bank <span class="text-rose-500" aria-hidden="true">*</span>
                                     </label>
                                     <input
+                                        id="tier3-nama-bank"
                                         v-model="form.nama_bank"
                                         type="text"
                                         placeholder="Contoh: BCA / Mandiri"
+                                        :aria-invalid="Boolean(form.errors.nama_bank)"
                                         @input="triggerAutoSave"
                                         class="bg-background border-input focus:ring-primary-500 h-9 w-full rounded-lg border px-3 text-xs focus:ring-2 focus:outline-none"
                                     />
@@ -1629,13 +1786,15 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                 </div>
 
                                 <div class="space-y-1">
-                                    <label class="text-foreground block text-xs font-semibold">
-                                        Nomor Rekening Bank <span class="text-rose-500">*</span>
+                                    <label for="tier3-nomor-rekening" class="text-foreground block text-xs font-semibold">
+                                        Nomor Rekening Bank <span class="text-rose-500" aria-hidden="true">*</span>
                                     </label>
                                     <input
+                                        id="tier3-nomor-rekening"
                                         v-model="form.nomor_rekening"
                                         type="text"
                                         placeholder="Nomor rekening Anda"
+                                        :aria-invalid="Boolean(form.errors.nomor_rekening)"
                                         @input="triggerAutoSave"
                                         class="bg-background border-input focus:ring-primary-500 h-9 w-full rounded-lg border px-3 font-mono text-xs font-bold focus:ring-2 focus:outline-none"
                                     />
@@ -1648,13 +1807,15 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                                 </div>
 
                                 <div class="space-y-1">
-                                    <label class="text-foreground block text-xs font-semibold">
-                                        Atas Nama Rekening <span class="text-rose-500">*</span>
+                                    <label for="tier3-atas-nama-rekening" class="text-foreground block text-xs font-semibold">
+                                        Atas Nama Rekening <span class="text-rose-500" aria-hidden="true">*</span>
                                     </label>
                                     <input
+                                        id="tier3-atas-nama-rekening"
                                         v-model="form.atas_nama_rekening"
                                         type="text"
                                         placeholder="Nama pemilik rekening"
+                                        :aria-invalid="Boolean(form.errors.atas_nama_rekening)"
                                         @input="triggerAutoSave"
                                         class="bg-background border-input focus:ring-primary-500 h-9 w-full rounded-lg border px-3 text-xs focus:ring-2 focus:outline-none"
                                     />
@@ -1673,10 +1834,10 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             >
                                 <div class="flex flex-wrap items-center justify-between gap-2">
                                     <div class="space-y-0.5">
-                                        <span class="text-foreground block text-xs font-bold">
+                                        <label for="tier3-dokumen-perjanjian" class="text-foreground block text-xs font-bold">
                                             Surat Perjanjian Kemitraan Tier 3 (Bermaterai 10.000)
-                                            <span class="text-rose-500">*</span>
-                                        </span>
+                                            <span class="text-rose-500" aria-hidden="true">*</span>
+                                        </label>
                                         <p class="text-muted-foreground text-[11px]">
                                             Unduh draf perjanjian otomatis, tanda tangani di atas
                                             materai, lalu unggah foto/scan berkasnya.
@@ -1694,8 +1855,10 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
 
                                 <div class="flex items-center gap-2">
                                     <input
+                                        id="tier3-dokumen-perjanjian"
                                         type="file"
                                         accept="image/jpeg,image/png,image/jpg,application/pdf"
+                                        :aria-invalid="Boolean(form.errors.dokumen_perjanjian)"
                                         @change="handleFileUpload"
                                         class="text-muted-foreground file:bg-primary-600 hover:file:bg-primary-700 block w-full cursor-pointer text-xs file:mr-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
                                     />
@@ -1709,6 +1872,22 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             </div>
                         </div>
 
+                        <!-- Ringkasan Error Validasi -->
+                        <div
+                            v-if="activeErrorMessages.length > 0"
+                            role="alert"
+                            aria-live="polite"
+                            class="border-destructive/40 bg-destructive/10 text-destructive flex items-start gap-2.5 rounded-xl border p-3 text-xs"
+                        >
+                            <AlertCircle class="mt-0.5 h-4 w-4 shrink-0" />
+                            <div class="space-y-1">
+                                <p class="font-bold">Lengkapi kolom wajib sebelum mengirim pendaftaran:</p>
+                                <ul class="list-disc space-y-0.5 pl-4">
+                                    <li v-for="(msg, idx) in activeErrorMessages" :key="idx">{{ msg }}</li>
+                                </ul>
+                            </div>
+                        </div>
+
                         <!-- Tombol Submit Akhir Tier 3 -->
                         <div
                             class="border-border flex items-center justify-end gap-2 border-t pt-2"
@@ -1716,13 +1895,8 @@ const progressPct = computed(() => Math.round((completedCount.value / totalCheck
                             <AppButton
                                 type="submit"
                                 label="Kirim Pendaftaran Akun Tier 3"
-                                :loading="form.processing || isCompressing"
-                                :disabled="
-                                    form.processing ||
-                                    isCompressing ||
-                                    !form.nomor_akun_trading ||
-                                    !form.myfxbook_url
-                                "
+                                :loading="form.processing || isUploadingOrCompressing"
+                                :disabled="form.processing || isUploadingOrCompressing"
                                 @click="submitAccount"
                             />
                         </div>

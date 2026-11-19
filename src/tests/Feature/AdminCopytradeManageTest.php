@@ -101,14 +101,17 @@ class AdminCopytradeManageTest extends TestCase
     public function test_list_never_exposes_mt4_passwords(): void
     {
         $this->makeAccount('T3-1', 'pending', 'tier_3', 300000, [
-            'server_broker'     => 'XM-Real',
-            'master_password'   => 'MasterSecret123',
-            'investor_password' => 'InvestorSecret123',
+            'server_broker'        => 'XM-Real',
+            'master_password'      => 'MasterSecret123',
+            'investor_password'    => 'InvestorSecret123',
+            'screenshot_akun_path' => 'copytrade_screenshots/1/test.png',
         ]);
 
         $response = $this->actingAs($this->admin)->get('/admin/copytrade');
 
         $response->assertInertia(fn ($page) => $page
+            ->where('verifikasi.data.0.has_screenshot_akun', true)
+            ->where('verifikasi.data.0.screenshot_akun_url', fn ($url) => str_contains((string) $url, '/documents/copytrade/'))
             ->missing('verifikasi.data.0.master_password')
             ->missing('verifikasi.data.0.investor_password'));
         $this->assertStringNotContainsString('MasterSecret123', $response->getContent());
@@ -155,7 +158,7 @@ class AdminCopytradeManageTest extends TestCase
         $akun = $this->makeAccount('T3-ACT', 'active', 'tier_3', 300000, [
             'server_broker'     => 'XM-Real',
             'master_password'   => 'MasterSecret123',
-            'investor_password' => 'InvestorSecret123',
+            'investor_password' => null,
         ]);
         $this->makeRecord($akun, now()->startOfMonth()->toDateString(), 310000);
 
@@ -163,7 +166,7 @@ class AdminCopytradeManageTest extends TestCase
             ->assertOk()
             ->assertHeader('Cache-Control')
             ->assertJsonPath('credentials.master_password', 'MasterSecret123')
-            ->assertJsonPath('credentials.investor_password', 'InvestorSecret123')
+            ->assertJsonPath('credentials.investor_password', null)
             ->assertJsonCount(1, 'history')
             ->assertJsonPath('history.0.balance', 310000);
     }
