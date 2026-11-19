@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ProfitMasterPost;
 use App\Models\ProfitMasterPostImage;
+use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -16,12 +17,64 @@ class ProfitMasterService
     ) {}
 
     /**
+     * Memvalidasi dan menormalisasi rentang tanggal filter agar format valid dan start <= end.
+     *
+     * @return array{start_date: string, end_date: string}
+     */
+    public function normalizeDateRange(?string $startDate, ?string $endDate): array
+    {
+        $start = $this->parseDateFilter($startDate);
+        $end = $this->parseDateFilter($endDate);
+
+        if ($start && $end && $start->gt($end)) {
+            [$start, $end] = [$end, $start];
+        }
+
+        return [
+            'start_date' => $start?->format('Y-m-d') ?? '',
+            'end_date'   => $end?->format('Y-m-d') ?? '',
+        ];
+    }
+
+    /**
+     * Mem-parsing string tanggal berformat Y-m-d secara ketat tanpa overflow kalender.
+     */
+    private function parseDateFilter(?string $value): ?Carbon
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+        if ($trimmed === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $trimmed)) {
+            return null;
+        }
+
+        try {
+            $parsed = Carbon::createFromFormat('!Y-m-d', $trimmed);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (!$parsed instanceof Carbon || $parsed->format('Y-m-d') !== $trimmed) {
+            return null;
+        }
+
+        return $parsed;
+    }
+
+    /**
      * Mengambil daftar postingan profit master menggunakan cursor pagination.
      *
      * @return array<string, mixed>
      */
-    public function feed(?string $search = null, ?string $cursor = null, int $perPage = 10): array
-    {
+    public function feed(
+        ?string $search = null,
+        ?string $cursor = null,
+        int $perPage = 10,
+        ?string $startDate = null,
+        ?string $endDate = null,
+    ): array {
         $query = ProfitMasterPost::with([
             'creator:id,name,username',
             'images',
@@ -32,16 +85,30 @@ class ProfitMasterService
             $query->where('caption', 'like', "%{$term}%");
         }
 
+        $range = $this->normalizeDateRange($startDate, $endDate);
+
+        if ($range['start_date'] !== '' && $range['end_date'] !== '') {
+            $query->whereDate('profit_start_date', '<=', $range['end_date'])
+                ->whereDate('profit_end_date', '>=', $range['start_date']);
+        } elseif ($range['start_date'] !== '') {
+            $query->whereDate('profit_end_date', '>=', $range['start_date']);
+        } elseif ($range['end_date'] !== '') {
+            $query->whereDate('profit_start_date', '<=', $range['end_date']);
+        }
+
         $paginator = $query->cursorPaginate($perPage, ['*'], 'cursor', $cursor);
 
         $items = collect($paginator->items())->map(function (ProfitMasterPost $post) {
             return [
-                'id'             => $post->id,
-                'caption'        => $post->caption,
-                'created_at'     => $post->created_at?->toIso8601String(),
-                'formatted_date' => $post->created_at?->translatedFormat('d M Y, H:i'),
-                'relative_time'  => $post->created_at?->diffForHumans(),
-                'creator'        => [
+                'id'                    => $post->id,
+                'caption'               => $post->caption,
+                'profit_start_date'     => $post->profit_start_date?->format('Y-m-d'),
+                'profit_end_date'       => $post->profit_end_date?->format('Y-m-d'),
+                'formatted_profit_date' => $this->formatProfitDateRange($post->profit_start_date, $post->profit_end_date),
+                'created_at'            => $post->created_at?->toIso8601String(),
+                'formatted_date'        => $post->created_at?->translatedFormat('d M Y, H:i'),
+                'relative_time'         => $post->created_at?->diffForHumans(),
+                'creator'               => [
                     'name'     => $post->creator?->name ?? 'Master Trader',
                     'username' => $post->creator?->username ?? 'admin',
                 ],
@@ -67,16 +134,50 @@ class ProfitMasterService
     }
 
     /**
+     * Memformat periode tanggal profit untuk badge kartu postingan.
+     */
+    private function formatProfitDateRange(?Carbon $start, ?Carbon $end): ?string
+    {
+        if (!$start || !$end) {
+            return null;
+        }
+
+        if ($start->isSameDay($end)) {
+            return $start->translatedFormat('d M Y');
+        }
+
+        if ($start->year === $end->year) {
+            return $start->translatedFormat('d M') . ' – ' . $end->translatedFormat('d M Y');
+        }
+
+        return $start->translatedFormat('d M Y') . ' – ' . $end->translatedFormat('d M Y');
+    }
+
+    /**
      * Menerbitkan postingan profit master baru beserta gambar-gambarnya.
      *
      * @param array<int, UploadedFile> $images
      */
-    public function create(string $caption, array $images, int $adminId): ProfitMasterPost
-    {
-        return DB::transaction(function () use ($caption, $images, $adminId) {
+    public function create(
+        string $caption,
+        array $images,
+        int $adminId,
+        ?string $profitStartDate = null,
+        ?string $profitEndDate = null,
+    ): ProfitMasterPost {
+        return DB::transaction(function () use ($caption, $images, $adminId, $profitStartDate, $profitEndDate) {
+            $range = $this->normalizeDateRange($profitStartDate, $profitEndDate);
+            $today = now()->toDateString();
+            $resolvedStart = $range['start_date'] !== ''
+                ? $range['start_date']
+                : ($range['end_date'] !== '' ? $range['end_date'] : $today);
+            $resolvedEnd = $range['end_date'] !== '' ? $range['end_date'] : $resolvedStart;
+
             $post = ProfitMasterPost::create([
-                'caption'    => $caption,
-                'created_by' => $adminId,
+                'caption'           => $caption,
+                'profit_start_date' => $resolvedStart,
+                'profit_end_date'   => $resolvedEnd,
+                'created_by'        => $adminId,
             ]);
 
             $disk = Storage::disk('local');
@@ -120,9 +221,11 @@ class ProfitMasterService
         ProfitMasterPost $post,
         string $caption,
         array $newImages = [],
-        array $deletedImageIds = []
+        array $deletedImageIds = [],
+        ?string $profitStartDate = null,
+        ?string $profitEndDate = null,
     ): ProfitMasterPost {
-        return DB::transaction(function () use ($post, $caption, $newImages, $deletedImageIds) {
+        return DB::transaction(function () use ($post, $caption, $newImages, $deletedImageIds, $profitStartDate, $profitEndDate) {
             $disk = Storage::disk('local');
 
             // 1. Hapus gambar yang ditandai hapus
@@ -165,8 +268,17 @@ class ProfitMasterService
                 throw new \InvalidArgumentException('Postingan wajib memiliki minimal 1 gambar bukti profit.');
             }
 
-            // 4. Update caption
-            $post->update(['caption' => $caption]);
+            // 4. Update caption dan tanggal periode profit
+            $updatePayload = ['caption' => $caption];
+            if ($profitStartDate !== null || $profitEndDate !== null) {
+                $range = $this->normalizeDateRange($profitStartDate, $profitEndDate);
+                if ($range['start_date'] !== '' && $range['end_date'] !== '') {
+                    $updatePayload['profit_start_date'] = $range['start_date'];
+                    $updatePayload['profit_end_date'] = $range['end_date'];
+                }
+            }
+
+            $post->update($updatePayload);
 
             $this->auditLogService->record(
                 kategori: 'profit_master',

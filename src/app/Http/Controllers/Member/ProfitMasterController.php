@@ -20,8 +20,16 @@ class ProfitMasterController extends Controller
      */
     public function index(Request $request): Response
     {
+        $dateRange = $this->profitMasterService->normalizeDateRange(
+            startDate: $request->input('start_date'),
+            endDate: $request->input('end_date'),
+        );
+
         return Inertia::render('Member/ProfitMaster/Index', [
-            'initialSearch' => (string) $request->input('search', ''),
+            'initialSearch'    => (string) $request->input('search', ''),
+            'initialStartDate' => $dateRange['start_date'],
+            'initialEndDate'   => $dateRange['end_date'],
+            'todayDate'        => now()->toDateString(),
         ]);
     }
 
@@ -33,7 +41,9 @@ class ProfitMasterController extends Controller
         $feed = $this->profitMasterService->feed(
             search: $request->input('search'),
             cursor: $request->input('cursor'),
-            perPage: (int) $request->input('per_page', 10)
+            perPage: (int) $request->input('per_page', 10),
+            startDate: $request->input('start_date'),
+            endDate: $request->input('end_date'),
         );
 
         return response()->json($feed);

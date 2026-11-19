@@ -193,10 +193,10 @@ const navSections = computed(() => {
                     routeName: 'member.investments.index',
                 },
                 {
-                    label: 'Master Fee',
-                    href: '/member/master-fee',
+                    label: 'Performance Fee',
+                    href: '/member/performance-fee',
                     icon: Receipt,
-                    routeName: 'member.master_fee.index',
+                    routeName: 'member.performance_fee.index',
                 },
                 {
                     label: 'Kalkulator Proyeksi',

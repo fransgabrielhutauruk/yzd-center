@@ -6,13 +6,12 @@ use App\Models\LaporanProfitBulanan;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
-class MasterFeeRejectedNotification extends Notification
+class PerformanceFeeVerifiedNotification extends Notification
 {
     use Queueable;
 
     public function __construct(
-        public LaporanProfitBulanan $laporan,
-        public string $alasan
+        public LaporanProfitBulanan $laporan
     ) {}
 
     /**
@@ -31,14 +30,13 @@ class MasterFeeRejectedNotification extends Notification
         $feeFormatted = '$' . number_format((float) $this->laporan->fee_usd, 2);
 
         return [
-            'type'       => 'master_fee_rejected',
-            'title'      => 'Pembayaran Master Fee Ditolak',
-            'message'    => "Bukti pembayaran untuk Master Fee ({$this->laporan->nomor}) sebesar {$feeFormatted} ditolak. Alasan: {$this->alasan}. Silakan unggah ulang bukti yang valid.",
-            'icon'       => 'x-circle',
+            'type'       => 'performance_fee_verified',
+            'title'      => 'Pembayaran Performance Fee Terverifikasi',
+            'message'    => "Pembayaran Performance Fee ({$this->laporan->nomor}) sebesar {$feeFormatted} telah diverifikasi oleh administrator dan berstatus LUNAS.",
+            'icon'       => 'check-circle-2',
             'laporan_id' => $this->laporan->id,
             'nomor'      => $this->laporan->nomor,
-            'alasan'     => $this->alasan,
-            'url'        => '/member/master-fee',
+            'url'        => '/member/performance-fee',
         ];
     }
 }

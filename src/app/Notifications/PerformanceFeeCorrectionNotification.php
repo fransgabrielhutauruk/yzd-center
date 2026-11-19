@@ -6,12 +6,13 @@ use App\Models\LaporanProfitBulanan;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
-class MasterFeeVerifiedNotification extends Notification
+class PerformanceFeeCorrectionNotification extends Notification
 {
     use Queueable;
 
     public function __construct(
-        public LaporanProfitBulanan $laporan
+        public LaporanProfitBulanan $laporan,
+        public string $alasan
     ) {}
 
     /**
@@ -27,16 +28,15 @@ class MasterFeeVerifiedNotification extends Notification
      */
     public function toArray(object $notifiable): array
     {
-        $feeFormatted = '$' . number_format((float) $this->laporan->fee_usd, 2);
-
         return [
-            'type'       => 'master_fee_verified',
-            'title'      => 'Pembayaran Master Fee Terverifikasi',
-            'message'    => "Pembayaran Master Fee ({$this->laporan->nomor}) sebesar {$feeFormatted} telah diverifikasi oleh administrator dan berstatus LUNAS.",
-            'icon'       => 'check-circle-2',
+            'type'       => 'performance_fee_correction',
+            'title'      => 'Laporan Profit Perlu Koreksi',
+            'message'    => "Laporan profit ({$this->laporan->nomor}) ditandai Perlu Koreksi oleh Admin. Catatan: {$this->alasan}. Silakan perbaiki data/screenshot laporan Anda.",
+            'icon'       => 'alert-triangle',
             'laporan_id' => $this->laporan->id,
             'nomor'      => $this->laporan->nomor,
-            'url'        => '/member/master-fee',
+            'alasan'     => $this->alasan,
+            'url'        => '/member/performance-fee',
         ];
     }
 }

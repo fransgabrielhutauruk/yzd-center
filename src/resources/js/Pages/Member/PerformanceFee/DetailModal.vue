@@ -64,7 +64,7 @@ const fetchDetail = async (id) => {
     if (!id) return;
     loading.value = true;
     try {
-        const response = await fetch(`/member/master-fee/${id}`, {
+        const response = await fetch(`/member/performance-fee/${id}`, {
             headers: {
                 Accept: 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
@@ -158,12 +158,12 @@ const submitUpload = () => {
     if (!activeId.value) return;
 
     if (!uploadForm.bukti_transfer) {
-        uploadForm.setError('bukti_transfer', 'Bukti transfer pembayaran Master Fee wajib diunggah.');
+        uploadForm.setError('bukti_transfer', 'Bukti transfer pembayaran Performance Fee wajib diunggah.');
         toast.error('Pilih berkas bukti transfer terlebih dahulu.');
         return;
     }
 
-    uploadForm.post(route('member.master_fee.proof', activeId.value), {
+    uploadForm.post(route('member.performance_fee.proof', activeId.value), {
         preserveScroll: true,
         forceFormData: true,
         onSuccess: () => {
@@ -239,7 +239,7 @@ const triggerEdit = () => {
                 <div class="rounded-lg bg-primary/5 border border-primary/15 p-3 flex items-center justify-between">
                     <div class="space-y-0.5">
                         <span class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                            Master Fee ({{ Number(laporan.fee_persen) }}%)
+                            Performance Fee ({{ Number(laporan.fee_persen) }}%)
                         </span>
                         <div class="font-mono text-xl font-black text-primary">
                             {{ formatRupiah(laporan.fee_idr) }}
@@ -375,7 +375,7 @@ const triggerEdit = () => {
             <div v-if="Number(laporan.fee_usd) > 0" class="rounded-xl border border-border p-3.5 space-y-3">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-bold text-foreground block">
-                        Bukti Pembayaran Master Fee <span class="text-destructive">*</span>
+                        Bukti Pembayaran Performance Fee <span class="text-destructive">*</span>
                     </span>
                 </div>
 
@@ -449,7 +449,7 @@ const triggerEdit = () => {
 
             <div v-else class="rounded-xl border border-slate-500/20 bg-slate-500/5 p-3.5 text-xs text-slate-800 dark:text-slate-300 flex items-center gap-2">
                 <Check class="h-4 w-4 text-slate-600 dark:text-slate-400 shrink-0" />
-                <span>Laporan ini tidak dikenakan Master Fee karena profit tidak bernilai positif. Status: Tanpa Fee.</span>
+                <span>Laporan ini tidak dikenakan Performance Fee karena profit tidak bernilai positif. Status: Tanpa Fee.</span>
             </div>
         </div>
     </AppModal>

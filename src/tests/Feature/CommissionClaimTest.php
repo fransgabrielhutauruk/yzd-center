@@ -80,7 +80,7 @@ class CommissionClaimTest extends TestCase
         $pAkhir = $pAwal->copy()->endOfMonth()->startOfDay();
 
         return LaporanProfitBulanan::create([
-            'nomor'               => 'MFE-' . $akun->id . '-' . $periodeKe . '-' . uniqid(),
+            'nomor'               => 'PFE-' . $akun->id . '-' . $periodeKe . '-' . uniqid(),
             'akun_copytrade_id'   => $akun->id,
             'user_id'             => $akun->user_id,
             'periode_ke'          => $periodeKe,
@@ -966,7 +966,7 @@ class CommissionClaimTest extends TestCase
         $this->assertStringContainsString('dengan total modal $100.', $data['message']);
     }
 
-    public function test_affiliator_cannot_claim_if_downline_has_unsettled_master_fee_in_window(): void
+    public function test_affiliator_cannot_claim_if_downline_has_unsettled_performance_fee_in_window(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-07-01 10:00:00'));
 
@@ -1065,7 +1065,7 @@ class CommissionClaimTest extends TestCase
         $this->assertEquals(2880000.0, (float) $claim->total_nominal_transfer_idr);
         $this->assertEquals('pending', $claim->status);
 
-        // Item tersimpan dengan nilai IDR riil dari Master Fee investor
+        // Item tersimpan dengan nilai IDR riil dari Performance Fee investor
         $claimItem = $claim->items()->first();
         $this->assertNotNull($claimItem);
         $this->assertEquals(14400000, $claimItem->master_gross_share_idr);
@@ -1077,7 +1077,7 @@ class CommissionClaimTest extends TestCase
         $approveResponse = $this->actingAs($this->admin)->post("/admin/commissions/{$claim->id}/process", [
             'status'         => 'approved_transferred',
             'bukti_transfer' => $receiptFile,
-            'catatan_admin'  => 'Disetujui berdasarkan Master Fee lunas.',
+            'catatan_admin'  => 'Disetujui berdasarkan Performance Fee lunas.',
         ]);
 
         $approveResponse->assertRedirect('/admin/commissions');
@@ -1132,7 +1132,7 @@ class CommissionClaimTest extends TestCase
             ->where('eligibleDownlines.0.periods_progress.0.wd_persen', 60)
             ->where('eligibleDownlines.0.periods_progress.0.fee_idr', 100003)
             ->where('eligibleDownlines.0.periods_progress.0.affiliate_commission_idr', 20001)
-            ->where('eligibleDownlines.0.periods_progress.0.bukti_transfer_url', "/documents/master-fee/{$r1->id}")
+            ->where('eligibleDownlines.0.periods_progress.0.bukti_transfer_url', "/documents/performance-fee/{$r1->id}")
             ->where('eligibleDownlines.0.periods_progress.1.wd_persen', 30)
             ->where('eligibleDownlines.0.periods_progress.1.affiliate_commission_idr', 20001)
             ->where('eligibleDownlines.0.periods_progress.2.is_tanpa_fee', true)
@@ -1159,7 +1159,7 @@ class CommissionClaimTest extends TestCase
             ->where('claims.data.0.total_nominal_transfer_idr', 40002)
             ->has('claims.data.0.items.0.periods_breakdown', 3)
             ->where('claims.data.0.items.0.periods_breakdown.0.wd_persen', 60)
-            ->where('claims.data.0.items.0.periods_breakdown.0.bukti_transfer_url', "/documents/master-fee/{$r1->id}")
+            ->where('claims.data.0.items.0.periods_breakdown.0.bukti_transfer_url', "/documents/performance-fee/{$r1->id}")
             ->where('claims.data.0.items.0.periods_accumulation.affiliate_commission_idr', 40002)
         );
     }

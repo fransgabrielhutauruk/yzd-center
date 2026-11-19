@@ -4,7 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdatePengaturanMasterFeeRequest extends FormRequest
+class UpdatePengaturanPerformanceFeeRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -25,12 +25,12 @@ class UpdatePengaturanMasterFeeRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'fee_persen.required'     => 'Persentase Master Fee wajib diisi.',
-            'fee_persen.integer'      => 'Persentase Master Fee harus berupa bilangan bulat.',
-            'fee_persen.between'      => 'Persentase Master Fee harus bernilai antara 1% sampai 100%.',
+            'fee_persen.required'     => 'Persentase Performance Fee wajib diisi.',
+            'fee_persen.integer'      => 'Persentase Performance Fee harus berupa bilangan bulat.',
+            'fee_persen.between'      => 'Persentase Performance Fee harus bernilai antara 1% sampai 100%.',
             'wd_maks_persen.required' => 'Persentase batas maksimal penarikan (WD) wajib diisi.',
             'wd_maks_persen.integer'  => 'Persentase batas maksimal penarikan (WD) harus berupa bilangan bulat.',
-            'wd_maks_persen.gte'      => 'Persentase batas maksimal WD minimal harus sama atau lebih besar dari persentase Master Fee.',
+            'wd_maks_persen.gte'      => 'Persentase batas maksimal WD minimal harus sama atau lebih besar dari persentase Performance Fee.',
             'wd_maks_persen.lte'      => 'Persentase batas maksimal WD tidak boleh melebihi 100%.',
             'nama_bank.required'      => 'Nama bank rekening penerima wajib diisi.',
             'nama_bank.max'           => 'Nama bank maksimal 100 karakter.',

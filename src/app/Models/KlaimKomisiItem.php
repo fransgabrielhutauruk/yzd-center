@@ -193,7 +193,7 @@ class KlaimKomisiItem extends Model
     }
 
     /**
-     * Hitung kalkulasi komisi afiliator dari bagi hasil Master Fee yang lunas.
+     * Hitung kalkulasi komisi afiliator dari bagi hasil Performance Fee yang lunas.
      * master_gross_share = Σ nominal_fee tagihan lunas
      * gross_profit = Σ profit_bersih tagihan lunas
      * affiliate_commission = (persentase_tier / 100) * master_gross_share

@@ -97,7 +97,7 @@ const columns = [
     { key: 'profit_usd', label: 'Profit (USD)', align: 'right' },
     { key: 'wd_usd', label: 'Penarikan (WD)', align: 'right' },
     { key: 'kurs_riil', label: 'Kurs', align: 'right' },
-    { key: 'fee', label: 'Master Fee', align: 'right' },
+    { key: 'fee', label: 'Performance Fee', align: 'right' },
     { key: 'status', label: 'Status', align: 'center' },
     { key: 'actions', label: 'Aksi', align: 'center' },
 ];
@@ -120,11 +120,11 @@ const maxMonth = computed(() => {
 
 <template>
     <MemberLayout
-        title="Laporan Profit & Master Fee"
-        subtitle="Laporkan profit bulanan dari Myfxbook & penarikan broker, serta kelola pembayaran Master Fee."
-        :breadcrumbs="[{ label: 'Menu Utama' }, { label: 'Master Fee' }]"
+        title="Laporan Profit & Performance Fee"
+        subtitle="Laporkan profit bulanan dari Myfxbook & penarikan broker, serta kelola pembayaran Performance Fee."
+        :breadcrumbs="[{ label: 'Menu Utama' }, { label: 'Performance Fee' }]"
     >
-        <Head title="Laporan Profit & Master Fee" />
+        <Head title="Laporan Profit & Performance Fee" />
 
         <div class="space-y-6">
             <!-- Ringkasan Finansial & Aksi Cepat -->
@@ -170,7 +170,7 @@ const maxMonth = computed(() => {
                         <div class="font-mono text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-400">
                             {{ formatIDR(total_lunas_idr) }}
                         </div>
-                        <p class="text-[11px] text-muted-foreground">Master fee berhasil diverifikasi</p>
+                        <p class="text-[11px] text-muted-foreground">Performance Fee berhasil diverifikasi</p>
                     </div>
                     <div class="h-11 w-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
                         <CheckCircle2 class="h-5 w-5" />
@@ -204,13 +204,13 @@ const maxMonth = computed(() => {
                 </div>
             </div>
 
-            <!-- Tabel Data Laporan Profit Master Fee -->
+            <!-- Tabel Data Laporan Profit Performance Fee -->
             <div class="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs">
                 <AppDataTable
                     :data="laporans"
                     :columns="columns"
                     :filters="filters"
-                    fetch-url="/member/master-fee"
+                    fetch-url="/member/performance-fee"
                     search-placeholder="Cari nomor laporan atau nomor akun..."
                 >
                     <!-- Filter Tambahan -->

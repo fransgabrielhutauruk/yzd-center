@@ -4,20 +4,20 @@ namespace Database\Seeders;
 
 use App\Models\AkunCopytrade;
 use App\Models\LaporanProfitBulanan;
-use App\Models\PengaturanMasterFee;
+use App\Models\PengaturanPerformanceFee;
 use App\Models\User;
 use App\Support\ProfitPeriod;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 
-class MasterFeeSeeder extends Seeder
+class PerformanceFeeSeeder extends Seeder
 {
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        $settings = PengaturanMasterFee::current();
+        $settings = PengaturanPerformanceFee::current();
 
         $admin = User::where('role', 'administrator')->first();
         $investor = User::where('username', 'investor')->first();
@@ -61,22 +61,22 @@ class MasterFeeSeeder extends Seeder
                     'periode_ke'        => $p['ke'],
                 ],
                 [
-                    'nomor'               => 'MFE-' . $p['akhir']->format('Ym') . '-0001',
+                    'nomor'               => 'PFE-' . $p['akhir']->format('Ym') . '-0001',
                     'user_id'             => $investor->id,
                     'periode_awal'        => $p['awal']->toDateString(),
                     'periode_akhir'       => $p['akhir']->toDateString(),
                     'jatuh_tempo'         => $p['jatuh_tempo']->toDateString(),
                     'profit_usd'          => $profit,
-                    'bukti_myfxbook_path' => 'master_fee/myfxbook/demo_p1.jpg',
+                    'bukti_myfxbook_path' => 'performance_fee/myfxbook/demo_p1.jpg',
                     'wd_usd'              => $wdUsd,
                     'wd_idr'              => $wdIdr,
-                    'bukti_wd_path'       => 'master_fee/wd/demo_wd1.jpg',
+                    'bukti_wd_path'       => 'performance_fee/wd/demo_wd1.jpg',
                     'kurs_riil'           => $kurs,
                     'fee_persen'          => $feePersen,
                     'fee_usd'             => $feeUsd,
                     'fee_idr'             => $feeIdr,
                     'status'              => LaporanProfitBulanan::STATUS_LUNAS,
-                    'bukti_transfer_path' => 'master_fee/proofs/demo_tf1.jpg',
+                    'bukti_transfer_path' => 'performance_fee/proofs/demo_tf1.jpg',
                     'dibayar_at'          => $p['open_date']->copy()->addDays(2),
                     'verified_by'         => $admin?->id,
                     'verified_at'         => $p['open_date']->copy()->addDays(3),
@@ -101,22 +101,22 @@ class MasterFeeSeeder extends Seeder
                     'periode_ke'        => $p['ke'],
                 ],
                 [
-                    'nomor'               => 'MFE-' . $p['akhir']->format('Ym') . '-0001',
+                    'nomor'               => 'PFE-' . $p['akhir']->format('Ym') . '-0001',
                     'user_id'             => $investor->id,
                     'periode_awal'        => $p['awal']->toDateString(),
                     'periode_akhir'       => $p['akhir']->toDateString(),
                     'jatuh_tempo'         => $p['jatuh_tempo']->toDateString(),
                     'profit_usd'          => $profit,
-                    'bukti_myfxbook_path' => 'master_fee/myfxbook/demo_p2.jpg',
+                    'bukti_myfxbook_path' => 'performance_fee/myfxbook/demo_p2.jpg',
                     'wd_usd'              => $wdUsd,
                     'wd_idr'              => $wdIdr,
-                    'bukti_wd_path'       => 'master_fee/wd/demo_wd2.jpg',
+                    'bukti_wd_path'       => 'performance_fee/wd/demo_wd2.jpg',
                     'kurs_riil'           => $kurs,
                     'fee_persen'          => $feePersen,
                     'fee_usd'             => $feeUsd,
                     'fee_idr'             => $feeIdr,
                     'status'              => LaporanProfitBulanan::STATUS_DITOLAK,
-                    'bukti_transfer_path' => 'master_fee/proofs/demo_tf2.jpg',
+                    'bukti_transfer_path' => 'performance_fee/proofs/demo_tf2.jpg',
                     'dibayar_at'          => $p['open_date']->copy()->addDays(3),
                     'catatan_admin'       => 'Nominal pada bukti transfer tidak cocok. Silakan lakukan pembayaran ulang.',
                     'verified_by'         => $admin?->id,
@@ -142,22 +142,22 @@ class MasterFeeSeeder extends Seeder
                     'periode_ke'        => $p['ke'],
                 ],
                 [
-                    'nomor'               => 'MFE-' . $p['akhir']->format('Ym') . '-0001',
+                    'nomor'               => 'PFE-' . $p['akhir']->format('Ym') . '-0001',
                     'user_id'             => $investor->id,
                     'periode_awal'        => $p['awal']->toDateString(),
                     'periode_akhir'       => $p['akhir']->toDateString(),
                     'jatuh_tempo'         => $p['jatuh_tempo']->toDateString(),
                     'profit_usd'          => $profit,
-                    'bukti_myfxbook_path' => 'master_fee/myfxbook/demo_p3.jpg',
+                    'bukti_myfxbook_path' => 'performance_fee/myfxbook/demo_p3.jpg',
                     'wd_usd'              => $wdUsd,
                     'wd_idr'              => $wdIdr,
-                    'bukti_wd_path'       => 'master_fee/wd/demo_wd3.jpg',
+                    'bukti_wd_path'       => 'performance_fee/wd/demo_wd3.jpg',
                     'kurs_riil'           => $kurs,
                     'fee_persen'          => $feePersen,
                     'fee_usd'             => $feeUsd,
                     'fee_idr'             => $feeIdr,
                     'status'              => LaporanProfitBulanan::STATUS_MENUNGGU_VERIFIKASI,
-                    'bukti_transfer_path' => 'master_fee/proofs/demo_tf3.jpg',
+                    'bukti_transfer_path' => 'performance_fee/proofs/demo_tf3.jpg',
                     'dibayar_at'          => Carbon::now()->subDay(),
                 ]
             );

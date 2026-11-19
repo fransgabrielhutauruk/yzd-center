@@ -4,7 +4,7 @@ namespace App\Http\Requests\Member;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UploadBuktiMasterFeeRequest extends FormRequest
+class UploadBuktiPerformanceFeeRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -26,7 +26,7 @@ class UploadBuktiMasterFeeRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'bukti_transfer.required' => 'Bukti transfer pembayaran Master Fee wajib diunggah.',
+            'bukti_transfer.required' => 'Bukti transfer pembayaran Performance Fee wajib diunggah.',
             'bukti_transfer.image'    => 'Berkas bukti transfer harus berupa gambar.',
             'bukti_transfer.mimes'    => 'Format gambar harus berupa jpeg, png, jpg, atau webp.',
             'bukti_transfer.max'      => 'Ukuran bukti transfer maksimal 10MB.',

@@ -7,7 +7,7 @@ use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
-class MasterFeeIssuedNotification extends Notification
+class PerformanceFeeIssuedNotification extends Notification
 {
     use Queueable;
 
@@ -32,13 +32,13 @@ class MasterFeeIssuedNotification extends Notification
         $feeFormatted = '$' . number_format((float) $this->laporan->fee_usd, 2);
 
         return [
-            'type'       => 'master_fee_issued',
-            'title'      => 'Master Fee Diterbitkan',
+            'type'       => 'performance_fee_issued',
+            'title'      => 'Performance Fee Diterbitkan',
             'message'    => "Laporan profit ({$this->laporan->nomor}) periode {$periodeFormatted} dengan fee {$feeFormatted} telah dibuat. Silakan lakukan pembayaran dan unggah bukti transfer.",
             'icon'       => 'receipt',
             'laporan_id' => $this->laporan->id,
             'nomor'      => $this->laporan->nomor,
-            'url'        => '/member/master-fee',
+            'url'        => '/member/performance-fee',
         ];
     }
 }

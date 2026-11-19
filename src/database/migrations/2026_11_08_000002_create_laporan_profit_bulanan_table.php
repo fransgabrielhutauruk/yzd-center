@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('laporan_profit_bulanan', function (Blueprint $table): void {
             $table->id();
-            $table->string('nomor', 20)->unique(); // MFE-YYYYMM-XXXX
+            $table->string('nomor', 20)->unique(); // PFE-YYYYMM-XXXX
             $table->foreignId('akun_copytrade_id')->constrained('akun_copytrade')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->unsignedSmallInteger('periode_ke'); // 1, 2, 3, ...

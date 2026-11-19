@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\FlagCorrectionRequest;
-use App\Http\Requests\Admin\RejectMasterFeeRequest;
-use App\Http\Requests\Admin\UpdatePengaturanMasterFeeRequest;
+use App\Http\Requests\Admin\RejectPerformanceFeeRequest;
+use App\Http\Requests\Admin\UpdatePengaturanPerformanceFeeRequest;
 use App\Models\LaporanProfitBulanan;
-use App\Services\MasterFeeService;
+use App\Services\PerformanceFeeService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,24 +15,24 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
-class MasterFeeController extends Controller
+class PerformanceFeeController extends Controller
 {
     public function __construct(
-        protected MasterFeeService $masterFeeService
+        protected PerformanceFeeService $PerformanceFeeService
     ) {}
 
     /**
-     * Tampilkan halaman kelola laporan profit dan master fee untuk admin.
+     * Tampilkan halaman kelola laporan profit dan Performance Fee untuk admin.
      */
     public function index(Request $request): Response
     {
         $filters = $request->only(['periode', 'status', 'search', 'perlu_koreksi', 'tab', 'missing_page', 'laporan_page']);
         $currentTab = $filters['tab'] ?? 'laporan';
 
-        $paginated = $this->masterFeeService->paginateForAdmin($filters);
-        $missing = $this->masterFeeService->missingReports($filters['periode'] ?? null, $filters);
-        $summary = $this->masterFeeService->summary($filters);
-        $settings = $this->masterFeeService->getSettings();
+        $paginated = $this->PerformanceFeeService->paginateForAdmin($filters);
+        $missing = $this->PerformanceFeeService->missingReports($filters['periode'] ?? null, $filters);
+        $summary = $this->PerformanceFeeService->summary($filters);
+        $settings = $this->PerformanceFeeService->getSettings();
 
         $laporansFormatted = $paginated->through(function (LaporanProfitBulanan $l) {
             $pAwal = Carbon::parse($l->periode_awal);
@@ -76,14 +76,14 @@ class MasterFeeController extends Controller
                 'verifier_name'        => $l->verifier?->name,
                 'verified_at'          => $l->verified_at ? tanggal_waktu_indo($l->verified_at) : null,
                 'urls'                 => [
-                    'bukti_myfxbook' => $l->bukti_myfxbook_path ? route('documents.master_fee_myfxbook', $l->id) : null,
-                    'bukti_wd'       => $l->bukti_wd_path ? route('documents.master_fee_wd', $l->id) : null,
-                    'bukti_transfer' => $l->bukti_transfer_path ? route('documents.master_fee_proof', $l->id) : null,
+                    'bukti_myfxbook' => $l->bukti_myfxbook_path ? route('documents.performance_fee_myfxbook', $l->id) : null,
+                    'bukti_wd'       => $l->bukti_wd_path ? route('documents.performance_fee_wd', $l->id) : null,
+                    'bukti_transfer' => $l->bukti_transfer_path ? route('documents.performance_fee_proof', $l->id) : null,
                 ],
             ];
         });
 
-        return Inertia::render('Admin/MasterFee/Index', [
+        return Inertia::render('Admin/PerformanceFee/Index', [
             'laporans'    => $laporansFormatted,
             'tagihans'    => $laporansFormatted, // backward compatibility
             'missing'     => $missing,
@@ -95,7 +95,7 @@ class MasterFeeController extends Controller
     }
 
     /**
-     * Ekspor data master fee sesuai tab aktif (laporan profit / akun belum lapor) ke format XLSX.
+     * Ekspor data Performance Fee sesuai tab aktif (laporan profit / akun belum lapor) ke format XLSX.
      */
     public function export(Request $request): BinaryFileResponse
     {
@@ -103,30 +103,30 @@ class MasterFeeController extends Controller
         $filters = $request->only(['periode', 'status', 'search', 'perlu_koreksi']);
 
         if ($tab === 'belum_lapor') {
-            return $this->masterFeeService->exportMissingReportsXlsx($filters);
+            return $this->PerformanceFeeService->exportMissingReportsXlsx($filters);
         }
 
-        return $this->masterFeeService->exportReportsXlsx($filters);
+        return $this->PerformanceFeeService->exportReportsXlsx($filters);
     }
 
     /**
-     * Verifikasi laporan master fee (menjadi LUNAS).
+     * Verifikasi laporan Performance Fee (menjadi LUNAS).
      */
     public function verify(Request $request, int $id): RedirectResponse
     {
-        $laporan = $this->masterFeeService->verify($id, $request->user());
+        $laporan = $this->PerformanceFeeService->verify($id, $request->user());
 
-        return redirect()->back()->with('success', "Laporan Master Fee {$laporan->nomor} berhasil diverifikasi dan berstatus LUNAS.");
+        return redirect()->back()->with('success', "Laporan Performance Fee {$laporan->nomor} berhasil diverifikasi dan berstatus LUNAS.");
     }
 
     /**
-     * Tolak bukti transfer master fee.
+     * Tolak bukti transfer Performance Fee.
      */
-    public function reject(RejectMasterFeeRequest $request, int $id): RedirectResponse
+    public function reject(RejectPerformanceFeeRequest $request, int $id): RedirectResponse
     {
-        $laporan = $this->masterFeeService->reject($id, $request->user(), $request->input('alasan'));
+        $laporan = $this->PerformanceFeeService->reject($id, $request->user(), $request->input('alasan'));
 
-        return redirect()->back()->with('success', "Bukti transfer Master Fee {$laporan->nomor} telah ditolak.");
+        return redirect()->back()->with('success', "Bukti transfer Performance Fee {$laporan->nomor} telah ditolak.");
     }
 
     /**
@@ -134,30 +134,30 @@ class MasterFeeController extends Controller
      */
     public function flagCorrection(FlagCorrectionRequest $request, int $id): RedirectResponse
     {
-        $laporan = $this->masterFeeService->flagCorrection($id, $request->user(), $request->input('alasan'));
+        $laporan = $this->PerformanceFeeService->flagCorrection($id, $request->user(), $request->input('alasan'));
 
         return redirect()->back()->with('success', "Laporan profit {$laporan->nomor} berhasil ditandai Perlu Koreksi.");
     }
 
     /**
-     * Tampilkan halaman pengaturan rekening & persen Master Fee.
+     * Tampilkan halaman pengaturan rekening & persen Performance Fee.
      */
     public function settings(Request $request): Response
     {
-        $settings = $this->masterFeeService->getSettings();
+        $settings = $this->PerformanceFeeService->getSettings();
 
-        return Inertia::render('Admin/Settings/MasterFee', [
+        return Inertia::render('Admin/Settings/PerformanceFee', [
             'settings' => $settings,
         ]);
     }
 
     /**
-     * Perbarui pengaturan Master Fee.
+     * Perbarui pengaturan Performance Fee.
      */
-    public function updateSettings(UpdatePengaturanMasterFeeRequest $request): RedirectResponse
+    public function updateSettings(UpdatePengaturanPerformanceFeeRequest $request): RedirectResponse
     {
-        $this->masterFeeService->updateSettings($request->validated(), $request->user());
+        $this->PerformanceFeeService->updateSettings($request->validated(), $request->user());
 
-        return redirect()->back()->with('success', 'Pengaturan Master Fee berhasil diperbarui.');
+        return redirect()->back()->with('success', 'Pengaturan Performance Fee berhasil diperbarui.');
     }
 }

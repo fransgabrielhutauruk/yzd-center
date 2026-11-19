@@ -11,7 +11,7 @@ use App\Http\Controllers\Admin\FaqController;
 use App\Http\Controllers\Admin\HelpCenterController;
 use App\Http\Controllers\Admin\InvitationController;
 use App\Http\Controllers\Admin\LegalContentController;
-use App\Http\Controllers\Admin\MasterFeeController as AdminMasterFeeController;
+use App\Http\Controllers\Admin\PerformanceFeeController as AdminPerformanceFeeController;
 use App\Http\Controllers\Admin\ProfitMasterController as AdminProfitMasterController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Admin\Settings\PasswordController as AdminPasswordController;
@@ -89,14 +89,14 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::get('/settings/legal', [LegalContentController::class, 'index'])->name('settings.legal');
     Route::post('/settings/legal', [LegalContentController::class, 'update'])->name('settings.legal.update');
 
-    // Pengaturan Master Fee & Kelola Laporan
-    Route::get('/master-fee/export', [AdminMasterFeeController::class, 'export'])->name('master_fee.export');
-    Route::get('/master-fee', [AdminMasterFeeController::class, 'index'])->name('master_fee.index');
-    Route::post('/master-fee/{id}/verify', [AdminMasterFeeController::class, 'verify'])->name('master_fee.verify');
-    Route::post('/master-fee/{id}/reject', [AdminMasterFeeController::class, 'reject'])->name('master_fee.reject');
-    Route::post('/master-fee/{id}/flag-correction', [AdminMasterFeeController::class, 'flagCorrection'])->name('master_fee.flag_correction');
-    Route::get('/settings/master-fee', [AdminMasterFeeController::class, 'settings'])->name('settings.master_fee');
-    Route::put('/settings/master-fee', [AdminMasterFeeController::class, 'updateSettings'])->name('settings.master_fee.update');
+    // Pengaturan Performance Fee & Kelola Laporan
+    Route::get('/performance-fee/export', [AdminPerformanceFeeController::class, 'export'])->name('performance_fee.export');
+    Route::get('/performance-fee', [AdminPerformanceFeeController::class, 'index'])->name('performance_fee.index');
+    Route::post('/performance-fee/{id}/verify', [AdminPerformanceFeeController::class, 'verify'])->name('performance_fee.verify');
+    Route::post('/performance-fee/{id}/reject', [AdminPerformanceFeeController::class, 'reject'])->name('performance_fee.reject');
+    Route::post('/performance-fee/{id}/flag-correction', [AdminPerformanceFeeController::class, 'flagCorrection'])->name('performance_fee.flag_correction');
+    Route::get('/settings/performance-fee', [AdminPerformanceFeeController::class, 'settings'])->name('settings.performance_fee');
+    Route::put('/settings/performance-fee', [AdminPerformanceFeeController::class, 'updateSettings'])->name('settings.performance_fee.update');
 
     // Audit Log Aktivitas Sistem
     Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity_logs.index');

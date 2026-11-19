@@ -74,7 +74,7 @@ watch(
 
 const confirmVerify = () => {
     if (!currentReport.value) return;
-    verifyForm.post(route('admin.master_fee.verify', currentReport.value.id), {
+    verifyForm.post(route('admin.performance_fee.verify', currentReport.value.id), {
         preserveScroll: true,
         onSuccess: () => {
             emit('close');
@@ -89,7 +89,7 @@ const submitReject = () => {
         return;
     }
 
-    rejectForm.post(route('admin.master_fee.reject', currentReport.value.id), {
+    rejectForm.post(route('admin.performance_fee.reject', currentReport.value.id), {
         preserveScroll: true,
         onSuccess: () => {
             emit('close');
@@ -104,7 +104,7 @@ const submitCorrection = () => {
         return;
     }
 
-    correctionForm.post(route('admin.master_fee.flag_correction', currentReport.value.id), {
+    correctionForm.post(route('admin.performance_fee.flag_correction', currentReport.value.id), {
         preserveScroll: true,
         onSuccess: () => {
             emit('close');
@@ -244,7 +244,7 @@ const formatRupiah = (val) => {
 
                     <div>
                         <span class="text-muted-foreground block text-[11px]"
-                            >Master Fee ({{ Number(currentReport.fee_persen) }}%):</span
+                            >Performance Fee ({{ Number(currentReport.fee_persen) }}%):</span
                         >
                         <span class="text-foreground font-mono font-black">
                             {{ formatRupiah(currentReport.fee_idr) }}

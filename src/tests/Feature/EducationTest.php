@@ -261,7 +261,7 @@ class EducationTest extends TestCase
             ->where('presets.default_duration_years', 5)
             ->where('presets.profit_taken_pct', 30)
             ->where('presets.compounding_pct', 40)
-            ->where('presets.master_fee_pct', 30)
+            ->where('presets.performance_fee_pct', 30)
             ->where('presets.default_exchange_rate', 16796)
             ->where('presets.exchange_rate_meta.is_live', true)
             ->where('presets.contact.phone', '082388986189')

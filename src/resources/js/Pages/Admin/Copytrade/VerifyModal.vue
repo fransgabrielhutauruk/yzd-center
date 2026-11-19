@@ -13,6 +13,7 @@ import {
     AlertTriangle,
     Building2,
     CreditCard,
+    Image as ImageIcon,
 } from 'lucide-vue-next';
 import AppModal from '@/Components/Common/AppModal.vue';
 import { Button } from '@/Components/ui/button';
@@ -281,6 +282,43 @@ const submit = () => {
                         }}</span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Screenshot Data Akun Trading -->
+            <div class="border-border bg-card space-y-3 rounded-xl border p-4">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h4
+                        class="text-foreground flex items-center gap-2 text-xs font-bold tracking-wider uppercase"
+                    >
+                        <ImageIcon class="text-primary-600 dark:text-primary-400 h-4 w-4" />
+                        <span>Screenshot Data Akun Trading</span>
+                    </h4>
+                    <a
+                        v-if="copytrade.has_screenshot_akun && copytrade.screenshot_akun_url"
+                        :href="copytrade.screenshot_akun_url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="bg-background border-border hover:bg-muted text-foreground inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-xs transition-colors"
+                    >
+                        <span>Buka Ukuran Penuh</span>
+                        <ExternalLink class="h-3.5 w-3.5" />
+                    </a>
+                </div>
+
+                <div
+                    v-if="copytrade.has_screenshot_akun && copytrade.screenshot_akun_url"
+                    class="border-border bg-muted/30 overflow-hidden rounded-lg border p-2"
+                >
+                    <img
+                        :src="copytrade.screenshot_akun_url"
+                        :alt="`Screenshot Data Akun ${copytrade.nomor_akun_trading}`"
+                        class="max-h-64 w-full rounded object-contain"
+                        loading="lazy"
+                    />
+                </div>
+                <p v-else class="text-muted-foreground text-xs">
+                    Belum ada screenshot data akun yang diunggah.
+                </p>
             </div>
 
             <!-- Surat Perjanjian Kemitraan Section (Hanya untuk pengajuan pertama atau jika belum ada pengajuan yang disetujui) -->

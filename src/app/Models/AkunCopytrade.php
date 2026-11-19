@@ -21,6 +21,7 @@ class AkunCopytrade extends Model
         'investor_password',
         'modal_riil',
         'surat_perjanjian_path',
+        'screenshot_akun_path',
         'tanggal_mulai',
         'tanggal_selesai',
         'nama_bank',

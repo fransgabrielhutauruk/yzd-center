@@ -29,11 +29,11 @@ const props = defineProps({
             referral_claims: 0,
             commission_claims: 0,
             tickets: 0,
-            master_fee: 0,
+            performance_fee: 0,
             total: 0,
         }),
     },
-    master_fee_monitoring: {
+    performance_fee_monitoring: {
         type: Object,
         default: () => ({
             unpaid_reports_count: 0,
@@ -69,7 +69,7 @@ const pendingList = computed(() => {
         list.push({
             id: 'kyc',
             title: 'Verifikasi Pendaftaran',
-            desc: 'Berkas identitas & data calon member baru menunggu peninjauan legalitas.',
+            desc: 'Berkas identitas & data calon member baru menunggu peninjauan.',
             count: pa.kyc,
             href: '/admin/registrations',
             icon: BadgeCheck,
@@ -125,13 +125,13 @@ const pendingList = computed(() => {
         });
     }
 
-    if (pa.master_fee > 0) {
+    if (pa.performance_fee > 0) {
         list.push({
-            id: 'master_fee',
-            title: 'Bukti Master Fee Menunggu Verifikasi',
-            desc: 'Bukti pembayaran Master Fee bulanan oleh member menunggu verifikasi admin.',
-            count: pa.master_fee,
-            href: '/admin/master-fee',
+            id: 'performance_fee',
+            title: 'Bukti Performance Fee Menunggu Verifikasi',
+            desc: 'Bukti pembayaran Performance Fee bulanan oleh member menunggu verifikasi admin.',
+            count: pa.performance_fee,
+            href: '/admin/performance-fee',
             icon: Receipt,
             unit: 'Laporan',
         });
@@ -153,38 +153,38 @@ const formatRupiah = (val) => {
 };
 
 const monitoringTotal = computed(() => {
-    const mfm = props.master_fee_monitoring || {};
-    return Number(mfm.unpaid_reports_count || 0) + Number(mfm.missing_accounts_count || 0);
+    const pfm = props.performance_fee_monitoring || {};
+    return Number(pfm.unpaid_reports_count || 0) + Number(pfm.missing_accounts_count || 0);
 });
 
 const monitoringCards = computed(() => {
-    const mfm = props.master_fee_monitoring || {};
-    const unpaidCount = Number(mfm.unpaid_reports_count || 0);
-    const unpaidOnlyCount = Number(mfm.unpaid_only_count || 0);
-    const rejectedCount = Number(mfm.rejected_reports_count || 0);
-    const unpaidInvestors = Number(mfm.unpaid_investors_count || 0);
-    const missingCount = Number(mfm.missing_accounts_count || 0);
-    const missingInvestors = Number(mfm.missing_investors_count || 0);
+    const pfm = props.performance_fee_monitoring || {};
+    const unpaidCount = Number(pfm.unpaid_reports_count || 0);
+    const unpaidOnlyCount = Number(pfm.unpaid_only_count || 0);
+    const rejectedCount = Number(pfm.rejected_reports_count || 0);
+    const unpaidInvestors = Number(pfm.unpaid_investors_count || 0);
+    const missingCount = Number(pfm.missing_accounts_count || 0);
+    const missingInvestors = Number(pfm.missing_investors_count || 0);
 
     const unpaidStatusQuery = unpaidOnlyCount === 0 && rejectedCount > 0 ? 'ditolak' : 'belum_dibayar';
     const rejectedNote = rejectedCount > 0 ? ` (${rejectedCount} bukti ditolak)` : '';
 
     return [
         {
-            id: 'unpaid_master_fee',
+            id: 'unpaid_performance_fee',
             title: 'Belum Kirim Bukti Fee',
             desc: 'Laporan profit > $0 yang belum dibayar atau bukti transfernya ditolak oleh admin.',
             count: unpaidCount,
             unit: 'Laporan',
             subInfo: unpaidCount > 0
-                ? `dari ${unpaidInvestors} Investor • Tagihan: ${formatRupiah(mfm.unpaid_total_idr)} (${formatUSD(mfm.unpaid_total_usd)})${rejectedNote}`
-                : 'Tidak ada tagihan Master Fee tertunggak.',
-            href: `/admin/master-fee?tab=laporan&status=${unpaidStatusQuery}`,
+                ? `dari ${unpaidInvestors} Investor • Tagihan: ${formatRupiah(pfm.unpaid_total_idr)} (${formatUSD(pfm.unpaid_total_usd)})${rejectedNote}`
+                : 'Tidak ada tagihan Performance Fee tertunggak.',
+            href: `/admin/performance-fee?tab=laporan&status=${unpaidStatusQuery}`,
             ctaLabel: 'Lihat Tagihan',
             icon: AlertTriangle,
         },
         {
-            id: 'missing_master_fee_report',
+            id: 'missing_performance_fee_report',
             title: 'Belum Lapor Bulanan',
             desc: 'Akun copytrade aktif yang sudah memasuki jadwal periode laporan tetapi belum input laporan.',
             count: missingCount,
@@ -192,7 +192,7 @@ const monitoringCards = computed(() => {
             subInfo: missingCount > 0
                 ? `dari ${missingInvestors} Investor • Periode laporan bulanan telah terbuka`
                 : 'Seluruh akun aktif telah melapor sesuai jadwal.',
-            href: '/admin/master-fee?tab=belum_lapor',
+            href: '/admin/performance-fee?tab=belum_lapor',
             ctaLabel: 'Lihat Akun',
             icon: FileWarning,
         },
@@ -226,7 +226,7 @@ const shortcuts = [
 <template>
     <AdminLayout
         title="Dashboard Administrator"
-        subtitle="Pusat kendali operasional trading dan manajemen ekosistem YZD Center."
+        subtitle="Pusat kendali operasional dan manajemen YZD Center."
         :breadcrumbs="[
             { label: 'Menu Utama' },
             { label: 'Dashboard' }
@@ -316,13 +316,13 @@ const shortcuts = [
                 </div>
             </section>
 
-            <!-- 2. SEKSI MONITORING TAGIHAN & LAPORAN MASTER FEE INVESTOR -->
+            <!-- 2. SEKSI MONITORING TAGIHAN & LAPORAN PERFORMANCE FEE INVESTOR -->
             <section class="space-y-3">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <div class="flex flex-wrap items-center gap-2">
                         <h2 class="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Monitoring Tagihan &amp; Laporan Master Fee
-                        </h2>
+                            Monitoring Tagihan &amp; Laporan Performance Fee
+                        </h2> 
                         <span
                             v-if="monitoringTotal > 0"
                             class="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-300"

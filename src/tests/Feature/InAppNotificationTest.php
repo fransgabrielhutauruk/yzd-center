@@ -272,7 +272,7 @@ class InAppNotificationTest extends TestCase
         $this->assertStringContainsString('Nomor akun MT4 salah.', $notification->data['message']);
     }
 
-    public function test_send_master_fee_reminder_artisan_command(): void
+    public function test_send_performance_fee_reminder_artisan_command(): void
     {
         Carbon::setTestNow('2026-10-01 07:00:00');
 
@@ -293,17 +293,17 @@ class InAppNotificationTest extends TestCase
             'myfxbook_url'       => 'https://www.myfxbook.com/members/demo/notif',
         ]);
 
-        $this->artisan('app:send-master-fee-reminders')
+        $this->artisan('app:send-performance-fee-reminders')
             ->assertSuccessful();
 
         $this->assertEquals(1, $this->investor->unreadNotifications()->count());
 
         $notification = $this->investor->unreadNotifications()->first();
-        $this->assertEquals('master_fee_input_reminder', $notification->data['type']);
-        $this->assertEquals('/member/master-fee', $notification->data['url']);
+        $this->assertEquals('performance_fee_input_reminder', $notification->data['type']);
+        $this->assertEquals('/member/performance-fee', $notification->data['url']);
 
         // Pastikan tidak dikirim berulang di hari yang sama (idempotent)
-        $this->artisan('app:send-master-fee-reminders')
+        $this->artisan('app:send-performance-fee-reminders')
             ->assertSuccessful();
         $this->assertEquals(1, $this->investor->unreadNotifications()->count());
 

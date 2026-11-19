@@ -23,7 +23,7 @@ class DatabaseSeeder extends Seeder
             // PengaturanMasterSeeder::class,
             // EdukasiFaqSeeder::class,
             // TiketBantuanSeeder::class,
-            // MasterFeeSeeder::class,
+            // PerformanceFeeSeeder::class,
         ]);
     }
 }

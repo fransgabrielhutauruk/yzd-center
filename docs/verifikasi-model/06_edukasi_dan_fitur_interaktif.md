@@ -53,7 +53,7 @@ Dokumen ini memuat panduan verifikasi fungsional, daftar rute, dan skenario peng
    - Ubah angka kurs di form menjadi `16000`.
    - Muncul tautan *"Pakai Kurs Hari Ini"* di atas input.
    - Klik tautan tersebut $\rightarrow$ Nilai kurs kembali sinkron dengan nilai pasar tengah hari ini.
-4. **Uji Perhitungan Akumulasi 5 Tahun (Rasio 30% Investor / 30% Master Fee / 40% Compounding):**
+4. **Uji Perhitungan Akumulasi 5 Tahun (Rasio 30% Investor / 30% Performance Fee / 40% Compounding):**
    - **Estimasi Modal Akhir:** `$328.10` (bertumbuh +228.1% dari akumulasi 40% compounding).
    - **Hak Investor (30% WD):** `$171.08`.
    - **Hak Master Trader (30% Fee):** `$171.08`.
@@ -61,9 +61,9 @@ Dokumen ini memuat panduan verifikasi fungsional, daftar rute, dan skenario peng
    - **Total Gross Profit Dihasilkan:** `$570.26`.
 5. **Uji Rincian Bulanan (Persis CSV):**
    - Beralih ke tab *"Rincian Per Bulan"*:
-     - Bulan 1: Modal `$100.00`, Profit 5% `$5.00`, Investor WD `$1.50`, Master Fee `$1.50`, Compounding `$2.00`, Modal Akhir `$102.00`.
-     - Bulan 12: Modal `$124.34`, Profit 5% `$6.22`, Investor WD `$1.87`, Master Fee `$1.87`, Compounding `$2.49`, Modal Akhir `$126.82`.
-     - Bulan 24: Modal `$157.69`, Profit 5% `$7.88`, Investor WD `$2.37`, Master Fee `$2.37`, Compounding `$3.15`, Modal Akhir `$160.84`.
+     - Bulan 1: Modal `$100.00`, Profit 5% `$5.00`, Investor WD `$1.50`, Performance Fee `$1.50`, Compounding `$2.00`, Modal Akhir `$102.00`.
+     - Bulan 12: Modal `$124.34`, Profit 5% `$6.22`, Investor WD `$1.87`, Performance Fee `$1.87`, Compounding `$2.49`, Modal Akhir `$126.82`.
+     - Bulan 24: Modal `$157.69`, Profit 5% `$7.88`, Investor WD `$2.37`, Performance Fee `$2.37`, Compounding `$3.15`, Modal Akhir `$160.84`.
 6. **Uji Kustomisasi Variabel & Fitur Simpan:**
    - Ubah Modal Awal menjadi `$1,000` dan Rata-rata Profit menjadi `8%`.
    - Klik tombol **"Simpan Variabel"** $\rightarrow$ Muncul notifikasi toast bahwa preferensi tersimpan di peramban.

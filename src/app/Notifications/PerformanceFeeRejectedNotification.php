@@ -6,7 +6,7 @@ use App\Models\LaporanProfitBulanan;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
-class MasterFeeCorrectionNotification extends Notification
+class PerformanceFeeRejectedNotification extends Notification
 {
     use Queueable;
 
@@ -28,15 +28,17 @@ class MasterFeeCorrectionNotification extends Notification
      */
     public function toArray(object $notifiable): array
     {
+        $feeFormatted = '$' . number_format((float) $this->laporan->fee_usd, 2);
+
         return [
-            'type'       => 'master_fee_correction',
-            'title'      => 'Laporan Profit Perlu Koreksi',
-            'message'    => "Laporan profit ({$this->laporan->nomor}) ditandai Perlu Koreksi oleh Admin. Catatan: {$this->alasan}. Silakan perbaiki data/screenshot laporan Anda.",
-            'icon'       => 'alert-triangle',
+            'type'       => 'performance_fee_rejected',
+            'title'      => 'Pembayaran Performance Fee Ditolak',
+            'message'    => "Bukti pembayaran untuk Performance Fee ({$this->laporan->nomor}) sebesar {$feeFormatted} ditolak. Alasan: {$this->alasan}. Silakan unggah ulang bukti yang valid.",
+            'icon'       => 'x-circle',
             'laporan_id' => $this->laporan->id,
             'nomor'      => $this->laporan->nomor,
             'alasan'     => $this->alasan,
-            'url'        => '/member/master-fee',
+            'url'        => '/member/performance-fee',
         ];
     }
 }

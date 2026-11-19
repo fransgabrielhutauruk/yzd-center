@@ -105,7 +105,7 @@ const laporanColumns = [
     { key: 'periode', label: 'Periode Profit' },
     { key: 'profit_usd', label: 'Profit USD', align: 'right' },
     { key: 'wd', label: 'Penarikan (WD)', align: 'right' },
-    { key: 'fee', label: 'Master Fee', align: 'right' },
+    { key: 'fee', label: 'Performance Fee', align: 'right' },
     { key: 'status', label: 'Status', align: 'center' },
     { key: 'actions', label: 'Aksi', align: 'center' },
 ];
@@ -122,12 +122,12 @@ const missingColumns = [
 
 <template>
     <AdminLayout
-        title="Kelola Master Fee & Laporan Profit"
-        :subtitle="`Monitoring laporan bulanan Myfxbook, verifikasi transfer Master Fee (${settings.fee_persen}%), dan akun belum lapor.`"
-        :breadcrumbs="[{ label: 'Menu Utama' }, { label: 'Master Fee' }]"
+        title="Kelola Performance Fee & Laporan Profit"
+        :subtitle="`Monitoring laporan bulanan Myfxbook, verifikasi transfer Performance Fee (${settings.fee_persen}%), dan akun belum lapor.`"
+        :breadcrumbs="[{ label: 'Menu Utama' }, { label: 'Performance Fee' }]"
     >
         <template #header-actions>
-            <Link :href="route('admin.settings.master_fee')">
+            <Link :href="route('admin.settings.performance_fee')">
                 <AppButton
                     type="custom"
                     variant="outline"
@@ -138,10 +138,10 @@ const missingColumns = [
             </Link>
         </template>
 
-        <Head title="Kelola Master Fee & Laporan Profit" />
+        <Head title="Kelola Performance Fee & Laporan Profit" />
 
         <div class="space-y-6">
-            <!-- 1. Kartu Ringkasan Metrik Master Fee -->
+            <!-- 1. Kartu Ringkasan Metrik Performance Fee -->
             <div class="grid grid-cols-2 lg:grid-cols-6 gap-3">
                 <!-- Total Laporan -->
                 <div class="rounded-xl border border-border bg-card p-3.5 space-y-1">
@@ -233,7 +233,7 @@ const missingColumns = [
                     :data="laporans"
                     :columns="laporanColumns"
                     :filters="filters"
-                    fetch-url="/admin/master-fee"
+                    fetch-url="/admin/performance-fee"
                     exportable
                     :extra-params="{ tab: 'laporan' }"
                     param-prefix="laporan_"
@@ -343,7 +343,7 @@ const missingColumns = [
                         <span v-else class="text-xs text-muted-foreground">-</span>
                     </template>
 
-                    <!-- Slot Master Fee -->
+                    <!-- Slot Performance Fee -->
                     <template #column-fee="{ item }">
                         <div class="space-y-0.5 text-right font-mono text-xs">
                             <div class="font-bold text-foreground">{{ item.fee_usd_formatted }}</div>
@@ -397,7 +397,7 @@ const missingColumns = [
                     :data="missing"
                     :columns="missingColumns"
                     :filters="filters"
-                    fetch-url="/admin/master-fee"
+                    fetch-url="/admin/performance-fee"
                     exportable
                     :extra-params="{ tab: 'belum_lapor' }"
                     param-prefix="missing_"

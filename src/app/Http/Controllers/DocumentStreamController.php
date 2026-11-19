@@ -175,6 +175,60 @@ class DocumentStreamController extends Controller
     }
 
     /**
+     * Tampilkan (stream) berkas screenshot data akun copytrade privat terotentikasi.
+     */
+    public function showCopytradeScreenshot(Request $request, int $id): StreamedResponse
+    {
+        $akun = \App\Models\AkunCopytrade::with('user')->findOrFail($id);
+        $user = $request->user();
+
+        if (!$user || (!$user->isAdmin() && $user->id !== $akun->user_id)) {
+            abort(403, 'Anda tidak memiliki hak akses untuk melihat screenshot data akun ini.');
+        }
+
+        if (empty($akun->screenshot_akun_path)) {
+            abort(404, 'Berkas screenshot data akun tidak ditemukan di penyimpanan server.');
+        }
+
+        $path = $akun->screenshot_akun_path;
+        if (!Storage::disk('local')->exists($path)) {
+            $fallback = preg_replace('#^private/#', '', $path);
+            if (Storage::disk('local')->exists($fallback)) {
+                $path = $fallback;
+            } else {
+                abort(404, 'Berkas screenshot data akun tidak ditemukan di penyimpanan server.');
+            }
+        }
+
+        if ($user->isAdmin()) {
+            $actor = AuditLogService::formatActor($user);
+            $targetUser = AuditLogService::formatTargetUser($akun->user, $akun->user_id);
+
+            $this->auditLogService->record(
+                kategori: 'copytrade',
+                aksi: 'lihat_dokumen',
+                deskripsi: "{$actor} melihat screenshot data akun copytrade #{$akun->nomor_akun_trading} milik {$targetUser}.",
+                subject: $akun,
+                tingkat: 'info',
+                user: $user,
+                withCooldown: true
+            );
+        }
+
+        return Storage::disk('local')->response(
+            $path,
+            basename($path),
+            [
+                'Cache-Control'          => 'no-store, no-cache, must-revalidate, max-age=0',
+                'Pragma'                 => 'no-cache',
+                'Expires'                => '0',
+                'X-Content-Type-Options' => 'nosniff',
+                'X-Frame-Options'        => 'SAMEORIGIN',
+            ]
+        );
+    }
+
+    /**
      * Tampilkan (stream) berkas bukti modal klaim komisi privat terotentikasi.
      */
     public function showCommissionProof(Request $request, int $id): StreamedResponse
@@ -363,9 +417,9 @@ class DocumentStreamController extends Controller
     }
 
     /**
-     * Tampilkan (stream) berkas bukti transfer master fee privat terotentikasi.
+     * Tampilkan (stream) berkas bukti transfer performance fee privat terotentikasi.
      */
-    public function showMasterFeeProof(Request $request, int $id): StreamedResponse
+    public function showPerformanceFeeProof(Request $request, int $id): StreamedResponse
     {
         $user = $request->user();
 

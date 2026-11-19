@@ -51,6 +51,7 @@ class InvestmentPortfolioTest extends TestCase
     public function test_investor_can_register_new_investment_account(): void
     {
         $file = UploadedFile::fake()->create('surat_perjanjian.pdf', 500, 'application/pdf');
+        $screenshot = UploadedFile::fake()->image('akun.png');
 
         $response = $this->actingAs($this->investor)
             ->post(route('member.investments.store'), [
@@ -62,6 +63,7 @@ class InvestmentPortfolioTest extends TestCase
                 'nomor_rekening'        => '12345678',
                 'atas_nama_rekening'    => 'Investor Test',
                 'dokumen_perjanjian'    => $file,
+                'screenshot_akun'       => $screenshot,
                 'myfxbook_url'          => 'https://www.myfxbook.com/members/test/portfolio/12345',
             ]);
 
@@ -75,6 +77,18 @@ class InvestmentPortfolioTest extends TestCase
             'status'             => 'pending',
             'myfxbook_url'       => 'https://www.myfxbook.com/members/test/portfolio/12345',
         ]);
+
+        $akun = AkunCopytrade::where('nomor_akun_trading', 'MT4-889900')->firstOrFail();
+        $this->assertNotNull($akun->screenshot_akun_path);
+        Storage::disk('local')->assertExists($akun->screenshot_akun_path);
+
+        $this->actingAs($this->investor)
+            ->get(route('member.investments.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('accounts.0.has_screenshot_akun', true)
+                ->where('accounts.0.screenshot_akun_url', route('documents.copytrade_screenshot', $akun->id))
+            );
     }
 
     public function test_consolidated_summary_accurately_aggregates_multiple_accounts(): void
@@ -271,6 +285,7 @@ class InvestmentPortfolioTest extends TestCase
                 'nomor_rekening'        => '12345678',
                 'atas_nama_rekening'    => 'Investor Test',
                 'dokumen_perjanjian'    => $file,
+                'screenshot_akun'       => UploadedFile::fake()->image('tier1.png'),
                 'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/tier1',
             ]);
 
@@ -339,6 +354,7 @@ class InvestmentPortfolioTest extends TestCase
                 'nomor_rekening'        => '12345678',
                 'atas_nama_rekening'    => 'Investor Test',
                 'dokumen_perjanjian'    => $file,
+                'screenshot_akun'       => UploadedFile::fake()->image('tier2.png'),
                 'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/tier2valid',
             ]);
         $responseValid->assertRedirect(route('member.investments.index'));
@@ -382,6 +398,7 @@ class InvestmentPortfolioTest extends TestCase
                 'master_password'       => 'MasterSecret123',
                 'investor_password'     => 'InvestorSecret456',
                 'dokumen_perjanjian'    => $file,
+                'screenshot_akun'       => UploadedFile::fake()->image('tier3.png'),
                 'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/tier3valid',
             ]);
         $responseValid->assertRedirect(route('member.investments.index'));
@@ -405,18 +422,20 @@ class InvestmentPortfolioTest extends TestCase
                 'nomor_rekening'        => '9876543210',
                 'atas_nama_rekening'    => 'Investor Pertama',
                 'dokumen_perjanjian'    => $file,
+                'screenshot_akun'       => UploadedFile::fake()->image('first.png'),
                 'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/first',
             ]);
         $resp1->assertRedirect(route('member.investments.index'));
         $firstAccount = AkunCopytrade::where('nomor_akun_trading', 'MT4-ACC-FIRST')->firstOrFail();
 
-        // 2. Akun kedua: mendaftar TANPA mengirim bank dan TANPA mengirim surat perjanjian (karena field disembunyikan)
+        // 2. Akun kedua: mendaftar TANPA mengirim bank dan TANPA mengirim surat perjanjian, namun tetap wajib screenshot data akun
         $resp2 = $this->actingAs($this->investor)
             ->post(route('member.investments.store'), [
                 'tier_investasi'        => 'tier_2',
                 'nomor_akun_trading'    => 'MT4-ACC-SECOND',
                 'modal_riil'            => 15000.00,
                 'tanggal_mulai_trading' => '2026-03-01',
+                'screenshot_akun'       => UploadedFile::fake()->image('second.png'),
                 'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/second',
             ]);
         $resp2->assertRedirect(route('member.investments.index'));
@@ -611,6 +630,7 @@ class InvestmentPortfolioTest extends TestCase
             'nama_bank'             => 'BCA',
             'nomor_rekening'        => '12345',
             'atas_nama_rekening'    => 'Investor Test',
+            'screenshot_akun'       => UploadedFile::fake()->image('new222.png'),
             'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/new222',
         ];
 
@@ -647,6 +667,7 @@ class InvestmentPortfolioTest extends TestCase
                 'nomor_rekening'        => '12345',
                 'atas_nama_rekening'    => 'Investor Test',
                 'dokumen_perjanjian'    => $file,
+                'screenshot_akun'       => UploadedFile::fake()->image('pend1.png'),
                 'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/pend1',
             ])
             ->assertRedirect(route('member.investments.index'));
@@ -659,7 +680,7 @@ class InvestmentPortfolioTest extends TestCase
             ->where('has_existing', true)
         );
 
-        // Pengajuan akun kedua sekaligus tanpa dokumen perjanjian HARUS BERHASIL
+        // Pengajuan akun kedua sekaligus tanpa dokumen perjanjian (dengan screenshot data akun) HARUS BERHASIL
         $this->actingAs($this->investor)
             ->post(route('member.investments.store'), [
                 'tier_investasi'        => 'tier_2',
@@ -669,6 +690,7 @@ class InvestmentPortfolioTest extends TestCase
                 'nama_bank'             => 'BCA',
                 'nomor_rekening'        => '12345',
                 'atas_nama_rekening'    => 'Investor Test',
+                'screenshot_akun'       => UploadedFile::fake()->image('pend2.png'),
                 'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/pend2',
             ])
             ->assertRedirect(route('member.investments.index'));
@@ -773,6 +795,7 @@ class InvestmentPortfolioTest extends TestCase
                 'atas_nama_rekening'    => 'Investor Tier 2',
                 'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/account/2',
                 'dokumen_perjanjian'    => $file,
+                'screenshot_akun'       => UploadedFile::fake()->image('hfm_t2.png'),
             ]);
 
         $response->assertRedirect(route('member.investments.index'));
@@ -831,11 +854,39 @@ class InvestmentPortfolioTest extends TestCase
                 'atas_nama_rekening'    => 'Investor Flow Test',
                 'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/account/3',
                 'dokumen_perjanjian'    => $file,
+                'screenshot_akun'       => UploadedFile::fake()->image('hfm_complete.png'),
             ]);
 
         $this->assertDatabaseHas('investor_onboarding_steps', [
             'user_id' => $this->investor->id,
             'status'  => 'submitted',
         ]);
+    }
+
+    public function test_tier_3_store_accepts_optional_investor_password_and_exposes_screenshot(): void
+    {
+        $file = UploadedFile::fake()->create('surat_perjanjian_t3.pdf', 500, 'application/pdf');
+        $screenshot = UploadedFile::fake()->image('tier3_acc.png');
+
+        $this->actingAs($this->investor)
+            ->post(route('member.investments.store'), [
+                'tier_investasi'        => 'tier_3',
+                'nomor_akun_trading'    => 'XM-TIER3-OPT',
+                'modal_riil'            => 350000.00,
+                'tanggal_mulai_trading' => '2026-03-01',
+                'nama_bank'             => 'BCA',
+                'nomor_rekening'        => '987654321',
+                'atas_nama_rekening'    => 'Investor Tier 3',
+                'server_broker'         => 'XMGlobal-Real 50',
+                'master_password'       => 'MasterPass99!',
+                'myfxbook_url'          => 'https://www.myfxbook.com/members/demo/account/300',
+                'dokumen_perjanjian'    => $file,
+                'screenshot_akun'       => $screenshot,
+            ])
+            ->assertRedirect(route('member.investments.index'));
+
+        $akun = AkunCopytrade::where('nomor_akun_trading', 'XM-TIER3-OPT')->firstOrFail();
+        $this->assertNull($akun->investor_password);
+        $this->assertNotNull($akun->screenshot_akun_path);
     }
 }

@@ -202,7 +202,7 @@ class TrashCommandsTest extends TestCase
         ]);
 
         $report1 = LaporanProfitBulanan::create([
-            'nomor'               => 'MFE-202611-0001',
+            'nomor'               => 'PFE-202611-0001',
             'akun_copytrade_id'   => $akun->id,
             'user_id'             => $this->member->id,
             'periode_ke'          => 1,
@@ -222,7 +222,7 @@ class TrashCommandsTest extends TestCase
 
         // Buat laporan baru aktif untuk akun dan periode_ke yang sama
         $report2 = LaporanProfitBulanan::create([
-            'nomor'               => 'MFE-202611-0002',
+            'nomor'               => 'PFE-202611-0002',
             'akun_copytrade_id'   => $akun->id,
             'user_id'             => $this->member->id,
             'periode_ke'          => 1,
@@ -273,8 +273,10 @@ class TrashCommandsTest extends TestCase
         Storage::fake('local');
 
         $post = ProfitMasterPost::create([
-            'caption'    => 'Promosi Purge',
-            'created_by' => $this->admin->id,
+            'caption'           => 'Promosi Purge',
+            'profit_start_date' => now()->toDateString(),
+            'profit_end_date'   => now()->toDateString(),
+            'created_by'        => $this->admin->id,
         ]);
 
         $filePath = "profit_master/{$post->id}/purge_test.jpg";

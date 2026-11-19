@@ -92,6 +92,8 @@ class InvestmentPortfolioController extends Controller
                 'myfxbook_url'         => $akun->myfxbook_url,
                 'has_myfxbook'         => !empty($akun->myfxbook_url),
                 'has_surat_perjanjian' => !empty($akun->surat_perjanjian_path),
+                'has_screenshot_akun'  => !empty($akun->screenshot_akun_path),
+                'screenshot_akun_url'  => $akun->screenshot_akun_path ? route('documents.copytrade_screenshot', $akun->id) : null,
                 'latest_record_date'   => $latestReport?->periode_akhir?->format('Y-m-d'),
                 'records_count'        => $reportsCount,
             ];
@@ -163,8 +165,9 @@ class InvestmentPortfolioController extends Controller
         $user = $request->user();
         $validated = $request->validated();
         $suratPerjanjian = $request->file('dokumen_perjanjian');
+        $screenshotAkun = $request->file('screenshot_akun');
 
-        $akun = $this->copytradeService->storeCopytrade($user, $validated, $suratPerjanjian);
+        $akun = $this->copytradeService->storeCopytrade($user, $validated, $suratPerjanjian, $screenshotAkun);
 
         // Tandai progres onboarding aktif sebagai submitted
         InvestorOnboardingStep::where('user_id', $user->id)

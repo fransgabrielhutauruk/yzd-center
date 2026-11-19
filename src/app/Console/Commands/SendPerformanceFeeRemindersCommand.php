@@ -4,34 +4,34 @@ namespace App\Console\Commands;
 
 use App\Models\AkunCopytrade;
 use App\Models\LaporanProfitBulanan;
-use App\Notifications\MasterFeeReminderNotification;
+use App\Notifications\PerformanceFeeReminderNotification;
 use App\Support\ProfitPeriod;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
-class SendMasterFeeRemindersCommand extends Command
+class SendPerformanceFeeRemindersCommand extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'app:send-master-fee-reminders';
+    protected $signature = 'app:send-performance-fee-reminders';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Kirim pengingat input profit dan pembayaran Master Fee in-app kepada member (tgl 1, 7, dan 15).';
+    protected $description = 'Kirim pengingat input profit dan pembayaran Performance Fee in-app kepada member (tgl 1, 7, dan 15).';
 
     /**
      * Execute the console command.
      */
     public function handle(): int
     {
-        $this->info('Memeriksa akun & tagihan Master Fee yang memerlukan pengingat...');
+        $this->info('Memeriksa akun & tagihan Performance Fee yang memerlukan pengingat...');
 
         $today = Carbon::now()->startOfDay();
 
@@ -65,7 +65,7 @@ class SendMasterFeeRemindersCommand extends Command
             // Cek idempoten: jangan kirim berulang di hari yang sama untuk akun ini
             $alreadySent = DB::table('notifications')
                 ->where('notifiable_id', $user->id)
-                ->where('type', MasterFeeReminderNotification::class)
+                ->where('type', PerformanceFeeReminderNotification::class)
                 ->whereDate('created_at', $today->toDateString())
                 ->where('data', 'like', '%"akun_id":' . $akun->id . '%')
                 ->exists();
@@ -74,7 +74,7 @@ class SendMasterFeeRemindersCommand extends Command
                 continue;
             }
 
-            $user->notify(new MasterFeeReminderNotification(
+            $user->notify(new PerformanceFeeReminderNotification(
                 periodInfo: [
                     'akun_id'       => $akun->id,
                     'nomor_akun'    => $akun->nomor_akun_trading,
@@ -87,7 +87,7 @@ class SendMasterFeeRemindersCommand extends Command
             $this->line("Pengingat input profit dikirim ke {$user->name} untuk akun #{$akun->nomor_akun_trading}.");
         }
 
-        // 2. Pengingat Pembayaran Master Fee Belum Dibayar
+        // 2. Pengingat Pembayaran Performance Fee Belum Dibayar
         $unpaidReports = LaporanProfitBulanan::query()
             ->with('user')
             ->whereIn('status', [LaporanProfitBulanan::STATUS_BELUM_DIBAYAR, LaporanProfitBulanan::STATUS_DITOLAK])
@@ -103,7 +103,7 @@ class SendMasterFeeRemindersCommand extends Command
             // Cek idempoten: jangan kirim berulang di hari yang sama untuk laporan ini
             $alreadySent = DB::table('notifications')
                 ->where('notifiable_id', $user->id)
-                ->where('type', MasterFeeReminderNotification::class)
+                ->where('type', PerformanceFeeReminderNotification::class)
                 ->whereDate('created_at', $today->toDateString())
                 ->where('data', 'like', '%"laporan_id":' . $laporan->id . '%')
                 ->exists();
@@ -112,7 +112,7 @@ class SendMasterFeeRemindersCommand extends Command
                 continue;
             }
 
-            $user->notify(new MasterFeeReminderNotification(
+            $user->notify(new PerformanceFeeReminderNotification(
                 laporan: $laporan,
                 reminderType: 'payment'
             ));

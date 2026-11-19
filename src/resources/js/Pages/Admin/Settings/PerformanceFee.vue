@@ -23,7 +23,7 @@ const form = useForm({
 });
 
 const submit = () => {
-    form.put(route('admin.settings.master_fee.update'), {
+    form.put(route('admin.settings.performance_fee.update'), {
         preserveScroll: true,
         onSuccess: () => {
             // Flash message ditangkap otomatis oleh AppToaster
@@ -34,14 +34,14 @@ const submit = () => {
 
 <template>
     <AdminLayout
-        title="Pengaturan Master Fee"
+        title="Pengaturan Performance Fee"
         subtitle="Atur persentase bagi hasil (Performance Fee) dan rekening bank penampung pembayaran dari member."
         :breadcrumbs="[
             { label: 'Pengaturan Sistem' },
-            { label: 'Pengaturan Master Fee' },
+            { label: 'Pengaturan Performance Fee' },
         ]"
     >
-        <Head title="Pengaturan Master Fee" />
+        <Head title="Pengaturan Performance Fee" />
 
         <div class="max-w-4xl space-y-6">
             <!-- Kotak Informasi Aturan Penguncian Persentase -->
@@ -64,7 +64,7 @@ const submit = () => {
                     <div class="space-y-2">
                         <label class="text-xs font-bold text-foreground flex items-center gap-1.5">
                             <Percent class="h-3.5 w-3.5 text-primary" />
-                            <span>Persentase Master Fee (%) <span class="text-destructive">*</span></span>
+                            <span>Persentase Performance Fee (%) <span class="text-destructive">*</span></span>
                         </label>
                         <div class="relative max-w-xs">
                             <input
@@ -118,7 +118,7 @@ const submit = () => {
                         <span>Rekening Bank Penampung (Master)</span>
                     </h3>
                     <p class="text-xs text-muted-foreground">
-                        Informasi rekening ini akan ditampilkan kepada seluruh investor saat membuka rincian pembayaran tagihan Master Fee.
+                        Informasi rekening ini akan ditampilkan kepada seluruh investor saat membuka rincian pembayaran tagihan Performance Fee.
                     </p>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

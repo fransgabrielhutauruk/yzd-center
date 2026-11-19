@@ -141,10 +141,10 @@ const getPeriodBadgeClass = (period) => {
                     </span>
                 </div>
 
-                <!-- Kirim ke Master Fee (IDR & USD) -->
+                <!-- Kirim ke Performance Fee (IDR & USD) -->
                 <div class="border-border/50 bg-muted/20 rounded-lg border p-2">
                     <span class="text-muted-foreground block text-[10px]">
-                        Master Fee ({{ p.fee_persen ?? 30 }}%)
+                        Performance Fee ({{ p.fee_persen ?? 30 }}%)
                     </span>
                     <template v-if="p.is_tanpa_fee && Number(p.fee_idr) <= 0">
                         <strong class="text-muted-foreground font-mono text-xs">Rp 0</strong>

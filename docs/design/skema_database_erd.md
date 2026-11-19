@@ -128,15 +128,26 @@ erDiagram
     akun_copytrade {
         bigint id PK
         bigint user_id FK
-        enum broker_name "HFM, XM, Other"
-        string mt4_account_number
-        enum step1_deposit_status "pending, verified, rejected"
-        timestamp step1_deposit_verified_at "nullable"
-        string step2_copy_proof_path "nullable"
-        enum step2_copy_status "locked, pending, active_copying, rejected"
-        timestamp step2_copy_verified_at "nullable"
-        string step3_mql5_url "nullable"
-        datetime copy_started_at "nullable"
+        string tier "tier_1, tier_2, tier_3"
+        string broker "HFM, XM"
+        string tipe_akun "cent, standard, private_vps"
+        string nomor_akun_trading
+        string server_broker "nullable"
+        string myfxbook_url "nullable"
+        text master_password "nullable, encrypted"
+        text investor_password "nullable, opsional, encrypted"
+        decimal modal_riil "15,2 unsigned"
+        string surat_perjanjian_path "nullable"
+        string screenshot_akun_path "nullable"
+        date tanggal_mulai
+        date tanggal_selesai "nullable"
+        string nama_bank
+        string nomor_rekening
+        string atas_nama_rekening
+        string status "pending, active, rejected, suspended"
+        text catatan_admin "nullable"
+        bigint verified_by FK "nullable"
+        timestamp verified_at "nullable"
         timestamps created_at_updated_at
     }
 
@@ -339,24 +350,34 @@ Menampung permohonan affiliator untuk mengikat downline yang lupa memasukkan kod
 
 ---
 
-### 3.9 Tabel `akun_copytrade` (Stepper Penyambungan Akun Broker - PB 5)
-Mengelola status verifikasi 2-tahap akun MT4 investor hingga aktif menyalin Master Trader Pak Abi.
+### 3.9 Tabel `akun_copytrade` (Akun Investasi / Copytrade Tier 1–3)
+Mengelola data pendaftaran, kredensial terenkripsi (Tier 3), dokumen perjanjian, screenshot data akun, dan status verifikasi akun MT4 investor.
 - **Model Laravel:** `App\Models\AkunCopytrade` (`protected $table = 'akun_copytrade';`)
 
 | Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
 |---|---|---|---|
 | `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik akun copytrade. |
-| `user_id` | `BIGINT UNSIGNED` | `FK -> users.id` | ID investor pemilik akun. |
-| `broker_name` | `ENUM` | `'HFM', 'XM', 'Other'` | Nama broker tempat membuka akun MT4. |
-| `mt4_account_number` | `VARCHAR(50)` | `NOT NULL` | Nomor akun MT4 riil investor. |
-| `step1_deposit_status` | `ENUM` | `'pending', 'verified', 'rejected'` | Validasi deposit broker oleh Pak Abi. |
-| `step1_deposit_verified_at` | `TIMESTAMP` | `NULLABLE` | Waktu verifikasi langkah 1 disetujui. |
-| `step2_copy_proof_path` | `VARCHAR(255)` | `NULLABLE` | Screenshot bukti follower telah follow master. |
-| `step2_copy_status` | `ENUM` | `'locked', 'pending', 'active_copying', 'rejected'` | Gembok terbuka setelah step 1 verified. |
-| `step2_copy_verified_at` | `TIMESTAMP` | `NULLABLE` | Waktu admin menyetujui penyalinan copy. |
-| `step3_mql5_url` | `VARCHAR(255)` | `NULLABLE` | URL portofolio publik pribadi investor (opsional). |
+| `user_id` | `BIGINT UNSIGNED` | `FK -> users.id, CASCADE` | ID investor pemilik akun. |
+| `tier` | `VARCHAR(20)` | `NOT NULL` | Tingkatan tier akun (`tier_1`, `tier_2`, `tier_3`). |
+| `broker` | `VARCHAR(50)` | `NOT NULL` | Nama broker tempat membuka akun MT4 (`HFM`, `XM`). |
+| `tipe_akun` | `VARCHAR(50)` | `NOT NULL` | Tipe akun (`cent`, `standard`, `private_vps`). |
+| `nomor_akun_trading` | `VARCHAR(50)` | `NOT NULL` | Nomor akun MT4 riil investor. |
+| `server_broker` | `VARCHAR(100)` | `NULLABLE` | Nama server broker XM khusus Tier 3. |
 | `myfxbook_url` | `VARCHAR(255)` | `NULLABLE` | Tautan portofolio Myfxbook publik untuk pemantauan performa transparan. |
-| `copy_started_at` | `DATETIME` | `NULLABLE` | **Titik awal perhitungan 3 bulan aktif untuk klaim komisi.** |
+| `master_password` | `TEXT` | `NULLABLE` | Master password MT4 Tier 3 (dienkripsi dengan Laravel `encrypted` cast). |
+| `investor_password` | `TEXT` | `NULLABLE` | Investor password read-only MT4 Tier 3 (**opsional**, terenkripsi Laravel `encrypted` cast). |
+| `modal_riil` | `DECIMAL(15,2) UNSIGNED` | `NOT NULL` | Nominal modal riil investor (USD). |
+| `surat_perjanjian_path` | `VARCHAR(255)` | `NULLABLE` | Path berkas surat perjanjian kemitraan bermaterai di disk `local` (`copytrade_agreements/{user_id}/...`). |
+| `screenshot_akun_path` | `VARCHAR(255)` | `NULLABLE` | Path screenshot data akun trading MT4/broker di disk `local` (`copytrade_screenshots/{user_id}/...`). |
+| `tanggal_mulai` | `DATE` | `NOT NULL` | Tanggal mulai trading/investasi. |
+| `tanggal_selesai` | `DATE` | `NULLABLE` | Tanggal berakhir kemitraan (khusus kontrak 5 tahun jika relevan). |
+| `nama_bank` | `VARCHAR(100)` | `NOT NULL` | Nama bank penarikan dana investor. |
+| `nomor_rekening` | `VARCHAR(50)` | `NOT NULL` | Nomor rekening bank penarikan dana investor. |
+| `atas_nama_rekening` | `VARCHAR(100)` | `NOT NULL` | Nama pemilik rekening bank penarikan dana investor. |
+| `status` | `VARCHAR(30)` | `DEFAULT 'pending'` | Status verifikasi akun (`pending`, `active`, `rejected`, `suspended`). |
+| `catatan_admin` | `TEXT` | `NULLABLE` | Catatan/alasan penolakan dari Administrator. |
+| `verified_by` | `BIGINT UNSIGNED` | `FK -> users.id, NULLABLE` | Administrator pemverifikasi. |
+| `verified_at` | `TIMESTAMP` | `NULLABLE` | Waktu verifikasi selesai dilakukan. |
 | `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
 
 ---
@@ -521,14 +542,14 @@ Modul saluran komunikasi pelaporan kendala teknis, akun, verifikasi, atau transa
 
 ---
 
-### 3.16 Tabel `laporan_profit_bulanan` (Laporan Profit Bulanan & Master Fee)
-Menyimpan laporan profit trading bulanan per akun copytrade (didukung screenshot Myfxbook dan screenshot penarikan WD broker) serta penagihan Master Fee.
+### 3.16 Tabel `laporan_profit_bulanan` (Laporan Profit Bulanan & Performance Fee)
+Menyimpan laporan profit trading bulanan per akun copytrade (didukung screenshot Myfxbook dan screenshot penarikan WD broker) serta penagihan Performance Fee.
 - **Model Laravel:** `App\Models\LaporanProfitBulanan` (`protected $table = 'laporan_profit_bulanan';`)
 
 | Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
 |---|---|---|---|
 | `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik laporan. |
-| `nomor` | `VARCHAR(20)` | `UNIQUE, NOT NULL` | Nomor tagihan/laporan (format: `MFE-YYYYMM-XXXX`). |
+| `nomor` | `VARCHAR(20)` | `UNIQUE, NOT NULL` | Nomor tagihan/laporan (format: `PFE-YYYYMM-XXXX`). |
 | `akun_copytrade_id` | `BIGINT UNSIGNED` | `FK -> akun_copytrade.id, CASCADE` | Akun copytrade terkait. |
 | `user_id` | `BIGINT UNSIGNED` | `FK -> users.id, CASCADE` | Investor pemilik akun / pelapor. |
 | `periode_ke` | `SMALLINT UNSIGNED` | `NOT NULL` | Periode pelaporan bulanan ke-1, ke-2, ke-3, dst. |
@@ -541,11 +562,11 @@ Menyimpan laporan profit trading bulanan per akun copytrade (didukung screenshot
 | `wd_idr` | `DECIMAL(18,0)` | `NULLABLE` | Nominal penarikan dana yang diterima dalam Rupiah (IDR). |
 | `bukti_wd_path` | `VARCHAR(255)` | `NULLABLE` | Path screenshot mutasi penarikan WD dari broker di disk privat. |
 | `kurs_riil` | `DECIMAL(15,2)` | `NULLABLE` | Nilai tukar riil dari penarikan broker (`wd_idr / wd_usd`). |
-| `fee_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 30.00` | Persentase Master Fee platform (%). |
+| `fee_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 30.00` | Persentase Performance Fee platform (%). |
 | `fee_usd` | `DECIMAL(15,2)` | `NOT NULL, DEFAULT 0` | Nominal tagihan fee dalam USD (`profit_usd * fee_persen / 100`). |
 | `fee_idr` | `DECIMAL(18,0)` | `NOT NULL, DEFAULT 0` | Nominal tagihan fee dalam IDR (`fee_usd * kurs_riil`). |
 | `status` | `VARCHAR(25)` | `INDEX, DEFAULT 'belum_dibayar'` | Status tagihan (`belum_dibayar`, `menunggu_verifikasi`, `lunas`, `tanpa_fee`). |
-| `bukti_transfer_path` | `VARCHAR(255)` | `NULLABLE` | Path resi transfer pelunasan Master Fee ke rekening Master Trader. |
+| `bukti_transfer_path` | `VARCHAR(255)` | `NULLABLE` | Path resi transfer pelunasan Performance Fee ke rekening Master Trader. |
 | `dibayar_at` | `TIMESTAMP` | `NULLABLE` | Waktu pengunggahan resi transfer fee. |
 | `catatan_admin` | `TEXT` | `NULLABLE` | Alasan penolakan dari admin jika resi ditolak. |
 | `perlu_koreksi` | `BOOLEAN` | `DEFAULT FALSE` | Status penandaan revisi input oleh admin. |
@@ -560,9 +581,9 @@ Menyimpan laporan profit trading bulanan per akun copytrade (didukung screenshot
 
 ---
 
-### 3.17 Tabel `pengaturan_master_fee` (Pengaturan Rekening & Fee Master Trader)
-Menyimpan rekening tujuan transfer Master Fee dan persentase fee global.
-- **Model Laravel:** `App\Models\PengaturanMasterFee` (`protected $table = 'pengaturan_master_fee';`)
+### 3.17 Tabel `pengaturan_performance_fee` (Pengaturan Rekening & Performance Fee)
+Menyimpan rekening tujuan transfer Performance Fee dan persentase fee global.
+- **Model Laravel:** `App\Models\PengaturanPerformanceFee` (`protected $table = 'pengaturan_performance_fee';`)
 
 | Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
 |---|---|---|---|
@@ -570,7 +591,7 @@ Menyimpan rekening tujuan transfer Master Fee dan persentase fee global.
 | `nama_bank` | `VARCHAR(100)` | `NULLABLE` | Nama bank rekening penampung Master Trader. |
 | `nomor_rekening` | `VARCHAR(100)` | `NULLABLE` | Nomor rekening bank Master Trader. |
 | `atas_nama` | `VARCHAR(150)` | `NULLABLE` | Nama pemilik rekening bank Master Trader. |
-| `fee_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 30.00` | Persentase performance fee default platform (%). |
+| `fee_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 30.00` | Persentase Performance Fee default platform (%). |
 | `wd_maks_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 60.00` | Batas persentase maksimal penarikan WD broker (%). |
 | `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
 

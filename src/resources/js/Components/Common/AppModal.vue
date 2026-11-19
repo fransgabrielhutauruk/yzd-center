@@ -44,6 +44,13 @@ const close = () => {
 
 const handleKeydown = (e) => {
     if (e.key === 'Escape' && props.show && props.closeable) {
+        if (
+            e.defaultPrevented ||
+            (typeof document !== 'undefined' &&
+                document.querySelector('[data-reka-popper-content-wrapper]'))
+        ) {
+            return;
+        }
         close();
     }
 };

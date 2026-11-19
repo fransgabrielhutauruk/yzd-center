@@ -55,7 +55,7 @@ class MemberDashboardTest extends TestCase
     private function makeReport(AkunCopytrade $akun, int $periodeKe, string $awal, string $akhir, float $profit): LaporanProfitBulanan
     {
         return LaporanProfitBulanan::create([
-            'nomor'               => 'MFE-' . uniqid(),
+            'nomor'               => 'PFE-' . uniqid(),
             'akun_copytrade_id'   => $akun->id,
             'user_id'             => $this->member->id,
             'periode_ke'          => $periodeKe,

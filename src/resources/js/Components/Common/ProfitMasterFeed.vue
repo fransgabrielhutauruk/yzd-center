@@ -2,11 +2,13 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppButton from '@/Components/Common/AppButton.vue';
+import AppDateRangePicker, { formatDateRangeLabel } from '@/Components/Common/AppDateRangePicker.vue';
 import AppModal from '@/Components/Common/AppModal.vue';
 import AppConfirmDialog from '@/Components/Common/AppConfirmDialog.vue';
 import { compressImageFile, formatBytes } from '@/lib/imageCompression';
 import {
     Search,
+    Calendar,
     Share2,
     Copy,
     Check,
@@ -21,7 +23,6 @@ import {
     ChevronRight,
     Loader2,
     TrendingUp,
-    Sparkles,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -41,6 +42,18 @@ const props = defineProps({
         type: String,
         default: '',
     },
+    initialStartDate: {
+        type: String,
+        default: '',
+    },
+    initialEndDate: {
+        type: String,
+        default: '',
+    },
+    todayDate: {
+        type: String,
+        default: '',
+    },
 });
 
 // State Feed & Pagination
@@ -51,8 +64,17 @@ const isLoading = ref(false);
 const isLoadingMore = ref(false);
 const searchQuery = ref(props.initialSearch || '');
 const activeSearch = ref(props.initialSearch || '');
+const activeStartDate = ref(props.initialStartDate || '');
+const activeEndDate = ref(props.initialEndDate || '');
 const sentinelRef = ref(null);
 let observer = null;
+let latestFetchId = 0;
+
+const hasActiveDateFilter = computed(() => Boolean(activeStartDate.value || activeEndDate.value));
+const hasAnyActiveFilter = computed(() => Boolean(activeSearch.value || hasActiveDateFilter.value));
+const activeDateFilterLabel = computed(() =>
+    formatDateRangeLabel(activeStartDate.value, activeEndDate.value)
+);
 
 // State Aksi Interaktif Feed
 const copiedPostId = ref(null);
@@ -74,6 +96,8 @@ const isCompressing = ref(false);
 
 const form = ref({
     caption: '',
+    profitStartDate: '',
+    profitEndDate: '',
     existingImages: [],
     deletedImageIds: [],
     newImages: [], // File objects
@@ -107,6 +131,43 @@ const handleDocumentClick = (e) => {
     }
 };
 
+// Sinkronisasi parameter filter aktif ke URL browser tanpa reload halaman
+const syncUrlParams = () => {
+    if (typeof window === 'undefined') return;
+
+    const url = new URL(window.location.href);
+
+    if (activeSearch.value) {
+        url.searchParams.set('search', activeSearch.value);
+    } else {
+        url.searchParams.delete('search');
+    }
+
+    if (activeStartDate.value) {
+        url.searchParams.set('start_date', activeStartDate.value);
+    } else {
+        url.searchParams.delete('start_date');
+    }
+
+    if (activeEndDate.value) {
+        url.searchParams.set('end_date', activeEndDate.value);
+    } else {
+        url.searchParams.delete('end_date');
+    }
+
+    const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+
+    try {
+        const currentState =
+            window.history.state && typeof window.history.state === 'object'
+                ? { ...window.history.state, url: nextUrl }
+                : window.history.state;
+        window.history.replaceState(currentState, '', nextUrl);
+    } catch {
+        window.history.replaceState(null, '', nextUrl);
+    }
+};
+
 // Fetch Feed API
 const fetchFeed = async (cursor = null, isAppend = false) => {
     if (isAppend) {
@@ -114,12 +175,21 @@ const fetchFeed = async (cursor = null, isAppend = false) => {
         isLoadingMore.value = true;
     } else {
         isLoading.value = true;
+        isLoadingMore.value = false;
     }
+
+    const requestId = ++latestFetchId;
 
     try {
         const url = new URL(props.feedUrl, window.location.origin);
         if (activeSearch.value) {
             url.searchParams.set('search', activeSearch.value);
+        }
+        if (activeStartDate.value) {
+            url.searchParams.set('start_date', activeStartDate.value);
+        }
+        if (activeEndDate.value) {
+            url.searchParams.set('end_date', activeEndDate.value);
         }
         if (cursor) {
             url.searchParams.set('cursor', cursor);
@@ -135,6 +205,8 @@ const fetchFeed = async (cursor = null, isAppend = false) => {
         if (!res.ok) throw new Error('Gagal memuat postingan');
         const data = await res.json();
 
+        if (requestId !== latestFetchId) return;
+
         if (isAppend) {
             posts.value = [...posts.value, ...data.data];
         } else {
@@ -144,21 +216,49 @@ const fetchFeed = async (cursor = null, isAppend = false) => {
         nextCursor.value = data.next_cursor;
         hasMore.value = Boolean(data.has_more);
     } catch (err) {
+        if (requestId !== latestFetchId) return;
         console.error('Error fetching profit master feed:', err);
     } finally {
-        isLoading.value = false;
-        isLoadingMore.value = false;
+        if (requestId === latestFetchId) {
+            isLoading.value = false;
+            isLoadingMore.value = false;
+        }
     }
 };
 
 const handleSearch = () => {
     activeSearch.value = searchQuery.value.trim();
+    syncUrlParams();
     fetchFeed(null, false);
 };
 
-const handleResetSearch = () => {
+const handleDateRangeApply = ({ startDate, endDate }) => {
+    activeStartDate.value = startDate || '';
+    activeEndDate.value = endDate || '';
+    syncUrlParams();
+    fetchFeed(null, false);
+};
+
+const handleClearSearch = () => {
     searchQuery.value = '';
     activeSearch.value = '';
+    syncUrlParams();
+    fetchFeed(null, false);
+};
+
+const handleClearDate = () => {
+    activeStartDate.value = '';
+    activeEndDate.value = '';
+    syncUrlParams();
+    fetchFeed(null, false);
+};
+
+const handleResetAllFilters = () => {
+    searchQuery.value = '';
+    activeSearch.value = '';
+    activeStartDate.value = '';
+    activeEndDate.value = '';
+    syncUrlParams();
     fetchFeed(null, false);
 };
 
@@ -344,8 +444,11 @@ const openCreateModal = () => {
     formErrors.value = {};
     isDragging.value = false;
     dragCounter = 0;
+    const defaultDate = props.todayDate || '';
     form.value = {
         caption: '',
+        profitStartDate: defaultDate,
+        profitEndDate: defaultDate,
         existingImages: [],
         deletedImageIds: [],
         newImages: [],
@@ -362,6 +465,8 @@ const openEditModal = (post) => {
     dragCounter = 0;
     form.value = {
         caption: post.caption,
+        profitStartDate: post.profit_start_date || '',
+        profitEndDate: post.profit_end_date || '',
         existingImages: [...(post.images || [])],
         deletedImageIds: [],
         newImages: [],
@@ -369,6 +474,17 @@ const openEditModal = (post) => {
     };
     closeDropdowns();
     isModalOpen.value = true;
+};
+
+const handleFormDateApply = ({ startDate, endDate }) => {
+    form.value.profitStartDate = startDate || '';
+    form.value.profitEndDate = endDate || '';
+    if (formErrors.value.profit_start_date) {
+        delete formErrors.value.profit_start_date;
+    }
+    if (formErrors.value.profit_end_date) {
+        delete formErrors.value.profit_end_date;
+    }
 };
 
 const closeModal = () => {
@@ -503,6 +619,11 @@ const markExistingImageDeleted = (imageId) => {
 const submitPost = () => {
     formErrors.value = {};
 
+    if (!form.value.profitStartDate || !form.value.profitEndDate) {
+        formErrors.value.profit_start_date = 'Tanggal atau rentang profit wajib dipilih.';
+        return;
+    }
+
     if (!form.value.caption.trim()) {
         formErrors.value.caption = 'Caption materi promosi wajib diisi.';
         return;
@@ -518,6 +639,8 @@ const submitPost = () => {
 
     const formData = new FormData();
     formData.append('caption', form.value.caption.trim());
+    formData.append('profit_start_date', form.value.profitStartDate);
+    formData.append('profit_end_date', form.value.profitEndDate);
 
     if (isEditing.value) {
         formData.append('_method', 'PUT');
@@ -594,6 +717,27 @@ onUnmounted(() => {
 watch(sentinelRef, () => {
     setupObserver();
 });
+
+watch(
+    () => [props.initialSearch, props.initialStartDate, props.initialEndDate],
+    ([newSearch, newStart, newEnd]) => {
+        const nextSearch = newSearch || '';
+        const nextStart = newStart || '';
+        const nextEnd = newEnd || '';
+
+        if (
+            nextSearch !== activeSearch.value ||
+            nextStart !== activeStartDate.value ||
+            nextEnd !== activeEndDate.value
+        ) {
+            searchQuery.value = nextSearch;
+            activeSearch.value = nextSearch;
+            activeStartDate.value = nextStart;
+            activeEndDate.value = nextEnd;
+            fetchFeed(null, false);
+        }
+    }
+);
 </script>
 
 <template>
@@ -602,10 +746,11 @@ watch(sentinelRef, () => {
         <div
             class="mb-5 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900"
         >
-            <div class="flex items-center gap-2">
-                <div class="relative flex-1">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div class="relative min-w-0 flex-1">
                     <Search
                         class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400"
+                        aria-hidden="true"
                     />
                     <input
                         v-model="searchQuery"
@@ -615,31 +760,76 @@ watch(sentinelRef, () => {
                         @keydown.enter.prevent="handleSearch"
                     />
                 </div>
-                <AppButton
-                    type="custom"
-                    label="Cari"
-                    :icon="Search"
-                    size="md"
-                    class="min-w-[76px]"
-                    @click="handleSearch"
-                />
+                <div class="flex items-center gap-2">
+                    <AppDateRangePicker
+                        :start-date="activeStartDate"
+                        :end-date="activeEndDate"
+                        :max-date="todayDate"
+                        placeholder="Filter tanggal"
+                        align="end"
+                        class="min-w-0 flex-1 sm:w-56 sm:flex-none"
+                        @apply="handleDateRangeApply"
+                    />
+                    <AppButton
+                        type="custom"
+                        label="Cari"
+                        :icon="Search"
+                        size="md"
+                        class="min-w-[76px]"
+                        @click="handleSearch"
+                    />
+                </div>
             </div>
 
             <div
-                v-if="activeSearch"
-                class="mt-2.5 flex items-center justify-between px-1 text-xs text-slate-500 dark:text-slate-400"
+                v-if="hasAnyActiveFilter"
+                class="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2.5 text-xs dark:border-slate-800"
             >
-                <span>
-                    Hasil pencarian untuk:
-                    <strong class="text-slate-800 dark:text-slate-200">"{{ activeSearch }}"</strong>
-                </span>
-                <button
-                    type="button"
-                    class="text-primary-600 dark:text-primary-400 cursor-pointer font-medium hover:underline"
-                    @click="handleResetSearch"
-                >
-                    Hapus Filter
-                </button>
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <span class="font-medium text-slate-500 dark:text-slate-400">Filter aktif:</span>
+
+                    <span
+                        v-if="activeSearch"
+                        class="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                    >
+                        <Search class="h-3 w-3 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden="true" />
+                        <span class="max-w-[180px] truncate sm:max-w-[260px]">"{{ activeSearch }}"</span>
+                        <button
+                            type="button"
+                            aria-label="Hapus filter caption"
+                            class="flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+                            @click="handleClearSearch"
+                        >
+                            <X class="h-3 w-3" aria-hidden="true" />
+                        </button>
+                    </span>
+
+                    <span
+                        v-if="hasActiveDateFilter"
+                        class="border-primary-200 bg-primary-50 text-primary-800 dark:border-primary-800 dark:bg-primary-950/60 dark:text-primary-200 inline-flex max-w-full items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium"
+                    >
+                        <Calendar class="h-3 w-3 shrink-0" aria-hidden="true" />
+                        <span class="truncate">{{ activeDateFilterLabel }}</span>
+                        <button
+                            type="button"
+                            aria-label="Hapus filter tanggal"
+                            class="hover:bg-primary-200/70 dark:hover:bg-primary-800/70 flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
+                            @click="handleClearDate"
+                        >
+                            <X class="h-3 w-3" aria-hidden="true" />
+                        </button>
+                    </span>
+                </div>
+
+                <AppButton
+                    type="custom"
+                    variant="ghost"
+                    size="xs"
+                    :icon="X"
+                    label="Hapus Filter"
+                    class="text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+                    @click="handleResetAllFilters"
+                />
             </div>
         </div>
 
@@ -699,17 +889,27 @@ watch(sentinelRef, () => {
                 <ImageIcon class="h-7 w-7" />
             </div>
             <h3 class="text-base font-semibold text-slate-800 dark:text-slate-200">
-                {{ activeSearch ? 'Materi Tidak Ditemukan' : 'Belum Ada Materi Promosi' }}
+                {{ hasAnyActiveFilter ? 'Materi Tidak Ditemukan' : 'Belum Ada Materi Promosi' }}
             </h3>
             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 {{
-                    activeSearch
-                        ? 'Coba gunakan kata kunci pencarian yang lain atau reset filter.'
+                    hasAnyActiveFilter
+                        ? 'Tidak ada materi promosi yang sesuai dengan filter caption atau tanggal yang dipilih.'
                         : 'Admin belum menerbitkan materi promosi profit master saat ini.'
                 }}
             </p>
             <AppButton
-                v-if="canManage && !activeSearch"
+                v-if="hasAnyActiveFilter"
+                type="custom"
+                variant="outline"
+                size="sm"
+                :icon="X"
+                label="Reset Filter"
+                class="mt-4"
+                @click="handleResetAllFilters"
+            />
+            <AppButton
+                v-else-if="canManage"
                 type="create"
                 label="Terbitkan Post Pertama"
                 size="sm"
@@ -778,6 +978,16 @@ watch(sentinelRef, () => {
                             </button>
                         </div>
                     </div>
+                </div>
+
+                <!-- Badge Periode Profit -->
+                <div v-if="post.formatted_profit_date" class="mt-3">
+                    <span
+                        class="border-primary-200 bg-primary-50 text-primary-800 dark:border-primary-800/80 dark:bg-primary-950/60 dark:text-primary-200 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold"
+                    >
+                        <Calendar class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        <span>Periode Profit: {{ post.formatted_profit_date }}</span>
+                    </span>
                 </div>
 
                 <!-- Konten Caption -->
@@ -1044,6 +1254,35 @@ watch(sentinelRef, () => {
             @close="closeModal"
         >
             <form @submit.prevent="submitPost" class="space-y-4">
+                <!-- Input Tanggal / Rentang Profit -->
+                <div>
+                    <label
+                        class="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300"
+                    >
+                        Tanggal / Rentang Profit <span class="text-rose-500">*</span>
+                    </label>
+                    <AppDateRangePicker
+                        :start-date="form.profitStartDate"
+                        :end-date="form.profitEndDate"
+                        :max-date="todayDate"
+                        :clearable="false"
+                        :disabled="isSubmitting"
+                        placeholder="Pilih tanggal atau rentang profit..."
+                        align="start"
+                        class="w-full"
+                        @apply="handleFormDateApply"
+                    />
+                    <p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                        Pilih 1 tanggal untuk profit harian atau 2 tanggal untuk rentang periode profit.
+                    </p>
+                    <p
+                        v-if="formErrors.profit_start_date || formErrors.profit_end_date"
+                        class="mt-1 text-xs font-medium text-rose-500"
+                    >
+                        {{ formErrors.profit_start_date || formErrors.profit_end_date }}
+                    </p>
+                </div>
+
                 <!-- Input Caption -->
                 <div>
                     <label

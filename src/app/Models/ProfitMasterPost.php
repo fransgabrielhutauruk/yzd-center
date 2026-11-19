@@ -20,8 +20,18 @@ class ProfitMasterPost extends Model
 
     protected $fillable = [
         'caption',
+        'profit_start_date',
+        'profit_end_date',
         'created_by',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'profit_start_date' => 'date',
+            'profit_end_date'   => 'date',
+        ];
+    }
 
     public function creator(): BelongsTo
     {
