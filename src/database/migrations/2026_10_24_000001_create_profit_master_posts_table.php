@@ -14,12 +14,15 @@ return new class extends Migration
         Schema::create('profit_master_posts', function (Blueprint $table) {
             $table->id();
             $table->text('caption');
+            $table->date('profit_start_date');
+            $table->date('profit_end_date');
             $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
             $table->timestamps();
             $table->softDeletes();
             $table->string('deleted_by', 100)->nullable();
 
             $table->index('created_at');
+            $table->index(['profit_start_date', 'profit_end_date'], 'profit_master_posts_profit_dates_index');
         });
 
         Schema::create('profit_master_post_images', function (Blueprint $table) {

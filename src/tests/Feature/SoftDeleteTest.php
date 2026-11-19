@@ -212,8 +212,10 @@ class SoftDeleteTest extends TestCase
         Storage::fake('local');
 
         $post = ProfitMasterPost::create([
-            'caption'    => 'Profit luar biasa',
-            'created_by' => $this->admin->id,
+            'caption'           => 'Profit luar biasa',
+            'profit_start_date' => now()->toDateString(),
+            'profit_end_date'   => now()->toDateString(),
+            'created_by'        => $this->admin->id,
         ]);
 
         $filePath = "profit_master/{$post->id}/test.jpg";

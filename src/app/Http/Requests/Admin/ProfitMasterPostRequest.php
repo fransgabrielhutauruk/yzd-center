@@ -20,6 +20,8 @@ class ProfitMasterPostRequest extends FormRequest
 
         return [
             'caption'             => ['required', 'string', 'max:20000'],
+            'profit_start_date'   => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'profit_end_date'     => ['required', 'date_format:Y-m-d', 'after_or_equal:profit_start_date', 'before_or_equal:today'],
             'images'              => [$isUpdate ? 'nullable' : 'required', 'array', $isUpdate ? 'min:0' : 'min:1'],
             'images.*'            => ['file', 'mimes:jpeg,png,jpg,webp', 'max:10240'],
             'deleted_image_ids'   => ['nullable', 'array'],
@@ -30,13 +32,20 @@ class ProfitMasterPostRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'caption.required' => 'Caption atau teks materi promosi wajib diisi.',
-            'caption.max'      => 'Caption maksimal 20.000 karakter.',
-            'images.required'  => 'Minimal 1 foto bukti profit wajib diunggah.',
-            'images.min'       => 'Minimal 1 foto bukti profit wajib diunggah.',
-            'images.*.file'    => 'Berkas yang diunggah harus berupa file yang valid.',
-            'images.*.mimes'   => 'Format foto harus berupa JPG, JPEG, PNG, atau WEBP.',
-            'images.*.max'     => 'Ukuran masing-masing foto maksimal 10 MB.',
+            'caption.required'                  => 'Caption atau teks materi promosi wajib diisi.',
+            'caption.max'                       => 'Caption maksimal 20.000 karakter.',
+            'profit_start_date.required'        => 'Tanggal mulai profit wajib diisi.',
+            'profit_start_date.date_format'     => 'Format tanggal mulai profit tidak valid.',
+            'profit_start_date.before_or_equal' => 'Tanggal mulai profit tidak boleh melebihi hari ini.',
+            'profit_end_date.required'          => 'Tanggal akhir profit wajib diisi.',
+            'profit_end_date.date_format'       => 'Format tanggal akhir profit tidak valid.',
+            'profit_end_date.after_or_equal'    => 'Tanggal akhir profit harus sama dengan atau setelah tanggal mulai.',
+            'profit_end_date.before_or_equal'   => 'Tanggal akhir profit tidak boleh melebihi hari ini.',
+            'images.required'                   => 'Minimal 1 foto bukti profit wajib diunggah.',
+            'images.min'                        => 'Minimal 1 foto bukti profit wajib diunggah.',
+            'images.*.file'                     => 'Berkas yang diunggah harus berupa file yang valid.',
+            'images.*.mimes'                    => 'Format foto harus berupa JPG, JPEG, PNG, atau WEBP.',
+            'images.*.max'                      => 'Ukuran masing-masing foto maksimal 10 MB.',
         ];
     }
 

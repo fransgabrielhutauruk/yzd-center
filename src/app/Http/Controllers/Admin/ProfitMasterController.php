@@ -23,8 +23,16 @@ class ProfitMasterController extends Controller
      */
     public function index(Request $request): Response
     {
+        $dateRange = $this->profitMasterService->normalizeDateRange(
+            startDate: $request->input('start_date'),
+            endDate: $request->input('end_date'),
+        );
+
         return Inertia::render('Admin/ProfitMaster/Index', [
-            'initialSearch' => (string) $request->input('search', ''),
+            'initialSearch'    => (string) $request->input('search', ''),
+            'initialStartDate' => $dateRange['start_date'],
+            'initialEndDate'   => $dateRange['end_date'],
+            'todayDate'        => now()->toDateString(),
         ]);
     }
 
@@ -36,7 +44,9 @@ class ProfitMasterController extends Controller
         $feed = $this->profitMasterService->feed(
             search: $request->input('search'),
             cursor: $request->input('cursor'),
-            perPage: (int) $request->input('per_page', 10)
+            perPage: (int) $request->input('per_page', 10),
+            startDate: $request->input('start_date'),
+            endDate: $request->input('end_date'),
         );
 
         return response()->json($feed);
@@ -55,7 +65,9 @@ class ProfitMasterController extends Controller
         $this->profitMasterService->create(
             caption: $request->validated('caption'),
             images: $images,
-            adminId: $request->user()->id
+            adminId: $request->user()->id,
+            profitStartDate: $request->validated('profit_start_date'),
+            profitEndDate: $request->validated('profit_end_date'),
         );
 
         return redirect()->back()->with('success', 'Materi promosi berhasil diterbitkan.');
@@ -80,7 +92,9 @@ class ProfitMasterController extends Controller
             post: $post,
             caption: $request->validated('caption'),
             newImages: $newImages,
-            deletedImageIds: array_map('intval', $deletedImageIds)
+            deletedImageIds: array_map('intval', $deletedImageIds),
+            profitStartDate: $request->validated('profit_start_date'),
+            profitEndDate: $request->validated('profit_end_date'),
         );
 
         return redirect()->back()->with('success', 'Materi promosi berhasil diperbarui.');

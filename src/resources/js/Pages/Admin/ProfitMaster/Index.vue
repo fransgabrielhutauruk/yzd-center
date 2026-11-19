@@ -7,6 +7,18 @@ defineProps({
         type: String,
         default: '',
     },
+    initialStartDate: {
+        type: String,
+        default: '',
+    },
+    initialEndDate: {
+        type: String,
+        default: '',
+    },
+    todayDate: {
+        type: String,
+        default: '',
+    },
 });
 </script>
 
@@ -22,6 +34,9 @@ defineProps({
                 feed-url="/admin/profit-master/feed"
                 action-url="/admin/profit-master"
                 :initial-search="initialSearch"
+                :initial-start-date="initialStartDate"
+                :initial-end-date="initialEndDate"
+                :today-date="todayDate"
             />
         </div>
     </AdminLayout>

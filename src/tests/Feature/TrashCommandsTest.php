@@ -273,8 +273,10 @@ class TrashCommandsTest extends TestCase
         Storage::fake('local');
 
         $post = ProfitMasterPost::create([
-            'caption'    => 'Promosi Purge',
-            'created_by' => $this->admin->id,
+            'caption'           => 'Promosi Purge',
+            'profit_start_date' => now()->toDateString(),
+            'profit_end_date'   => now()->toDateString(),
+            'created_by'        => $this->admin->id,
         ]);
 
         $filePath = "profit_master/{$post->id}/purge_test.jpg";
