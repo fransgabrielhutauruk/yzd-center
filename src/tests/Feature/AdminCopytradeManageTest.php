@@ -48,7 +48,7 @@ class AdminCopytradeManageTest extends TestCase
         $profit = $balance - $modal;
         static $counter = 1;
         LaporanProfitBulanan::create([
-            'nomor'               => sprintf('MFE-%s-%04d', now()->format('Ym'), $counter++),
+            'nomor'               => sprintf('PFE-%s-%04d', now()->format('Ym'), $counter++),
             'akun_copytrade_id'   => $akun->id,
             'user_id'             => $this->investor->id,
             'periode_ke'          => $counter,

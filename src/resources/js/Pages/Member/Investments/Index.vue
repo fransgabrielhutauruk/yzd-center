@@ -1265,10 +1265,10 @@ onMounted(() => {
                             </div>
 
                             <div class="flex shrink-0 items-center gap-2 self-start sm:self-center">
-                                <Link :href="route('member.master_fee.index')">
+                                <Link :href="route('member.performance_fee.index')">
                                     <AppButton
                                         type="custom"
-                                        label="Laporan Profit & Master Fee"
+                                        label="Laporan Profit & Performance Fee"
                                         size="sm"
                                         :icon="Receipt"
                                     />

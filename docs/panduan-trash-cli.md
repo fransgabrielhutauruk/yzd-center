@@ -23,7 +23,7 @@ Daftar modul terdaftar di `config/trash.php`:
 - `panduan-artikel`: Artikel Panduan Bantuan (`PanduanBantuan`)
 - `profit-master`: Materi Promosi Master (`ProfitMasterPost`) — Cascade ke `images`
 - `profit-master-foto`: Foto Materi Promosi (`ProfitMasterPostImage`)
-- `laporan-profit`: Laporan Profit Bulanan & Master Fee (`LaporanProfitBulanan`)
+- `laporan-profit`: Laporan Profit Bulanan & Performance Fee (`LaporanProfitBulanan`)
 - `undangan`: Tautan Undangan Pendaftaran (`Invitation`)
 
 ---

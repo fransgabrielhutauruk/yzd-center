@@ -89,6 +89,11 @@
     - [13.2 Mengganti Kata Sandi (Password) Akun](#132-mengganti-kata-sandi-password-akun)
     - [13.3 Pengaturan Tampilan (Mode Terang / Gelap) & Keluar Akun (Logout)](#133-pengaturan-tampilan-mode-terang--gelap--keluar-akun-logout)
     - [13.4 Kondisi Khusus (Edge Cases) pada Notifikasi & Keamanan](#134-kondisi-khusus-edge-cases-pada-notifikasi--keamanan)
+14. [Bab 14: Manajemen Laporan Profit Bulanan & Performance Fee (30%)](#bab-14-manajemen-laporan-profit-bulanan--performance-fee-30)
+    - [14.1 Siklus Periode Pelaporan](#141-siklus-periode-pelaporan)
+    - [14.2 Prosedur Pelaporan Profit Bulanan](#142-prosedur-pelaporan-profit-bulanan)
+    - [14.3 Prosedur Pembayaran & Pengunggahan Bukti Transfer](#143-prosedur-pembayaran--pengunggahan-bukti-transfer)
+    - [14.4 Revisi Laporan (Status "Perlu Koreksi")](#144-revisi-laporan-status-perlu-koreksi)
 
 ---
 
@@ -620,13 +625,13 @@ Untuk mempermudah affiliator dalam merencanakan target pembinaan investor dan me
    - **Total Estimasi Modal:** Akumulasi total modal seluruh investor binaan dalam Rupiah dan USD.
    - **Total Estimasi Komisi 3 Bulan:** Proyeksi total hak komisi afiliator yang akan dicairkan setelah 3 bulan evaluasi laporan lunas.
    - **Indikator Skema 4-Tier:** Menampilkan tingkatan tier yang aktif dengan highlight warna ungu:
-     - **Tier 1:** Modal $> \text{Rp } 10\text{ Milyar}$ $\rightarrow$ Komisi **50%** dari Master Fee.
-     - **Tier 2:** Modal $\text{Rp } 1\text{ M} - \text{Rp } 10\text{ M}$ $\rightarrow$ Komisi **40%** dari Master Fee.
-     - **Tier 3:** Modal $\text{Rp } 100\text{ Jt} - \text{Rp } 1\text{ M}$ $\rightarrow$ Komisi **30%** dari Master Fee.
-     - **Tier 4:** Modal $< \text{Rp } 100\text{ Juta}$ $\rightarrow$ Komisi **20%** dari Master Fee.
+     - **Tier 1:** Modal $> \text{Rp } 10\text{ Milyar}$ $\rightarrow$ Komisi **50%** dari Performance Fee.
+     - **Tier 2:** Modal $\text{Rp } 1\text{ M} - \text{Rp } 10\text{ M}$ $\rightarrow$ Komisi **40%** dari Performance Fee.
+     - **Tier 3:** Modal $\text{Rp } 100\text{ Jt} - \text{Rp } 1\text{ M}$ $\rightarrow$ Komisi **30%** dari Performance Fee.
+     - **Tier 4:** Modal $< \text{Rp } 100\text{ Juta}$ $\rightarrow$ Komisi **20%** dari Performance Fee.
 3. **Membaca Tabel Rincian Proyeksi Bulanan (Jendela 3 Bulan):**
-   - **Bulan ke-1 s.d. ke-3:** Menampilkan modal awal bulan, estimasi gross profit, tagihan Master Fee (30%), estimasi komisi afiliator, proyeksi penarikan tunai investor (60% dari laba bersih investor), dan pemupukan modal (40% dari laba bersih investor ditambahkan ke modal bulan berikutnya).
-   - **Baris Total Akumulasi:** Menampilkan total gross profit, total Master Fee, total komisi afiliator, dan total penarikan tunai investor selama 3 bulan.
+   - **Bulan ke-1 s.d. ke-3:** Menampilkan modal awal bulan, estimasi gross profit, tagihan Performance Fee (30%), estimasi komisi afiliator, proyeksi penarikan tunai investor (60% dari laba bersih investor), dan pemupukan modal (40% dari laba bersih investor ditambahkan ke modal bulan berikutnya).
+   - **Baris Total Akumulasi:** Menampilkan total gross profit, total Performance Fee, total komisi afiliator, dan total penarikan tunai investor selama 3 bulan.
 4. **Pernyataan Sanggahan (*Disclaimer*):**
    - Hasil kalkulasi kalkulator adalah simulasi matematis murni berdasarkan estimasi dan asumsi performa, **bukan merupakan jaminan keuntungan pasti** dari pasar forex.
 
@@ -791,7 +796,7 @@ Menu **Glosarium Forex** (`/member/education/glossary`) menyajikan kamus referen
 Sistem mengirimkan pemberitahuan instan (*in-app notification*) untuk seluruh aktivitas akun Anda:
 - Persetujuan verifikasi akun KYC atau instruksi revisi KTP/perjanjian.
 - Pengaktifan akun copytrade MT4 baru.
-- Pengingat rutin **Laporan Profit Bulanan & Master Fee** pada tanggal 1, 7, dan 15.
+- Pengingat rutin **Laporan Profit Bulanan & Performance Fee** pada tanggal 1, 7, dan 15.
 - Pendaftaran downline baru di bawah jaringan Anda.
 - Persetujuan/penolakan klaim referral susulan.
 - Konfirmasi transfer pencairan komisi bank beserta berkas struk bukti transfer.
@@ -829,9 +834,9 @@ Sistem mengirimkan pemberitahuan instan (*in-app notification*) untuk seluruh ak
 
 ---
 
-## Bab 14: Manajemen Laporan Profit Bulanan & Master Fee (30%)
+## Bab 14: Manajemen Laporan Profit Bulanan & Performance Fee (30%)
 
-Menu **Master Fee** (`/member/master-fee`) adalah modul pelaporan performa trading mandiri bulanan berbasis bukti nyata (Myfxbook dan mutasi penarikan broker) serta penyelesaian kewajiban bagi hasil (*performance fee*) kepada Master Trader.
+Menu **Performance Fee** (`/member/performance-fee`) adalah modul pelaporan performa trading mandiri bulanan berbasis bukti nyata (Myfxbook dan mutasi penarikan broker) serta penyelesaian kewajiban bagi hasil kepada Master Trader.
 
 ### 14.1 Siklus Periode Pelaporan
 - **Akun Mulai Hari ke-1 s.d. 15:** Periode berakhir pada akhir bulan berjalan. Laporan dibuka mulai tanggal 1 bulan berikutnya.
@@ -839,7 +844,7 @@ Menu **Master Fee** (`/member/master-fee`) adalah modul pelaporan performa tradi
 - **Siklus Rutin:** Periode selanjutnya berjalan tepat 1 bulan kalender (tanggal 1 s.d. akhir bulan).
 
 ### 14.2 Prosedur Pelaporan Profit Bulanan
-1. Buka menu **Portofolio** $ightarrow$ **Master Fee** $ightarrow$ klik tombol **"Input Laporan Profit"**.
+1. Buka menu **Portofolio** $\rightarrow$ **Performance Fee** $\rightarrow$ klik tombol **"Input Laporan Profit"**.
 2. Pilih akun copytrade yang telah siap lapor.
 3. Masukkan **Profit Trading (USD)** sesuai hasil pada akun broker / Myfxbook.
 4. Unggah **Screenshot Portofolio Myfxbook** yang memperlihatkan profit pada periode tersebut.
@@ -847,7 +852,7 @@ Menu **Master Fee** (`/member/master-fee`) adalah modul pelaporan performa tradi
    - Lakukan penarikan dana (*withdrawal* / WD) pada broker sebesar **30% s.d. 60%** dari total profit.
    - Masukkan nominal **Penarikan Dana (USD)** dan nilai Rupiah yang diterima di rekening (**Penarikan Dana IDR**).
    - Unggah **Screenshot Bukti Mutasi Penarikan Broker**.
-   - Sistem secara otomatis menghitung nilai tukar riil: `Kurs Riil = WD IDR / WD USD`, serta nominal Master Fee: `Fee IDR = Fee USD * Kurs Riil`.
+   - Sistem secara otomatis menghitung nilai tukar riil: `Kurs Riil = WD IDR / WD USD`, serta nominal Performance Fee: `Fee IDR = Fee USD * Kurs Riil`.
 6. **Jika Profit <= $0 (Rugi / Impas):**
    - Field WD dinonaktifkan.
    - Tagihan fee otomatis bernilai $0 dan status langsung diselesaikan sebagai `tanpa_fee` (ditampilkan "Lunas").

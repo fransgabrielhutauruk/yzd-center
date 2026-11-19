@@ -163,13 +163,13 @@ const submit = () => {
         form.transform((data) => ({
             ...data,
             _method: 'PUT',
-        })).post(route('member.master_fee.update', props.editingReport.id), {
+        })).post(route('member.performance_fee.update', props.editingReport.id), {
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => emit('close'),
         });
     } else {
-        form.post(route('member.master_fee.store'), {
+        form.post(route('member.performance_fee.store'), {
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => emit('close'),
@@ -370,11 +370,11 @@ const submit = () => {
                         <span class="font-mono font-bold">Rp {{ liveKurs.toLocaleString('id-ID') }} / $1</span>
                     </div>
                     <div class="flex items-center justify-between">
-                        <span>Kewajiban Master Fee ({{ feePersen }}%):</span>
+                        <span>Kewajiban Performance Fee ({{ feePersen }}%):</span>
                         <span class="font-mono font-bold">${{ liveFeeUsd.toFixed(2) }}</span>
                     </div>
                     <div class="flex items-center justify-between border-t border-emerald-500/20 pt-1.5 font-bold">
-                        <span>Total Master Fee Yang Harus Ditransfer:</span>
+                        <span>Total Performance Fee Yang Harus Ditransfer:</span>
                         <span class="font-mono text-sm text-emerald-700 dark:text-emerald-300">
                             Rp {{ liveFeeIdr.toLocaleString('id-ID') }}
                         </span>
@@ -389,7 +389,7 @@ const submit = () => {
             >
                 <Info class="h-4 w-4 shrink-0 text-slate-600 dark:text-slate-400 mt-0.5" />
                 <p class="leading-relaxed">
-                    Profit bernilai $0 atau minus. Anda tidak perlu melakukan penarikan broker maupun transfer Master Fee. Status laporan otomatis berstatus <strong>Lunas (Tanpa Fee)</strong> setelah disimpan.
+                    Profit bernilai $0 atau minus. Anda tidak perlu melakukan penarikan broker maupun transfer Performance Fee. Status laporan otomatis berstatus <strong>Lunas (Tanpa Fee)</strong> setelah disimpan.
                 </p>
             </div>
 

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Member;
 
 use App\Http\Controllers\Controller;
 use App\Models\KlaimKomisiItem;
-use App\Models\PengaturanMasterFee;
+use App\Models\PengaturanPerformanceFee;
 use App\Services\ExchangeRateService;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,7 +20,7 @@ class AffiliateCalculatorController extends Controller
      */
     public function index(): Response
     {
-        $masterFeeSettings = PengaturanMasterFee::current();
+        $performanceFeeSettings = PengaturanPerformanceFee::current();
         $rateData = $this->exchangeRateService->getUsdToIdrRate();
         $rate = (float) ($rateData['rate'] ?? 16796.0);
 
@@ -29,8 +29,8 @@ class AffiliateCalculatorController extends Controller
             'presets' => [
                 'default_profit_rate'   => 5.0,
                 'default_modal_idr'     => 100_000_000.0,
-                'wd_pct'                => (float) ($masterFeeSettings->wd_maks_persen ?? 60.0),
-                'master_fee_pct'        => (float) ($masterFeeSettings->fee_persen ?? 30.0),
+                'wd_pct'                => (float) ($performanceFeeSettings->wd_maks_persen ?? 60.0),
+                'performance_fee_pct'   => (float) ($performanceFeeSettings->fee_persen ?? 30.0),
                 'months'                => 3,
                 'max_investors'         => null,
                 'default_exchange_rate' => $rate,

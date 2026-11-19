@@ -12,7 +12,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('pengaturan_master_fee', function (Blueprint $table): void {
+        Schema::create('pengaturan_performance_fee', function (Blueprint $table): void {
             $table->id();
             $table->string('nama_bank', 100)->nullable();
             $table->string('nomor_rekening', 100)->nullable();
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        DB::table('pengaturan_master_fee')->insert([
+        DB::table('pengaturan_performance_fee')->insert([
             'nama_bank'      => 'BCA',
             'nomor_rekening' => '1234567890',
             'atas_nama'      => 'Master YZD Trading',
@@ -38,6 +38,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('pengaturan_master_fee');
+        Schema::dropIfExists('pengaturan_performance_fee');
     }
 };

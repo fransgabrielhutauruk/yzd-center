@@ -513,7 +513,7 @@ const submit = () => {
                                         </span>
                                     </div>
                                     <p class="text-[10px] text-muted-foreground">
-                                        Dihitung otomatis dari akumulasi pembayaran Rupiah Master Fee investor pada 3 laporan profit bulanan.
+                                        Dihitung otomatis dari akumulasi pembayaran Rupiah Performance Fee investor pada 3 laporan profit bulanan.
                                     </p>
                                 </div>
                                 <div class="text-left sm:text-right text-[11px] bg-muted/40 rounded-lg p-2.5 border border-border/50 shrink-0">

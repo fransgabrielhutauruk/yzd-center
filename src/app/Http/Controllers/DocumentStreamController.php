@@ -363,9 +363,9 @@ class DocumentStreamController extends Controller
     }
 
     /**
-     * Tampilkan (stream) berkas bukti transfer master fee privat terotentikasi.
+     * Tampilkan (stream) berkas bukti transfer performance fee privat terotentikasi.
      */
-    public function showMasterFeeProof(Request $request, int $id): StreamedResponse
+    public function showPerformanceFeeProof(Request $request, int $id): StreamedResponse
     {
         $user = $request->user();
 

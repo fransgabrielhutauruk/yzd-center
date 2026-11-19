@@ -48,7 +48,7 @@ class DashboardController extends Controller
                 'network'    => $this->referralService->getAffiliatorNetworkStats($user),
                 'commission' => $this->commissionClaimService->getAffiliatorCommissionStats($user),
             ],
-            'master_fee' => [
+            'performance_fee' => [
                 'unpaid_count' => (clone $unpaidReports)->count(),
                 'unpaid_usd'   => round((float) (clone $unpaidReports)->sum('fee_usd'), 2),
             ],

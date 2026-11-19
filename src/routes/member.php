@@ -7,8 +7,8 @@ use App\Http\Controllers\Member\CommissionClaimController as MemberCommissionCla
 use App\Http\Controllers\Member\DashboardController as MemberDashboardController;
 use App\Http\Controllers\Member\EducationController as MemberEducationController;
 use App\Http\Controllers\Member\InvestmentPortfolioController;
-use App\Http\Controllers\Member\MasterFeeController as MemberMasterFeeController;
 use App\Http\Controllers\Member\PasswordController as MemberPasswordController;
+use App\Http\Controllers\Member\PerformanceFeeController as MemberPerformanceFeeController;
 use App\Http\Controllers\Member\ProfitMasterController as MemberProfitMasterController;
 use App\Http\Controllers\Member\TiketBantuanController as MemberTiketBantuanController;
 use Illuminate\Http\Request;
@@ -39,13 +39,13 @@ Route::middleware(['auth', 'role:member'])->prefix('member')->name('member.')->g
         Route::post('/commissions', [MemberCommissionClaimController::class, 'store'])->name('commissions.store');
         Route::get('/commissions/eligible-downlines', [MemberCommissionClaimController::class, 'eligibleDownlines'])->name('commissions.eligible_downlines');
 
-        // Laporan Profit & Master Fee
-        Route::get('/master-fee', [MemberMasterFeeController::class, 'index'])->name('master_fee.index');
-        Route::post('/master-fee', [MemberMasterFeeController::class, 'store'])->name('master_fee.store');
-        Route::put('/master-fee/{id}', [MemberMasterFeeController::class, 'update'])->name('master_fee.update');
-        Route::delete('/master-fee/{id}', [MemberMasterFeeController::class, 'destroy'])->name('master_fee.destroy');
-        Route::get('/master-fee/{id}', [MemberMasterFeeController::class, 'show'])->name('master_fee.show');
-        Route::post('/master-fee/{id}/proof', [MemberMasterFeeController::class, 'uploadProof'])->name('master_fee.proof');
+        // Laporan Profit & Performance Fee
+        Route::get('/performance-fee', [MemberPerformanceFeeController::class, 'index'])->name('performance_fee.index');
+        Route::post('/performance-fee', [MemberPerformanceFeeController::class, 'store'])->name('performance_fee.store');
+        Route::put('/performance-fee/{id}', [MemberPerformanceFeeController::class, 'update'])->name('performance_fee.update');
+        Route::delete('/performance-fee/{id}', [MemberPerformanceFeeController::class, 'destroy'])->name('performance_fee.destroy');
+        Route::get('/performance-fee/{id}', [MemberPerformanceFeeController::class, 'show'])->name('performance_fee.show');
+        Route::post('/performance-fee/{id}/proof', [MemberPerformanceFeeController::class, 'uploadProof'])->name('performance_fee.proof');
         Route::post('/first-period-banner/dismiss', function (Request $request) {
             session(['first_period_notice_dismissed' => true]);
 

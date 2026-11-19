@@ -646,7 +646,7 @@ class CopytradeTest extends TestCase
 
         // Simpan laporan profit
         LaporanProfitBulanan::create([
-            'nomor'               => 'MFE-202603-0001',
+            'nomor'               => 'PFE-202603-0001',
             'akun_copytrade_id'   => $akun->id,
             'user_id'             => $this->investor->id,
             'periode_ke'          => 1,

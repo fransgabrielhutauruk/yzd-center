@@ -194,10 +194,10 @@ const navSections = [
                 routeName: 'admin.copytrade.index',
             },
             {
-                label: 'Master Fee',
-                href: '/admin/master-fee',
+                label: 'Performance Fee',
+                href: '/admin/performance-fee',
                 icon: Receipt,
-                routeName: 'admin.master_fee.index',
+                routeName: 'admin.performance_fee.index',
             },
             {
                 label: 'Pengguna',
@@ -275,10 +275,10 @@ const navSections = [
                 routeName: 'admin.settings.legal',
             },
             {
-                label: 'Pengaturan Master Fee',
-                href: '/admin/settings/master-fee',
+                label: 'Pengaturan Performance Fee',
+                href: '/admin/settings/performance-fee',
                 icon: Settings,
-                routeName: 'admin.settings.master_fee',
+                routeName: 'admin.settings.performance_fee',
             },
         ],
     },

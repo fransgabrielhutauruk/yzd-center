@@ -2,8 +2,8 @@
 
 **Nama Proyek:** YZD Center  
 **Klien:** Pak Rizki Abiyasid  
-**Versi Dokumen:** 1.3.0  
-**Tanggal Update Terakhir:** 21 Oktober 2026  
+**Versi Dokumen:** 1.6.0  
+**Tanggal Update Terakhir:** 19 November 2026  
 
 ---
 
@@ -28,6 +28,9 @@
     *   **Penyelarasan Tautan Myfxbook:** Pendaftaran akun copytrade kini mewajibkan pencantuman URL Myfxbook publik, dapat diperbarui secara mandiri oleh investor, dan ditampilkan transparan ke mitra affiliator tanpa membocorkan data finansial sensitif.
     *   **Penyelarasan Klaim Komisi Afiliasi 3 Laporan:** Penghapusan batasan kalender 90 hari dan `hari_kehitung`. Kelayakan klaim kini dievaluasi murni berdasarkan penyelesaian 3 laporan profit bulanan pertama (`periode_ke` 1, 2, 3) dari seluruh akun copytrade milik downline, di mana seluruhnya berstatus lunas / tanpa fee.
     *   **Alur Verifikasi Admin 3-Titik:** Verifikasi laporan profit & fee di Admin menyajikan 3 bukti  (Myfxbook, WD Broker, Bukti Transfer), dengan aksi Verifikasi Lunas, Tolak Bukti (dengan alasan), atau Perlu Koreksi (dengan catatan revisi untuk member).
+*   **v1.6.0 (19-11-2026):** Standardisasi Terminologi & Refactor Menyeluruh **Master Fee** $\rightarrow$ **Performance Fee**:
+    *   **Penyelarasan Istilah & UI:** Seluruh label menu, dasbor, kalkulator simulasi (Edukasi & Afiliator), notifikasi, dan ekspor laporan diperbarui dari *Master Fee* / *Fee Master* menjadi **Performance Fee**.
+    *   **Cutover Route, Skema & Prefiks:** URL diperbarui ke `/admin/performance-fee`, `/admin/settings/performance-fee`, `/member/performance-fee`, dan `/documents/performance-fee/*`; tabel konfigurasi `pengaturan_performance_fee` (`PengaturanPerformanceFee`); prefiks nomor laporan `PFE-YYYYMM-XXXX`; direktori berkas privat `performance_fee/`; kategori audit `performance_fee`; serta perintah pengingat `app:send-performance-fee-reminders`.
 
 ---
 
@@ -128,7 +131,7 @@ Afiliator berhak memperoleh komisi atas keuntungan yang dibukukan oleh *downline
 | **Tier 4** | $< \text{Rp } 100.000.000$ ($< \text{Rp } 100\text{ Juta}$) | **20%** dari jatah Master Trader |
 
 #### Formula Perhitungan & Proteksi Finansial:
-1.  **Sumber Pembayaran Komisi:** Komisi afiliator **dipotong dari akumulasi tagihan Master Fee lunas downline** (`master_gross_share`), **bukan** memotong jatah hak keuntungan investor. Hak bersih investor tetap terjaga 70% dari gross profit.
+1.  **Sumber Pembayaran Komisi:** Komisi afiliator **dipotong dari akumulasi tagihan Performance Fee lunas downline** (`master_gross_share`), **bukan** memotong jatah hak keuntungan investor. Hak bersih investor tetap terjaga 70% dari gross profit.
     $$\text{master\_gross\_share} = \sum \text{fee\_usd laporan lunas periode 1, 2, 3}$$
     $$\text{gross\_profit} = \sum \text{profit\_usd laporan periode 1, 2, 3}$$
 
@@ -148,11 +151,11 @@ Fasilitas simulasi interaktif sisi klien (`/member/affiliates-calculator`) bagi 
 1.  **Dinamis Multi-Investor:** Pengguna dapat menyimulasikan banyak investor binaan sekaligus secara dinamis tanpa batasan jumlah baris dengan nama, nominal modal deposit (IDR), dan estimasi profit bulanan individual.
 2.  **Jendela Evaluasi 3 Bulan dengan Pemupukan Modal (*Compounding*):**
     *   Estimasi Gross Profit bulanan: $\text{Gross Profit} = \text{Modal Awal Bulan} \times \text{Estimasi ROI \%}$.
-    *   Tagihan Master Fee (30% dari gross profit).
-    *   Komisi Afiliator: $\text{Komisi} = \text{Master Fee} \times \text{Persentase Tier Modal}$.
+    *   Tagihan Performance Fee (30% dari gross profit).
+    *   Komisi Afiliator: $\text{Komisi} = \text{Performance Fee} \times \text{Persentase Tier Modal}$.
     *   Porsi Penarikan Tunai (*Withdrawal*): 60% dari laba bersih investor dialokasikan untuk ditarik tunai.
     *   Porsi Pemupukan Modal (*Compounding*): 40% dari laba bersih investor ditambahkan ke modal trading bulan berikutnya:
-        $$\text{Modal Bulan } (m+1) = \text{Modal Bulan } m + (0.40 \times (\text{Gross Profit} - \text{Master Fee}))$$
+        $$\text{Modal Bulan } (m+1) = \text{Modal Bulan } m + (0.40 \times (\text{Gross Profit} - \text{Performance Fee}))$$
 3.  **Evaluasi Tiering Dinamis:** Setiap investor dievaluasi tier-nya (Tier 1 s.d. Tier 4) berdasarkan nominal modal awal masing-masing dengan indikator visual *active tier*.
 4.  **Akumulasi Transparan:** Ringkasan total modal kelolaan, akumulasi komisi 3 bulan dalam IDR dan USD, serta tabel rincian bulan ke-1, ke-2, dan ke-3.
 5.  **Pernyataan Sanggahan (*Disclaimer*):** Menegaskan bahwa kalkulator adalah alat simulasi matematis berbasis asumsi proyeksi dan bukan jaminan pendapatan pasti.
@@ -191,7 +194,7 @@ Fasilitas simulasi interaktif sisi klien (`/member/affiliates-calculator`) bagi 
 *   **FR-ADM-04 (Klaim Referral Susulan):** Meninjau permohonan affiliator yang mengklaim downline lupa kode referral, memeriksa bukti tangkapan layar percakapan (*chat*), dan menyetujui pengikatan (*binding*) relasi referral secara sah.
 *   **FR-ADM-05 (Pencairan Komisi Afiliasi):**
     *   Menampilkan antrean klaim komisi berstatus pending lengkap dengan rincian rekening bank tujuan.
-    *   Menampilkan kalkulasi otomatis komisi afiliator dari tagihan Master Fee lunas downline dan input kurs penarikan riil MT4 ke Rupiah (tanpa input ROI manual).
+    *   Menampilkan kalkulasi otomatis komisi afiliator dari tagihan Performance Fee lunas downline dan input kurs penarikan riil MT4 ke Rupiah (tanpa input ROI manual).
     *   Memproses status transfer dan mengunggah bukti resi transfer bank resmi (`.jpg`, `.png`, `.pdf`).
 *   **FR-ADM-06 (Manajemen Pengguna):**
     *   Menampilkan direktori seluruh pengguna platform dengan filter peran, status, dan pencarian cepat.
@@ -213,8 +216,8 @@ Fasilitas simulasi interaktif sisi klien (`/member/affiliates-calculator`) bagi 
     *   Memantau antrean tiket kendala member via dasbor ("Tiket Butuh Respons") dan tabel manajemen terpadu `AppDataTable`.
     *   Mengirimkan tanggapan/solusi dua arah dengan lampiran gambar panduan, mengubah status kendala secara manual, dan memicu notifikasi in-app ke pengguna.
     *   Sistem scheduler otomatis menutup (*Closed*) tiket berstatus *Resolved* setelah 7 hari tanpa aktivitas.
-*   **FR-ADM-11 (Manajemen Laporan Profit & Master Fee):**
-    *   Memantau antrean laporan profit bulanan dan Master Fee via `AppTabs`: Tab "Laporan Profit & Fee" dan Tab "Akun Belum Lapor Profit".
+*   **FR-ADM-11 (Manajemen Laporan Profit & Performance Fee):**
+    *   Memantau antrean laporan profit bulanan dan Performance Fee via `AppTabs`: Tab "Laporan Profit & Fee" dan Tab "Akun Belum Lapor Profit".
     *   Verifikasi 3-titik: inspeksi screenshot Myfxbook, bukti penarikan (WD) broker, dan bukti transfer pembayaran fee.
     *   Menyediakan aksi: "Verifikasi Lunas" (menyelesaikan tagihan), "Tolak Bukti" (dengan alasan penolakan wajib), atau "Perlu Koreksi" (dengan catatan koreksi agar member memperbaiki laporan).
     *   Mengelola pengaturan rekening bank Master Trader global, persentase fee (default 30%), dan batas maksimal penarikan WD (default 60%).
@@ -237,18 +240,18 @@ Fasilitas simulasi interaktif sisi klien (`/member/affiliates-calculator`) bagi 
     *   Menyediakan filter analitik kinerja akun: Semua Waktu (*All*), 1 Bulan, 3 Bulan, 6 Bulan, 1 Tahun, atau Rentang Tanggal Kustom.
 *   **FR-INV-04 (Kalkulator Simulasi Finansial Interaktif):**
     *   Menyediakan simulasi matematis proyeksi pertumbuhan modal untuk jangka waktu 1 hingga 10 tahun (standar 5 tahun).
-    *   Mendukung komparasi 2 skenario: **Tarik Rutin** (30% WD, 30% Master Fee, 40% Compounding) dan **Reinvest Penuh** (0% WD, 30% Master Fee, 70% Compounding).
+    *   Mendukung komparasi 2 skenario: **Tarik Rutin** (30% WD, 30% Performance Fee, 40% Compounding) dan **Reinvest Penuh** (0% WD, 30% Performance Fee, 70% Compounding).
     *   Dilengkapi nilai acuan standar ($500 modal awal, 5.0% profit bulanan) serta pembaruan kurs tengah USD/IDR harian secara otomatis.
     *   Menyajikan hasil dalam bentuk ringkasan komparasi metrik, tabel proyeksi tahunan, dan tabulasi bulanan.
 *   **FR-INV-05 (Panduan Interaktif):**
     *   *Tur Aplikasi (Onboarding Tour):* Panduan visual pengenalan sistem langkah-demi-langkah bagi investor baru.
     *   *Jelajah Halaman (Feature Walkthrough):* Panduan interaktif terpandu dengan penyorotan fokus (*spotlight*) pada elemen antarmuka utama di dasbor.
 *   **FR-INV-06 (Pusat Bantuan & Glosarium):** Menelusuri artikel tanya-jawab, panduan setor/tarik broker, dan mencari definisi istilah trading di Kamus Forex.
-*   **FR-INV-07 (Laporan Profit Bulanan & Pembayaran Master Fee):**
+*   **FR-INV-07 (Laporan Profit Bulanan & Pembayaran Performance Fee):**
     *   Investor melaporkan profit trading bulanan secara mandiri setiap periode selesai (periode dihitung dari tanggal mulai trading: tgl 1–15 selesai akhir bulan berjalan, tgl 16–31 selesai akhir bulan berikutnya; pelaporan dibuka tgl 1 bulan berikutnya).
     *   Formulir laporan mewajibkan input profit USD dan unggah screenshot Myfxbook.
     *   Jika profit > 0, investor wajib menarik dana (WD) antara 30% hingga 60% via broker, mengunggah screenshot mutasi WD broker, serta menginput nominal WD dalam USD dan IDR.
-    *   Sistem mengkalkulasi kurs riil (kurs_riil = wd_idr / wd_usd) dan nominal Master Fee IDR (fee_usd * kurs_riil).
+    *   Sistem mengkalkulasi kurs riil (kurs_riil = wd_idr / wd_usd) dan nominal Performance Fee IDR (fee_usd * kurs_riil).
     *   Jika profit <= 0, sistem otomatis menetapkan fee $0 dan status tanpa_fee (ditampilkan "Lunas").
     *   Investor melihat rekening tujuan Master Trader, mengunggah bukti transfer, dan dapat merevisi laporan jika admin menandai "Perlu Koreksi".
 
@@ -265,7 +268,7 @@ Fasilitas simulasi interaktif sisi klien (`/member/affiliates-calculator`) bagi 
     *   Mengakses kalkulator proyeksi pendapatan komisi afiliasi interaktif (`/member/affiliates-calculator`) dengan otentikasi member aktif.
     *   Menyediakan simulasi investor secara dinamis tanpa batasan kuota dengan konfigurasi modal awal, persentase profit bulanan dinamis, serta evaluasi otomatis skema 4-Tier komisi.
     *   Menghitung proyeksi akumulasi 3 bulan dengan pola 60% penarikan laba (*withdrawal*) dan 40% pemupukan modal (*compounding*) ke modal trading bulan berikutnya.
-    *   Menampilkan rincian tabel per bulan (Modal Awal, Estimasi Profit, Tagihan Master Fee 30%, Komisi Afiliator, Estimasi WD Investor, dan Penambahan Modal) serta pernyataan sanggahan (*disclaimer*).
+    *   Menampilkan rincian tabel per bulan (Modal Awal, Estimasi Profit, Tagihan Performance Fee 30%, Komisi Afiliator, Estimasi WD Investor, dan Penambahan Modal) serta pernyataan sanggahan (*disclaimer*).
 *   **FR-MBR-01 (Tiket Bantuan & Pelaporan Kendala Member):**
     *   Seluruh member terautentikasi (termasuk member berstatus pending KYC) dapat membuat tiket bantuan dengan penomoran unik bulanan `TKT-YYYYMM-XXXX`.
     *   Menyematkan berkas tangkapan layar bukti kendala (hingga 10 MB per gambar dengan kompresi senyap sisi klien).

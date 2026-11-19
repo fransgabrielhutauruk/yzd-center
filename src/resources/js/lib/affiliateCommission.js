@@ -43,7 +43,7 @@ export function determineTier(modalIdr, tiers = []) {
  * @param {number} params.profitPct - Persentase profit bulanan (contoh: 5 untuk 5%)
  * @param {Array<Object>} params.tiers - Definisi tiers dari backend
  * @param {number} [params.wdPct=60] - Persentase penarikan profit (WD) tiap bulan
- * @param {number} [params.feePct=30] - Persentase fee Master Trader dari profit
+ * @param {number} [params.feePct=30] - Persentase Performance Fee dari profit
  * @param {number} [params.months=3] - Durasi simulasi (jendela komisi afiliator)
  * @returns {Object}
  */
@@ -69,21 +69,21 @@ export function simulateInvestor({
                 bulan: m,
                 modal: 0,
                 profit: 0,
-                feeMaster: 0,
+                performanceFee: 0,
                 komisi: 0,
             });
             continue;
         }
 
         const profit = currentModal * (Number(profitPct) / 100);
-        const feeMaster = profit * (Number(feePct) / 100);
-        const komisi = feeMaster * (Number(tier.persentase_tier) / 100);
+        const performanceFee = profit * (Number(feePct) / 100);
+        const komisi = performanceFee * (Number(tier.persentase_tier) / 100);
 
         rows.push({
             bulan: m,
             modal: currentModal,
             profit,
-            feeMaster,
+            performanceFee,
             komisi,
         });
 
@@ -141,12 +141,12 @@ export function simulateAll(investors = [], profitPct = 5, tiers = [], opts = {}
     const monthlyTotals = [];
     let grandTotalKomisi = 0;
     let grandTotalProfit = 0;
-    let grandTotalFeeMaster = 0;
+    let grandTotalPerformanceFee = 0;
 
     for (let m = 1; m <= months; m++) {
         let monthModal = 0;
         let monthProfit = 0;
-        let monthFeeMaster = 0;
+        let monthPerformanceFee = 0;
         let monthKomisi = 0;
 
         for (const res of investorResults) {
@@ -154,7 +154,7 @@ export function simulateAll(investors = [], profitPct = 5, tiers = [], opts = {}
             if (row) {
                 monthModal += row.modal;
                 monthProfit += row.profit;
-                monthFeeMaster += row.feeMaster;
+                monthPerformanceFee += row.performanceFee;
                 monthKomisi += row.komisi;
             }
         }
@@ -163,13 +163,13 @@ export function simulateAll(investors = [], profitPct = 5, tiers = [], opts = {}
             bulan: m,
             totalModal: monthModal,
             totalProfit: monthProfit,
-            totalFeeMaster: monthFeeMaster,
+            totalPerformanceFee: monthPerformanceFee,
             totalKomisi: monthKomisi,
         });
 
         grandTotalKomisi += monthKomisi;
         grandTotalProfit += monthProfit;
-        grandTotalFeeMaster += monthFeeMaster;
+        grandTotalPerformanceFee += monthPerformanceFee;
     }
 
     // Set tier yang aktif terpakai oleh investor yang memiliki modal > 0
@@ -184,7 +184,7 @@ export function simulateAll(investors = [], profitPct = 5, tiers = [], opts = {}
         monthlyTotals,
         grandTotalKomisi,
         grandTotalProfit,
-        grandTotalFeeMaster,
+        grandTotalPerformanceFee,
         activeTierLevels: Array.from(activeTierLevels),
     };
 }

@@ -10,12 +10,12 @@ use App\Models\Invitation;
 use App\Models\LaporanProfitBulanan;
 use App\Models\PanduanBantuan;
 use App\Models\PanduanKategori;
-use App\Models\PengaturanMasterFee;
+use App\Models\PengaturanPerformanceFee;
 use App\Models\ProfitMasterPost;
 use App\Models\ProfitMasterPostImage;
 use App\Models\User;
 use App\Services\InvitationService;
-use App\Services\MasterFeeService;
+use App\Services\PerformanceFeeService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -244,7 +244,7 @@ class SoftDeleteTest extends TestCase
     {
         Storage::fake('local');
 
-        PengaturanMasterFee::create([
+        PengaturanPerformanceFee::create([
             'fee_persen'     => 30.00,
             'wd_maks_persen' => 60.00,
         ]);
@@ -264,7 +264,7 @@ class SoftDeleteTest extends TestCase
             'status'             => 'active',
         ]);
 
-        $service = app(MasterFeeService::class);
+        $service = app(PerformanceFeeService::class);
 
         // 1. Submit report pertama (dengan profit > 0 agar berstatus belum_dibayar dan editable)
         $myfxbookFile = UploadedFile::fake()->create('myfxbook.jpg', 200, 'image/jpeg');
@@ -276,7 +276,7 @@ class SoftDeleteTest extends TestCase
         ], $myfxbookFile, $wdFile, $this->member);
 
         $this->assertEquals(1, $report1->periode_ke);
-        $this->assertEquals('MFE-' . Carbon::now()->format('Ym') . '-0001', $report1->nomor);
+        $this->assertEquals('PFE-' . Carbon::now()->format('Ym') . '-0001', $report1->nomor);
 
         $filePath = $report1->bukti_myfxbook_path;
         Storage::disk('local')->assertExists($filePath);
@@ -302,7 +302,7 @@ class SoftDeleteTest extends TestCase
         ], $myfxbookFile2, $wdFile2, $this->member);
 
         $this->assertEquals(1, $report2->periode_ke);
-        $this->assertEquals('MFE-' . Carbon::now()->format('Ym') . '-0002', $report2->nomor);
+        $this->assertEquals('PFE-' . Carbon::now()->format('Ym') . '-0002', $report2->nomor);
     }
 
     public function test_commission_and_dashboard_ignore_soft_deleted_reports(): void
@@ -323,7 +323,7 @@ class SoftDeleteTest extends TestCase
         ]);
 
         $report = LaporanProfitBulanan::create([
-            'nomor'               => 'MFE-202611-9999',
+            'nomor'               => 'PFE-202611-9999',
             'akun_copytrade_id'   => $akun->id,
             'user_id'             => $this->member->id,
             'periode_ke'          => 1,

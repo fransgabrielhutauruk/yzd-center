@@ -7,7 +7,7 @@ use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
-class MasterFeeReminderNotification extends Notification
+class PerformanceFeeReminderNotification extends Notification
 {
     use Queueable;
 
@@ -35,13 +35,13 @@ class MasterFeeReminderNotification extends Notification
             $periodeLabel = $this->periodInfo['periode_label'] ?? '';
 
             return [
-                'type'       => 'master_fee_input_reminder',
+                'type'       => 'performance_fee_input_reminder',
                 'title'      => 'Pengingat Input Laporan Profit',
                 'message'    => "Periode {$periodeLabel} untuk akun #{$nomorAkun} telah dibuka. Segera input laporan profit dan screenshot Myfxbook Anda.",
                 'icon'       => 'calendar',
                 'akun_id'    => $this->periodInfo['akun_id'] ?? null,
                 'nomor_akun' => $nomorAkun,
-                'url'        => '/member/master-fee',
+                'url'        => '/member/performance-fee',
             ];
         }
 
@@ -50,13 +50,13 @@ class MasterFeeReminderNotification extends Notification
         $jatuhTempoFormatted = $this->laporan ? Carbon::parse($this->laporan->jatuh_tempo)->isoFormat('D MMMM Y') : '-';
 
         return [
-            'type'       => 'master_fee_reminder',
-            'title'      => 'Pengingat Pembayaran Master Fee',
-            'message'    => "Master Fee ({$nomor}) sebesar {$feeFormatted} belum dibayar. Segera lakukan transfer dan unggah bukti pembayaran.",
+            'type'       => 'performance_fee_reminder',
+            'title'      => 'Pengingat Pembayaran Performance Fee',
+            'message'    => "Performance Fee ({$nomor}) sebesar {$feeFormatted} belum dibayar. Segera lakukan transfer dan unggah bukti pembayaran.",
             'icon'       => 'alert-circle',
             'laporan_id' => $this->laporan?->id,
             'nomor'      => $nomor,
-            'url'        => '/member/master-fee',
+            'url'        => '/member/performance-fee',
         ];
     }
 }

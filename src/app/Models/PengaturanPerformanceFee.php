@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class PengaturanMasterFee extends Model
+class PengaturanPerformanceFee extends Model
 {
-    protected $table = 'pengaturan_master_fee';
+    protected $table = 'pengaturan_performance_fee';
 
     protected $fillable = [
         'nama_bank',

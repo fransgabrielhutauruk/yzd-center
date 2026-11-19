@@ -5,10 +5,10 @@ namespace App\Http\Controllers\Member;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Member\StoreLaporanProfitRequest;
 use App\Http\Requests\Member\UpdateLaporanProfitRequest;
-use App\Http\Requests\Member\UploadBuktiMasterFeeRequest;
+use App\Http\Requests\Member\UploadBuktiPerformanceFeeRequest;
 use App\Models\AkunCopytrade;
 use App\Models\LaporanProfitBulanan;
-use App\Services\MasterFeeService;
+use App\Services\PerformanceFeeService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -16,23 +16,23 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class MasterFeeController extends Controller
+class PerformanceFeeController extends Controller
 {
     public function __construct(
-        protected MasterFeeService $masterFeeService
+        protected PerformanceFeeService $PerformanceFeeService
     ) {}
 
     /**
-     * Tampilkan halaman daftar laporan profit dan master fee milik member.
+     * Tampilkan halaman daftar laporan profit dan Performance Fee milik member.
      */
     public function index(Request $request): Response
     {
         $user = $request->user();
         $filters = $request->only(['status', 'periode', 'search']);
 
-        $paginated = $this->masterFeeService->paginateForMember($user, $filters);
-        $settings = $this->masterFeeService->getSettings();
-        $availableAccounts = $this->masterFeeService->availableReportableAccounts($user);
+        $paginated = $this->PerformanceFeeService->paginateForMember($user, $filters);
+        $settings = $this->PerformanceFeeService->getSettings();
+        $availableAccounts = $this->PerformanceFeeService->availableReportableAccounts($user);
 
         $userReports = LaporanProfitBulanan::query()
             ->where('user_id', $user->id)
@@ -94,9 +94,9 @@ class MasterFeeController extends Controller
                 'is_editable'          => $l->is_editable,
                 'is_terkunci'          => $l->is_terkunci,
                 'urls'                 => [
-                    'bukti_myfxbook' => $l->bukti_myfxbook_path ? route('documents.master_fee_myfxbook', $l->id) : null,
-                    'bukti_wd'       => $l->bukti_wd_path ? route('documents.master_fee_wd', $l->id) : null,
-                    'bukti_transfer' => $l->bukti_transfer_path ? route('documents.master_fee_proof', $l->id) : null,
+                    'bukti_myfxbook' => $l->bukti_myfxbook_path ? route('documents.performance_fee_myfxbook', $l->id) : null,
+                    'bukti_wd'       => $l->bukti_wd_path ? route('documents.performance_fee_wd', $l->id) : null,
+                    'bukti_transfer' => $l->bukti_transfer_path ? route('documents.performance_fee_proof', $l->id) : null,
                 ],
             ];
         });
@@ -119,7 +119,7 @@ class MasterFeeController extends Controller
             ];
         }, $availableAccounts);
 
-        return Inertia::render('Member/MasterFee/Index', [
+        return Inertia::render('Member/PerformanceFee/Index', [
             'laporans'                      => $reportsFormatted,
             'filters'                       => $filters,
             'settings'                      => $settings,
@@ -144,7 +144,7 @@ class MasterFeeController extends Controller
         $akun = AkunCopytrade::where('user_id', $user->id)
             ->findOrFail($request->input('akun_copytrade_id'));
 
-        $laporan = $this->masterFeeService->submitReport(
+        $laporan = $this->PerformanceFeeService->submitReport(
             $akun,
             $request->validated(),
             $request->file('bukti_myfxbook'),
@@ -154,10 +154,10 @@ class MasterFeeController extends Controller
 
         $msg = "Laporan profit periode ke-{$laporan->periode_ke} (#{$akun->nomor_akun_trading}) berhasil dikirim.";
         if ($laporan->fee_usd > 0) {
-            $msg .= ' Silakan lakukan transfer Master Fee dan unggah bukti pembayaran.';
+            $msg .= ' Silakan lakukan transfer Performance Fee dan unggah bukti pembayaran.';
         }
 
-        return redirect()->route('member.master_fee.index')->with('success', $msg);
+        return redirect()->route('member.performance_fee.index')->with('success', $msg);
     }
 
     /**
@@ -168,7 +168,7 @@ class MasterFeeController extends Controller
         $user = $request->user();
         $laporan = LaporanProfitBulanan::where('user_id', $user->id)->findOrFail($id);
 
-        $this->masterFeeService->updateReport(
+        $this->PerformanceFeeService->updateReport(
             $laporan,
             $request->validated(),
             $request->file('bukti_myfxbook'),
@@ -187,7 +187,7 @@ class MasterFeeController extends Controller
         $user = $request->user();
         $laporan = LaporanProfitBulanan::where('user_id', $user->id)->findOrFail($id);
 
-        $this->masterFeeService->deleteReport($laporan, $user);
+        $this->PerformanceFeeService->deleteReport($laporan, $user);
 
         return redirect()->back()->with('success', 'Laporan profit berhasil dihapus.');
     }
@@ -203,31 +203,31 @@ class MasterFeeController extends Controller
             ->where('user_id', $user->id)
             ->firstOrFail();
 
-        $settings = $this->masterFeeService->getSettings();
+        $settings = $this->PerformanceFeeService->getSettings();
 
         return response()->json([
             'laporan'  => $laporan,
             'settings' => $settings,
             'urls'     => [
-                'bukti_myfxbook' => $laporan->bukti_myfxbook_path ? route('documents.master_fee_myfxbook', $laporan->id) : null,
-                'bukti_wd'       => $laporan->bukti_wd_path ? route('documents.master_fee_wd', $laporan->id) : null,
-                'bukti_transfer' => $laporan->bukti_transfer_path ? route('documents.master_fee_proof', $laporan->id) : null,
+                'bukti_myfxbook' => $laporan->bukti_myfxbook_path ? route('documents.performance_fee_myfxbook', $laporan->id) : null,
+                'bukti_wd'       => $laporan->bukti_wd_path ? route('documents.performance_fee_wd', $laporan->id) : null,
+                'bukti_transfer' => $laporan->bukti_transfer_path ? route('documents.performance_fee_proof', $laporan->id) : null,
             ],
         ]);
     }
 
     /**
-     * Unggah bukti transfer pembayaran master fee.
+     * Unggah bukti transfer pembayaran Performance Fee.
      */
-    public function uploadProof(UploadBuktiMasterFeeRequest $request, int $id): RedirectResponse
+    public function uploadProof(UploadBuktiPerformanceFeeRequest $request, int $id): RedirectResponse
     {
         $user = $request->user();
         $laporan = LaporanProfitBulanan::where('id', $id)
             ->where('user_id', $user->id)
             ->firstOrFail();
 
-        $this->masterFeeService->submitProof($laporan, $request->file('bukti_transfer'), $user);
+        $this->PerformanceFeeService->submitProof($laporan, $request->file('bukti_transfer'), $user);
 
-        return redirect()->back()->with('success', "Bukti transfer untuk Master Fee {$laporan->nomor} berhasil diunggah dan sedang menunggu verifikasi admin.");
+        return redirect()->back()->with('success', "Bukti transfer untuk Performance Fee {$laporan->nomor} berhasil diunggah dan sedang menunggu verifikasi admin.");
     }
 }

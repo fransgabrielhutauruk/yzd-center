@@ -41,20 +41,20 @@ class HandleInertiaRequests extends Middleware
             //
             'auth' => [
                 'user' => $request->user() ? [
-                    'id'                       => $request->user()->id,
-                    'name'                     => $request->user()->name,
-                    'role'                     => $request->user()->role ?? null,
-                    'status'                   => $request->user()->status ?? null,
-                    'is_active'                => (bool) ($request->user()->status === 'active'),
-                    'email'                    => $request->user()->email,
-                    'username'                 => $request->user()->username,
-                    'pending_master_fee_count' => $request->user()->role === 'member'
+                    'id'                            => $request->user()->id,
+                    'name'                          => $request->user()->name,
+                    'role'                          => $request->user()->role ?? null,
+                    'status'                        => $request->user()->status ?? null,
+                    'is_active'                     => (bool) ($request->user()->status === 'active'),
+                    'email'                         => $request->user()->email,
+                    'username'                      => $request->user()->username,
+                    'pending_performance_fee_count' => $request->user()->role === 'member'
                         ? \App\Models\LaporanProfitBulanan::query()
                             ->where('user_id', $request->user()->id)
                             ->whereIn('status', [\App\Models\LaporanProfitBulanan::STATUS_BELUM_DIBAYAR, \App\Models\LaporanProfitBulanan::STATUS_DITOLAK])
                             ->count()
                         : 0,
-                    'waiting_master_fee_count' => $request->user()->role === 'administrator'
+                    'waiting_performance_fee_count' => $request->user()->role === 'administrator'
                         ? \App\Models\LaporanProfitBulanan::query()
                             ->where('status', \App\Models\LaporanProfitBulanan::STATUS_MENUNGGU_VERIFIKASI)
                             ->count()

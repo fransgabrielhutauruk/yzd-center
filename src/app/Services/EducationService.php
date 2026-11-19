@@ -490,11 +490,11 @@ class EducationService
                 'is_live'    => (bool) ($rateData['is_live'] ?? false),
                 'source'     => $rateData['source'] ?? 'default_fallback',
             ],
-            'profit_taken_pct' => 30.0, // Max 30% profit yang boleh diambil (investor)
-            'compounding_pct'  => 40.0, // 40% compounding penambah modal
-            'master_fee_pct'   => 30.0, // 30% bagi hasil master trader
-            'system_fee_pct'   => 30.0, // Alias kompatibilitas
-            'contact'          => [
+            'profit_taken_pct'    => 30.0, // Max 30% profit yang boleh diambil (investor)
+            'compounding_pct'     => 40.0, // 40% compounding penambah modal
+            'performance_fee_pct' => 30.0, // 30% bagi hasil performance fee
+            'system_fee_pct'      => 30.0, // Alias kompatibilitas
+            'contact'             => [
                 'name'         => 'Yazid',
                 'phone'        => '082388986189',
                 'whatsapp_url' => 'https://wa.me/6282388986189?text=Halo%20Pak%20Yazid%2C%20saya%20ingin%20konsultasi%20mengenai%20proyeksi%20investasi%20copytrade%20YZD%20Center.',
@@ -536,7 +536,7 @@ class EducationService
         $monthlyRateDecimal = $monthlyProfitRate / 100.0;
 
         // Hitung simulasi akumulasi profit sejak awal join s/d bulan saat ini
-        // Sesuai formula YZD: 30% WD Investor, 40% Compounding Modal, 30% Master Fee
+        // Sesuai formula YZD: 30% WD Investor, 40% Compounding Modal, 30% Performance Fee
         $currentModal = $totalModalRiil;
         $totalWithdrawn = 0.0;
         $totalCompounded = 0.0;

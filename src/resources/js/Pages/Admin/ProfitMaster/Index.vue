@@ -26,7 +26,7 @@ defineProps({
     <AdminLayout
         title="Materi Promosi"
         subtitle="Kelola materi promosi dan rekap profit Master Trader untuk kebutuhan promosi para member & afiliator."
-        :breadcrumbs="[{ label: 'Program Kemitraan' }, { label: 'Materi Promosi' }]"
+        :breadcrumbs="[{ label: 'Manajemen Afiliasi' }, { label: 'Materi Promosi' }]"
     >
         <div class="py-2">
             <ProfitMasterFeed

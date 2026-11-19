@@ -74,7 +74,11 @@
     - [11.3 Rincian Rekam Perubahan Atribut (Audit Diff: Sebelum vs Sesudah)](#113-rincian-rekam-perubahan-atribut-audit-diff-sebelum-vs-sesudah)
     - [11.4 Penyamaran Otomatis Data Sensitif & Kredensial (Data Masking)](#114-penyamaran-otomatis-data-sensitif--kredensial-data-masking)
     - [11.5 Ekspor Jejak Audit ke Dokumen Spreadsheet (Format Excel .XLSX)](#115-ekspor-jejak-audit-ke-dokumen-spreadsheet-format-excel-xlsx)
-12. [Bab 12: Ringkasan Standar Mutu Administrator (Operational SLA)](#bab-12-ringkasan-standar-mutu-administrator-operational-sla)
+12. [Bab 12: Manajemen Laporan Profit Bulanan & Verifikasi Performance Fee](#bab-12-manajemen-laporan-profit-bulanan--verifikasi-performance-fee)
+    - [12.1 Struktur Tampilan AppTabs](#121-struktur-tampilan-apptabs)
+    - [12.2 Verifikasi 3-Titik & Keputusan Admin](#122-verifikasi-3-titik--keputusan-admin)
+    - [12.3 Pengaturan Global Performance Fee (`/admin/settings/performance-fee`)](#123-pengaturan-global-performance-fee-adminsettingsperformance-fee)
+13. [Bab 13: Ringkasan Standar Mutu Administrator (Operational SLA)](#bab-13-ringkasan-standar-mutu-administrator-operational-sla)
 
 ---
 
@@ -557,30 +561,9 @@ Klik tombol **"Ekspor XLSX"** untuk mengunduh berkas laporan resmi Microsoft Exc
 
 ---
 
-## Bab 12: Ringkasan Standar Mutu Administrator (Operational SLA)
+## Bab 12: Manajemen Laporan Profit Bulanan & Verifikasi Performance Fee
 
-Seluruh tim Administrator berpegang pada Service Level Agreement (SLA) operasional berikut:
-
-| Jenis Antrean Tugas | Target Waktu Penyelesaian (SLA) | Tingkat Prioritas |
-| :--- | :---: | :---: |
-| **Verifikasi Pendaftaran & KTP Baru** | Maksimal **1 Jam** pada jam operasional | 🔴 Tinggi |
-| **Persetujuan & Setup Akun Copytrade (Termasuk VPS Tier 3)** | Maksimal **2 Jam** setelah deposit terkonfirmasi | 🔴 Tinggi |
-| **Tanggapan Pertama Tiket Bantuan Member** | Maksimal **2 Jam** pada jam operasional | 🔴 Tinggi |
-| **Verifikasi Permohonan Klaim Referral Susulan** | Maksimal **1x24 Jam** kerja | 🟡 Sedang |
-| **Pencairan & Transfer Bank Komisi Afiliasi** | Maksimal **1x24 Jam** kerja | 🔴 Tinggi |
-| **Pembaruan Saldo Bulanan Akun Copytrade** | Setiap tanggal **1 s/d 2 awal bulan** | 🟡 Terjadwal |
-| **Penerbitan Materi Promosi Profit Master** | Berkala (Minimal **2x per minggu**) | 🟢 Normal |
-| **Audit & Peninjauan Log Aktivitas Kritis** | Pemantauan harian & investigasi seketika | 🔴 Tinggi |
-
----
-*Buku Panduan Operasional Administrator YZD Center — Hak Cipta Dilindungi Undang-Undang.*
-
-
----
-
-## Bab 12: Manajemen Laporan Profit Bulanan & Verifikasi Master Fee
-
-Menu **Master Fee** (`/admin/master-fee`) memungkinkan Administrator mengawasi antrean pelaporan performa investor dan memvalidasi pembayaran bagi hasil Master Trader secara terpadu.
+Menu **Performance Fee** (`/admin/performance-fee`) memungkinkan Administrator mengawasi antrean pelaporan performa investor dan memvalidasi pembayaran bagi hasil Master Trader secara terpadu.
 
 ### 12.1 Struktur Tampilan AppTabs
 - **Tab Laporan Profit & Fee:** Menampilkan seluruh laporan yang telah diajukan member, dilengkapi filter status (*Semua, Menunggu Verifikasi, Belum Bayar, Lunas, Perlu Koreksi*) dan filter bulan/tahun.
@@ -597,8 +580,28 @@ Klik tombol **"Verifikasi"** pada antrean laporan untuk membuka jendela verifika
 - **Perlu Koreksi:** Klik jika investor keliru menginput angka atau screenshot tertukar. Wajib mengisi catatan koreksi agar investor dapat merevisi mandiri.
 - **Tolak Bukti:** Klik jika resi transfer palsu atau tidak terbaca. Wajib mengisi alasan penolakan.
 
-### 12.3 Pengaturan Global Master Fee (`/admin/settings/master-fee`)
+### 12.3 Pengaturan Global Performance Fee (`/admin/settings/performance-fee`)
 Administrator dapat mengatur:
 - Rekening bank resmi Master Trader (Nama Bank, Nomor Rekening, Atas Nama).
-- Persentase Master Fee platform (default 30%).
+- Persentase Performance Fee platform (default 30%).
 - Batas maksimal penarikan dana WD broker (default 60%).
+
+---
+
+## Bab 13: Ringkasan Standar Mutu Administrator (Operational SLA)
+
+Seluruh tim Administrator berpegang pada Service Level Agreement (SLA) operasional berikut:
+
+| Jenis Antrean Tugas | Target Waktu Penyelesaian (SLA) | Tingkat Prioritas |
+| :--- | :---: | :---: |
+| **Verifikasi Pendaftaran & KTP Baru** | Maksimal **1 Jam** pada jam operasional | 🔴 Tinggi |
+| **Persetujuan & Setup Akun Copytrade (Termasuk VPS Tier 3)** | Maksimal **2 Jam** setelah deposit terkonfirmasi | 🔴 Tinggi |
+| **Tanggapan Pertama Tiket Bantuan Member** | Maksimal **2 Jam** pada jam operasional | 🔴 Tinggi |
+| **Verifikasi Permohonan Klaim Referral Susulan** | Maksimal **1x24 Jam** kerja | 🟡 Sedang |
+| **Pencairan & Transfer Bank Komisi Afiliasi** | Maksimal **1x24 Jam** kerja | 🔴 Tinggi |
+| **Pembaruan Saldo Bulanan Akun Copytrade** | Setiap tanggal **1 s/d 2 awal bulan** | 🟡 Terjadwal |
+| **Penerbitan Materi Promosi Profit Master** | Berkala (Minimal **2x per minggu**) | 🟢 Normal |
+| **Audit & Peninjauan Log Aktivitas Kritis** | Pemantauan harian & investigasi seketika | 🔴 Tinggi |
+
+---
+*Buku Panduan Operasional Administrator YZD Center — Hak Cipta Dilindungi Undang-Undang.*

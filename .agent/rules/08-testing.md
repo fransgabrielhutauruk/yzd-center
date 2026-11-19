@@ -22,8 +22,8 @@ Untuk menjaga alur kerja agentic tetap gesit dan cepat:
 
 ## Cakupan Skenario Bisnis Kritikal (Wajib Ada Test)
 
-### 1. Modul 05: Klaim Komisi Afiliasi (PB 3) & Master Fee
-- **Uji Skema 4-Tier Komisi dari Tagihan Master Fee Lunas Downline:**
+### 1. Modul 05: Klaim Komisi Afiliasi (PB 3) & Performance Fee
+- **Uji Skema 4-Tier Komisi dari Tagihan Performance Fee Lunas Downline:**
   - Deposit $> \text{Rp } 10\text{ M}$ $\rightarrow$ Tier 1 (**50%** dari master gross share tagihan lunas).
   - Deposit $\text{Rp } 1\text{ M} - 10\text{ M}$ $\rightarrow$ Tier 2 (**40%** dari master gross share tagihan lunas).
   - Deposit $\text{Rp } 100\text{ Jt} - 1\text{ M}$ $\rightarrow$ Tier 3 (**30%** dari master gross share tagihan lunas).
@@ -31,14 +31,14 @@ Untuk menjaga alur kerja agentic tetap gesit dan cepat:
 - **Uji Syarat 3 Laporan Bulanan Lunas / Tanpa Fee:**
   - Evaluasi berbasis 3 laporan profit bulanan pertama (`periode_ke` 1, 2, 3) pada akun copytrade downline.
   - Akun memiliki $< 3$ laporan bulanan $\rightarrow$ Status "Menunggu 3 Laporan Bulanan (X/3)" & Ditolak pengajuan klaimnya.
-  - Akun memiliki tagihan Master Fee `belum_dibayar`, `menunggu_verifikasi`, atau `perlu_koreksi` $\rightarrow$ Status "Tagihan Belum Selesai" & Ditolak pengajuan klaimnya.
+  - Akun memiliki tagihan Performance Fee `belum_dibayar`, `menunggu_verifikasi`, atau `perlu_koreksi` $\rightarrow$ Status "Tagihan Belum Selesai" & Ditolak pengajuan klaimnya.
   - Akun memiliki 3 laporan bulanan lengkap dan seluruhnya telah diselesaikan (`lunas` atau `tanpa_fee`) $\rightarrow$ Eligible diajukan klaim.
   - Eliminasi syarat rentang waktu 90 hari kalender lama dan batasan `hari_kehitung`.
 - **Uji Anti-Duplikasi:** Affiliator dilarang mengajukan klaim baru untuk downline yang sama jika masih ada klaim berstatus `pending` atau `approved_transferred`.
 - **Uji Verifikasi & Pencairan Admin (Zero Manual ROI):**
   - Admin menyetujui transfer: tanpa input ROI manual, upload `bukti_transfer` resi bank, dan konversi kurs MT4 ke Rupiah.
   - Admin menolak klaim: wajib input `catatan_admin` alasan penolakan.
-- **Uji Notifikasi In-App Database:** Admin menerima notifikasi klaim baru, affiliator menerima notifikasi hasil transfer/penolakan, dan reminder laporan bulanan Master Fee pada tanggal 1, 7, dan 15.
+- **Uji Notifikasi In-App Database:** Admin menerima notifikasi klaim baru, affiliator menerima notifikasi hasil transfer/penolakan, dan reminder laporan bulanan Performance Fee pada tanggal 1, 7, dan 15.
 
 ### 2. Modul 04: CopyTrade & Broker
 - Stepper 3-tahap (Tahap 1 broker deposit $\to$ Tahap 2 buka link master & follow $\to$ Tahap 3 MQL5).

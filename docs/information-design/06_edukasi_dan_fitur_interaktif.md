@@ -24,14 +24,14 @@ Dokumen ini memuat spesifikasi teknis dan aturan bisnis untuk modul konten eduka
     - $\text{Profit}_t = \text{Modal}_{t} \times \left( \frac{r}{100} \right)$
     - $\text{Hak Investor (Max 30\% WD)}_t = \text{Profit}_t \times 0.30$
     - $\text{Dalam Rupiah}_t = \text{Hak Investor}_t \times \text{Kurs}$
-    - $\text{Master Fee (30\%)}_t = \text{Profit}_t \times 0.30$
+    - $\text{Performance Fee (30\%)}_t = \text{Profit}_t \times 0.30$
     - $\text{Compounding Tambahan Modal (40\%)}_t = \text{Profit}_t \times 0.40$
     - $\text{Modal Akhir Bulan}_t = \text{Modal}_t + \text{Compounding}_t$
     - Modal bulan berikutnya berjalan otomatis dari $\text{Modal Akhir Bulan}_t$.
   - **Fee Affiliate:** Dihiraukan / tidak memotong porsi hak investor.
-  - **Alokasi Pembagian:** 40% Compounding ke modal akun broker, 30% Hak penarikan rutin investor (WD), dan 30% Master Trader Fee.
+  - **Alokasi Pembagian:** 40% Compounding ke modal akun broker, 30% Hak penarikan rutin investor (WD), dan 30% Performance Fee.
   - **Persistensi Preferensi:** Pengguna dapat menyimpan variabel proyeksi langsung ke peramban (`localStorage`) dengan tombol *"Simpan Variabel"*, serta opsi *"Reset Default"*.
-  - **Dukungan Tinjauan:** Tab Tinjauan Tahunan (Tahun 1 s/d 5) dan Rincian Bulanan (Bulan 1 s/d 60) lengkap dengan kolom Investor WD, Master Fee, dan Compounding Modal.
+  - **Dukungan Tinjauan:** Tab Tinjauan Tahunan (Tahun 1 s/d 5) dan Rincian Bulanan (Bulan 1 s/d 60) lengkap dengan kolom Investor WD, Performance Fee, dan Compounding Modal.
   - **Konsultasi Langsung:** Tombol WhatsApp langsung ke kontak resmi Pak Yazid (`082388986189`).
 
 > [!NOTE]
@@ -59,3 +59,4 @@ Dokumen ini memuat spesifikasi teknis dan aturan bisnis untuk modul konten eduka
 - **[2026-09-25]**: Kurs acuan USD ke IDR diintegrasikan langsung dengan Frankfurter API publik dengan jadwal pembaruan harian otomatis pukul 06:00 WIB, penyimpanan cache 26 jam, dan perlindungan fallback ke database `pengaturan_master`.
 - **[2026-09-25]**: Fitur FAQ dipisahkan secara mandiri dari Pusat Bantuan sesuai instruksi pengguna. FAQ tidak menggunakan slug (`slug` dihilangkan total), memiliki pengelompokan per Topik (`edukasi_faq_topik` & `edukasi_faq`), dan disajikan interaktif dengan komponen accordion di `/investor/education/faq`. Migrasi disatukan langsung pada file migrasi create sumbernya (`2026_09_24_180000_create_edukasi_dan_bantuan_tables.php`).
 - **[2026-09-25]**: Atribut kategori pada entitas `edukasi_glosarium` dihapus sesuai permintaan pengguna, menjadikan kamus glosarium fokus pada indeks alfabet A-Z dan pencarian kata kunci langsung. Single source migration diselaraskan.
+- **[2026-11-19]**: Terminologi **Master Fee** pada kalkulator proyeksi (label UI & preset `performance_fee_pct`) distandardisasi menjadi **Performance Fee** (tetap 30% dari profit).

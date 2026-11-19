@@ -41,10 +41,10 @@ class AdminDashboardTest extends TestCase
             ->where('pending_actions.referral_claims', 0)
             ->where('pending_actions.commission_claims', 0)
             ->where('pending_actions.total', 0)
-            ->where('master_fee_monitoring.unpaid_reports_count', 0)
-            ->where('master_fee_monitoring.unpaid_investors_count', 0)
-            ->where('master_fee_monitoring.missing_accounts_count', 0)
-            ->where('master_fee_monitoring.missing_investors_count', 0)
+            ->where('performance_fee_monitoring.unpaid_reports_count', 0)
+            ->where('performance_fee_monitoring.unpaid_investors_count', 0)
+            ->where('performance_fee_monitoring.missing_accounts_count', 0)
+            ->where('performance_fee_monitoring.missing_investors_count', 0)
             ->where('stats.investor_count', 0)
             ->where('stats.affiliator_count', 0)
             ->where('stats.active_copytrade_count', 0)
@@ -186,7 +186,7 @@ class AdminDashboardTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_admin_dashboard_computes_master_fee_monitoring_unpaid_and_missing_reports(): void
+    public function test_admin_dashboard_computes_performance_fee_monitoring_unpaid_and_missing_reports(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-06-05 10:00:00'));
 
@@ -210,7 +210,7 @@ class AdminDashboardTest extends TestCase
             ]);
 
             LaporanProfitBulanan::create([
-                'nomor'               => 'MFE-202605-0001',
+                'nomor'               => 'PFE-202605-0001',
                 'akun_copytrade_id'   => $akunA1->id,
                 'user_id'             => $investorA->id,
                 'periode_ke'          => 1,
@@ -218,10 +218,10 @@ class AdminDashboardTest extends TestCase
                 'periode_akhir'       => '2026-04-30',
                 'jatuh_tempo'         => '2026-05-01',
                 'profit_usd'          => 200.00,
-                'bukti_myfxbook_path' => 'master_fee/myfxbook/a1.png',
+                'bukti_myfxbook_path' => 'performance_fee/myfxbook/a1.png',
                 'wd_usd'              => 100.00,
                 'wd_idr'              => 1600000,
-                'bukti_wd_path'       => 'master_fee/wd/a1.png',
+                'bukti_wd_path'       => 'performance_fee/wd/a1.png',
                 'kurs_riil'           => 16000.00,
                 'fee_persen'          => 30.00,
                 'fee_usd'             => 60.00,
@@ -231,7 +231,7 @@ class AdminDashboardTest extends TestCase
 
             // P2 sudah lapor & upload bukti (menunggu verifikasi admin, tidak masuk unpaid)
             LaporanProfitBulanan::create([
-                'nomor'               => 'MFE-202606-0002',
+                'nomor'               => 'PFE-202606-0002',
                 'akun_copytrade_id'   => $akunA1->id,
                 'user_id'             => $investorA->id,
                 'periode_ke'          => 2,
@@ -239,10 +239,10 @@ class AdminDashboardTest extends TestCase
                 'periode_akhir'       => '2026-05-31',
                 'jatuh_tempo'         => '2026-06-01',
                 'profit_usd'          => 300.00,
-                'bukti_myfxbook_path' => 'master_fee/myfxbook/a2.png',
+                'bukti_myfxbook_path' => 'performance_fee/myfxbook/a2.png',
                 'wd_usd'              => 150.00,
                 'wd_idr'              => 2400000,
-                'bukti_wd_path'       => 'master_fee/wd/a2.png',
+                'bukti_wd_path'       => 'performance_fee/wd/a2.png',
                 'kurs_riil'           => 16000.00,
                 'fee_persen'          => 30.00,
                 'fee_usd'             => 90.00,
@@ -266,7 +266,7 @@ class AdminDashboardTest extends TestCase
             ]);
 
             LaporanProfitBulanan::create([
-                'nomor'               => 'MFE-202605-0003',
+                'nomor'               => 'PFE-202605-0003',
                 'akun_copytrade_id'   => $akunA2->id,
                 'user_id'             => $investorA->id,
                 'periode_ke'          => 1,
@@ -274,10 +274,10 @@ class AdminDashboardTest extends TestCase
                 'periode_akhir'       => '2026-04-30',
                 'jatuh_tempo'         => '2026-05-01',
                 'profit_usd'          => 100.00,
-                'bukti_myfxbook_path' => 'master_fee/myfxbook/a2_p1.png',
+                'bukti_myfxbook_path' => 'performance_fee/myfxbook/a2_p1.png',
                 'wd_usd'              => 50.00,
                 'wd_idr'              => 800000,
-                'bukti_wd_path'       => 'master_fee/wd/a2_p1.png',
+                'bukti_wd_path'       => 'performance_fee/wd/a2_p1.png',
                 'kurs_riil'           => 16000.00,
                 'fee_persen'          => 30.00,
                 'fee_usd'             => 30.00,
@@ -305,16 +305,16 @@ class AdminDashboardTest extends TestCase
             $response->assertOk();
             $response->assertInertia(fn ($page) => $page
                 ->component('Admin/Dashboard')
-                ->where('pending_actions.master_fee', 1)
+                ->where('pending_actions.performance_fee', 1)
                 ->where('pending_actions.total', 1)
-                ->where('master_fee_monitoring.unpaid_reports_count', 2)
-                ->where('master_fee_monitoring.unpaid_only_count', 1)
-                ->where('master_fee_monitoring.rejected_reports_count', 1)
-                ->where('master_fee_monitoring.unpaid_investors_count', 1) // hanya investorA
-                ->where('master_fee_monitoring.unpaid_total_usd', 90)
-                ->where('master_fee_monitoring.unpaid_total_idr', 1440000)
-                ->where('master_fee_monitoring.missing_accounts_count', 2) // akunA2 (P2) & akunB1 (P1)
-                ->where('master_fee_monitoring.missing_investors_count', 2) // investorA & investorB
+                ->where('performance_fee_monitoring.unpaid_reports_count', 2)
+                ->where('performance_fee_monitoring.unpaid_only_count', 1)
+                ->where('performance_fee_monitoring.rejected_reports_count', 1)
+                ->where('performance_fee_monitoring.unpaid_investors_count', 1) // hanya investorA
+                ->where('performance_fee_monitoring.unpaid_total_usd', 90)
+                ->where('performance_fee_monitoring.unpaid_total_idr', 1440000)
+                ->where('performance_fee_monitoring.missing_accounts_count', 2) // akunA2 (P2) & akunB1 (P1)
+                ->where('performance_fee_monitoring.missing_investors_count', 2) // investorA & investorB
             );
         } finally {
             Carbon::setTestNow();

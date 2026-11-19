@@ -121,7 +121,7 @@ const formatIDR = (val) => {
 const simulation = computed(() => {
     return simulateAll(investors.value, monthlyProfitRate.value, props.tiers, {
         wdPct: Number(props.presets?.wd_pct ?? 60),
-        feePct: Number(props.presets?.master_fee_pct ?? 30),
+        feePct: Number(props.presets?.performance_fee_pct ?? 30),
         months: Number(props.presets?.months ?? 3),
     });
 });
@@ -234,12 +234,12 @@ const getTierUsdRange = (tier) => {
                             <!-- Ketentuan Tetap Sistem (Read-only Info) -->
                             <div class="space-y-1.5">
                                 <label class="block text-xs font-semibold text-foreground">
-                                    Ketentuan Sistem Master & WD
+                                    Ketentuan Performance Fee & WD
                                 </label>
                                 <div class="grid grid-cols-2 gap-2 text-xs font-mono">
                                     <div class="rounded-xl border border-border bg-muted/30 p-2.5">
-                                        <span class="block text-[10px] font-sans text-muted-foreground">Fee Master:</span>
-                                        <strong class="text-foreground text-sm">{{ presets.master_fee_pct }}%</strong>
+                                        <span class="block text-[10px] font-sans text-muted-foreground">Performance Fee:</span>
+                                        <strong class="text-foreground text-sm">{{ presets.performance_fee_pct }}%</strong>
                                     </div>
                                     <div class="rounded-xl border border-border bg-muted/30 p-2.5">
                                         <span class="block text-[10px] font-sans text-muted-foreground">Penarikan (WD):</span>
@@ -418,8 +418,8 @@ const getTierUsdRange = (tier) => {
                                         <strong class="text-foreground">{{ formatIDR(simulation.grandTotalProfit) }}</strong>
                                     </div>
                                     <div class="rounded-xl border border-border bg-card/60 p-2.5">
-                                        <span class="block text-[10px] font-sans text-muted-foreground">Total Fee Master:</span>
-                                        <strong class="text-foreground">{{ formatIDR(simulation.grandTotalFeeMaster) }}</strong>
+                                        <span class="block text-[10px] font-sans text-muted-foreground">Total Performance Fee:</span>
+                                        <strong class="text-foreground">{{ formatIDR(simulation.grandTotalPerformanceFee) }}</strong>
                                     </div>
                                 </div>
                             </div>
@@ -441,7 +441,7 @@ const getTierUsdRange = (tier) => {
                                             <th class="px-3 py-2.5 font-semibold">Periode Bulan</th>
                                             <th class="px-3 py-2.5 font-semibold text-right font-mono">Total Modal</th>
                                             <th class="px-3 py-2.5 font-semibold text-right font-mono">Profit ({{ monthlyProfitRate }}%)</th>
-                                            <th class="px-3 py-2.5 font-semibold text-right font-mono">Fee Master ({{ presets.master_fee_pct }}%)</th>
+                                            <th class="px-3 py-2.5 font-semibold text-right font-mono">Performance Fee ({{ presets.performance_fee_pct }}%)</th>
                                             <th class="px-3 py-2.5 font-semibold text-right font-mono text-primary">Komisi Afiliator</th>
                                         </tr>
                                     </thead>
@@ -457,7 +457,7 @@ const getTierUsdRange = (tier) => {
                                                 +{{ formatIDR(m.totalProfit) }}
                                             </td>
                                             <td class="px-3 py-3 text-right font-mono whitespace-nowrap">
-                                                {{ formatIDR(m.totalFeeMaster) }}
+                                                {{ formatIDR(m.totalPerformanceFee) }}
                                             </td>
                                             <td class="px-3 py-3 text-right font-mono font-bold text-primary whitespace-nowrap">
                                                 {{ formatIDR(m.totalKomisi) }}
@@ -618,7 +618,7 @@ const getTierUsdRange = (tier) => {
                         <div class="rounded-xl border border-border bg-muted/20 p-3 text-[11px] text-muted-foreground space-y-1">
                             <span class="font-bold text-foreground block">Rumus Bagi Hasil:</span>
                             <p class="leading-relaxed">
-                                Komisi = Persentase Tier &times; (Fee Master 30% &times; Profit Bulanan Investor).
+                                Komisi = Persentase Tier &times; (Performance Fee 30% &times; Profit Bulanan Investor).
                             </p>
                         </div>
 

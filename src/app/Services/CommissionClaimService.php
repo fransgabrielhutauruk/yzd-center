@@ -252,7 +252,7 @@ class CommissionClaimService
                 'affiliate_commission_usd' => $affiliateCommUsd,
                 'affiliate_commission_idr' => $affiliateCommIdr,
                 'is_tanpa_fee'             => $isTanpaFee,
-                'bukti_transfer_url'       => $r->bukti_transfer_path ? route('documents.master_fee_proof', $r->id, false) : null,
+                'bukti_transfer_url'       => $r->bukti_transfer_path ? route('documents.performance_fee_proof', $r->id, false) : null,
             ];
         }
 
@@ -403,11 +403,11 @@ class CommissionClaimService
                 } elseif ($accHasUnsettled) {
                     $isEligible = false;
                     $statusLabel = 'Tagihan Belum Selesai';
-                    $reason = 'Terdapat tagihan Master Fee pada akun ini yang belum lunas (belum dibayar, ditolak, atau menunggu verifikasi). Semua tagihan pada 3 periode pertama akun ini wajib diselesaikan terlebih dahulu.';
+                    $reason = 'Terdapat tagihan Performance Fee pada akun ini yang belum lunas (belum dibayar, ditolak, atau menunggu verifikasi). Semua tagihan pada 3 periode pertama akun ini wajib diselesaikan terlebih dahulu.';
                 } else {
                     $isEligible = true;
                     $statusLabel = 'Siap Diklaim (3 Periode)';
-                    $reason = 'Seluruh 3 periode laporan bulanan dan pembayaran Master Fee akun ini telah selesai dan memenuhi syarat pencairan komisi.';
+                    $reason = 'Seluruh 3 periode laporan bulanan dan pembayaran Performance Fee akun ini telah selesai dan memenuhi syarat pencairan komisi.';
                 }
 
                 $accountItemFormatted = [
@@ -633,7 +633,7 @@ class CommissionClaimService
 
                 if ($hasUnsettled) {
                     throw ValidationException::withMessages([
-                        $errorKey => "Akun #{$acc->nomor_akun_trading} ({$downline->name}) memiliki tagihan Master Fee yang belum selesai pada 3 periode pertama (belum dibayar, ditolak, atau menunggu verifikasi). Semua tagihan wajib diselesaikan terlebih dahulu.",
+                        $errorKey => "Akun #{$acc->nomor_akun_trading} ({$downline->name}) memiliki tagihan Performance Fee yang belum selesai pada 3 periode pertama (belum dibayar, ditolak, atau menunggu verifikasi). Semua tagihan wajib diselesaikan terlebih dahulu.",
                     ]);
                 }
 

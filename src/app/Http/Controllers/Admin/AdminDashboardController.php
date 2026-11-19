@@ -44,11 +44,11 @@ class AdminDashboardController extends Controller
             ->butuhResponsAdmin()
             ->count();
 
-        $pendingMasterFee = LaporanProfitBulanan::query()
+        $pendingPerformanceFee = LaporanProfitBulanan::query()
             ->where('status', LaporanProfitBulanan::STATUS_MENUNGGU_VERIFIKASI)
             ->count();
 
-        // 2. Monitoring tagihan & laporan Master Fee investor (belum kirim bukti & belum lapor periode terbuka)
+        // 2. Monitoring tagihan & laporan Performance Fee investor (belum kirim bukti & belum lapor periode terbuka)
         $unpaidReports = LaporanProfitBulanan::query()
             ->whereIn('status', [
                 LaporanProfitBulanan::STATUS_BELUM_DIBAYAR,
@@ -98,10 +98,10 @@ class AdminDashboardController extends Controller
                 'referral_claims'   => $pendingReferralClaims,
                 'commission_claims' => $pendingCommissionClaims,
                 'tickets'           => $pendingTickets,
-                'master_fee'        => $pendingMasterFee,
-                'total'             => $pendingKyc + $pendingCopytrade + $pendingReferralClaims + $pendingCommissionClaims + $pendingTickets + $pendingMasterFee,
+                'performance_fee'   => $pendingPerformanceFee,
+                'total'             => $pendingKyc + $pendingCopytrade + $pendingReferralClaims + $pendingCommissionClaims + $pendingTickets + $pendingPerformanceFee,
             ],
-            'master_fee_monitoring' => [
+            'performance_fee_monitoring' => [
                 'unpaid_reports_count'    => $unpaidReportsCount,
                 'unpaid_only_count'       => $unpaidOnlyCount,
                 'rejected_reports_count'  => $rejectedReportsCount,

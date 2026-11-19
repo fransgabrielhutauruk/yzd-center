@@ -4,13 +4,13 @@ namespace App\Services;
 
 use App\Models\AkunCopytrade;
 use App\Models\LaporanProfitBulanan;
-use App\Models\PengaturanMasterFee;
+use App\Models\PengaturanPerformanceFee;
 use App\Models\User;
-use App\Notifications\MasterFeeCorrectionNotification;
-use App\Notifications\MasterFeeIssuedNotification;
-use App\Notifications\MasterFeeProofSubmittedNotification;
-use App\Notifications\MasterFeeRejectedNotification;
-use App\Notifications\MasterFeeVerifiedNotification;
+use App\Notifications\PerformanceFeeCorrectionNotification;
+use App\Notifications\PerformanceFeeIssuedNotification;
+use App\Notifications\PerformanceFeeProofSubmittedNotification;
+use App\Notifications\PerformanceFeeRejectedNotification;
+use App\Notifications\PerformanceFeeVerifiedNotification;
 use App\Support\ProfitPeriod;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -21,19 +21,19 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
-class MasterFeeService
+class PerformanceFeeService
 {
     public function __construct(
         protected AuditLogService $auditLogService
     ) {}
 
     /**
-     * Menghasilkan nomor laporan profit / master fee berurutan dengan format MFE-YYYYMM-XXXX.
+     * Menghasilkan nomor laporan profit / Performance Fee berurutan dengan format PFE-YYYYMM-XXXX.
      */
     public function generateNomor(Carbon $date): string
     {
         $yearMonth = $date->format('Ym');
-        $prefix = "MFE-{$yearMonth}-";
+        $prefix = "PFE-{$yearMonth}-";
 
         $lastNumber = LaporanProfitBulanan::withTrashed()
             ->where('nomor', 'like', "{$prefix}%")
@@ -46,7 +46,7 @@ class MasterFeeService
             $sequence = ((int) $matches[1]) + 1;
         }
 
-        return sprintf('MFE-%s-%04d', $yearMonth, $sequence);
+        return sprintf('PFE-%s-%04d', $yearMonth, $sequence);
     }
 
     /**
@@ -120,7 +120,7 @@ class MasterFeeService
             ]);
         }
 
-        $settings = PengaturanMasterFee::current();
+        $settings = PengaturanPerformanceFee::current();
         $feePersen = (float) $settings->fee_persen;
         $wdMaksPersen = (float) ($settings->wd_maks_persen ?? 60);
 
@@ -207,13 +207,13 @@ class MasterFeeService
 
             $extMb = $buktiMyfxbook->getClientOriginalExtension() ?: 'jpg';
             $filenameMb = 'myfxbook_' . time() . '_' . uniqid() . '.' . $extMb;
-            $myfxbookPath = $buktiMyfxbook->storeAs("master_fee/myfxbook/{$user->id}", $filenameMb, 'local');
+            $myfxbookPath = $buktiMyfxbook->storeAs("performance_fee/myfxbook/{$user->id}", $filenameMb, 'local');
 
             $wdPath = null;
             if ($buktiWd) {
                 $extWd = $buktiWd->getClientOriginalExtension() ?: 'jpg';
                 $filenameWd = 'wd_' . time() . '_' . uniqid() . '.' . $extWd;
-                $wdPath = $buktiWd->storeAs("master_fee/wd/{$user->id}", $filenameWd, 'local');
+                $wdPath = $buktiWd->storeAs("performance_fee/wd/{$user->id}", $filenameWd, 'local');
             }
 
             $laporan = LaporanProfitBulanan::create([
@@ -238,7 +238,7 @@ class MasterFeeService
             ]);
 
             $this->auditLogService->record(
-                kategori: 'master_fee',
+                kategori: 'performance_fee',
                 aksi: 'buat_laporan',
                 deskripsi: "Member {$user->name} membuat laporan profit {$laporan->nomor} periode {$nextPeriod['ke']} (\${$profitUsd}). Fee: \${$feeUsd} (Rp" . number_format($feeIdr, 0, ',', '.') . ').',
                 subject: $laporan,
@@ -246,7 +246,7 @@ class MasterFeeService
             );
 
             if ($feeUsd > 0) {
-                $user->notify(new MasterFeeIssuedNotification($laporan));
+                $user->notify(new PerformanceFeeIssuedNotification($laporan));
             }
 
             return $laporan;
@@ -275,7 +275,7 @@ class MasterFeeService
             ]);
         }
 
-        $settings = PengaturanMasterFee::current();
+        $settings = PengaturanPerformanceFee::current();
         $feePersen = (float) $laporan->fee_persen; // Pertahankan persen yang tersimpan di laporan
         $wdMaksPersen = (float) ($settings->wd_maks_persen ?? 60);
 
@@ -360,7 +360,7 @@ class MasterFeeService
                 }
                 $extMb = $buktiMyfxbook->getClientOriginalExtension() ?: 'jpg';
                 $filenameMb = 'myfxbook_' . time() . '_' . uniqid() . '.' . $extMb;
-                $updatePayload['bukti_myfxbook_path'] = $buktiMyfxbook->storeAs("master_fee/myfxbook/{$user->id}", $filenameMb, 'local');
+                $updatePayload['bukti_myfxbook_path'] = $buktiMyfxbook->storeAs("performance_fee/myfxbook/{$user->id}", $filenameMb, 'local');
             }
 
             if ($profitUsd <= 0) {
@@ -374,13 +374,13 @@ class MasterFeeService
                 }
                 $extWd = $buktiWd->getClientOriginalExtension() ?: 'jpg';
                 $filenameWd = 'wd_' . time() . '_' . uniqid() . '.' . $extWd;
-                $updatePayload['bukti_wd_path'] = $buktiWd->storeAs("master_fee/wd/{$user->id}", $filenameWd, 'local');
+                $updatePayload['bukti_wd_path'] = $buktiWd->storeAs("performance_fee/wd/{$user->id}", $filenameWd, 'local');
             }
 
             $laporan->update($updatePayload);
 
             $this->auditLogService->record(
-                kategori: 'master_fee',
+                kategori: 'performance_fee',
                 aksi: 'ubah_laporan',
                 deskripsi: "Member {$user->name} memperbarui data laporan profit {$laporan->nomor} (\${$profitUsd}). Fee baru: \${$feeUsd}.",
                 subject: $laporan,
@@ -417,7 +417,7 @@ class MasterFeeService
 
         return DB::transaction(function () use ($laporan, $user) {
             $this->auditLogService->record(
-                kategori: 'master_fee',
+                kategori: 'performance_fee',
                 aksi: 'hapus_laporan',
                 deskripsi: "Member {$user->name} menghapus laporan profit {$laporan->nomor} periode ke-{$laporan->periode_ke}.",
                 subject: $laporan,
@@ -429,7 +429,7 @@ class MasterFeeService
     }
 
     /**
-     * Mengunggah bukti transfer pembayaran master fee oleh member.
+     * Mengunggah bukti transfer pembayaran Performance Fee oleh member.
      */
     public function submitProof(LaporanProfitBulanan $laporan, UploadedFile $file, User $user): LaporanProfitBulanan
     {
@@ -441,13 +441,13 @@ class MasterFeeService
 
         if (!in_array($laporan->status, [LaporanProfitBulanan::STATUS_BELUM_DIBAYAR, LaporanProfitBulanan::STATUS_DITOLAK], true)) {
             throw ValidationException::withMessages([
-                'bukti' => 'Bukti pembayaran hanya dapat diunggah untuk master fee yang belum dibayar atau ditolak.',
+                'bukti' => 'Bukti pembayaran hanya dapat diunggah untuk Performance Fee yang belum dibayar atau ditolak.',
             ]);
         }
 
         if ($laporan->fee_usd <= 0) {
             throw ValidationException::withMessages([
-                'bukti' => 'Laporan profit ini tidak memiliki kewajiban fee Master Fee.',
+                'bukti' => 'Laporan profit ini tidak memiliki kewajiban Performance Fee.',
             ]);
         }
 
@@ -458,7 +458,7 @@ class MasterFeeService
 
             $ext = $file->getClientOriginalExtension() ?: 'jpg';
             $filename = 'proof_' . $laporan->id . '_' . time() . '.' . $ext;
-            $path = $file->storeAs("master_fee/transfers/{$user->id}", $filename, 'local');
+            $path = $file->storeAs("performance_fee/transfers/{$user->id}", $filename, 'local');
 
             $laporan->update([
                 'bukti_transfer_path' => $path,
@@ -468,9 +468,9 @@ class MasterFeeService
             ]);
 
             $this->auditLogService->record(
-                kategori: 'master_fee',
+                kategori: 'performance_fee',
                 aksi: 'unggah_bukti',
-                deskripsi: "Member {$user->name} mengunggah bukti pembayaran Master Fee {$laporan->nomor} (\${$laporan->fee_usd}).",
+                deskripsi: "Member {$user->name} mengunggah bukti pembayaran Performance Fee {$laporan->nomor} (\${$laporan->fee_usd}).",
                 subject: $laporan,
                 user: $user
             );
@@ -478,7 +478,7 @@ class MasterFeeService
             // Notifikasi ke seluruh administrator
             $admins = User::where('role', 'administrator')->get();
             foreach ($admins as $admin) {
-                $admin->notify(new MasterFeeProofSubmittedNotification($laporan));
+                $admin->notify(new PerformanceFeeProofSubmittedNotification($laporan));
             }
 
             return $laporan->fresh();
@@ -486,7 +486,7 @@ class MasterFeeService
     }
 
     /**
-     * Verifikasi master fee oleh admin (status menjadi lunas).
+     * Verifikasi Performance Fee oleh admin (status menjadi lunas).
      */
     public function verify(LaporanProfitBulanan|int $id, User $admin): LaporanProfitBulanan
     {
@@ -502,14 +502,14 @@ class MasterFeeService
             ]);
 
             $this->auditLogService->record(
-                kategori: 'master_fee',
+                kategori: 'performance_fee',
                 aksi: 'verifikasi',
-                deskripsi: "Admin {$admin->name} memverifikasi pembayaran Master Fee {$laporan->nomor} (\${$laporan->fee_usd}) menjadi LUNAS.",
+                deskripsi: "Admin {$admin->name} memverifikasi pembayaran Performance Fee {$laporan->nomor} (\${$laporan->fee_usd}) menjadi LUNAS.",
                 subject: $laporan,
                 user: $admin
             );
 
-            $laporan->user?->notify(new MasterFeeVerifiedNotification($laporan));
+            $laporan->user?->notify(new PerformanceFeeVerifiedNotification($laporan));
 
             return $laporan->fresh();
         });
@@ -531,14 +531,14 @@ class MasterFeeService
             ]);
 
             $this->auditLogService->record(
-                kategori: 'master_fee',
+                kategori: 'performance_fee',
                 aksi: 'tolak',
-                deskripsi: "Admin {$admin->name} menolak pembayaran Master Fee {$laporan->nomor}. Alasan: {$alasan}",
+                deskripsi: "Admin {$admin->name} menolak pembayaran Performance Fee {$laporan->nomor}. Alasan: {$alasan}",
                 subject: $laporan,
                 user: $admin
             );
 
-            $laporan->user?->notify(new MasterFeeRejectedNotification($laporan, $alasan));
+            $laporan->user?->notify(new PerformanceFeeRejectedNotification($laporan, $alasan));
 
             return $laporan->fresh();
         });
@@ -564,14 +564,14 @@ class MasterFeeService
             ]);
 
             $this->auditLogService->record(
-                kategori: 'master_fee',
+                kategori: 'performance_fee',
                 aksi: 'perlu_koreksi',
                 deskripsi: "Admin {$admin->name} menandai laporan profit {$laporan->nomor} Perlu Koreksi. Catatan: {$alasan}",
                 subject: $laporan,
                 user: $admin
             );
 
-            $laporan->user?->notify(new MasterFeeCorrectionNotification($laporan, $alasan));
+            $laporan->user?->notify(new PerformanceFeeCorrectionNotification($laporan, $alasan));
 
             return $laporan->fresh();
         });
@@ -679,7 +679,7 @@ class MasterFeeService
     }
 
     /**
-     * Ringkasan performa Master Fee & laporan profit untuk admin.
+     * Ringkasan performa Performance Fee & laporan profit untuk admin.
      */
     public function summary(array|string|null $filters = null): array
     {
@@ -845,19 +845,19 @@ class MasterFeeService
     }
 
     /**
-     * Mengambil pengaturan Master Fee global.
+     * Mengambil pengaturan Performance Fee global.
      */
-    public function getSettings(): PengaturanMasterFee
+    public function getSettings(): PengaturanPerformanceFee
     {
-        return PengaturanMasterFee::current();
+        return PengaturanPerformanceFee::current();
     }
 
     /**
-     * Memperbarui pengaturan Master Fee global.
+     * Memperbarui pengaturan Performance Fee global.
      */
-    public function updateSettings(array $data, User $admin): PengaturanMasterFee
+    public function updateSettings(array $data, User $admin): PengaturanPerformanceFee
     {
-        $settings = PengaturanMasterFee::current();
+        $settings = PengaturanPerformanceFee::current();
         $sebelum = $settings->toArray();
 
         $settings->update([
@@ -869,9 +869,9 @@ class MasterFeeService
         ]);
 
         $this->auditLogService->record(
-            kategori: 'master_fee',
+            kategori: 'performance_fee',
             aksi: 'ubah_pengaturan',
-            deskripsi: "Admin {$admin->name} memperbarui pengaturan Master Fee (fee: {$settings->fee_persen}%, max WD: {$settings->wd_maks_persen}%).",
+            deskripsi: "Admin {$admin->name} memperbarui pengaturan Performance Fee (fee: {$settings->fee_persen}%, max WD: {$settings->wd_maks_persen}%).",
             subject: $settings,
             perubahan: [
                 'sebelum' => $sebelum,
@@ -884,7 +884,7 @@ class MasterFeeService
     }
 
     /**
-     * Ekspor data laporan profit bulanan / master fee ke format XLSX.
+     * Ekspor data laporan profit bulanan / Performance Fee ke format XLSX.
      *
      * @param array<string, mixed> $filters
      */
@@ -906,8 +906,8 @@ class MasterFeeService
             ['label' => 'Penarikan WD (IDR)', 'width' => 20, 'align' => 'right', 'type' => 'number'],
             ['label' => 'Kurs Riil (IDR)', 'width' => 18, 'align' => 'right', 'type' => 'number'],
             ['label' => 'Persentase Fee (%)', 'width' => 18, 'align' => 'right', 'type' => 'number'],
-            ['label' => 'Master Fee (USD)', 'width' => 18, 'align' => 'right', 'type' => 'number'],
-            ['label' => 'Master Fee (IDR)', 'width' => 20, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Performance Fee (USD)', 'width' => 18, 'align' => 'right', 'type' => 'number'],
+            ['label' => 'Performance Fee (IDR)', 'width' => 20, 'align' => 'right', 'type' => 'number'],
             ['label' => 'Status Pembayaran', 'width' => 20, 'align' => 'center'],
             ['label' => 'Perlu Koreksi', 'width' => 16, 'align' => 'center'],
             ['label' => 'Diverifikasi Oleh', 'width' => 22],
@@ -964,9 +964,9 @@ class MasterFeeService
         $actor = Auth::user();
         if ($actor) {
             $this->auditLogService->record(
-                kategori: 'master_fee',
+                kategori: 'performance_fee',
                 aksi: 'ekspor_data',
-                deskripsi: AuditLogService::formatActor($actor) . ' mengekspor data laporan profit master fee ke format XLSX.',
+                deskripsi: AuditLogService::formatActor($actor) . ' mengekspor data laporan profit Performance Fee ke format XLSX.',
                 tingkat: 'info',
                 user: $actor
             );
@@ -974,7 +974,7 @@ class MasterFeeService
 
         $xlsxService = app(XlsxExportService::class);
 
-        return $xlsxService->download('laporan_master_fee_yzd', 'Laporan Master Fee', $columns, function ($addRow) use ($query): void {
+        return $xlsxService->download('laporan_performance_fee_yzd', 'Laporan Performance Fee', $columns, function ($addRow) use ($query): void {
             $query->chunk(500, function ($laporans) use ($addRow): void {
                 foreach ($laporans as $l) {
                     $statusLabel = match ($l->status) {
@@ -1023,7 +1023,7 @@ class MasterFeeService
     }
 
     /**
-     * Ekspor data akun copytrade aktif yang belum lapor master fee ke format XLSX.
+     * Ekspor data akun copytrade aktif yang belum lapor Performance Fee ke format XLSX.
      *
      * @param array<string, mixed> $filters
      */
@@ -1077,9 +1077,9 @@ class MasterFeeService
         $actor = Auth::user();
         if ($actor) {
             $this->auditLogService->record(
-                kategori: 'master_fee',
+                kategori: 'performance_fee',
                 aksi: 'ekspor_data',
-                deskripsi: AuditLogService::formatActor($actor) . ' mengekspor data akun belum lapor master fee ke format XLSX.',
+                deskripsi: AuditLogService::formatActor($actor) . ' mengekspor data akun belum lapor Performance Fee ke format XLSX.',
                 tingkat: 'info',
                 user: $actor
             );
@@ -1087,7 +1087,7 @@ class MasterFeeService
 
         $xlsxService = app(XlsxExportService::class);
 
-        return $xlsxService->download('akun_belum_lapor_master_fee_yzd', 'Belum Lapor', $columns, function ($addRow) use ($missing): void {
+        return $xlsxService->download('akun_belum_lapor_performance_fee_yzd', 'Belum Lapor', $columns, function ($addRow) use ($missing): void {
             foreach ($missing as $akun) {
                 $tierLabel = match ($akun->tier) {
                     'tier_1' => 'Tier 1',

@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\KlaimKomisiItem;
-use App\Models\PengaturanMasterFee;
+use App\Models\PengaturanPerformanceFee;
 use App\Models\User;
 use App\Services\ExchangeRateService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -30,7 +30,7 @@ class AffiliateCalculatorTest extends TestCase
             'source'     => 'test_frankfurter',
         ], 3600);
 
-        PengaturanMasterFee::current()->update([
+        PengaturanPerformanceFee::current()->update([
             'fee_persen'     => 30,
             'wd_maks_persen' => 60,
         ]);
@@ -96,7 +96,7 @@ class AffiliateCalculatorTest extends TestCase
                 ->where('default_profit_rate', fn ($val) => (float) $val === 5.0)
                 ->where('default_modal_idr', fn ($val) => (float) $val === 100_000_000.0)
                 ->where('wd_pct', fn ($val) => (float) $val === 60.0)
-                ->where('master_fee_pct', fn ($val) => (float) $val === 30.0)
+                ->where('performance_fee_pct', fn ($val) => (float) $val === 30.0)
                 ->where('months', 3)
                 ->where('max_investors', null)
                 ->where('default_exchange_rate', fn ($val) => (float) $val === 16500.0)

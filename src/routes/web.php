@@ -76,15 +76,15 @@ Route::get('/documents/profit-master/{id}', [DocumentStreamController::class, 's
 Route::get('/documents/tickets/{id}', [DocumentStreamController::class, 'showTiketAttachment'])
     ->middleware('auth')
     ->name('documents.ticket_attachment');
-Route::get('/documents/master-fee/{id}', [DocumentStreamController::class, 'showMasterFeeProof'])
+Route::get('/documents/performance-fee/{id}', [DocumentStreamController::class, 'showPerformanceFeeProof'])
     ->middleware('auth')
-    ->name('documents.master_fee_proof');
-Route::get('/documents/master-fee/{id}/myfxbook', [DocumentStreamController::class, 'showMyfxbookProof'])
+    ->name('documents.performance_fee_proof');
+Route::get('/documents/performance-fee/{id}/myfxbook', [DocumentStreamController::class, 'showMyfxbookProof'])
     ->middleware('auth')
-    ->name('documents.master_fee_myfxbook');
-Route::get('/documents/master-fee/{id}/wd', [DocumentStreamController::class, 'showWdProof'])
+    ->name('documents.performance_fee_myfxbook');
+Route::get('/documents/performance-fee/{id}/wd', [DocumentStreamController::class, 'showWdProof'])
     ->middleware('auth')
-    ->name('documents.master_fee_wd');
+    ->name('documents.performance_fee_wd');
 Route::get('/documents/education-media/{filename}', [DocumentStreamController::class, 'showEducationMedia'])
     ->where('filename', '[A-Za-z0-9_.-]+')
     ->middleware('auth')

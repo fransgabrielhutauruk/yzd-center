@@ -27,7 +27,7 @@ const props = defineProps({
     user: { type: Object, required: true },
     dashboard: { type: Object, required: true },
     affiliate: { type: Object, required: true },
-    master_fee: { type: Object, default: () => ({ unpaid_count: 0, unpaid_usd: 0 }) },
+    performance_fee: { type: Object, default: () => ({ unpaid_count: 0, unpaid_usd: 0 }) },
 });
 
 const INVESTMENTS_URL = '/member/investments';
@@ -94,7 +94,7 @@ const nextStep = computed(() => {
             title: 'Input laporan profit periode terbuka',
             desc: `${d.unrecorded_accounts_count} akun trading Anda memiliki periode profit yang telah selesai dan siap dilaporkan.`,
             cta: 'Input Laporan Profit',
-            href: '/member/master-fee',
+            href: '/member/performance-fee',
         };
     }
     return {
@@ -102,8 +102,8 @@ const nextStep = computed(() => {
         tone: 'emerald',
         title: 'Laporan profit periode selesai sudah lengkap',
         desc: 'Portofolio investasi Anda telah terbarui. Anda juga dapat terus memantau dan memperluas jaringan kemitraan.',
-        cta: 'Lihat Master Fee',
-        href: '/member/master-fee',
+        cta: 'Lihat Performance Fee',
+        href: '/member/performance-fee',
     };
 });
 
@@ -128,7 +128,7 @@ const shortcuts = [
     { label: 'Jaringan Kemitraan', href: AFFILIATES_URL, icon: Network },
     { label: 'Klaim Komisi', href: COMMISSIONS_URL, icon: Banknote },
     { label: 'Portofolio Investasi', href: INVESTMENTS_URL, icon: Layers },
-    { label: 'Master Fee', href: '/member/master-fee', icon: Receipt },
+    { label: 'Performance Fee', href: '/member/performance-fee', icon: Receipt },
     { label: 'Kalkulator Proyeksi', href: '/member/education/calculator', icon: Calculator },
     { label: 'Pusat Bantuan', href: '/member/education/help', icon: LifeBuoy },
     { label: 'Tanya Jawab (FAQ)', href: '/member/education/faq', icon: HelpCircle },
@@ -167,9 +167,9 @@ const shortcuts = [
                 </div>
             </section>
 
-            <!-- 1.1 PERINGATAN TAGIHAN MASTER FEE BELUM DIBAYAR -->
+            <!-- 1.1 PERINGATAN TAGIHAN PERFORMANCE FEE BELUM DIBAYAR -->
             <section
-                v-if="master_fee?.unpaid_count > 0"
+                v-if="performance_fee?.unpaid_count > 0"
                 class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 sm:p-6 text-amber-900 dark:text-amber-200"
             >
                 <div class="flex items-start gap-3.5">
@@ -178,15 +178,15 @@ const shortcuts = [
                     </div>
                     <div class="space-y-1">
                         <h3 class="text-base font-bold">
-                            Tagihan Master Fee Menunggu Pembayaran
+                            Tagihan Performance Fee Menunggu Pembayaran
                         </h3>
                         <p class="text-xs sm:text-sm text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
-                            Anda memiliki <strong>{{ master_fee.unpaid_count }} tagihan</strong> Master Fee dengan total nominal <strong>${{ Number(master_fee.unpaid_usd).toFixed(2) }}</strong> yang belum dibayar atau perlu diunggah ulang bukti pembayarannya.
+                            Anda memiliki <strong>{{ performance_fee.unpaid_count }} tagihan</strong> Performance Fee dengan total nominal <strong>${{ Number(performance_fee.unpaid_usd).toFixed(2) }}</strong> yang belum dibayar atau perlu diunggah ulang bukti pembayarannya.
                         </p>
                     </div>
                 </div>
                 <Link
-                    href="/member/master-fee"
+                    href="/member/performance-fee"
                     class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 text-xs font-semibold shadow-xs transition-colors"
                 >
                     <span>Bayar Tagihan</span>

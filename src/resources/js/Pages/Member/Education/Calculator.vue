@@ -121,7 +121,7 @@ const runSimulation = (mode, initModal, rate, totalMonths, kurs) => {
     let totalGrossProfit = 0;
     let totalTakenUSD = 0;
     let totalCompoundedUSD = 0;
-    let totalMasterFeeUSD = 0;
+    let totalPerformanceFeeUSD = 0;
 
     const monthlyList = [];
     const yearlyMap = {};
@@ -135,7 +135,7 @@ const runSimulation = (mode, initModal, rate, totalMonths, kurs) => {
 
         const startModal = currentModal;
         const profit = startModal * rate;
-        const masterFeeUSD = profit * 0.30; // 30% Master Trader Fee
+        const performanceFeeUSD = profit * 0.30; // 30% Performance Fee
 
         // Alokasi hak investor
         let takenUSD = 0;
@@ -157,7 +157,7 @@ const runSimulation = (mode, initModal, rate, totalMonths, kurs) => {
 
         totalGrossProfit += profit;
         totalTakenUSD += takenUSD;
-        totalMasterFeeUSD += masterFeeUSD;
+        totalPerformanceFeeUSD += performanceFeeUSD;
         totalCompoundedUSD += compoundingUSD;
 
         monthlyList.push({
@@ -196,7 +196,7 @@ const runSimulation = (mode, initModal, rate, totalMonths, kurs) => {
         totalGrossProfit,
         totalTakenUSD,
         totalTakenIDR: totalTakenUSD * kurs,
-        totalMasterFeeUSD,
+        totalPerformanceFeeUSD,
         totalCompoundedUSD,
         totalNetFinancialValue,
         multiplier,
@@ -1052,7 +1052,7 @@ const whatsappConsultUrl = computed(() => {
                     <span>Disclaimer Risiko Investasi & Simulasi Finansial</span>
                 </div>
                 <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                    Perdagangan valuta asing (forex) mengandung risiko pasar dan tidak menjamin imbal hasil pasti. Hasil masa lalu bukan jaminan kinerja masa depan. Kalkulator ini disajikan sebagai alat bantu edukasi matematis berbasis target profit rata-rata dan pembagian hasil (30% fee pengelola, 70% hak investor), bukan merupakan jaminan pendapatan tetap (fixed return) atau penawaran investasi tanpa risiko.
+                    Perdagangan valuta asing (forex) mengandung risiko pasar dan tidak menjamin imbal hasil pasti. Hasil masa lalu bukan jaminan kinerja masa depan. Kalkulator ini disajikan sebagai alat bantu edukasi matematis berbasis target profit rata-rata dan pembagian hasil (30% Performance Fee, 70% hak investor), bukan merupakan jaminan pendapatan tetap (fixed return) atau penawaran investasi tanpa risiko.
                 </p>
             </div>
 

@@ -65,7 +65,7 @@ class EdukasiFaqSeeder extends Seeder
                 'faqs'      => [
                     [
                         'pertanyaan' => 'Bagaimana skema pembagian keuntungan (profit share)?',
-                        'jawaban'    => "Dari total keuntungan yang diraih pada periode evaluasi, pembagian dialokasikan sebagai berikut: 30% Master Fee (jasa trading), 30% Investor Payout (penarikan laba oleh investor), dan 40% dialokasikan untuk compounding modal agar pertumbuhan dana semakin optimal.",
+                        'jawaban'    => "Dari total keuntungan yang diraih pada periode evaluasi, pembagian dialokasikan sebagai berikut: 30% Performance Fee (jasa trading), 30% Investor Payout (penarikan laba oleh investor), dan 40% dialokasikan untuk compounding modal agar pertumbuhan dana semakin optimal.",
                         'urutan'     => 1,
                     ],
                     [
@@ -87,7 +87,7 @@ class EdukasiFaqSeeder extends Seeder
                     ],
                     [
                         'pertanyaan' => 'Berapa besaran persentase komisi affiliator?',
-                        'jawaban'    => "Besaran komisi dihitung dari bagian Master Fee berdasarkan tingkatan modal downline: Tier 1 (50%), Tier 2 (40%), Tier 3 (30%), dan Tier 4 (20%).",
+                        'jawaban'    => "Besaran komisi dihitung dari bagian Performance Fee berdasarkan tingkatan modal downline: Tier 1 (50%), Tier 2 (40%), Tier 3 (30%), dan Tier 4 (20%).",
                         'urutan'     => 2,
                     ],
                 ],

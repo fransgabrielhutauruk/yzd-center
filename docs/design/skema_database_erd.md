@@ -521,14 +521,14 @@ Modul saluran komunikasi pelaporan kendala teknis, akun, verifikasi, atau transa
 
 ---
 
-### 3.16 Tabel `laporan_profit_bulanan` (Laporan Profit Bulanan & Master Fee)
-Menyimpan laporan profit trading bulanan per akun copytrade (didukung screenshot Myfxbook dan screenshot penarikan WD broker) serta penagihan Master Fee.
+### 3.16 Tabel `laporan_profit_bulanan` (Laporan Profit Bulanan & Performance Fee)
+Menyimpan laporan profit trading bulanan per akun copytrade (didukung screenshot Myfxbook dan screenshot penarikan WD broker) serta penagihan Performance Fee.
 - **Model Laravel:** `App\Models\LaporanProfitBulanan` (`protected $table = 'laporan_profit_bulanan';`)
 
 | Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
 |---|---|---|---|
 | `id` | `BIGINT UNSIGNED` | `PK, AUTO_INCREMENT` | Identitas unik laporan. |
-| `nomor` | `VARCHAR(20)` | `UNIQUE, NOT NULL` | Nomor tagihan/laporan (format: `MFE-YYYYMM-XXXX`). |
+| `nomor` | `VARCHAR(20)` | `UNIQUE, NOT NULL` | Nomor tagihan/laporan (format: `PFE-YYYYMM-XXXX`). |
 | `akun_copytrade_id` | `BIGINT UNSIGNED` | `FK -> akun_copytrade.id, CASCADE` | Akun copytrade terkait. |
 | `user_id` | `BIGINT UNSIGNED` | `FK -> users.id, CASCADE` | Investor pemilik akun / pelapor. |
 | `periode_ke` | `SMALLINT UNSIGNED` | `NOT NULL` | Periode pelaporan bulanan ke-1, ke-2, ke-3, dst. |
@@ -541,11 +541,11 @@ Menyimpan laporan profit trading bulanan per akun copytrade (didukung screenshot
 | `wd_idr` | `DECIMAL(18,0)` | `NULLABLE` | Nominal penarikan dana yang diterima dalam Rupiah (IDR). |
 | `bukti_wd_path` | `VARCHAR(255)` | `NULLABLE` | Path screenshot mutasi penarikan WD dari broker di disk privat. |
 | `kurs_riil` | `DECIMAL(15,2)` | `NULLABLE` | Nilai tukar riil dari penarikan broker (`wd_idr / wd_usd`). |
-| `fee_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 30.00` | Persentase Master Fee platform (%). |
+| `fee_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 30.00` | Persentase Performance Fee platform (%). |
 | `fee_usd` | `DECIMAL(15,2)` | `NOT NULL, DEFAULT 0` | Nominal tagihan fee dalam USD (`profit_usd * fee_persen / 100`). |
 | `fee_idr` | `DECIMAL(18,0)` | `NOT NULL, DEFAULT 0` | Nominal tagihan fee dalam IDR (`fee_usd * kurs_riil`). |
 | `status` | `VARCHAR(25)` | `INDEX, DEFAULT 'belum_dibayar'` | Status tagihan (`belum_dibayar`, `menunggu_verifikasi`, `lunas`, `tanpa_fee`). |
-| `bukti_transfer_path` | `VARCHAR(255)` | `NULLABLE` | Path resi transfer pelunasan Master Fee ke rekening Master Trader. |
+| `bukti_transfer_path` | `VARCHAR(255)` | `NULLABLE` | Path resi transfer pelunasan Performance Fee ke rekening Master Trader. |
 | `dibayar_at` | `TIMESTAMP` | `NULLABLE` | Waktu pengunggahan resi transfer fee. |
 | `catatan_admin` | `TEXT` | `NULLABLE` | Alasan penolakan dari admin jika resi ditolak. |
 | `perlu_koreksi` | `BOOLEAN` | `DEFAULT FALSE` | Status penandaan revisi input oleh admin. |
@@ -560,9 +560,9 @@ Menyimpan laporan profit trading bulanan per akun copytrade (didukung screenshot
 
 ---
 
-### 3.17 Tabel `pengaturan_master_fee` (Pengaturan Rekening & Fee Master Trader)
-Menyimpan rekening tujuan transfer Master Fee dan persentase fee global.
-- **Model Laravel:** `App\Models\PengaturanMasterFee` (`protected $table = 'pengaturan_master_fee';`)
+### 3.17 Tabel `pengaturan_performance_fee` (Pengaturan Rekening & Performance Fee)
+Menyimpan rekening tujuan transfer Performance Fee dan persentase fee global.
+- **Model Laravel:** `App\Models\PengaturanPerformanceFee` (`protected $table = 'pengaturan_performance_fee';`)
 
 | Nama Kolom | Tipe Data | Atribut / Constraint | Keterangan |
 |---|---|---|---|
@@ -570,7 +570,7 @@ Menyimpan rekening tujuan transfer Master Fee dan persentase fee global.
 | `nama_bank` | `VARCHAR(100)` | `NULLABLE` | Nama bank rekening penampung Master Trader. |
 | `nomor_rekening` | `VARCHAR(100)` | `NULLABLE` | Nomor rekening bank Master Trader. |
 | `atas_nama` | `VARCHAR(150)` | `NULLABLE` | Nama pemilik rekening bank Master Trader. |
-| `fee_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 30.00` | Persentase performance fee default platform (%). |
+| `fee_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 30.00` | Persentase Performance Fee default platform (%). |
 | `wd_maks_persen` | `DECIMAL(5,2)` | `NOT NULL, DEFAULT 60.00` | Batas persentase maksimal penarikan WD broker (%). |
 | `created_at` / `updated_at` | `TIMESTAMP` | `NULLABLE` | Timestamps. |
 

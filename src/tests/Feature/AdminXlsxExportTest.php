@@ -81,8 +81,8 @@ class AdminXlsxExportTest extends TestCase
             '/admin/affiliates/export?tab=affiliates',
             '/admin/affiliates/export?tab=claims',
             '/admin/commissions/export',
-            '/admin/master-fee/export?tab=laporan',
-            '/admin/master-fee/export?tab=belum_lapor',
+            '/admin/performance-fee/export?tab=laporan',
+            '/admin/performance-fee/export?tab=belum_lapor',
             '/admin/tickets/export',
             '/admin/activity-logs/export',
         ];
@@ -408,10 +408,10 @@ class AdminXlsxExportTest extends TestCase
         ]);
     }
 
-    public function test_admin_can_export_master_fee_reports_and_missing_reports(): void
+    public function test_admin_can_export_performance_fee_reports_and_missing_reports(): void
     {
         $investor = User::factory()->create([
-            'name'      => 'Investor Master Fee',
+            'name'      => 'Investor Performance Fee',
             'username'  => 'investorfee',
             'role'      => 'member',
             'status'    => 'active',
@@ -427,13 +427,13 @@ class AdminXlsxExportTest extends TestCase
             'modal_riil'         => 1000.00,
             'nama_bank'          => 'BCA',
             'nomor_rekening'     => '12345678',
-            'atas_nama_rekening' => 'Investor Master Fee',
+            'atas_nama_rekening' => 'Investor Performance Fee',
             'status'             => 'active',
             'tanggal_mulai'      => now()->subMonths(3)->toDateString(),
         ]);
 
         LaporanProfitBulanan::create([
-            'nomor'               => 'MFE-202611-0001',
+            'nomor'               => 'PFE-202611-0001',
             'user_id'             => $investor->id,
             'akun_copytrade_id'   => $akun->id,
             'periode_ke'          => 1,
@@ -445,25 +445,25 @@ class AdminXlsxExportTest extends TestCase
             'fee_usd'             => 75.00,
             'fee_idr'             => 1150000,
             'status'              => LaporanProfitBulanan::STATUS_LUNAS,
-            'bukti_myfxbook_path' => 'master_fee/myfxbook_test.png',
+            'bukti_myfxbook_path' => 'performance_fee/myfxbook_test.png',
         ]);
 
         // 1. Ekspor Tab Laporan Profit
-        $resLaporan = $this->actingAs($this->admin)->get('/admin/master-fee/export?tab=laporan&search=MFE-202611-0001');
+        $resLaporan = $this->actingAs($this->admin)->get('/admin/performance-fee/export?tab=laporan&search=PFE-202611-0001');
         $resLaporan->assertOk();
         $xmlLaporan = $this->extractSheetXmlContent($resLaporan);
-        $this->assertStringContainsString('MFE-202611-0001', $xmlLaporan);
+        $this->assertStringContainsString('PFE-202611-0001', $xmlLaporan);
         $this->assertStringContainsString('investorfee', $xmlLaporan);
 
         // 2. Ekspor Tab Akun Belum Lapor
-        $resMissing = $this->actingAs($this->admin)->get('/admin/master-fee/export?tab=belum_lapor&search=77665544');
+        $resMissing = $this->actingAs($this->admin)->get('/admin/performance-fee/export?tab=belum_lapor&search=77665544');
         $resMissing->assertOk();
         $xmlMissing = $this->extractSheetXmlContent($resMissing);
         $this->assertStringContainsString('77665544', $xmlMissing);
 
         $this->assertDatabaseHas('log_aktivitas', [
             'aksi'     => 'ekspor_data',
-            'kategori' => 'master_fee',
+            'kategori' => 'performance_fee',
             'user_id'  => $this->admin->id,
         ]);
     }

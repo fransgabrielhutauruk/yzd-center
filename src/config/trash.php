@@ -83,7 +83,7 @@ return [
     'laporan-profit' => [
         'model'    => \App\Models\LaporanProfitBulanan::class,
         'label'    => 'Laporan Profit Bulanan',
-        'category' => 'master_fee',
+        'category' => 'performance_fee',
         'display'  => 'nomor',
         'files'    => ['bukti_myfxbook_path', 'bukti_wd_path', 'bukti_transfer_path'],
         'children' => [],
